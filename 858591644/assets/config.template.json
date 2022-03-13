@@ -1,0 +1,29 @@
+{
+  "noteTypeSpecific": {
+    "searchField": {
+      "friendly": "Search Field",
+      "default": "Word",
+      "description": "<p>Select the field whose text should be used to search on Forvo.</p><p>Note type: <b>{{noteType}}</b></p>"
+    },
+    "backupSearchField": {
+      "friendly": "Backup Search Field",
+      "description": ""
+    },
+    "audioField": {
+      "friendly": "Audio Field",
+      "description": "<p>Select the field where the audio should be put in.</p><p>Note type: <b>{{noteType}}</b></p>"
+    }
+  },
+  "deckSpecific": {
+    "language": {
+      "friendly": "Deck Language",
+      "description": "The language of this deck that will be used to search on Forvo",
+      "default": "ja"
+    }
+  },
+  "appendAudio": {
+    "friendly": "Append to existing audio",
+    "description": "Appends the new audios to the existing value of the audio field",
+    "default": true
+  }
+}

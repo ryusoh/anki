@@ -1,0 +1,16 @@
+{
+    "appendAudio": true,
+    "noteTypeSpecific": [
+        {
+            "id": 1581573284840,
+            "searchField": "Front",
+            "audioField": "Back"
+        }
+    ],
+    "deckSpecific": [
+        {
+            "id": 1586057413977,
+            "language": "ja"
+        }
+    ]
+}
