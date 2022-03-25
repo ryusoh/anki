@@ -36,7 +36,7 @@ body.nightMode {
     background-size: cover;  
     background-attachment: fixed; 
     background-repeat: no-repeat;
-    background-position: bottom;;
+    background-position: background-position: center;;
     background-color: FFDEE7!important; }
 body {
 
@@ -44,7 +44,7 @@ body {
     background-size: cover;  
     background-attachment: fixed; 
     background-repeat: no-repeat;
-    background-position: bottom;;
+    background-position: background-position: center;;
     background-color: FFDEE7!important; 
   margin: 0;
   padding: 0;
