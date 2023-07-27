@@ -7,10 +7,11 @@ import time
 from anki.cards import Card
 from anki.consts import *
 from anki.hooks import addHook
-from anki.lang import _
-from anki.rsbackend import FormatTimeSpanContext
+from anki.lang import FormatTimeSpan as FormatTimeSpanContext
+
 from aqt import *
-from aqt.utils import askUser
+from aqt.operations.card import set_card_flag
+from aqt.utils import askUser, tr
 
 
 class AdvancedFields:
@@ -40,7 +41,7 @@ class AdvancedFields:
             type='cfirst',
             name='First Review',
             onData=cFirstOnData,
-            onSort=lambda: "(select min(id) from revlog where cid = c.id)",
+            onSort=lambda: "(select min(id) from revlog where cid = c.id) asc nulls last",
         )
         self.customColumns.append(cc)
         # ------------------------------- #
@@ -56,7 +57,7 @@ class AdvancedFields:
             type='clast',
             name='Last Review',
             onData=cLastOnData,
-            onSort=lambda: "(select max(id) from revlog where cid = c.id)"
+            onSort=lambda: "(select max(id) from revlog where cid = c.id) asc nulls last"
         )
         self.customColumns.append(cc)
         # ------------------------------- #
@@ -65,13 +66,15 @@ class AdvancedFields:
         def cAvgtimeOnData(c, n, t):
             avgtime = mw.col.db.scalar(
                 "select avg(time)/1000.0 from revlog where cid = ?", c.id)
-            return mw.col.backend.format_time_span(avgtime)
+            if avgtime:
+                return mw.col.format_timespan(avgtime)
+            return None
 
         cc = advBrowser.newCustomColumn(
             type='cavgtime',
             name='Time (Average)',
             onData=cAvgtimeOnData,
-            onSort=lambda: "(select avg(time) from revlog where cid = c.id)"
+            onSort=lambda: "(select avg(time) from revlog where cid = c.id) asc nulls last"
         )
         self.customColumns.append(cc)
         # ------------------------------- #
@@ -80,13 +83,15 @@ class AdvancedFields:
         def cTottimeOnData(c, n, t):
             tottime = mw.col.db.scalar(
                 "select sum(time)/1000.0 from revlog where cid = ?", c.id)
-            return mw.col.backend.format_time_span(tottime)
+            if tottime:
+                return mw.col.format_timespan(tottime)
+            return None
 
         cc = advBrowser.newCustomColumn(
             type='ctottime',
             name='Time (Total)',
             onData=cTottimeOnData,
-            onSort=lambda: "(select sum(time) from revlog where cid = c.id)"
+            onSort=lambda: "(select sum(time) from revlog where cid = c.id) asc nulls last"
         )
         self.customColumns.append(cc)
         # ------------------------------- #
@@ -96,10 +101,13 @@ class AdvancedFields:
             tm = mw.col.db.scalar(
                 "select time/1000.0 from revlog where cid = ? "
                 "order by time asc limit 1", c.id)
-            return mw.col.backend.format_time_span(tm)
+            if tm:
+                return mw.col.format_timespan(tm)
+            return None
 
+        # Note: capital ASC required to avoid search+replace
         srt = ("(select time/1000.0 from revlog where cid = c.id "
-               "order by time asc limit 1)")
+               "order by time ASC limit 1) asc nulls last")
 
         cc = advBrowser.newCustomColumn(
             type='cfasttime',
@@ -115,10 +123,12 @@ class AdvancedFields:
             tm = mw.col.db.scalar(
                 "select time/1000.0 from revlog where cid = ? "
                 "order by time desc limit 1", c.id)
-            return mw.col.backend.format_time_span(tm)
+            if tm:
+                return mw.col.format_timespan(tm)
+            return None
 
         srt = ("(select time/1000.0 from revlog where cid = c.id "
-               "order by time desc limit 1)")
+               "order by time DESC limit 1) asc nulls last")
 
         cc = advBrowser.newCustomColumn(
             type='cslowtime',
@@ -131,26 +141,56 @@ class AdvancedFields:
 
         # Overdue interval
         def cOverdueIvl(c, n, t):
-            val = self.valueForOverdue(c.odid, c.queue, c.type, c.due)
+            val = self.valueForOverdue(c.queue, c.type, c.due, c.odue)
             if val:
-                return mw.col.backend.format_time_span(val * 24 * 60 * 60, context=FormatTimeSpanContext.INTERVALS)
+                return mw.col.format_timespan(val * 24 * 60 * 60, context=FormatTimeSpanContext.INTERVALS)
 
         srt = (f"""
-        select
+        (select
           (case
-             when odid then null
              when queue = {QUEUE_TYPE_LRN} then null
              when queue = {QUEUE_TYPE_NEW} then null
              when type = {CARD_TYPE_NEW} then null
              when {mw.col.sched.today} - due <= 0 then null
+             when odid then ({mw.col.sched.today} - odue)
              when (queue = {QUEUE_TYPE_REV} or queue = {QUEUE_TYPE_DAY_LEARN_RELEARN} or (type = {CARD_TYPE_REV} and queue < 0)) then ({mw.col.sched.today} - due)
+           end
           )
-        where id = c.id""")
+        from cards where id = c.id) asc nulls last""")
 
         cc = advBrowser.newCustomColumn(
             type='coverdueivl',
             name="Overdue Interval",
             onData=cOverdueIvl,
+            onSort=getOnSort(srt)
+        )
+        self.customColumns.append(cc)
+        # ------------------------------- #
+
+        # Percentage of scheduled interval
+        def cPercentageSchedIvl(c, n, t):
+            val = self.reviewCardPercentageDue(c.odid, c.odue, c.queue, c.type, c.due, c.ivl)
+            if val:
+                return "{0:.2f}".format(val) + " %"
+
+        srt = (f"""
+        (select
+          (case
+             when odue and (type = {CARD_TYPE_REV} or type = {CARD_TYPE_RELEARNING}) then (
+                (({mw.col.sched.today} - odue + ivl) * 1.0) / (ivl * 1.0)
+                )
+             when (type = {CARD_TYPE_REV} or type = {CARD_TYPE_RELEARNING}) then (
+                (({mw.col.sched.today} - due + ivl) * 1.0) / (ivl * 1.0)
+                )
+             else null
+           end
+          )
+        from cards where id = c.id) asc nulls last""")
+
+        cc = advBrowser.newCustomColumn(
+            type='cpercentageschedivl',
+            name="% of Ivl",
+            onData=cPercentageSchedIvl,
             onSort=getOnSort(srt)
         )
         self.customColumns.append(cc)
@@ -166,12 +206,12 @@ class AdvancedFields:
             elif ivl == 0:
                 return "0 days"
             elif ivl > 0:
-                return mw.col.backend.format_time_span(ivl*86400, context=FormatTimeSpanContext.INTERVALS)
+                return mw.col.format_timespan(ivl*86400, context=FormatTimeSpanContext.INTERVALS)
             else:
-                return mw.col.backend.format_time_span(-ivl, context=FormatTimeSpanContext.INTERVALS)
+                return mw.col.format_timespan(-ivl, context=FormatTimeSpanContext.INTERVALS)
 
         srt = ("(select ivl from revlog where cid = c.id "
-               "order by id desc limit 1 offset 1)")
+               "order by id desc limit 1 offset 1) asc nulls last")
 
         cc = advBrowser.newCustomColumn(
             type='cprevivl',
@@ -182,18 +222,33 @@ class AdvancedFields:
         self.customColumns.append(cc)
         # ------------------------------- #
 
+        # Total Number of 1/Again (also on new and learning cards)
+        def cAgainCount(c, n, t):
+            val = mw.col.db.scalar(f"select count() from revlog where cid={c.id} and ease=1")
+            if val:
+                return val
+
+        cc = advBrowser.newCustomColumn(
+            type='cAgainCount',
+            name="Again Count",
+            onData=cAgainCount,
+            onSort=lambda: "(select count() from revlog where cid = c.id and ease=1)"
+        )
+        self.customColumns.append(cc)
+        # ------------------------------- #
+
         # Percent correct
         def cPctCorrect(c, n, t):
             if c.reps > 0:
                 return "{:2.0f}%".format(
                     100 - ((c.lapses / float(c.reps)) * 100))
-            return "0%"
+            return None
 
         cc = advBrowser.newCustomColumn(
             type='cpct',
             name='Percent Correct',
             onData=cPctCorrect,
-            onSort=lambda: "cast(c.lapses as real)/c.reps"
+            onSort=lambda: "cast(c.lapses as real)/c.reps asc nulls last"
         )
         self.customColumns.append(cc)
         # ------------------------------- #
@@ -203,10 +258,12 @@ class AdvancedFields:
             time = mw.col.db.scalar(
                 "select time/1000.0 from revlog where cid = ? "
                 "order by id desc limit 1", c.id)
-            return mw.col.backend.format_time_span(time)
+            if time:
+                return mw.col.format_timespan(time)
+            return None
 
         srt = ("(select time/1000.0 from revlog where cid = c.id "
-               "order by id desc limit 1)")
+               "order by id desc limit 1) asc nulls last")
 
         cc = advBrowser.newCustomColumn(
             type='cprevdur',
@@ -225,7 +282,7 @@ class AdvancedFields:
             type='ctimecrtn',
             name='Created Time (Note)',
             onData=cDateTimeCrt,
-            onSort=lambda: "n.id"
+            onSort=lambda: "n.id asc nulls last"
         )
         self.customColumns.append(cc)
         # ------------------------------- #
@@ -238,7 +295,7 @@ class AdvancedFields:
             type='cdatecrtc',
             name='Created Date (Card)',
             onData=cDateTimeCrt,
-            onSort=lambda: "c.id"
+            onSort=lambda: "c.id asc nulls last"
         )
         self.customColumns.append(cc)
         # ------------------------------- #
@@ -251,7 +308,7 @@ class AdvancedFields:
             type='ctimecrtc',
             name='Created Time (Card)',
             onData=cDateTimeCrt,
-            onSort=lambda: "c.id"
+            onSort=lambda: "c.id asc nulls last"
         )
         self.customColumns.append(cc)
         # ------------------------------- #
@@ -262,7 +319,7 @@ class AdvancedFields:
             new_deck = c.col.decks.byName(value)
             if new_deck is None:
                 if not askUser(
-                        _("%s does not exists, do you want to create this deck ?") % value,
+                        "%s does not exists, do you want to create this deck ?" % value, # translation missing
                         parent=advBrowser,
                         defaultno=True):
                     return False
@@ -311,20 +368,18 @@ class AdvancedFields:
             try:
                 value = int(value)
             except ValueError:
-                value = {"":0, "no":0,"red":1, "orange":2, "green":3, "blue":4}.get(value.strip().lower())
+                value = {"":0, "no":0,"red":1, "orange":2, "green":3, "blue":4, "pink":5, "turquoise":6, "purple":7}.get(value.strip().lower())
                 if value is None:
                     return False
-            if not 0 <= value <= 4:
+            if not 0 <= value <= 7:
                 return False
-            c.setUserFlag(value)
+            set_card_flag(parent=advBrowser.browser, card_ids=[c.id], flag=value).run_in_background()
             return True
 
         cc = advBrowser.newCustomColumn(
             type="cflags",
             name="Flag",
-            onData=lambda c, n, t: {1: _("Red Flag"), 2:_("Orange Flag"),
-                                    3: _("Green Flag"), 4:_("Blue Flag")}
-                .get(c.flags, None),
+            onData=lambda c, n, t: mw.flags.get_flag(c.flags).label if c.flags else None,
             onSort=lambda: "(case when c.flags = 0 then null else c.flags end) asc nulls last",
             setData=setData,
         )
@@ -339,13 +394,14 @@ class AdvancedFields:
         for column in self.customColumns:
             group.addItem(column)
 
-    def valueForOverdue(self, odid, queue, type, due):
-        if odid or queue == QUEUE_TYPE_LRN:
+    def valueForOverdue(self, queue, type, due, odue):
+        if queue == QUEUE_TYPE_LRN:
             return
         elif queue == QUEUE_TYPE_NEW or type == CARD_TYPE_NEW:
             return
         else:
-            diff = mw.col.sched.today - due
+            card_due = odue if odue else due
+            diff = mw.col.sched.today - card_due
             if diff <= 0:
                 return
             if queue in (QUEUE_TYPE_REV, QUEUE_TYPE_DAY_LEARN_RELEARN) or (type == CARD_TYPE_REV and queue < 0):
@@ -353,6 +409,22 @@ class AdvancedFields:
             else:
                 return
 
+    def reviewCardPercentageDue(self, odid, odue, queue, type, due, ivl):
+        if odid:
+            due = odue
+        if queue == QUEUE_TYPE_LRN:
+            return 0.0
+        elif queue == QUEUE_TYPE_NEW or type == CARD_TYPE_NEW:
+            return 0.0
+        elif queue in (QUEUE_TYPE_REV, QUEUE_TYPE_DAY_LEARN_RELEARN) or (type == CARD_TYPE_REV and queue < 0):
+            try:
+                last_rev = due - ivl
+                elapsed = mw.col.sched.today - last_rev
+                p = elapsed/float(ivl) * 100
+                return p
+            except ZeroDivisionError:
+                return 0.0
+        return 0.0
 
 af = AdvancedFields()
 addHook("advBrowserLoaded", af.onAdvBrowserLoad)

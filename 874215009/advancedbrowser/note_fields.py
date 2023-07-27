@@ -4,6 +4,7 @@
 import re
 from anki.cards import Card
 from anki.hooks import addHook
+from anki.utils import pointVersion
 from aqt import *
 from aqt.utils import showWarning
 
@@ -44,12 +45,12 @@ class NoteFields:
         fldGroup = contextMenu.newSubMenu(" - Fields -")
         if getEachFieldInSingleList():
             # And an option for each fields
-            for model in mw.col.models.models.values():
+            for model in mw.col.models.all():
                 for fld in model['flds']:
                     fldGroup.addItem(self.customColumns[fld['name']])
         else:
             # And a sub-menu for each note type
-            for model in mw.col.models.models.values():
+            for model in mw.col.models.all():
                 modelGroup = fldGroup.newSubMenu(model['name'])
                 for fld in model['flds']:
                     modelGroup.addItem(self.customColumns[fld['name']])
@@ -85,6 +86,7 @@ class NoteFields:
         def setData_(name):
             def setData(c: Card, value: str):
                 n = c.note()
+                m = n.note_type()
                 if not name in n:
                     showWarning(_("""The field "%s" does not belong to the note type "%s".""") % (
                         name, m["name"]))
@@ -156,7 +158,7 @@ class NoteFields:
         s = s.replace("\n", " ")
         s = reSound.sub("\\1", s)  # this line is different
         s = reType.sub("", s)
-        s = anki.utils.stripHTMLMedia(s)
+        s = anki.utils.stripHTMLMedia(s) if pointVersion() < 50 else anki.utils.strip_html_media(s)
         s = s.strip()
         return s
 

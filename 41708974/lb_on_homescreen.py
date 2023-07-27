@@ -1,6 +1,6 @@
 import datetime
 from datetime import date, timedelta
-import requests
+import json
 
 try:
 	from aqt import gui_hooks
@@ -8,7 +8,6 @@ except:
 	pass
 from aqt.deckbrowser import DeckBrowser
 from aqt import mw
-from aqt.utils import showWarning
 from aqt.deckbrowser import DeckBrowser
 from anki.hooks import wrap
 
@@ -26,36 +25,25 @@ def getData():
 		else:
 			start_day = datetime.datetime.combine(date.today(), new_day)
 
-		url = 'https://ankileaderboard.pythonanywhere.com/getdata/'
-		sortby = {"sortby": config["sortby"]}
-		try:
-			data = requests.post(url, data = sortby, timeout=20).json()
-		except:
-			data = []
-			showWarning("Timeout error [getdata] - No internet connection, or server response took too long.", title="Leaderboard error")
-
 		lb_list = []
 		counter = 0
-
-		for i in data:
+		for i in data[0]:
 			username = i[0]
 			streak = i[1]
 			cards = i[2]
 			time = i[3]
 			sync_date = i[4]
-			sync_date = sync_date.replace(" ", "")
-			sync_date = datetime.datetime(int(sync_date[0:4]),int(sync_date[5:7]), int(sync_date[8:10]), int(sync_date[10:12]), int(sync_date[13:15]), int(sync_date[16:18]))
-			try:
-				month = int(i[5])
-			except:
-				month = ""
-			subject = i[6]
+			sync_date = datetime.datetime.strptime(sync_date, '%Y-%m-%d %H:%M:%S.%f')
+			month = i[5]
 			country = i[7]
 			retention = i[8]
-			try:
-				retention = float(retention)
-			except:
-				retention = ""
+			groups = []
+			if i[6]:
+				groups.append(i[6].replace(" ", ""))
+			if i[9]:
+				for group in json.loads(i[9]):
+					groups.append(group)
+			groups = [x.replace(" ", "") for x in groups]	
 
 			if config["show_medals"] == True:
 				for i in medal_users:
@@ -78,36 +66,25 @@ def getData():
 				if config["tab"] == 2 and country == config["country"].replace(" ", ""):
 					counter += 1
 					lb_list.append([counter, username, cards, time, streak, month, retention])
-				if config["tab"] == 3 and subject == config["subject"].replace(" ", ""):
+				if config["tab"] == 3 and config["current_group"] in groups:
 					counter += 1
 					lb_list.append([counter, username, cards, time, streak, month, retention])
 
 	if config["tab"] == 4:
-		url = 'https://ankileaderboard.pythonanywhere.com/league/'
-		try:
-			data = requests.get(url, timeout=20).json()
-		except:
-			data = []
-			showWarning("Timeout error [load_league] - No internet connection, or server response took too long.", title="Leaderboard error")
-
-		user_league_name = "Alpha"
-		for i in data:
+		for i in data[1]:
 			if config["username"] in i:
 				user_league_name = i[5]
 
 		counter = 0
 		lb_list = []
-
-		for i in data:
+		for i in data[1]:
 			username = i[0]
 			xp = i[1]
 			reviews = i[2]
 			time_spend = i[3]
 			retention = i[4]
 			league_name = i[5]
-			if i[7]:
-				days_learned = i[7]
-			else: days_learned = "n/a"
+			days_learned = i[7]	
 
 			for i in medal_users:
 				if username in i:
@@ -133,16 +110,39 @@ def on_deck_browser_will_render_content(overview, content):
 	else:
 		lb = getData()
 	result = []
+	lb_length = len(lb)
+	if config["maxUsers"] > lb_length:
+		config["maxUsers"] = lb_length
 	if config["focus_on_user"] == True and len(lb) > config["maxUsers"]:
 		for i in lb:
 			if config["username"] == i[1].split(" |")[0]:
-				user_index = lb.index(i)
+				user_index = lb.index(i)	
 				if int(config["maxUsers"]) % 2 == 0:
-					for i in range((user_index - int(config["maxUsers"] / 2)), (user_index + int(config["maxUsers"] / 2))):
-						result.append(lb[i])
+					if user_index + config["maxUsers"] / 2 > lb_length:
+						for i in range((user_index - config["maxUsers"] + 1), user_index + 1):
+							result.append(lb[i])
+						break
+					if user_index - config["maxUsers"] / 2 < 0:
+						for i in range(user_index, (user_index + config["maxUsers"])):
+							result.append(lb[i])
+						break
+					else:
+						for i in range((user_index - int(config["maxUsers"] / 2)), (user_index + int(config["maxUsers"] / 2))):
+							result.append(lb[i])
+						break
 				else:
-					for i in range((user_index - int(config["maxUsers"] / 2)), (user_index + int(config["maxUsers"] / 2) + 1)):
-						result.append(lb[i])
+					if user_index + (config["maxUsers"] / 2) + 1 > lb_length:
+						for i in range((user_index - config["maxUsers"] + 1), user_index + 1):
+							result.append(lb[i])
+						break
+					if user_index - config["maxUsers"] / 2 < 0:
+						for i in range(user_index, (user_index + config["maxUsers"])):
+							result.append(lb[i])
+						break
+					else:
+						for i in range((user_index - int(config["maxUsers"] / 2)), (user_index + int(config["maxUsers"] / 2) + 1)):
+							result.append(lb[i])
+					break
 	
 		if not result:
 			result = lb[:config["maxUsers"]]
@@ -262,7 +262,9 @@ def on_deck_browser_will_render_content(overview, content):
 
 	content.stats += table_style + table_header + table_content + "</table>"
 
-def leaderboard_on_deck_browser():
+def leaderboard_on_deck_browser(response):
+	global data
+	data = response
 	config = mw.addonManager.getConfig(__name__)
 	gui_hooks.deck_browser_will_render_content.remove(on_deck_browser_will_render_content)
 	if config["homescreen"] == True:

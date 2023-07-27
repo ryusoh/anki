@@ -25,11 +25,9 @@ import os
 import sys
 from time import time
 
-from PyQt5.QtCore import PYQT_VERSION_STR, Qt
-from PyQt5.QtGui import QKeySequence
-
 import anki
 import aqt
+import aqt.qt
 
 from . import conversion as to, gui, paths, service
 from .bundle import Bundle
@@ -39,9 +37,10 @@ from .router import Router
 from .text import Sanitizer
 from .ttsplayer import register_tts_player
 from .languagetools import LanguageTools
+from .version import AWESOMETTS_VERSION
 
 __all__ = ['browser_menus', 'cards_button', 'config_menu', 'editor_button',
-           'reviewer_hooks', 'sound_tag_delays', 
+           'reviewer_hooks', 
            'window_shortcuts']
 
 
@@ -73,12 +72,12 @@ def get_platform_info():
 
     return "%s %s; %s" % (implementation, python_version, system_description)
 
-VERSION = '1.30.0'
+VERSION = AWESOMETTS_VERSION
 
 WEB = 'https://github.com/AwesomeTTS/awesometts-anki-addon'
 
 AGENT = 'AwesomeTTS/%s (Anki %s; PyQt %s; %s)' % (VERSION, anki.version,
-                                                  PYQT_VERSION_STR,
+                                                  aqt.qt.PYQT_VERSION_STR,
                                                   get_platform_info())
 
 
@@ -86,6 +85,10 @@ AGENT = 'AwesomeTTS/%s (Anki %s; PyQt %s; %s)' % (VERSION, anki.version,
 
 if 'AWESOMETTS_DEBUG_LOGGING' in os.environ:
     import logging 
+    import io
+    # on windows, some special characters can't be printed, replace them with ?
+    if not hasattr(sys, '_pytest_mode'):
+        sys.stdout = io.TextIOWrapper(sys.stdout.detach(), sys.stdout.encoding, 'replace')
     if os.environ['AWESOMETTS_DEBUG_LOGGING'] == 'enable':
         logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s', 
                             datefmt='%Y%m%d-%H:%M:%S',
@@ -102,10 +105,6 @@ if 'AWESOMETTS_DEBUG_LOGGING' in os.environ:
 else:
     logger = Bundle(debug=lambda *a, **k: None, error=lambda *a, **k: None,
                     info=lambda *a, **k: None, warn=lambda *a, **k: None)
-
-sequences = {key: QKeySequence()
-             for key in ['browser_generator', 'browser_stripper',
-                         'configurator', 'editor_generator', 'templater']}
 
 config = Config(
     db=Bundle(path=paths.CONFIG,
@@ -132,20 +131,17 @@ config = Config(
                                   else 'say' if 'darwin' in sys.platform
                                   else 'yandex'), str, str),
         ('last_strip_mode', 'text', 'ours', str, str),
-        ('launch_browser_generator', 'integer', Qt.ControlModifier | Qt.Key_T,
-         to.nullable_key, to.nullable_int),
-        ('launch_browser_stripper', 'integer', None, to.nullable_key,
-         to.nullable_int),
-        ('launch_configurator', 'integer', Qt.ControlModifier | Qt.Key_T,
-         to.nullable_key, to.nullable_int),
-        ('launch_editor_generator', 'integer', Qt.ControlModifier | Qt.Key_T,
-         to.nullable_key, to.nullable_int),
-        ('launch_templater', 'integer', Qt.ControlModifier | Qt.Key_T,
-         to.nullable_key, to.nullable_int),
+        ('shortcut_launch_browser_generator', 'text', 'Ctrl+T', str, str),
+        ('shortcut_launch_browser_stripper', 'text', 'Ctrl+T', str, str),
+        ('shortcut_launch_configurator', 'text', 'Ctrl+T', str, str),
+        ('shortcut_launch_editor_generator', 'text', 'Ctrl+T', str, str),
+        ('shortcut_launch_templater', 'text', 'Ctrl+T', str, str),
         ('otf_only_revealed_cloze', 'integer', False, to.lax_bool, int),
         ('otf_remove_hints', 'integer', False, to.lax_bool, int),
         ('plus_api_key', 'text', '', str, str),
         ('presets', 'text', {}, to.deserialized_dict, to.compact_json),
+        ('service_azure_sleep_time', 'integer', 0, int, int),
+        ('service_forvo_preferred_users', 'text', '', str, str),
         ('spec_note_count', 'text', '', str, str),
         ('spec_note_count_wrap', 'integer', True, to.lax_bool, int),
         ('spec_note_ellipsize', 'text', '', str, str),
@@ -160,12 +156,15 @@ config = Config(
         ('strip_template_braces', 'integer', False, to.lax_bool, int),
         ('strip_template_brackets', 'integer', False, to.lax_bool, int),
         ('strip_template_parens', 'integer', False, to.lax_bool, int),
+        ('strip_ruby_tags', 'integer', True, to.lax_bool, int),
         ('sub_note_cloze', 'text', 'anki', str, str),
         ('sub_template_cloze', 'text', 'anki', str, str),
+        ('sub_note_xml_entities', 'integer', False, to.lax_bool, int),
+        ('sub_template_xml_entities', 'integer', False, to.lax_bool, int),
         ('sul_note', 'text', [], to.substitution_list, to.substitution_json),
         ('sul_template', 'text', [], to.substitution_list,
          to.substitution_json),
-        ('throttle_sleep', 'integer', 3, int, int),
+        ('throttle_sleep', 'integer', 30, int, int),
         ('throttle_threshold', 'integer', 10, int, int),
         ('tts_voices', 'text', {}, to.deserialized_dict, to.compact_json),
     ],
@@ -174,7 +173,7 @@ config = Config(
     ],
 )
 
-languagetools = LanguageTools(config['plus_api_key'], logger)
+languagetools = LanguageTools(config['plus_api_key'], logger, VERSION)
 
 try:
     from aqt.sound import av_player
@@ -202,12 +201,15 @@ player = Player(
 router = Router(
     services=Bundle(
         mappings=[
+            ('amazon', service.Amazon),
             ('azure', service.Azure),
             ('baidu', service.Baidu),
             ('cambridge', service.Cambridge),
+            ('cereproc', service.CereProc),
             ('collins', service.Collins),
             ('duden', service.Duden),
             ('ekho', service.Ekho),
+            ('elevenlabs', service.ElevenLabs),
             ('espeak', service.ESpeak),
             ('festival', service.Festival),
             ('fptai', service.FptAi),
@@ -228,6 +230,7 @@ router = Router(
             ('yandex', service.Yandex),
             ('youdao', service.Youdao),
             ('forvo', service.Forvo),
+            ('vocalware', service.VocalWare),
             ('watson', service.Watson)
         ],
         dead=dict(
@@ -250,7 +253,8 @@ router = Router(
                     normalize=to.normalized_ascii,
                     logger=logger,
                     ecosystem=Bundle(web=WEB, agent=AGENT),
-                    languagetools=languagetools),
+                    languagetools=languagetools,
+                    config=config),
     ),
     cache_dir=paths.CACHE,
     temp_dir=join(paths.TEMP, '_awesometts_scratch_' + str(int(time()))),
@@ -309,6 +313,7 @@ addon = Bundle(
         # prepopulating a modal input based on some note field, where cloze
         # placeholders are still in their unprocessed state)
         from_note=Sanitizer([
+            ('ruby_tags', 'strip_ruby_tags'),
             ('clozes_braced', 'sub_note_cloze'),
             ('newline_ellipsize', 'ellip_note_newlines'),
             'html',
@@ -324,16 +329,19 @@ addon = Bundle(
             ('custom_sub', 'sul_note'),
             'ellipses',
             'whitespace',
+            ('xml_entities', 'sub_note_xml_entities')
         ], config=config, logger=logger),
 
         # clean up fields coming from templates (on the fly TTS)
         from_template=Sanitizer([
+            ('ruby_tags', 'strip_ruby_tags'),
             ('clozes_rendered', 'sub_template_cloze'),
             ('clozes_revealed', 'otf_only_revealed_cloze'),
             'hint_links',
             ('hint_content', 'otf_remove_hints'),
             ('newline_ellipsize', 'ellip_template_newlines'),
             'html',
+            ('xml_entities', 'sub_template_xml_entities'),
         ] + STRIP_TEMPLATE_POSTHTML, config=config, logger=logger),
 
         # for cleaning up text from unknown sources (e.g. system clipboard);
@@ -365,10 +373,15 @@ addon = Bundle(
             ('custom_sub', 'sul_template'),
             'ellipses',
             'whitespace',
+            ('xml_entities', 'sub_note_xml_entities')
         ], config=config, logger=logger),
 
         # for direct user input (e.g. previews, EditorGenerator insertion)
-        from_user=Sanitizer(rules=['ellipses', 'whitespace'], logger=logger),
+        from_user=Sanitizer(rules=[
+            'ellipses', 
+            'whitespace',
+            ('xml_entities', 'sub_note_xml_entities')
+        ], config=config, logger=logger),
 
         # target sounds specifically
         sounds=Bundle(
@@ -406,12 +419,10 @@ def browser_menus():
     disables and enables it upon selection of items.
     """
 
-    from PyQt5 import QtWidgets
-
     def on_setup_menus(browser):
         """Create an AwesomeTTS menu and add browser actions to it."""
 
-        menu = QtWidgets.QMenu("Awesome&TTS", browser.form.menubar)
+        menu = aqt.qt.QMenu("Awesome&TTS", browser.form.menubar)
         browser.form.menubar.addMenu(menu)
 
         gui.Action(
@@ -425,7 +436,7 @@ def browser_menus():
                             parent=browser),
             ),
             text="&Add Audio to Selected...",
-            sequence=sequences['browser_generator'],
+            sequence=aqt.qt.QKeySequence(config.get('shortcut_launch_browser_generator')),
             parent=menu,
         )
         gui.Action(
@@ -438,7 +449,7 @@ def browser_menus():
                             parent=browser),
             ),
             text="&Remove Audio from Selected...",
-            sequence=sequences['browser_stripper'],
+            sequence=aqt.qt.QKeySequence(config.get('shortcut_launch_browser_stripper')),
             parent=menu,
         )
 
@@ -519,7 +530,7 @@ def cards_button():
             gui.Button(
                 text="Add &TTS",
                 tooltip="Insert a tag for on-the-fly playback w/ AwesomeTTS",
-                sequence=sequences['templater'],
+                sequence=aqt.qt.QKeySequence(config.get('shortcut_launch_templater')),
                 target=Bundle(
                     constructor=gui.Templater,
                     args=(),
@@ -545,15 +556,43 @@ def config_menu():
         target=Bundle(
             constructor=gui.Configurator,
             args=(),
-            kwargs=dict(addon=addon, sul_compiler=to.substitution_compiled,
+            kwargs=dict(addon=addon,
+                        logger=logger,
+                        sul_compiler=to.substitution_compiled,
                         alerts=aqt.utils.showWarning,
                         ask=aqt.utils.getText,
                         parent=aqt.mw),
         ),
         text="Awesome&TTS...",
-        sequence=sequences['configurator'],
+        sequence=aqt.qt.QKeySequence(config.get('shortcut_launch_configurator')),
         parent=aqt.mw.form.menuTools,
     )
+
+    # setup AwesomeTTS resources menu
+    resources_menu = aqt.qt.QMenu('AwesomeTTS Resources', aqt.mw)
+    
+    def open_url_lambda(url):
+        def open_url():
+            aqt.qt.QDesktopServices.openUrl(aqt.qt.QUrl(url))
+        return open_url
+
+    links = [
+        {'name': """What's New / Updates""", 'url_path': 'updates'},
+        {'name': 'Getting Started with AwesomeTTS', 'url_path': 'tutorials/awesometts-getting-started'},
+        {'name': 'Batch Audio Generation', 'url_path': 'tutorials/awesometts-batch-generation'},
+        {'name': 'On the fly Audio', 'url_path': 'tutorials/awesometts-on-the-fly-tts'},
+        {'name': 'All Tutorials', 'url_path': 'tutorials'},
+        {'name': 'Listen to Voice Samples', 'url_path': 'languages'},
+        {'name': 'Get Access to All Voices / All Services', 'url_path': 'awesometts-plus'},
+    ]    
+    for link in links:
+        action = aqt.qt.QAction(link['name'], aqt.mw)
+        url_path = link['url_path']
+        url = f'https://languagetools.anki.study/{url_path}?utm_campaign=atts_resources&utm_source=awesometts&utm_medium=addon'
+        action.triggered.connect(open_url_lambda(url))
+        resources_menu.addAction(action)
+    # and add it to the tools menu
+    aqt.mw.form.menuTools.addMenu(resources_menu)
 
 
 def editor_button():
@@ -573,14 +612,14 @@ def editor_button():
         return launch
 
     def addAwesomeTTSEditorButton(buttons, editor):
-        cmd_string = 'awesometts_btn'
-        editor._links[cmd_string] = createAwesomeTTSEditorLambda()
-        new_button = editor._addButton(icon = gui.ICON_FILE,
-            cmd = cmd_string,
+        new_button = editor.addButton(gui.ICON_FILE,
+            'AwesomeTTS',
+            createAwesomeTTSEditorLambda(),
             tip = "Record and insert an audio clip here w/ AwesomeTTS")
-        return buttons + [new_button]
+        buttons.append(new_button)
+        return buttons
 
-    anki.hooks.addHook('setupEditorButtons', addAwesomeTTSEditorButton)
+    aqt.gui_hooks.editor_did_init_buttons.append(addAwesomeTTSEditorButton)
 
     def createAwesomeTTSEditorShortcutLambda(editor):
         def launch():
@@ -593,10 +632,11 @@ def editor_button():
         return launch
 
     def editor_init_shortcuts(shortcuts, editor: aqt.editor.Editor):
-        shortcut_sequence = sequences['editor_generator'].toString()
+        shortcut_sequence = config.get('shortcut_launch_editor_generator')
         lambda_function = createAwesomeTTSEditorShortcutLambda(editor)
         shortcut_entry = (shortcut_sequence, lambda_function, True)
         shortcuts.append(shortcut_entry)
+        logger.debug(f'added editor generator shortcut {shortcut_sequence}')
 
     aqt.gui_hooks.editor_did_init_shortcuts.append(editor_init_shortcuts)
 
@@ -627,9 +667,6 @@ def reviewer_hooks():
     tags and to also do playback on-demand via shortcut keys and the
     context menu.
     """
-
-    from PyQt5.QtCore import QEvent
-    from PyQt5.QtWidgets import QMenu
 
 
     # context menu playback
@@ -675,7 +712,7 @@ def reviewer_hooks():
 
         say_text = config['presets'] and strip(web_view.selectedText())
 
-        submenu = QMenu("Awesome&TTS", menu)
+        submenu = aqt.qt.QMenu("Awesome&TTS", menu)
         submenu.setIcon(gui.ICON)
 
         needs_separator = False
@@ -742,19 +779,6 @@ def reviewer_hooks():
                        on_context_menu(reviewer.web, menu))
 
 
-def sound_tag_delays():
-    """
-    Enables support for the following sound delay configuration options:
-
-    - delay_questions_stored_ours (AwesomeTTS MP3s on questions)
-    - delay_questions_stored_theirs (non-AwesomeTTS MP3s on questions)
-    - delay_answers_stored_ours (AwesomeTTS MP3s on answers)
-    - delay_answers_stored_theirs (non-AwesomeTTS MP3s on answers)
-    """
-
-    anki.sound.play = player.native_wrapper
-
-
 def temp_files():
     """Remove temporary files upon session exit."""
 
@@ -790,26 +814,6 @@ def temp_files():
                     pass
 
     anki.hooks.addHook('unloadProfile', on_unload_profile)
-
-
-def window_shortcuts():
-    """Enables shortcuts to launch windows."""
-
-    def on_sequence_change(new_config):
-        """Update sequences on configuration changes."""
-        for key, sequence in sequences.items():
-            new_sequence = QKeySequence(new_config['launch_' + key] or None)
-            sequence.swap(new_sequence)
-
-        try:
-            aqt.mw.form.menuTools.findChild(gui.Action). \
-                setShortcut(sequences['configurator'])
-        except AttributeError:  # we do not have a config menu
-            pass
-
-    on_sequence_change(config)  # set config menu if created before we ran
-    config.bind(['launch_' + key for key in sequences.keys()],
-                on_sequence_change)
 
 
 def register_tts_tag():

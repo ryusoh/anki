@@ -8,8 +8,9 @@
 import anki
 from anki.lang import _, ngettext
 import aqt
-from aqt import mw
+from aqt import mw, theme
 from aqt.utils import tooltip
+from anki import version as anki_version
 
 #-------------Configuration------------------
 config = mw.addonManager.getConfig(__name__)
@@ -41,9 +42,11 @@ def renderStats(self, _old):
     #total = new + lrn + due
 
     # Get studdied cards
-    cards, thetime = self.mw.col.db.first(
-            """select count(), sum(time)/1000 from revlog where id > ?""",
-            (self.mw.col.sched.dayCutoff - 86400) * 1000)
+    anki_point_version = int(anki_version.split(".")[2])
+    if anki_point_version > 49:
+        cards, thetime = self.mw.col.db.first("""select count(), sum(time)/1000 from revlog where id > ?""", (self.mw.col.sched.day_cutoff - 86400) * 1000)
+    else:
+        cards, thetime = self.mw.col.db.first("""select count(), sum(time)/1000 from revlog where id > ?""", (self.mw.col.sched.dayCutoff - 86400) * 1000)
 
     cards   = cards or 0
     thetime = thetime or 0
@@ -51,11 +54,18 @@ def renderStats(self, _old):
     speed   = cards * 60 / max(1, thetime)
     minutes = int(total / max(1, speed))
 
-    NewColor        = config['NewColor']
-    ReviewColor     = config['ReviewColor']
-    LearnColor      = config['LearnColor']
-    TotalDueColor   = config['TotalDueColor']
-    TotalColor      = config['TotalColor']
+    if theme.theme_manager.night_mode:
+        NewColor        = config['NewColorDark']
+        ReviewColor     = config['ReviewColorDark']
+        LearnColor      = config['LearnColorDark']
+        TotalDueColor   = config['TotalDueColorDark']
+        TotalColor      = config['TotalColorDark']
+    else:
+        NewColor        = config['NewColorLight']
+        ReviewColor     = config['ReviewColorLight']
+        LearnColor      = config['LearnColorLight']
+        TotalDueColor   = config['TotalDueColorLight']
+        TotalColor      = config['TotalColorLight']
 
     insert_style = "<style type=\"text/css\">" \
         + ".new-color { color:"         + NewColor + ";}" \
@@ -66,31 +76,30 @@ def renderStats(self, _old):
         + "</style>"
 
     buf = insert_style \
-        + "<div style='display:table;'>" \
+        + "<div style='display:table;padding-top:1.5em;'>" \
         + "<div style='display:table-cell;'> " \
-        + _old(self) + "<br>"\
-        + _("Average") + ": " + _("%.01f") % (speed) + "&nbsp;" + (_("Cards") + "/" + _("Minutes").replace("s", "")).lower() + "<hr>" \
+        + _old(self) + "<hr>" \
         + _("New Cards") \
-        + ": &nbsp; <b class='new-color'> %(d)s</b>" % dict(d=new) \
+        + ": &nbsp; <span class='new-color'> %(d)s</span>" % dict(d=new) \
         + " &nbsp; " + _("Learn") \
-        + ": &nbsp; <b class='learn-color'>%(c)s</b>" % dict(c=lrn) \
+        + ": &nbsp; <span class='learn-color'>%(c)s</span>" % dict(c=lrn) \
         + " &nbsp; <span style='white-space:nowrap;'>" + _("To Review") \
-        + ": &nbsp; <b class='review-color'>%(c)s</b>" % dict(c=due) \
+        + ": &nbsp; <span class='review-color'>%(c)s</span>" % dict(c=due) \
         + "</span>" \
-        + " &nbsp; <br><span style='white-space:nowrap;'>" + _("締め切り") \
+        + " &nbsp; <br><span style='white-space:nowrap;'>" + _("Due") \
         + ": &nbsp; <b class='totaldue-color'>%(c)s</b> " % dict(c=(lrn+due)) \
         + "</span> " \
         + " &nbsp; <span style='white-space:nowrap;'>" + _("Total") \
         + ": &nbsp; <b class='total-color'>%(c)s</b>" % dict(c=(totalDisplay)) \
-        + "</span>" \
+        + "</span></div>" \
+        + "<div style='display:table-cell;vertical-align:middle;" \
+        + "padding-left:2em;'>" \
+        + "<span style='white-space:nowrap;'>" + _("Average") \
+        + ":<br> " + _("%.01f") % (speed) + "&nbsp;" + (_("Cards") + "/" + _("Minutes").replace("s", "")).lower()  \
+        + "</span><br><br>" \
+        + str(ngettext("%s minute.", "%s minutes.", minutes) % (minutes)).replace(".", "") + "&nbsp;" + _("More").lower() \
         + "</div></div>"
     return buf
-        #+ "<div style='display:table-cell;vertical-align:middle;" \
-        #+ "padding-left:2em;'>" \
-        #+ "<span style='white-space:nowrap;'>" + _("Average") \
-        #+ ":<br> " + _("%.01f") % (speed) + "&nbsp;" + (_("Cards") + "/" + _("Minutes").replace("s", "")).lower()  \
-        #+ "</span><br><br>" \
-        #+ str(ngettext("%s minute.", "%s minutes.", minutes) % (minutes)).replace(".", "") + "&nbsp;" + _("More").lower() \
         #+ ":<br> " + _("%.01f cards/minute") % (speed) \
         #+ _("More") + "&nbsp;" + ngettext("%s minute.", "%s minutes.", minutes) % (minutes) \
 

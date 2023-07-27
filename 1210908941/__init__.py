@@ -6,6 +6,7 @@
 
 import os
 import random
+from pathlib import Path
 
 from anki.utils import pointVersion
 from aqt import mw
@@ -15,77 +16,66 @@ from aqt.editor import pics
 #for the toolbar buttons
 from aqt.qt import *
 from aqt.addons import *
-from aqt.utils import openFolder, showInfo
+from aqt.utils import openFolder 
+from .adjust_css import *
 
+QDir.addSearchPath("CustomBackground", str(Path(__file__).parent / "AnKing"))
 
-from .config import addon_path, addonfoldername, gc
+from .config import addon_path, addonfoldername, gc, getUserOption
 
+#from .gui import Manager
+#a = Manager()
+from . import gui_updatemanager
 
+from aqt.deckbrowser import DeckBrowser
+DeckBrowser._renderStats = lambda self: ""
 
 css_folder_for_anki_version = {
-    "22": "22",
-    "23": "22",  # example: for Anki version 23 use the contents of the folder 22 
+    "22": "22", "23": "22", "24": "22",
+    "25": "25","26": "25","27": "25","28": "25","29": "25",
+    "30": "25","31": "31","32": "31","33": "31","34": "31",
+    "35": "31","36": "36","37": "36","38": "36","39": "36",
+    "40": "36","41": "36","42": "36","43": "36","44": "36",
+    "45": "36","46": "36","47": "36","48": "36","49": "36",
+    "50": "36","51": "36","52": "36","53": "36","54": "36",
+    "55": "55",
 }
+v = str(pointVersion())
 
-
-v = pointVersion()
 if v in css_folder_for_anki_version:
     version_folder = css_folder_for_anki_version[v]
 else:  # for newer Anki versions try the latest version and hope for the best
     version_folder = css_folder_for_anki_version[max(css_folder_for_anki_version, key=int)]
 
 
-source_absolute = os.path.join(addon_path, "sources", "css", version_folder)
-web_absolute = os.path.join(addon_path, "web", "css")
-
 regex = r"(user_files.*|web.*)"
 mw.addonManager.setWebExports(__name__, regex)
 
+#reset background when refreshing page (for use with "random" setting)
+def reset_background(new_state, old_state):
+    if new_state == "deckBrowser":
+        from anki import version as anki_version
+        old_anki = tuple(int(i) for i in anki_version.split(".")) < (2, 1, 27)
+        mw.deckBrowser.show()
+        if not old_anki:        
+            #mw.reset(True)
+            # Anki 2.1.28 and up no longer fully redraw the toolbar on mw reset,
+            # so trigger the redraw manually:
+            mw.toolbar.draw()
 
-# on startup: combine template files with config and write into webexports folder
-change_copy = [os.path.basename(f) for f in os.listdir(source_absolute) if f.endswith(".css")]
-for f in change_copy:
-    with open(os.path.join(source_absolute, f)) as FO:
-        filecontent = FO.read()
+gui_hooks.state_did_change.append(reset_background)
 
-    if v == 22:
-        from .adjust_css_files22 import *
-        if f == "deckbrowser.css":
-            filecontent = adjust_deckbrowser_css22(filecontent)
-        if f == "toolbar.css" and gc("Toolbar image"):
-            filecontent = adjust_toolbar_css22(filecontent)
-        if f == "overview.css":
-            filecontent = adjust_overview_css22(filecontent)
-        if f == "toolbar-bottom.css" and gc("Toolbar image"):
-            filecontent = adjust_bottomtoolbar_css22(filecontent)
-        if f == "reviewer.css" and gc("Reviewer image"):
-            filecontent = adjust_reviewer_css22(filecontent)
-        if f == "reviewer-bottom.css" and gc("Reviewer image") and gc("Toolbar image"):
-            filecontent = adjust_reviewerbottom_css22(filecontent)                        
-
-    # for later versions: try the latest
-    # this code will likely change when new Anki versions are released which might require 
-    # updates of this add-on.
-    else: 
-        from .adjust_css_files22 import *
-        if f == "deckbrowser.css":
-            filecontent = adjust_deckbrowser_css22(filecontent)
-        if f == "toolbar.css" and gc("Toolbar image"):
-            filecontent = adjust_toolbar_css22(filecontent)
-        if f == "overview.css":
-            filecontent = adjust_overview_css22(filecontent)
-        if f == "toolbar-bottom.css" and gc("Toolbar image"):
-            filecontent = adjust_bottomtoolbar_css22(filecontent)
-        if f == "reviewer.css" and gc("Reviewer image"):
-            filecontent = adjust_reviewer_css22(filecontent)
-        if f == "reviewer-bottom.css" and gc("Reviewer image"):
-            filecontent = adjust_reviewerbottom_css22(filecontent)                           
-
-    with open(os.path.join(web_absolute, f), "w") as FO:
-        FO.write(filecontent)
+#reset background when changing config
+def apply_config_changes(config):
+    mw.moveToState("deckBrowser") 
+    #mw.toolbar.draw()
+mw.addonManager.setConfigUpdatedAction(__name__, apply_config_changes)
 
 
-css_files_to_replace = [os.path.basename(f) for f in os.listdir(web_absolute) if f.endswith(".css")]
+css_files_to_modify = [
+    "webview.css", "deckbrowser.css", "overview.css", "reviewer-bottom.css",
+    "toolbar-bottom.css", "reviewer.css", "toolbar.css",
+]
 
 from anki.utils import pointVersion 
 def maybe_adjust_filename_for_2136(filename): 
@@ -93,17 +83,54 @@ def maybe_adjust_filename_for_2136(filename):
         filename = filename.lstrip("css/") 
     return filename
 
-def replace_css(web_content, context):
-    for idx, filename in enumerate(web_content.css):
+def inject_css(web_content, context):
+    for filename in web_content.css.copy():
         filename = maybe_adjust_filename_for_2136(filename)
-        if filename in css_files_to_replace:
-            web_content.css[idx] = f"/_addons/{addonfoldername}/web/css/{filename}"
+        if filename in css_files_to_modify:
+            web_content.css.append(f"/_addons/{addonfoldername}/web/css/{version_folder}/{filename}")
             web_content.css.append(f"/_addons/{addonfoldername}/user_files/css/custom_{filename}")
-gui_hooks.webview_will_set_content.append(replace_css)
+
+        f = filename
+        css = ''
+        if v == 22:
+            if f == "deckbrowser.css":
+                css = adjust_deckbrowser_css()
+            if f == "toolbar.css" and gc("Toolbar image"):
+                css = adjust_toolbar_css()
+            if f == "overview.css":
+                css = adjust_overview_css()
+            if f == "toolbar-bottom.css" and gc("Toolbar image"):
+                css = adjust_bottomtoolbar_css()
+            if f == "reviewer.css" and gc("Reviewer image"):
+                css = adjust_reviewer_css()
+            if f == "reviewer-bottom.css" and gc("Reviewer image") and gc("Toolbar image"):
+                css = adjust_reviewerbottom_css()               
+        else:
+            if f == "deckbrowser.css":
+                css = adjust_deckbrowser_css()
+            if f == "toolbar.css" and gc("Toolbar image"):
+                css = adjust_toolbar_css()
+            if f == "overview.css":
+                css = adjust_overview_css()
+            if f == "toolbar-bottom.css" and gc("Toolbar image"):
+                css = adjust_bottomtoolbar_css()
+            if f == "reviewer.css" and gc("Reviewer image"):
+                css = adjust_reviewer_css()
+            if f == "reviewer-bottom.css": #and gc("Reviewer image"):
+                css = adjust_reviewerbottom_css()
+        if css:
+            web_content.head += f"<style>{css}</style>"
+
+
+gui_hooks.webview_will_set_content.append(inject_css)
 
 
 def get_gearfile():
     gear_abs = os.path.join(addon_path, "user_files", "gear")
+    os.makedirs(gear_abs, exist_ok=True)
+    if not os.listdir(gear_abs):
+        shutil.copytree(src=os.path.join(addon_path, "user_files", "default_gear"), dst=gear_abs, dirs_exist_ok=True)
+
     gear_list = [os.path.basename(f) for f in os.listdir(gear_abs) if f.endswith(pics)]
     val = gc("Image name for gear")
     if val and val.lower() == "random":
@@ -129,6 +156,8 @@ def replace_gears(deck_browser, content):
 gui_hooks.deck_browser_will_render_content.append(replace_gears)
 
 
+#No longer needed
+'''
 menu = QMenu(('Custom Background & Gear Icon'), mw)
 mw.form.menuTools.addMenu(menu)
 
@@ -151,25 +180,4 @@ action.setText("Background/gear image folder")
 action.setShortcut(QKeySequence(shortcut))
 menu.addAction(action) 
 action.triggered.connect(lambda: openFolder(imgfolder))
-
-def wc(arg, val):
-    config = mw.addonManager.getConfig(__name__)
-    config[arg] = val
-    mw.addonManager.writeConfig(__name__, config)
-
-def notify():
-    if pointVersion() >=36:
-        if gc("notify", True):
-            message = """The <i>Custom Background and Gear Icon addon</i> you have updated or downloaded
-            has not been fully tested for Anki 2.1.36+. 
-            <br><br>
-            We are currently testing a version with multiple other updates on our 
-            <a href="https://www.patreon.com/ankingmed">Patreon</a>.
-            <br><br>
-            Thanks,
-            <br>
-                 -The AnKing
-            """
-            showInfo(message, textFormat="rich")
-            wc("notify", False)
-notify()
+'''

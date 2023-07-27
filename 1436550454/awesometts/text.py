@@ -24,6 +24,7 @@ import re
 from io import StringIO
 
 from bs4 import BeautifulSoup
+import html
 import anki
 
 clozeReg = r"(?si)\{\{(?P<tag>c)%s::(?P<content>.*?)(::(?P<hint>.*?))?\}\}"
@@ -54,7 +55,7 @@ RE_NEWLINEISH = re.compile(r'(\r|\n|<\s*/?\s*(br|div|p)(\s+[^>]*)?\s*/?\s*>)+',
 RE_SOUNDS = re.compile(r'\[sound:(.*?)\]')  # see also anki.sound._soundReg
 RE_WHITESPACE = re.compile(r'[\0\s]+', re.UNICODE)
 
-STRIP_HTML = anki.utils.stripHTML  # this also converts character entities
+STRIP_HTML = anki.utils.strip_html  # this also converts character entities
 
 
 class Sanitizer(object):  # call only, pylint:disable=too-few-public-methods
@@ -76,9 +77,13 @@ class Sanitizer(object):  # call only, pylint:disable=too-few-public-methods
     def __call__(self, text):
         """Apply the initialized rules against the text and return."""
 
+        self._logger.debug(f'input text: [{text}]')
+
         applied = []
 
         for rule in self._rules:
+            self._logger.debug(f'evaluating rule: {rule}')
+
             if not text:
                 self._log(applied + ["early exit"], '')
                 return ''
@@ -246,7 +251,11 @@ class Sanitizer(object):  # call only, pylint:disable=too-few-public-methods
         before each one.
         """
 
+        self._logger.debug(f'running _rule_custom_sub')
+
         for rule in rules:
+            self._logger.debug(f'evaluating {rule}')
+
             text = self._rule_whitespace(self._rule_ellipses(text))
             if not text:
                 return ''
@@ -364,6 +373,30 @@ class Sanitizer(object):  # call only, pylint:disable=too-few-public-methods
     def _rule_within_parens(self, text):
         """Removes text within parentheses."""
         return _aux_within(text, '(', ')')
+
+    def _rule_ruby_tags(self, text):
+        self._logger.debug(f'looking for ruby tags')
+        if 'ruby' in text:
+            self._logger.debug(f'found ruby tags, processing')
+            soup = BeautifulSoup(text, features="html.parser")
+            rt_tags = soup.find_all('rt')
+            for rt_tag in rt_tags:
+                self._logger.debug(f'found rt tag {rt_tag}')
+                rt_tag.string = ''
+            return str(soup)
+        return text
+
+    def _rule_xml_entities(self, text):
+        # not all html entities should be replaced, so we can maintain a map here
+        SSML_CONVERSION_MAP ={
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '，': ',', # chinese comma
+        }
+        for pattern, replace in SSML_CONVERSION_MAP.items():
+            text = text.replace(pattern, replace)        
+        return text
 
 
 def _aux_within(text, begin_char, end_char):

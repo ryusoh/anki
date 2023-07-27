@@ -1,101 +1,104 @@
-from aqt.qt import *
-from aqt.utils import showWarning, tooltip
+from aqt.qt import QDialog, Qt, QIcon, QPixmap, qtmajor
+from aqt.utils import tooltip
 from aqt import mw
-
-import requests
 import json
-from PyQt5 import QtCore, QtGui, QtWidgets
+from os.path import dirname, join, realpath
 
-from .forms import user_info
+if qtmajor > 5:
+	from .forms.pyqt6UI import user_info
+	from PyQt6 import QtCore, QtWidgets
+else:
+	from .forms.pyqt5UI import user_info
+	from PyQt5 import QtCore, QtWidgets
+from .reportUser import start_report
 from .config_manager import write_config
+from .api_connect import postRequest
+from .banUser import start_banUser
 
 class start_user_info(QDialog):
 	def __init__(self, user_clicked, enabled, parent=None):
 		self.parent = parent
 		self.user_clicked = user_clicked.split(" |")[0]
 		self.enabled = enabled
-		QDialog.__init__(self, parent, Qt.Window)
+		QDialog.__init__(self, parent, Qt.WindowType.Window)
 		self.dialog = user_info.Ui_Dialog()
 		self.dialog.setupUi(self)
 		self.setupUI()
 
 	def setupUI(self):
 		self.dialog.username_label.setText(self.user_clicked)
+
+		icon = QIcon()
+		icon.addPixmap(QPixmap(join(dirname(realpath(__file__)), "designer/icons/person.png")), QIcon.Mode.Normal, QIcon.State.Off)
+		self.setWindowIcon(icon)
+
 		if self.enabled == True:
 			self.dialog.banUser.setEnabled(True)
 
-		url = 'https://ankileaderboard.pythonanywhere.com/getStatus/'
 		data = {"username": self.user_clicked}
-		try:
-			data = requests.post(url, data = data, timeout=20).json()
-		except:
-			data = []
-			showWarning("Timeout error [user_info] - No internet connection, or server response took too long.", title="Leaderboard error")
+		response = postRequest("getUserinfo/", data, 200)
 
-		if data[0]:
-			self.dialog.status_message.setMarkdown(data[0])
-		else:
-			pass
+		if response:
+			response = response.json()
+			if response[4]:
+				self.dialog.status_message.setMarkdown(response[4])
+			else:
+				pass
 
-		url = 'https://ankileaderboard.pythonanywhere.com/getUserinfo/'
-		data = {"user": self.user_clicked}
-		try:
-			data = requests.post(url, data = data, timeout=20).json()
-		except:
-			data = []
-			showWarning("Timeout error [user_info] - No internet connection, or server response took too long.", title="Leaderboard error")
+			if response[0] == "Country":
+				self.dialog.country_label.setText("")
+			else:
+				self.dialog.country_label.setText(f"Country: {response[0]}")
+			for i in response[1]:
+				self.dialog.group_list.addItem(i)
+			self.dialog.league_label.setText(f"League: {response[2]}")
+			
 
-		header = self.dialog.history.horizontalHeader()   
-		header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
-		header.setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
-		header.setSectionResizeMode(2, QtWidgets.QHeaderView.Stretch)
-		header.setSectionResizeMode(3, QtWidgets.QHeaderView.Stretch)
+			header = self.dialog.history.horizontalHeader()   
+			header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Stretch)
+			header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Stretch)
+			header.setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeMode.Stretch)
+			header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeMode.Stretch)
+			if response[3]:
+				medals = ""
+				history = json.loads(response[3])
+				results = history["results"]
+				if history["gold"] > 0:
+					medals = f"{medals} {history['gold'] if history['gold'] != 1 else ''}🥇"
+				if history["silver"] > 0:
+					medals = f"{medals} {history['silver'] if history['silver'] != 1 else ''}🥈"
+				if history["bronze"] > 0:
+					medals = f"{medals} {history['bronze'] if history['bronze'] != 1 else ''}🥉"
+				self.dialog.medals_label.setText(f"Medals: {medals}")
+				index = 0
+				for i in results["leagues"]:
+					rowPosition = self.dialog.history.rowCount()
+					self.dialog.history.insertRow(rowPosition)
+					
+					self.dialog.history.setItem(rowPosition , 3, QtWidgets.QTableWidgetItem(str(i)))
 
-		if data[0] == "Country":
-			data[0] = None
-		if data[1] == "Custom":
-			data[1] = None
-		if data[3]:
-			medals = ""
-			history = json.loads(data[3])
-			results = history["results"]
-			if history["gold"] > 0:
-				medals = f"{medals} {history['gold'] if history['gold'] != 1 else ''}🥇"
-			if history["silver"] > 0:
-				medals = f"{medals} {history['silver'] if history['silver'] != 1 else ''}🥈"
-			if history["bronze"] > 0:
-				medals = f"{medals} {history['bronze'] if history['bronze'] != 1 else ''}🥉"
-			self.dialog.medals_label.setText(f"Medals: {medals}")
-			index = 0
-			for i in results["leagues"]:
-				rowPosition = self.dialog.history.rowCount()
-				self.dialog.history.insertRow(rowPosition)
-				
-				self.dialog.history.setItem(rowPosition , 3, QtWidgets.QTableWidgetItem(str(i)))
+					item = QtWidgets.QTableWidgetItem()
+					item.setData(QtCore.Qt.ItemDataRole.DisplayRole, int(results["seasons"][index]))
+					self.dialog.history.setItem(rowPosition, 0, item)
+					item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignRight|QtCore.Qt.AlignmentFlag.AlignVCenter)
 
-				item = QtWidgets.QTableWidgetItem()
-				item.setData(QtCore.Qt.DisplayRole, int(results["seasons"][index]))
-				self.dialog.history.setItem(rowPosition, 0, item)
-				item.setTextAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignVCenter)
+					item = QtWidgets.QTableWidgetItem()
+					item.setData(QtCore.Qt.ItemDataRole.DisplayRole, int(results["xp"][index]))
+					self.dialog.history.setItem(rowPosition, 2, item)
+					item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignRight|QtCore.Qt.AlignmentFlag.AlignVCenter)
 
-				item = QtWidgets.QTableWidgetItem()
-				item.setData(QtCore.Qt.DisplayRole, int(results["xp"][index]))
-				self.dialog.history.setItem(rowPosition, 2, item)
-				item.setTextAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignVCenter)
+					item = QtWidgets.QTableWidgetItem()
+					item.setData(QtCore.Qt.ItemDataRole.DisplayRole, int(results["rank"][index]))
+					self.dialog.history.setItem(rowPosition, 1, item)
+					item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignRight|QtCore.Qt.AlignmentFlag.AlignVCenter)
 
-				item = QtWidgets.QTableWidgetItem()
-				item.setData(QtCore.Qt.DisplayRole, int(results["rank"][index]))
-				self.dialog.history.setItem(rowPosition, 1, item)
-				item.setTextAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignVCenter)
-
-				index += 1
-
-		self.dialog.country_label.setText(f"Country: {data[0]}")
-		self.dialog.group_label.setText(f"Group: {data[1]}")
-		self.dialog.league_label.setText(f"League: {data[2]}")
-		self.dialog.hideUser.clicked.connect(self.hideUser)
-		self.dialog.addFriend.clicked.connect(self.addFriend)
-		self.dialog.banUser.clicked.connect(self.banUser)
+					index += 1
+			
+			self.dialog.hideUser.clicked.connect(self.hideUser)
+			self.dialog.addFriend.clicked.connect(self.addFriend)
+			self.dialog.banUser.clicked.connect(self.banUser)
+			self.dialog.reportUser.clicked.connect(self.reportUser)
+			self.dialog.history.sortItems(0, QtCore.Qt.SortOrder.DescendingOrder)
 
 	def hideUser(self):
 		config = mw.addonManager.getConfig(__name__)
@@ -115,20 +118,11 @@ class start_user_info(QDialog):
 			tooltip(f"{self.user_clicked} is now your friend.")
 
 	def banUser(self):
-		config = mw.addonManager.getConfig(__name__)
-		toBan = self.user_clicked
-		group = config["subject"]
-		pwd = config["group_pwd"]
-		token = config["token"]
-		user = config["username"]
-		url = 'https://ankileaderboard.pythonanywhere.com/banUser/'
-		data = {"toBan": toBan, "group": group, "pwd": pwd, "token": token, "user": user}
-
-		try:
-			x = requests.post(url, data = data, timeout=20)
-			if x.text == "Done!":
-				tooltip(f"{toBan} is now banned from {group}")
-			else:
-				showWarning(str(x.text))
-		except:
-			showWarning("Timeout error [banUser] - No internet connection, or server response took too long.", title="Leaderboard error")
+		s = start_banUser(self.user_clicked)
+		if s.exec():
+			pass
+			
+	def reportUser(self):
+		s = start_report(self.user_clicked)
+		if s.exec():
+			pass

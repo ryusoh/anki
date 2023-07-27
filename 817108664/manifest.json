@@ -3,8 +3,8 @@
     "package": "anki_simulator",
     "ankiweb_id": "",
     "author": "giovannihenriksen",
-    "version": "v1.1",
+    "version": "v.1.1.2",
     "homepage": "https://github.com/giovannihenriksen/Anki-Simulator",
     "conflicts": [],
-    "mod": 1612004678
+    "mod": 1628363723
 }

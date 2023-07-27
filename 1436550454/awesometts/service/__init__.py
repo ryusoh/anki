@@ -22,12 +22,15 @@ Service classes for AwesomeTTS
 
 from .common import Trait
 
+from .amazon import Amazon
 from .azure import Azure
 from .baidu import Baidu
 from .cambridge import Cambridge
+from .cereproc import CereProc
 from .collins import Collins
 from .duden import Duden
 from .ekho import Ekho
+from .elevenlabs import ElevenLabs
 from .espeak import ESpeak
 from .festival import Festival
 from .fptai import FptAi
@@ -48,6 +51,7 @@ from .spanishdict import SpanishDict
 from .yandex import Yandex
 from .youdao import Youdao
 from .forvo import Forvo
+from .vocalware import VocalWare
 from .watson import Watson
 
 __all__ = [
@@ -55,11 +59,14 @@ __all__ = [
     'Trait',
 
     # services
+    'Amazon',
     'Azure',
     'Baidu',
+    'CereProc',
     'Collins',
     'Duden',
     'Ekho',
+    'ElevenLabs',
     'ESpeak',
     'Festival',
     'FPT.AI',
@@ -79,5 +86,6 @@ __all__ = [
     'Yandex',
     'Youdao',
     'Forvo',
+    'VocalWare',
     'Watson'
 ]

@@ -1,9 +1,8 @@
 import time
-from datetime import date, timedelta
+from datetime import date, timedelta, time
 import datetime
 
 from aqt import mw
-from aqt.utils import showInfo
 
 def Stats(season_start, season_end):
 	config = mw.addonManager.getConfig(__name__)
@@ -17,7 +16,7 @@ def Stats(season_start, season_end):
 
 	league_reviews, league_retention = league_reviews_and_retention(season_start, season_end)
 	league_time = league_time_spend(season_start, season_end)
-	league_days_percent = league_days_learned(season_start, season_end, new_day)
+	league_days_percent = league_days_learned(season_start, season_end, new_day, time_now)
 
 	return(Streak, total_cards, time_today, cards_past_30_days, retention, league_reviews, league_time, league_retention, league_days_percent)
 
@@ -25,13 +24,13 @@ def Stats(season_start, season_end):
 def get_reviews_and_retention(start_date, end_date):
     start = int(start_date.timestamp() * 1000)
     end = int(end_date.timestamp() * 1000)
-    reviews = mw.col.db.scalar("SELECT COUNT(*) FROM revlog WHERE id >= ? AND id < ?", start, end) 
+    reviews = mw.col.db.scalar("SELECT COUNT(*) FROM revlog WHERE id >= ? AND id < ? AND ease > 0", start, end)
     flunked_total = mw.col.db.scalar("SELECT COUNT(*) FROM revlog WHERE ease == 1 AND id >= ? AND id < ?", start, end) 
     
     if reviews == 0:
         return 0, 0
     
-    retention = round((100 / reviews) * (reviews - flunked_total) ,1)
+    retention = round((100 / reviews) * (reviews - flunked_total), 1)
     return reviews, retention
 
 def get_time_spend(start_date, end_date):
@@ -50,18 +49,7 @@ def streak(config, new_day, time_now):
 	date_list = []
 	Streak = 0
 
-	date_list = mw.col.db.list("SELECT DISTINCT strftime('%Y-%m-%d', datetime((id - ?) / 1000, 'unixepoch', 'localtime')) FROM revlog ORDER BY id DESC;", new_day_shift_in_ms)
-	
-	# Alternative if above doesn't work?
-	# date_list = mw.col.db.list("SELECT DISTINCT strftime('%Y-%m-%d-%H', datetime(id / 1000, 'unixepoch', 'localtime')) FROM revlog ORDER BY id DESC")
-	# for i in date_list:
-	# 	date_split = i.split("-")
-	# 	if int(date_split[3]) < config["newday"]:
-	# 		old_date = datetime.date(int(date_split[0]), int(date_split[1]), int(date_split[2]))
-	# 		new_date = old_date - datetime.timedelta(1)
-	# 		date_list[date_list.index(i)] = str(new_date)
-	# 	else:
-	# 		date_list[date_list.index(i)] = str(datetime.date(int(date_split[0]), int(date_split[1]), int(date_split[2])))
+	date_list = mw.col.db.list("SELECT DISTINCT strftime('%Y-%m-%d', datetime((id - ?) / 1000, 'unixepoch', 'localtime')) FROM revlog WHERE ease > 0 ORDER BY id DESC;", new_day_shift_in_ms)
 	
 	if time_now < new_day:
 		start_date = date.today() - timedelta(days=1)
@@ -109,14 +97,17 @@ def league_reviews_and_retention(season_start, season_end):
 def league_time_spend(season_start, season_end):
 	return get_time_spend(season_start, season_end)
 
-def league_days_learned(season_start, season_end, new_day):
+def league_days_learned(season_start, season_end, new_day, time_now):
 	date_list = [datetime.datetime.combine(season_start, new_day) + timedelta(days=x) for x in range((season_end - season_start).days + 1)]
 	days_learned = 0
 	days_over = 0
 	for i in date_list:
 		time = get_time_spend(i, i + timedelta(days=1))
-		if time >= 10:
+		if time >= 5:
 			days_learned += 1
+		if i.date() == date.today() and time_now < new_day:
+			continue
 		if i.date() <= date.today():
 			days_over += 1
+
 	return round((100 / days_over) * days_learned, 1)

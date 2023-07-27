@@ -23,7 +23,7 @@ start_header = """
 
 deck_header = f"""
     <th colspan = 5 align = left>
-      {_("Deck")}
+      {_("　　デッキ")}
     </th>"""
 
 
@@ -69,7 +69,7 @@ def deck_name(depth, collapse, extraclass, did, cssStyle, name):
     return f"""
     <td class = decktd colspan = 5>
       {"&nbsp;"*6*depth}{collapse}
-      <a class = "deck{extraclass}" onclick = "return pycmd('open:{did}')">
+      <a class = "deck{extraclass}" href="#" onclick = "return pycmd('open:{did}')">
         <font style = '{cssStyle}'>
           {name}
         </font>
@@ -86,6 +86,7 @@ def number_cell(colour, number, description):
     else:
         description = f"""
       <span class = 'tooltiptext'>
+        {description}
       </span>"""
         t = f"""
     <td align = 'right' class = 'tooltip number_cell'>"""
@@ -126,10 +127,13 @@ def bar(name, width, left, color, overlay):
     return f"""
           <div class="tooltip bar" style="position:absolute; height:100%; width:{width}%; background-color:{color}; left :{left}% ;">
             <!-- {name}-->
+            <span class="tooltiptext">
+              {overlay}
+            </span>
           </div>"""
 
 
 def progress(content):
     return f"""
-      <div class="progress" style="position:relative;	height:1em; display:inline-block;	width:100px; transform:translateY(17%);	">{content}
+      <div class="progress" style="position:relative;	height:1em;	display:inline-block;	width:100px;		">{content}
       </div>"""

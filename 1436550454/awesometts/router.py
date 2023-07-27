@@ -29,7 +29,7 @@ from socket import error as SocketError
 from time import time
 from urllib.error import URLError
 
-from PyQt5 import QtCore, QtWidgets
+import aqt.qt
 
 from .service import Trait as BaseTrait
 
@@ -209,13 +209,13 @@ class Router(object):
 
         return service['desc']
 
-    def get_options(self, svc_id):
+    def get_options(self, svc_id, force_options_reload=False):
         """
         Returns a list of options that should be displayed for the
         service, with defaults highlighted.
         """
 
-        svc_id, service = self._fetch_options_and_extras(svc_id)
+        svc_id, service = self._fetch_options_and_extras(svc_id, force_options_reload=force_options_reload)
         return service['options']
 
     def get_extras(self, svc_id):
@@ -390,7 +390,7 @@ class Router(object):
             svc_id, service, options = self._validate_service(svc_id, options)
             if not text:
                 raise ValueError("No speakable text is present")
-            limit = 5000 if service['name'] == "Google Cloud Text-to-Speech" else 2000
+            limit = 5000
             if len(text) > limit:
                 raise ValueError("Text to speak is too long")
             text = service['instance'].modify(text)
@@ -717,7 +717,7 @@ class Router(object):
 
         return path
 
-    def _fetch_options_and_extras(self, svc_id):
+    def _fetch_options_and_extras(self, svc_id, force_options_reload=False):
         """
         Identifies the service by its ID, checks to see if the options
         list need construction, and then return back the normalized ID
@@ -726,7 +726,7 @@ class Router(object):
 
         svc_id, service = self._fetch_service(svc_id)
 
-        if 'options' not in service:
+        if 'options' not in service or force_options_reload == True:
             self._logger.debug(
                 "Building the options list for %s",
                 service['name'],
@@ -767,7 +767,7 @@ class Router(object):
 
                 service['options'].append(option)
 
-        if 'extras' not in service:  # extras are like options, but universal
+        if 'extras' not in service or force_options_reload == True:  # extras are like options, but universal
             service['extras'] = []
 
             if hasattr(service['instance'], 'extras'):
@@ -893,7 +893,7 @@ class Router(object):
         )
 
 
-class _Pool(QtWidgets.QWidget):
+class _Pool(aqt.qt.QWidget):
     """
     Managers a pool of worker threads to keep the UI responsive.
     """
@@ -995,13 +995,13 @@ class _Pool(QtWidgets.QWidget):
         )
 
 
-class _Worker(QtCore.QThread):
+class _Worker(aqt.qt.QThread):
     """
     Generic worker for running processes in the background.
     """
 
-    tts_thread_done = QtCore.pyqtSignal(int, name='awesomeTtsThreadDone')
-    tts_thread_raised = QtCore.pyqtSignal(int, Exception, str, name='awesomeTtsThreadRaised')
+    tts_thread_done = aqt.qt.pyqtSignal(int, name='awesomeTtsThreadDone')
+    tts_thread_raised = aqt.qt.pyqtSignal(int, Exception, str, name='awesomeTtsThreadRaised')
 
     __slots__ = [
         '_thread_id',  # my thread ID; used to communicate back to main thread

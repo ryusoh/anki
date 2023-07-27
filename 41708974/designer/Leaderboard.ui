@@ -6,16 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>669</width>
-    <height>540</height>
+    <width>828</width>
+    <height>677</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Leaderboard</string>
-  </property>
-  <property name="windowIcon">
-   <iconset resource="icons.qrc">
-    <normaloff>:/krone/icons/krone.png</normaloff>:/krone/icons/krone.png</iconset>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_5">
    <item>
@@ -30,8 +26,16 @@
       <layout class="QVBoxLayout" name="verticalLayout_2">
        <item>
         <widget class="QTableWidget" name="Global_Leaderboard">
+         <property name="cursor" stdset="0">
+          <cursorShape>WhatsThisCursor</cursorShape>
+         </property>
          <property name="autoFillBackground">
           <bool>false</bool>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">QHeaderView::down-arrow { subcontrol-position: center left}
+QHeaderView::up-arrow { subcontrol-position: center left}
+</string>
          </property>
          <property name="lineWidth">
           <number>1</number>
@@ -57,9 +61,20 @@
          <property name="sortingEnabled">
           <bool>true</bool>
          </property>
+         <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+          <bool>false</bool>
+         </attribute>
+         <attribute name="verticalHeaderVisible">
+          <bool>false</bool>
+         </attribute>
          <attribute name="verticalHeaderShowSortIndicator" stdset="0">
           <bool>false</bool>
          </attribute>
+         <column>
+          <property name="text">
+           <string/>
+          </property>
+         </column>
          <column>
           <property name="text">
            <string>Username</string>
@@ -104,6 +119,14 @@
       <layout class="QVBoxLayout" name="verticalLayout_3">
        <item>
         <widget class="QTableWidget" name="Friends_Leaderboard">
+         <property name="cursor" stdset="0">
+          <cursorShape>WhatsThisCursor</cursorShape>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">QHeaderView::down-arrow { subcontrol-position: center left}
+QHeaderView::up-arrow { subcontrol-position: center left}
+</string>
+         </property>
          <property name="sizeAdjustPolicy">
           <enum>QAbstractScrollArea::AdjustToContentsOnFirstShow</enum>
          </property>
@@ -125,6 +148,17 @@
          <property name="sortingEnabled">
           <bool>true</bool>
          </property>
+         <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+          <bool>false</bool>
+         </attribute>
+         <attribute name="verticalHeaderVisible">
+          <bool>false</bool>
+         </attribute>
+         <column>
+          <property name="text">
+           <string/>
+          </property>
+         </column>
          <column>
           <property name="text">
            <string>Username</string>
@@ -166,6 +200,14 @@
       <layout class="QVBoxLayout" name="verticalLayout_4">
        <item>
         <widget class="QTableWidget" name="Country_Leaderboard">
+         <property name="cursor" stdset="0">
+          <cursorShape>WhatsThisCursor</cursorShape>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">QHeaderView::down-arrow { subcontrol-position: center left}
+QHeaderView::up-arrow { subcontrol-position: center left}
+</string>
+         </property>
          <property name="sizeAdjustPolicy">
           <enum>QAbstractScrollArea::AdjustToContentsOnFirstShow</enum>
          </property>
@@ -187,6 +229,17 @@
          <property name="sortingEnabled">
           <bool>true</bool>
          </property>
+         <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+          <bool>false</bool>
+         </attribute>
+         <attribute name="verticalHeaderVisible">
+          <bool>false</bool>
+         </attribute>
+         <column>
+          <property name="text">
+           <string/>
+          </property>
+         </column>
          <column>
           <property name="text">
            <string>Username</string>
@@ -223,11 +276,29 @@
      </widget>
      <widget class="QWidget" name="tab_4">
       <attribute name="title">
-       <string>Custom</string>
+       <string>Groups</string>
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout">
        <item>
+        <widget class="QComboBox" name="groups">
+         <property name="cursor">
+          <cursorShape>PointingHandCursor</cursorShape>
+         </property>
+         <property name="frame">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QTableWidget" name="Custom_Leaderboard">
+         <property name="cursor" stdset="0">
+          <cursorShape>WhatsThisCursor</cursorShape>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">QHeaderView::down-arrow { subcontrol-position: center left}
+QHeaderView::up-arrow { subcontrol-position: center left}
+</string>
+         </property>
          <property name="sizeAdjustPolicy">
           <enum>QAbstractScrollArea::AdjustToContentsOnFirstShow</enum>
          </property>
@@ -249,6 +320,17 @@
          <property name="sortingEnabled">
           <bool>true</bool>
          </property>
+         <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+          <bool>false</bool>
+         </attribute>
+         <attribute name="verticalHeaderVisible">
+          <bool>false</bool>
+         </attribute>
+         <column>
+          <property name="text">
+           <string/>
+          </property>
+         </column>
          <column>
           <property name="text">
            <string>Username</string>
@@ -299,6 +381,9 @@
              <bold>true</bold>
             </font>
            </property>
+           <property name="styleSheet">
+            <string notr="true">font-weight: bold</string>
+           </property>
            <property name="text">
             <string>League Name</string>
            </property>
@@ -313,6 +398,9 @@
              <bold>true</bold>
             </font>
            </property>
+           <property name="styleSheet">
+            <string notr="true">font-weight: bold</string>
+           </property>
            <property name="text">
             <string>00 days 00 hours remaining</string>
            </property>
@@ -323,6 +411,14 @@
          </item>
          <item row="1" column="0" colspan="2">
           <widget class="QTableWidget" name="League">
+           <property name="cursor" stdset="0">
+            <cursorShape>WhatsThisCursor</cursorShape>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QHeaderView::down-arrow { subcontrol-position: center left}
+QHeaderView::up-arrow { subcontrol-position: center left}
+</string>
+           </property>
            <property name="sizeAdjustPolicy">
             <enum>QAbstractScrollArea::AdjustToContentsOnFirstShow</enum>
            </property>
@@ -338,6 +434,14 @@
            <property name="selectionBehavior">
             <enum>QAbstractItemView::SelectRows</enum>
            </property>
+           <attribute name="verticalHeaderVisible">
+            <bool>false</bool>
+           </attribute>
+           <column>
+            <property name="text">
+             <string/>
+            </property>
+           </column>
            <column>
             <property name="text">
              <string>Username</string>
@@ -378,8 +482,6 @@
    </item>
   </layout>
  </widget>
- <resources>
-  <include location="icons.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

@@ -20,6 +20,7 @@ from aqt.taskman import TaskManager
 from aqt.sound import OnDoneCallback, av_player
 from aqt.tts import TTSProcessPlayer, TTSVoice
 import aqt.utils
+import anki.utils
 
 
 class AwesomeTTSPlayer(TTSProcessPlayer):
@@ -36,7 +37,10 @@ class AwesomeTTSPlayer(TTSProcessPlayer):
         voices = []
         for language in self._addon.language:
             language_name = language.name
-            voices.append(TTSVoice(name="AwesomeTTS", lang=language_name))
+            if anki.utils.point_version() == 58: # this regression only concerns anki 2.1.58
+                voices.append(TTSVoice(name="AwesomeTTS", lang=language_name, available=True))
+            else:
+                voices.append(TTSVoice(name="AwesomeTTS", lang=language_name))
 
         return voices  # type: ignore
 
@@ -53,7 +57,7 @@ class AwesomeTTSPlayer(TTSProcessPlayer):
         language = voice.lang
         language_human = self._addon.language[language].lang_name
         
-        self._addon.logger.debug(f"playing back for language {language}, text: {tag.field_text}")
+        self._addon.logger.debug(f"playing back for language {language}, tag: {tag} text: {tag.field_text}")
 
         # is the field blank?
         if not tag.field_text.strip():
