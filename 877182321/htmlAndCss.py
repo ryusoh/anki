@@ -23,7 +23,7 @@ start_header = """
 
 deck_header = f"""
     <th colspan = 5 align = left>
-      {_("　　デッキ")}
+      {_("")}
     </th>"""
 
 
