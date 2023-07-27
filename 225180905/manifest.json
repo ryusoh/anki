@@ -1,0 +1,12 @@
+{
+    "name": "Highlight Search Results in the Browser",
+    "package": "225180905",
+    "ankiweb_id": "225180905",
+    "author": "Glutanimate",
+    "version": "v1.0.0",
+    "homepage": "https://github.com/glutanimate/highlight-search-results",
+    "conflicts": [
+        "highlight_search_results"
+    ],
+    "mod": 1615395886
+}
