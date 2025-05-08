@@ -24,6 +24,7 @@ from os.path import join
 import os
 import sys
 from time import time
+import uuid
 
 import anki
 import aqt
@@ -31,7 +32,7 @@ import aqt.qt
 
 from . import conversion as to, gui, paths, service
 from .bundle import Bundle
-from .config import Config
+from .config import Config, CONFIG_ADDON_NAME
 from .player import Player
 from .router import Router
 from .text import Sanitizer
@@ -106,6 +107,14 @@ else:
     logger = Bundle(debug=lambda *a, **k: None, error=lambda *a, **k: None,
                     info=lambda *a, **k: None, warn=lambda *a, **k: None)
 
+addon_config = aqt.mw.addonManager.getConfig(CONFIG_ADDON_NAME)
+user_uuid = addon_config.get('user_uuid', None)
+if user_uuid == None:
+    user_uuid = uuid.uuid4().hex
+    addon_config['user_uuid'] = user_uuid
+    aqt.mw.addonManager.writeConfig(CONFIG_ADDON_NAME, addon_config)
+
+
 config = Config(
     db=Bundle(path=paths.CONFIG,
               table='general',
@@ -173,7 +182,7 @@ config = Config(
     ],
 )
 
-languagetools = LanguageTools(config['plus_api_key'], logger, VERSION)
+languagetools = LanguageTools(config['plus_api_key'], logger, VERSION, user_uuid)
 
 try:
     from aqt.sound import av_player
@@ -588,7 +597,7 @@ def config_menu():
     for link in links:
         action = aqt.qt.QAction(link['name'], aqt.mw)
         url_path = link['url_path']
-        url = f'https://languagetools.anki.study/{url_path}?utm_campaign=atts_resources&utm_source=awesometts&utm_medium=addon'
+        url = f'https://www.vocab.ai/{url_path}?utm_campaign=atts_resources&utm_source=awesometts&utm_medium=addon'
         action.triggered.connect(open_url_lambda(url))
         resources_menu.addAction(action)
     # and add it to the tools menu
