@@ -18,7 +18,7 @@
 
 """Configuration dialog"""
 
-from locale import format as locale
+from locale import format_string as locale
 import os
 import os.path
 from sys import platform
@@ -279,7 +279,7 @@ class Configurator(Dialog):
             """Fixes original text and resets cursor to end of line."""
 
             filtered = self.fixup(original)
-            return aqt.qt.QValidator.Acceptable, filtered, len(filtered)
+            return aqt.qt.QValidator.State.Acceptable, filtered, len(filtered)
 
     _ui_tabs_text_mode_simple_spec.ucsv = _UniqueCharacterStringValidator()
 
@@ -566,7 +566,7 @@ class Configurator(Dialog):
     def _ui_tabs_advanced_plus(self):
 
         ver = aqt.qt.QVBoxLayout()
-        urlLink="<a href=\"https://languagetools.anki.study/awesometts-plus?utm_campaign=atts_settings&utm_source=awesometts&utm_medium=addon\">1100+ High Quality TTS voices - free trial</a>" 
+        urlLink="<a href=\"https://www.vocab.ai/awesometts-plus?utm_campaign=atts_settings&utm_source=awesometts&utm_medium=addon\">1100+ High Quality TTS voices - free trial</a>" 
         url_label = aqt.qt.QLabel(urlLink)
         url_label.setOpenExternalLinks(True)
         ver.addWidget(url_label)
@@ -785,7 +785,8 @@ class Configurator(Dialog):
         if len(api_key) == 0:
             aqt.utils.showCritical('Please enter AwesomeTTS Plus API Key', parent=parent_dialog, title='AwesomeTTS Plus Account Info')
             return
-        data = self._addon.languagetools.account_info(api_key)
+        self._addon.languagetools.set_api_key(api_key)
+        data = self._addon.languagetools.account_info()
         lines = []
         for key, value in data.items():
             html = f'<b>{key}</b>: {value}'
