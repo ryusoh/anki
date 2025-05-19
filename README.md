@@ -2,15 +2,13 @@
 
 ## Alias
 
-877182321: Enhance Main Window
-
-1771074083: Review Heatmap
-
-1210908941: Custom Background
-
-1436550454: AwesomeTTS
-
-428359194: Rewrite Text of Study Cards in Anki Home
+| ID         | Name                                     |
+|------------|------------------------------------------|
+| 877182321  | Enhance Main Window                      |
+| 1771074083 | Review Heatmap                           |
+| 1210908941 | Custom Background                        |
+| 1436550454 | AwesomeTTS                               |
+| 428359194  | Rewrite Text of Study Cards in Anki Home |
 
 ## Path
 
