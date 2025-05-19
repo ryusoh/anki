@@ -1,5 +1,3 @@
-# Anki
-
 ## Alias
 
 | ID         | Name                                     |
