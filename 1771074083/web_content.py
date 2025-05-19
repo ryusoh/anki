@@ -75,14 +75,6 @@ HTML_HEATMAP: str = f"""
                 <img height="10px" src="{WEB_BASE}/assets/right.svg" />
             </div>
         </div>
-        <div class="alignright">
-            <div class="hm-btn opts-btn" title="Options" onclick="reviewHeatmap.onHmOpts(event, this);">
-                <img src="{WEB_BASE}/assets/options.svg" />
-            </div>
-            <div class="hm-btn opts-btn" title="Support this add-on" onclick="reviewHeatmap.onHmContrib(event, this);">
-                <img src="{WEB_BASE}/assets/heart_bw.svg" />
-            </div>
-        </div>
         <div style="clear: both;">&nbsp;</div>
     </div>
     <div id="cal-heatmap"></div>
