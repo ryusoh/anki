@@ -10,6 +10,7 @@
 
 1436550454: AwesomeTTS
 
+428359194: Rewrite Text of Study Cards in Anki Home
 
 ## Path
 
