@@ -4,3 +4,8 @@ x=x
 y=y
 *__pycache__*
 .DS_Store
+user_files/*
+./1436550454/user_files/*
+!./1436550454/user_files/README.txt
+./1436550454/user_files/cache/
+./1436550454/user_files/*.sqlite
