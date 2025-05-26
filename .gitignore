@@ -1,11 +1,24 @@
-./1436550454/awesometts/.cache
-./1210908941/user_files/background
-x=x
-y=y
-*__pycache__*
+# macOS specific
 .DS_Store
+
+# Python cache files and bytecode
+# Use __pycache__/ to specifically target directories
+__pycache__/
+*.py[cod]
+
+# General rule for a 'user_files' directory at the root of the repository.
+# This will ignore files directly within 'addons21/user_files/'.
+# If no such top-level 'user_files' directory exists or needs this rule,
+# this line might not be necessary.
 user_files/*
-./1436550454/user_files/*
-!./1436550454/user_files/README.txt
-./1436550454/user_files/cache/
-./1436550454/user_files/*.sqlite
+
+# Addon-specific ignores
+## Addon 1210908941 (Custom Background, Image Resizer, etc.)
+1210908941/user_files/background
+
+## Addon 1436550454 (AwesomeTTS)
+1436550454/awesometts/.cache
+1436550454/user_files/*
+!1436550454/user_files/README.txt
+1436550454/user_files/cache/
+1436550454/user_files/*.sqlite
