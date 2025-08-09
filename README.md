@@ -4,7 +4,8 @@
 
 ---
 
-<table style="width: 80%; margin-left: auto; margin-right: auto;">
+<div align="center">
+<table style="width: 80%;">
     <thead>
         <tr>
             <th style="text-align: center;">ID</th>
@@ -34,6 +35,7 @@
         </tr>
     </tbody>
 </table>
+</div>
 
 ## Path
 
