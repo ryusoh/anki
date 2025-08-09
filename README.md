@@ -2,6 +2,9 @@
 
 <div align="right"><em>San Francisco, CA &middot; 2023 © <a href="https://instagram.com/lyeutsaon" target="_blank" rel="noopener noreferrer">@lyeutsaon</a></em></div>
 
+---
+
+<div align="center">
 | ID         | Name                                     |
 |------------|------------------------------------------|
 | 877182321  | Enhance Main Window                      |
@@ -9,6 +12,7 @@
 | 1210908941 | Custom Background                        |
 | 1436550454 | AwesomeTTS                               |
 | 428359194  | Rewrite Text of Study Cards in Anki Home |
+</div>
 
 ## Path
 
