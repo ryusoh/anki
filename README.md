@@ -4,17 +4,36 @@
 
 ---
 
-<div align="center">
-
-| ID         | Name                                     |
-|------------|------------------------------------------|
-| 877182321  | Enhance Main Window                      |
-| 1771074083 | Review Heatmap                           |
-| 1210908941 | Custom Background                        |
-| 1436550454 | AwesomeTTS                               |
-| 428359194  | Rewrite Text of Study Cards in Anki Home |
-
-</div>
+<table width="100%">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>877182321</td>
+            <td>Enhance Main Window</td>
+        </tr>
+        <tr>
+            <td>1771074083</td>
+            <td>Review Heatmap</td>
+        </tr>
+        <tr>
+            <td>1210908941</td>
+            <td>Custom Background</td>
+        </tr>
+        <tr>
+            <td>1436550454</td>
+            <td>AwesomeTTS</td>
+        </tr>
+        <tr>
+            <td>428359194</td>
+            <td>Rewrite Text of Study Cards in Anki Home</td>
+        </tr>
+    </tbody>
+</table>
 
 ## Path
 
