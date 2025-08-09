@@ -4,32 +4,32 @@
 
 ---
 
-<table width="100%">
+<table style="width: 80%; margin-left: auto; margin-right: auto;">
     <thead>
         <tr>
-            <th>ID</th>
-            <th>Name</th>
+            <th style="text-align: center;">ID</th>
+            <th style="text-align: left;">Name</th>
         </tr>
     </thead>
     <tbody>
         <tr>
-            <td>877182321</td>
+            <td style="text-align: center;">877182321</td>
             <td>Enhance Main Window</td>
         </tr>
         <tr>
-            <td>1771074083</td>
+            <td style="text-align: center;">1771074083</td>
             <td>Review Heatmap</td>
         </tr>
         <tr>
-            <td>1210908941</td>
+            <td style="text-align: center;">1210908941</td>
             <td>Custom Background</td>
         </tr>
         <tr>
-            <td>1436550454</td>
+            <td style="text-align: center;">1436550454</td>
             <td>AwesomeTTS</td>
         </tr>
         <tr>
-            <td>428359194</td>
+            <td style="text-align: center;">428359194</td>
             <td>Rewrite Text of Study Cards in Anki Home</td>
         </tr>
     </tbody>
