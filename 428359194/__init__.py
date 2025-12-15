@@ -15,6 +15,8 @@
 
 from aqt.deckbrowser import *
 from .path_manager import MESSAGE_TEMPLATE, check_custom_text
+from aqt import gui_hooks
+from aqt.overview import Overview
 
 
 def _renderStats_3(self:"DeckBrowser") -> str:
@@ -93,3 +95,22 @@ def handleMyAddonConfig(handled, message, context):
         return handled
 
 gui_hooks.webview_did_receive_js_message.append(handleMyAddonConfig)
+
+def on_overview_will_set_content(web_content, context):
+    """
+    Hook to change the color of 'Learning' and 'Review' counts on the Overview page
+    to match the color of 'New' counts.
+    """
+    if isinstance(context, Overview):
+        # Inject CSS to override colors
+        # We use var(--new-count) which is available in modern Anki versions.
+        # This makes Learning and Review numbers same color as New.
+        web_content.head += """
+<style>
+.new-count, .learn-count, .review-count {
+    color: inherit !important;
+}
+</style>
+"""
+
+gui_hooks.webview_will_set_content.append(on_overview_will_set_content)
