@@ -47,6 +47,7 @@ WEB_BASE = f"/_addons/{MODULE_ADDON}/web"
 HTML_MAIN_ELEMENT: str = f"""
 <script type="text/javascript" src="{WEB_BASE}/d3.min.js"></script>
 <script type="text/javascript" src="{WEB_BASE}/anki-review-heatmap.js"></script>
+<link rel="stylesheet" type="text/css" href="{WEB_BASE}/heatmap-shared.css">
 
 <script>
 var rhPlatform = "{PLATFORM}";

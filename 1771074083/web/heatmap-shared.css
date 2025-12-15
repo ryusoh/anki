@@ -1,0 +1,82 @@
+/* Shared styles for Review Heatmap across all views, including
+   the congrats page injection. */
+
+/* Heatmap controls layout mirrors the original inline HTML */
+.heatmap-controls {
+    margin-bottom: 0;
+}
+
+.heatmap-controls::after {
+    content: "";
+    display: block;
+    clear: both;
+}
+
+.alignleft,
+.aligncenter,
+.alignright {
+    float: left;
+    width: 33.3333%;
+}
+
+.alignleft {
+    text-align: left;
+}
+
+.aligncenter {
+    text-align: center;
+}
+
+.alignright {
+    text-align: right;
+}
+
+/* Heatmap navigation buttons */
+.hm-btn {
+    height: 100%;
+    display: inline-block;
+    cursor: pointer;
+    background: #e6e6e6;
+    color: #808080;
+    padding: 2px 8px;
+    border-radius: 3px;
+    margin-left: 2px;
+    text-decoration: none;
+    user-select: none;
+    vertical-align: middle;
+}
+
+.hm-btn:hover {
+    background: #bfbfbf;
+}
+
+.hm-btn:active {
+    background: #000;
+}
+
+body.nightMode .hm-btn,
+.night_mode .hm-btn {
+    background-color: #313d45;
+}
+
+body.nightMode .hm-btn:hover,
+.night_mode .hm-btn:hover {
+    background-color: #374f5b;
+}
+
+body.nightMode .hm-btn:active,
+.night_mode .hm-btn:active {
+    background-color: #433376;
+}
+
+/* Options button uses narrower padding */
+.opts-btn {
+    padding: 2px 4px;
+}
+
+.opts-btn>img {
+    position: relative;
+    top: calc(50% - 12px);
+    height: 10px;
+    width: 10px;
+}
