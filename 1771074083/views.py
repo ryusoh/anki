@@ -172,15 +172,39 @@ body.night-mode {{
     background-color: transparent !important;
 }}
 
+/* Kill pseudo overlays from other add-ons */
+html::before,
+html::after,
+body::before,
+body::after,
+.heatmap-frame::before,
+.heatmap-frame::after {{
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    filter: none !important;
+    content: none !important;
+}}
+
 /* Ensure container and heatmap are centered */
 .rh-container,
 .heatmap {{
     background: transparent !important;
+    background-color: transparent !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
     margin: 0 auto !important;
+}}
+
+#cal-heatmap,
+.cal-heatmap-container,
+.cal-heatmap-container svg,
+.cal-heatmap-container .graph,
+.cal-heatmap-container .domain-background {{
+    background: transparent !important;
+    background-color: transparent !important;
 }}
 
 /* 
@@ -217,10 +241,76 @@ body.night-mode {{
         frame_id_json = json.dumps(frame_id)
 
         script_template = """
+
 (() => {
     const frameHtml = __FRAME_HTML__;
     const containerId = __CONTAINER_ID__;
     const frameId = __FRAME_ID__;
+
+    const mirrorableClass = (cls) => {
+        if (!cls) {
+            return false;
+        }
+        return /(night|dark|mode|theme)/i.test(cls);
+    };
+
+    const isTransparent = (val) => {
+        if (!val) return false;
+        val = val.trim().toLowerCase();
+        return val === "transparent" || val === "rgba(0, 0, 0, 0)" || val === "rgba(0,0,0,0)";
+    };
+
+    const isNone = (val) => {
+        if (!val) return false;
+        val = val.trim().toLowerCase();
+        return val === "none";
+    };
+
+    const enforceNodeTransparency = (node) => {
+        if (!node) {
+            return;
+        }
+
+        const setTransparent = (prop) => {
+            const val = node.style.getPropertyValue(prop);
+            const prio = node.style.getPropertyPriority(prop);
+            if (!isTransparent(val) || prio !== "important") {
+                node.style.setProperty(prop, "transparent", "important");
+            }
+        }
+
+        const setNone = (prop) => {
+             const val = node.style.getPropertyValue(prop);
+             const prio = node.style.getPropertyPriority(prop);
+             if (!isNone(val) || prio !== "important") {
+                node.style.setProperty(prop, "none", "important");
+            }
+        }
+
+        setTransparent("background");
+        setTransparent("background-color");
+        setNone("background-image");
+        setNone("box-shadow");
+    };
+
+    const attachTransparencyInterval = (node, key) => {
+        if (!node) return;
+        if (node[key]) clearInterval(node[key]);
+        node[key] = setInterval(() => enforceNodeTransparency(node), 100);
+        enforceNodeTransparency(node);
+    };
+
+    const frameDocTransparency = (frameDoc) => {
+        if (!frameDoc) return;
+        if (frameDoc.documentElement) enforceNodeTransparency(frameDoc.documentElement);
+        if (frameDoc.body) enforceNodeTransparency(frameDoc.body);
+    };
+
+    const scheduleTransparencyEnforcement = (frameDoc) => {
+        if (!frameDoc) return;
+        const timings = [0, 16, 50, 200, 600, 1600];
+        timings.forEach(delay => setTimeout(() => frameDocTransparency(frameDoc), delay));
+    };
 
     const ensureContainer = () => {
         const host = document.querySelector("main") || document.body;
@@ -238,14 +328,14 @@ body.night-mode {{
             container.style.alignItems = "flex-start";
             container.style.margin = "1.5em 0 1em";
             container.style.padding = "0";
-            container.style.background = "transparent";
-            container.style.backgroundColor = "transparent";
+            container.style.overflowX = "visible";
+            // Static init
             container.style.setProperty("background", "transparent", "important");
             container.style.setProperty("background-color", "transparent", "important");
-            container.style.overflowX = "visible";
             host.appendChild(container);
         }
 
+        attachTransparencyInterval(container, "_rhContainerInterval");
         return container;
     };
 
@@ -254,45 +344,42 @@ body.night-mode {{
             return;
         }
 
-        frameDoc.body.classList.add("heatmap-frame");
-        frameDoc.body.style.background = "transparent";
-        frameDoc.body.style.backgroundColor = "transparent";
-        frameDoc.body.style.setProperty("background", "transparent", "important");
-        frameDoc.body.style.setProperty("background-color", "transparent", "important");
+        try {
+            frameDoc.body.classList.add("heatmap-frame");
+            frameDocTransparency(frameDoc);
 
-        if (frameDoc.documentElement) {
-            frameDoc.documentElement.style.background = "transparent";
-            frameDoc.documentElement.style.backgroundColor = "transparent";
-            frameDoc.documentElement.style.setProperty("background", "transparent", "important");
-            frameDoc.documentElement.style.setProperty(
-                "background-color",
-                "transparent",
-                "important"
-            );
-        }
+            const parentBody = document.body;
+            let wantsDark = false;
 
-        const parentBody = document.body;
-        let wantsDark = false;
+            if (parentBody) {
+                parentBody.classList.forEach((cls) => {
+                    if (mirrorableClass(cls)) {
+                        frameDoc.body.classList.add(cls);
+                    }
+                    if (cls === "night_mode" || cls === "nightMode" || cls === "night-mode") {
+                        wantsDark = true;
+                    } else if (/dark/i.test(cls) || /night/i.test(cls)) {
+                        wantsDark = true;
+                    }
+                });
+            }
 
-        if (parentBody) {
-            parentBody.classList.forEach((cls) => {
-                if (cls === "night_mode" || cls === "nightMode" || cls === "night-mode") {
-                    wantsDark = true;
-                }
-            });
-        }
+            const parentHtml = document.documentElement;
+            if (parentHtml && parentHtml.dataset.bsTheme === "dark") {
+                wantsDark = true;
+            }
 
-        const parentHtml = document.documentElement;
-        if (parentHtml && parentHtml.dataset.bsTheme === "dark") {
-            wantsDark = true;
-        }
+            if (wantsDark) {
+                frameDoc.body.classList.add("night_mode", "nightMode", "night-mode");
+            }
 
-        if (wantsDark) {
-            frameDoc.body.classList.add("night_mode", "nightMode", "night-mode");
-        }
+            if (parentHtml && frameDoc.documentElement && parentHtml.dataset.bsTheme) {
+                frameDoc.documentElement.dataset.bsTheme = parentHtml.dataset.bsTheme;
+            }
 
-        if (parentHtml && frameDoc.documentElement && parentHtml.dataset.bsTheme) {
-            frameDoc.documentElement.dataset.bsTheme = parentHtml.dataset.bsTheme;
+            scheduleTransparencyEnforcement(frameDoc);
+        } catch (err) {
+            console.error(err);
         }
     };
 
@@ -300,29 +387,28 @@ body.night-mode {{
         if (!frame || !frame.contentDocument) {
             return;
         }
+        try {
+            const doc = frame.contentDocument;
+            const body = doc.body;
+            if (!body) return;
 
-        const doc = frame.contentDocument;
-        const body = doc.body;
-        if (!body) {
-            return;
-        }
+            const extraHeight = 24;
+            const height = body.scrollHeight;
+            if (height) {
+                frame.style.height = height + extraHeight + "px";
+            }
 
-        const extraHeight = 24;
-        const height = body.scrollHeight;
-        if (height) {
-            frame.style.height = height + extraHeight + "px";
-        }
-
-        const docElement = doc.documentElement;
-        const width = Math.max(
-            body.scrollWidth,
-            docElement ? docElement.scrollWidth : 0
-        );
-        if (width) {
-            const extraWidth = 8;
-            const totalWidth = width + extraWidth;
-            frame.style.width = totalWidth + "px";
-        }
+            const docElement = doc.documentElement;
+            const width = Math.max(
+                body.scrollWidth,
+                docElement ? docElement.scrollWidth : 0
+            );
+            if (width) {
+                const extraWidth = 8;
+                const totalWidth = width + extraWidth;
+                frame.style.width = totalWidth + "px";
+            }
+        } catch(e) { /* ignore */ }
     };
 
     const insertFrame = () => {
@@ -340,15 +426,16 @@ body.night-mode {{
             frame.setAttribute("allowtransparency", "true");
             frame.style.display = "block";
             frame.style.border = "0";
-            frame.style.background = "transparent";
-            frame.style.backgroundColor = "transparent";
-            frame.style.setProperty("background", "transparent", "important");
-            frame.style.setProperty("background-color", "transparent", "important");
             frame.style.margin = "0 auto";
             frame.style.padding = "0";
             frame.style.overflow = "hidden";
+            // Static init
+            frame.style.setProperty("background", "transparent", "important");
+            frame.style.setProperty("background-color", "transparent", "important");
             container.appendChild(frame);
         }
+
+        attachTransparencyInterval(frame, "_rhFrameInterval");
 
         frame.style.height = "0px";
         frame.style.width = "0px";
@@ -363,25 +450,34 @@ body.night-mode {{
         }
 
         frame.onload = () => {
-            if (frame.contentWindow) {
-                frame.contentWindow.pycmd = window.pycmd;
-            }
-            updateFrameClasses(frame.contentDocument);
-            resizeFrame(frame);
-            setTimeout(() => resizeFrame(frame), 400);
-            setTimeout(() => resizeFrame(frame), 1000);
-
-            if (
-                window.ResizeObserver &&
-                frame.contentDocument &&
-                frame.contentDocument.body
-            ) {
-                const resizeObserver = new ResizeObserver(() => resizeFrame(frame));
-                resizeObserver.observe(frame.contentDocument.body);
-                if (frame.contentDocument.documentElement) {
-                    resizeObserver.observe(frame.contentDocument.documentElement);
+            try {
+                if (frame.contentWindow) {
+                    try {
+                         frame.contentWindow.pycmd = window.pycmd;
+                    } catch (e) { /* ignore cross-origin if happens */ }
                 }
-                frame._rhResizeObserver = resizeObserver;
+                const doc = frame.contentDocument;
+                updateFrameClasses(doc);
+                
+                if (doc) {
+                    if (doc.documentElement) attachTransparencyInterval(doc.documentElement, "_rhDocInterval");
+                    if (doc.body) attachTransparencyInterval(doc.body, "_rhBodyInterval");
+                }
+
+                resizeFrame(frame);
+                setTimeout(() => resizeFrame(frame), 400);
+                setTimeout(() => resizeFrame(frame), 1000);
+
+                if (window.ResizeObserver && doc && doc.body) {
+                    const resizeObserver = new ResizeObserver(() => resizeFrame(frame));
+                    resizeObserver.observe(doc.body);
+                    if (doc.documentElement) {
+                        resizeObserver.observe(doc.documentElement);
+                    }
+                    frame._rhResizeObserver = resizeObserver;
+                }
+            } catch (err) {
+                console.error("Heatmap frame load error:", err);
             }
         };
 
