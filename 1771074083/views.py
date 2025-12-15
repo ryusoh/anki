@@ -149,6 +149,7 @@ body {{
     margin: 0;
     padding: 0;
     background: transparent !important;
+    background-color: transparent !important;
     width: 100%;
 }}
 body {{
@@ -238,6 +239,9 @@ body.night-mode {{
             container.style.margin = "1.5em 0 1em";
             container.style.padding = "0";
             container.style.background = "transparent";
+            container.style.backgroundColor = "transparent";
+            container.style.setProperty("background", "transparent", "important");
+            container.style.setProperty("background-color", "transparent", "important");
             container.style.overflowX = "visible";
             host.appendChild(container);
         }
@@ -252,9 +256,19 @@ body.night-mode {{
 
         frameDoc.body.classList.add("heatmap-frame");
         frameDoc.body.style.background = "transparent";
+        frameDoc.body.style.backgroundColor = "transparent";
+        frameDoc.body.style.setProperty("background", "transparent", "important");
+        frameDoc.body.style.setProperty("background-color", "transparent", "important");
 
         if (frameDoc.documentElement) {
             frameDoc.documentElement.style.background = "transparent";
+            frameDoc.documentElement.style.backgroundColor = "transparent";
+            frameDoc.documentElement.style.setProperty("background", "transparent", "important");
+            frameDoc.documentElement.style.setProperty(
+                "background-color",
+                "transparent",
+                "important"
+            );
         }
 
         const parentBody = document.body;
@@ -262,7 +276,6 @@ body.night-mode {{
 
         if (parentBody) {
             parentBody.classList.forEach((cls) => {
-                frameDoc.body.classList.add(cls);
                 if (cls === "night_mode" || cls === "nightMode" || cls === "night-mode") {
                     wantsDark = true;
                 }
@@ -328,6 +341,9 @@ body.night-mode {{
             frame.style.display = "block";
             frame.style.border = "0";
             frame.style.background = "transparent";
+            frame.style.backgroundColor = "transparent";
+            frame.style.setProperty("background", "transparent", "important");
+            frame.style.setProperty("background-color", "transparent", "important");
             frame.style.margin = "0 auto";
             frame.style.padding = "0";
             frame.style.overflow = "hidden";
