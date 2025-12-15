@@ -221,15 +221,74 @@ body::after,
 </style>
 """.strip()
 
+
+
+        # Embedded JS that runs INSIDE the iframe
+        transparency_js = """
+            (function() {
+                const isTransparent = (val) => {
+                    if (!val) return false;
+                    val = val.trim().toLowerCase();
+                    return val === "transparent" || val === "rgba(0, 0, 0, 0)" || val === "rgba(0,0,0,0)";
+                };
+
+                const isNone = (val) => {
+                    if (!val) return false;
+                    val = val.trim().toLowerCase();
+                    return val === "none";
+                };
+
+                const enforceNodeTransparency = (node) => {
+                    if (!node) return;
+                    const setTransparent = (prop) => {
+                        const val = node.style.getPropertyValue(prop);
+                        const prio = node.style.getPropertyPriority(prop);
+                        if (!isTransparent(val) || prio !== "important") {
+                            node.style.setProperty(prop, "transparent", "important");
+                        }
+                    };
+                    const setNone = (prop) => {
+                         const val = node.style.getPropertyValue(prop);
+                         const prio = node.style.getPropertyPriority(prop);
+                         if (!isNone(val) || prio !== "important") {
+                            node.style.setProperty(prop, "none", "important");
+                        }
+                    };
+                    setTransparent("background");
+                    setTransparent("background-color");
+                    setNone("background-image");
+                    setNone("box-shadow");
+                };
+
+                const runEnforcement = () => {
+                    if (document.documentElement) enforceNodeTransparency(document.documentElement);
+                    if (document.body) enforceNodeTransparency(document.body);
+                };
+
+                // Safe initialization
+                const init = () => {
+                    runEnforcement();
+                    setInterval(runEnforcement, 50);
+                };
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', init);
+                } else {
+                    init();
+                }
+            })();
+        """
+
         frame_html_parts = [
             "<!doctype html>",
-            "<html>",
+            '<html style="background: transparent !important; background-color: transparent !important;">',
             "<head>",
             '<meta charset="utf-8">',
             f'<base href="{server_url}">',
+            f'<script>{transparency_js}</script>',
             frame_css,
             "</head>",
-            '<body class="heatmap-frame">',
+            '<body class="heatmap-frame" style="background: transparent !important; background-color: transparent !important;">',
             heatmap_html,
             "</body>",
             "</html>",
@@ -240,8 +299,8 @@ body::after,
         container_id_json = json.dumps(container_id)
         frame_id_json = json.dumps(frame_id)
 
+        # Parent-side script (manages container and outer iframe element)
         script_template = """
-
 (() => {
     const frameHtml = __FRAME_HTML__;
     const containerId = __CONTAINER_ID__;
@@ -260,62 +319,54 @@ body::after,
         return val === "transparent" || val === "rgba(0, 0, 0, 0)" || val === "rgba(0,0,0,0)";
     };
 
-    const isNone = (val) => {
-        if (!val) return false;
-        val = val.trim().toLowerCase();
-        return val === "none";
-    };
-
     const enforceNodeTransparency = (node) => {
-        if (!node) {
-            return;
-        }
-
+        if (!node) return;
         const setTransparent = (prop) => {
             const val = node.style.getPropertyValue(prop);
             const prio = node.style.getPropertyPriority(prop);
             if (!isTransparent(val) || prio !== "important") {
                 node.style.setProperty(prop, "transparent", "important");
             }
-        }
-
-        const setNone = (prop) => {
-             const val = node.style.getPropertyValue(prop);
-             const prio = node.style.getPropertyPriority(prop);
-             if (!isNone(val) || prio !== "important") {
-                node.style.setProperty(prop, "none", "important");
-            }
-        }
-
+        };
         setTransparent("background");
         setTransparent("background-color");
-        setNone("background-image");
-        setNone("box-shadow");
     };
 
-    const attachTransparencyInterval = (node, key) => {
+
+    const attachTransparencyInterval = (node, key, onTick) => {
         if (!node) return;
         if (node[key]) clearInterval(node[key]);
-        node[key] = setInterval(() => enforceNodeTransparency(node), 100);
+        node[key] = setInterval(() => {
+            enforceNodeTransparency(node);
+            if (onTick) {
+                try {
+                    onTick();
+                } catch (e) { /* ignore */ }
+            }
+        }, 50); // Faster 50ms interval
         enforceNodeTransparency(node);
-    };
-
-    const frameDocTransparency = (frameDoc) => {
-        if (!frameDoc) return;
-        if (frameDoc.documentElement) enforceNodeTransparency(frameDoc.documentElement);
-        if (frameDoc.body) enforceNodeTransparency(frameDoc.body);
-    };
-
-    const scheduleTransparencyEnforcement = (frameDoc) => {
-        if (!frameDoc) return;
-        const timings = [0, 16, 50, 200, 600, 1600];
-        timings.forEach(delay => setTimeout(() => frameDocTransparency(frameDoc), delay));
+        if (onTick) { 
+             try { onTick(); } catch(e) {} 
+        }
     };
 
     const ensureContainer = () => {
         const host = document.querySelector("main") || document.body;
         if (!host) {
             return null;
+        }
+
+        // Global CSS injection for parent
+        if (!document.getElementById("rh-global-transparency")) {
+            const style = document.createElement("style");
+            style.id = "rh-global-transparency";
+            style.innerHTML = `
+                #${containerId}, #${frameId} {
+                    background: transparent !important;
+                    background-color: transparent !important;
+                }
+            `;
+            document.head.appendChild(style);
         }
 
         let container = document.getElementById(containerId);
@@ -343,10 +394,8 @@ body::after,
         if (!frameDoc || !frameDoc.body) {
             return;
         }
-
         try {
             frameDoc.body.classList.add("heatmap-frame");
-            frameDocTransparency(frameDoc);
 
             const parentBody = document.body;
             let wantsDark = false;
@@ -376,8 +425,6 @@ body::after,
             if (parentHtml && frameDoc.documentElement && parentHtml.dataset.bsTheme) {
                 frameDoc.documentElement.dataset.bsTheme = parentHtml.dataset.bsTheme;
             }
-
-            scheduleTransparencyEnforcement(frameDoc);
         } catch (err) {
             console.error(err);
         }
@@ -416,54 +463,53 @@ body::after,
         if (!container) {
             return false;
         }
+        
+        container.innerHTML = "";
 
-        let frame = document.getElementById(frameId);
-        if (!frame) {
-            frame = document.createElement("iframe");
-            frame.id = frameId;
-            frame.setAttribute("scrolling", "no");
-            frame.setAttribute("frameborder", "0");
-            frame.setAttribute("allowtransparency", "true");
-            frame.style.display = "block";
-            frame.style.border = "0";
-            frame.style.margin = "0 auto";
-            frame.style.padding = "0";
-            frame.style.overflow = "hidden";
-            // Static init
-            frame.style.setProperty("background", "transparent", "important");
-            frame.style.setProperty("background-color", "transparent", "important");
-            container.appendChild(frame);
-        }
+        let frame = document.createElement("iframe");
+        frame.id = frameId;
+        frame.setAttribute("scrolling", "no");
+        frame.setAttribute("frameborder", "0");
+        frame.setAttribute("allowtransparency", "true");
+        frame.style.display = "block";
+        frame.style.border = "0";
+        frame.style.margin = "0 auto";
+        frame.style.padding = "0";
+        frame.style.overflow = "hidden";
+        // Static init
+        frame.style.setProperty("background", "transparent", "important");
+        frame.style.setProperty("background-color", "transparent", "important");
+        container.appendChild(frame);
 
-        attachTransparencyInterval(frame, "_rhFrameInterval");
+        // HYBRID DEFENSE:
+        // 1. Embedded script runs inside.
+        // 2. This interval runs outside and forces the frame element AND reaches inside.
+        attachTransparencyInterval(frame, "_rhFrameInterval", () => {
+            try {
+                // Force outer frame (redundant but safe)
+                enforceNodeTransparency(frame);
+                
+                // Reach inside (Parent Watchdog)
+                const doc = frame.contentDocument;
+                if (doc) {
+                    if (doc.documentElement) enforceNodeTransparency(doc.documentElement);
+                    if (doc.body) enforceNodeTransparency(doc.body);
+                }
+            } catch(e) { /* ignore cross-origin/loading errors */ }
+        });
 
         frame.style.height = "0px";
         frame.style.width = "0px";
-
-        if (frame._rhResizeObserver) {
-            try {
-                frame._rhResizeObserver.disconnect();
-            } catch (err) {
-                // ignore
-            }
-            frame._rhResizeObserver = null;
-        }
 
         frame.onload = () => {
             try {
                 if (frame.contentWindow) {
                     try {
                          frame.contentWindow.pycmd = window.pycmd;
-                    } catch (e) { /* ignore cross-origin if happens */ }
+                    } catch (e) { /* ignore */ }
                 }
                 const doc = frame.contentDocument;
                 updateFrameClasses(doc);
-                
-                if (doc) {
-                    if (doc.documentElement) attachTransparencyInterval(doc.documentElement, "_rhDocInterval");
-                    if (doc.body) attachTransparencyInterval(doc.body, "_rhBodyInterval");
-                }
-
                 resizeFrame(frame);
                 setTimeout(() => resizeFrame(frame), 400);
                 setTimeout(() => resizeFrame(frame), 1000);
