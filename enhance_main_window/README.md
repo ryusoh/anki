@@ -12,8 +12,6 @@ Important updates:
 * 8th November 2018: you can configure the add-on using anki 2.1's
   configuration method. The configuration won't be lost during next update of the add-on !
 
-![Example](example.png)
-
 # Features
 ## Column
 Most features offered by this add-on are related to some column.
