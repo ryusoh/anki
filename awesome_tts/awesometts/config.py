@@ -29,7 +29,7 @@ import sqlite3
 __all__ = ['Config']
 
 
-ANKIWEB_ADDON_ID = '1436550454'
+ANKIWEB_ADDON_ID = 'awesome_tts'
 CONFIG_ADDON_NAME = 'anki-awesome-tts'
 if ANKIWEB_ADDON_ID in __file__:
     CONFIG_ADDON_NAME = ANKIWEB_ADDON_ID
