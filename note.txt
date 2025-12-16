@@ -8,8 +8,11 @@
 | 428359194  | Rewrite Text of Study Cards in Anki Home |
 +------------+------------------------------------------+
 
-Anki Path
+Addons Path
 ~/Library/Application Support/Anki2/addons21/
+
+Anki Code
+/Applications/Anki.app/Contents/Resources
 
 Instructions
 To remove scroll bar on the main window, add the following line to 1210908941/user_files/css/custom_deckbrowser.css
