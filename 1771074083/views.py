@@ -34,7 +34,6 @@ Integration with Anki views
 """
 
 import json
-import os
 from abc import ABC
 from typing import TYPE_CHECKING, Callable, Optional
 
@@ -112,6 +111,8 @@ class OverviewInjector(HeatmapInjector):
     def overview_will_render_content(
         self, overview: Overview, content: "OverviewContent"
     ):
+        if overview.mw.col and overview.mw.col.sched._is_finished():
+            return
         heatmap_html = self._controller.render_for_view(
             self._view, current_deck_only=True
         )
@@ -128,245 +129,21 @@ class OverviewInjector(HeatmapInjector):
 
     def _inject_finished_heatmap(self, overview: Overview, heatmap_html: str) -> None:
         container_id = "review-heatmap-finished"
-        frame_id = "review-heatmap-finished-frame"
-        server_url = overview.mw.serverURL()
-
-        # Read shared CSS
-        shared_css_path = os.path.join(os.path.dirname(__file__), "web", "heatmap-shared.css")
-        shared_css_content = ""
-        if os.path.exists(shared_css_path):
-            with open(shared_css_path, "r", encoding="utf-8") as f:
-                shared_css_content = f.read()
-
-        frame_css = f"""
-<style>
-/* Reset and Base */
-:root {{
-    color-scheme: inherit;
-}}
-html,
-body {{
-    margin: 0;
-    padding: 0;
-    background: transparent !important;
-    background-color: transparent !important;
-    width: 100%;
-}}
-body {{
-    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
-    font-size: 13px;
-    line-height: 1.4;
-    color: inherit;
-    /* Center the main content */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}}
-
-/* Force transparency even when Anki applies night mode classes */
-body.night_mode, 
-body.nightMode, 
-body.night-mode {{
-    background: transparent !important;
-    background-color: transparent !important;
-}}
-
-/* Kill pseudo overlays from other add-ons */
-html::before,
-html::after,
-body::before,
-body::after,
-.heatmap-frame::before,
-.heatmap-frame::after {{
-    background: transparent !important;
-    background-color: transparent !important;
-    box-shadow: none !important;
-    filter: none !important;
-    content: none !important;
-}}
-
-/* Ensure container and heatmap are centered */
-.rh-container,
-.heatmap {{
-    background: transparent !important;
-    background-color: transparent !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    margin: 0 auto !important;
-}}
-
-#cal-heatmap,
-.cal-heatmap-container,
-.cal-heatmap-container svg,
-.cal-heatmap-container .graph,
-.cal-heatmap-container .domain-background {{
-    background: transparent !important;
-    background-color: transparent !important;
-}}
-
-/* 
-   Ensure controls use full width so the 33% floats work.
-   Otherwise, flex shrinkage causes them to stack.
-*/
-.heatmap-controls {{
-    width: 100% !important;
-    max-width: 600px; /* Optional constraint to keep buttons from spreading too far if needed */
-}}
-
-/* Injected Shared CSS */
-{shared_css_content}
-</style>
-""".strip()
-
-
-
-        # Embedded JS that runs INSIDE the iframe
-        transparency_js = """
-            (function() {
-                const isTransparent = (val) => {
-                    if (!val) return false;
-                    val = val.trim().toLowerCase();
-                    return val === "transparent" || val === "rgba(0, 0, 0, 0)" || val === "rgba(0,0,0,0)";
-                };
-
-                const isNone = (val) => {
-                    if (!val) return false;
-                    val = val.trim().toLowerCase();
-                    return val === "none";
-                };
-
-                const enforceNodeTransparency = (node) => {
-                    if (!node) return;
-                    const setTransparent = (prop) => {
-                        const val = node.style.getPropertyValue(prop);
-                        const prio = node.style.getPropertyPriority(prop);
-                        if (!isTransparent(val) || prio !== "important") {
-                            node.style.setProperty(prop, "transparent", "important");
-                        }
-                    };
-                    const setNone = (prop) => {
-                         const val = node.style.getPropertyValue(prop);
-                         const prio = node.style.getPropertyPriority(prop);
-                         if (!isNone(val) || prio !== "important") {
-                            node.style.setProperty(prop, "none", "important");
-                        }
-                    };
-                    setTransparent("background");
-                    setTransparent("background-color");
-                    setNone("background-image");
-                    setNone("box-shadow");
-                };
-
-                const runEnforcement = () => {
-                    if (document.documentElement) enforceNodeTransparency(document.documentElement);
-                    if (document.body) enforceNodeTransparency(document.body);
-                };
-
-                // Safe initialization
-                const init = () => {
-                    runEnforcement();
-                    setInterval(runEnforcement, 50);
-                };
-
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', init);
-                } else {
-                    init();
-                }
-            })();
-        """
-
-        frame_html_parts = [
-            "<!doctype html>",
-            '<html style="background: transparent !important; background-color: transparent !important;">',
-            "<head>",
-            '<meta charset="utf-8">',
-            f'<base href="{server_url}">',
-            f'<script>{transparency_js}</script>',
-            frame_css,
-            "</head>",
-            '<body class="heatmap-frame" style="background: transparent !important; background-color: transparent !important;">',
-            heatmap_html,
-            "</body>",
-            "</html>",
-        ]
-
-        frame_html = "\n".join(frame_html_parts)
-        frame_html_json = json.dumps(frame_html)
+        heatmap_html_json = json.dumps(heatmap_html)
         container_id_json = json.dumps(container_id)
-        frame_id_json = json.dumps(frame_id)
 
         # Parent-side script (manages container and outer iframe element)
         script_template = """
 (() => {
-    const frameHtml = __FRAME_HTML__;
+    const heatmapHtml = __FRAME_HTML__;
     const containerId = __CONTAINER_ID__;
-    const frameId = __FRAME_ID__;
-
-    const mirrorableClass = (cls) => {
-        if (!cls) {
-            return false;
-        }
-        return /(night|dark|mode|theme)/i.test(cls);
-    };
-
-    const isTransparent = (val) => {
-        if (!val) return false;
-        val = val.trim().toLowerCase();
-        return val === "transparent" || val === "rgba(0, 0, 0, 0)" || val === "rgba(0,0,0,0)";
-    };
-
-    const enforceNodeTransparency = (node) => {
-        if (!node) return;
-        const setTransparent = (prop) => {
-            const val = node.style.getPropertyValue(prop);
-            const prio = node.style.getPropertyPriority(prop);
-            if (!isTransparent(val) || prio !== "important") {
-                node.style.setProperty(prop, "transparent", "important");
-            }
-        };
-        setTransparent("background");
-        setTransparent("background-color");
-    };
-
-
-    const attachTransparencyInterval = (node, key, onTick) => {
-        if (!node) return;
-        if (node[key]) clearInterval(node[key]);
-        node[key] = setInterval(() => {
-            enforceNodeTransparency(node);
-            if (onTick) {
-                try {
-                    onTick();
-                } catch (e) { /* ignore */ }
-            }
-        }, 50); // Faster 50ms interval
-        enforceNodeTransparency(node);
-        if (onTick) { 
-             try { onTick(); } catch(e) {} 
-        }
-    };
+    const assetState = window.__reviewHeatmapAssets || (window.__reviewHeatmapAssets = { scripts: {}, styles: {} });
+    const inlineStyleId = `${containerId}-inline-style`;
 
     const ensureContainer = () => {
         const host = document.querySelector("main") || document.body;
         if (!host) {
             return null;
-        }
-
-        // Global CSS injection for parent
-        if (!document.getElementById("rh-global-transparency")) {
-            const style = document.createElement("style");
-            style.id = "rh-global-transparency";
-            style.innerHTML = `
-                #${containerId}, #${frameId} {
-                    background: transparent !important;
-                    background-color: transparent !important;
-                }
-            `;
-            document.head.appendChild(style);
         }
 
         let container = document.getElementById(containerId);
@@ -380,173 +157,203 @@ body::after,
             container.style.margin = "1.5em 0 1em";
             container.style.padding = "0";
             container.style.overflowX = "visible";
-            // Static init
-            container.style.setProperty("background", "transparent", "important");
-            container.style.setProperty("background-color", "transparent", "important");
             host.appendChild(container);
         }
 
-        attachTransparencyInterval(container, "_rhContainerInterval");
         return container;
     };
 
-    const updateFrameClasses = (frameDoc) => {
-        if (!frameDoc || !frameDoc.body) {
+    const loadStylesheet = (href) => {
+        if (!href) {
+            return Promise.resolve();
+        }
+        if (assetState.styles[href]) {
+            return assetState.styles[href];
+        }
+        let link = document.querySelector(`link[href="${href}"]`);
+        if (!link) {
+            link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.href = href;
+            document.head.appendChild(link);
+        }
+        const promise = new Promise((resolve) => {
+            if (link.sheet) {
+                resolve();
+                return;
+            }
+            const finalize = () => resolve();
+            link.addEventListener("load", finalize, { once: true });
+            link.addEventListener("error", finalize, { once: true });
+        });
+        assetState.styles[href] = promise;
+        return promise;
+    };
+
+    const loadScript = (src) => {
+        if (!src) {
+            return Promise.resolve();
+        }
+        if (assetState.scripts[src]) {
+            return assetState.scripts[src];
+        }
+        const existing = document.querySelector(`script[src="${src}"]`);
+        if (existing && existing.dataset.rhLoaded === "1") {
+            return Promise.resolve();
+        }
+        const script = document.createElement("script");
+        script.src = src;
+        script.async = false;
+        script.dataset.rhPending = "1";
+        const promise = new Promise((resolve) => {
+            const finalize = () => {
+                script.dataset.rhLoaded = "1";
+                resolve();
+            };
+            script.addEventListener("load", finalize, { once: true });
+            script.addEventListener("error", finalize, { once: true });
+        });
+        assetState.scripts[src] = promise;
+        document.head.appendChild(script);
+        return promise;
+    };
+
+    const ensureScopedStyles = () => {
+        if (document.getElementById(inlineStyleId)) {
+            return;
+        }
+        const style = document.createElement("style");
+        style.id = inlineStyleId;
+        style.innerHTML = `
+            #${containerId} {
+                width: 100%;
+                display: flex;
+                justify-content: center;
+                align-items: flex-start;
+                margin: 1.5em 0 1em;
+                padding: 0;
+                background: transparent !important;
+                background-color: transparent !important;
+            }
+            #${containerId} .rh-container,
+            #${containerId} .heatmap {
+                background: transparent !important;
+                background-color: transparent !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                margin: 0 auto !important;
+            }
+            #${containerId} #cal-heatmap,
+            #${containerId} .cal-heatmap-container,
+            #${containerId} .cal-heatmap-container svg,
+            #${containerId} .cal-heatmap-container .graph,
+            #${containerId} .cal-heatmap-container .domain-background {
+                background: transparent !important;
+                background-color: transparent !important;
+            }
+            #${containerId} .heatmap-controls {
+                width: 100% !important;
+                max-width: 600px;
+                margin-bottom: -0.5em;
+            }
+            #${containerId} .heatmap-controls .aligncenter {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 1px;
+            }
+            #${containerId} .heatmap-controls .aligncenter .hm-btn {
+                margin-left: 0;
+            }
+        `;
+        document.head.appendChild(style);
+    };
+
+    const runInlineScript = (code) => {
+        if (!code || !code.trim()) {
             return;
         }
         try {
-            frameDoc.body.classList.add("heatmap-frame");
-
-            const parentBody = document.body;
-            let wantsDark = false;
-
-            if (parentBody) {
-                parentBody.classList.forEach((cls) => {
-                    if (mirrorableClass(cls)) {
-                        frameDoc.body.classList.add(cls);
-                    }
-                    if (cls === "night_mode" || cls === "nightMode" || cls === "night-mode") {
-                        wantsDark = true;
-                    } else if (/dark/i.test(cls) || /night/i.test(cls)) {
-                        wantsDark = true;
-                    }
-                });
-            }
-
-            const parentHtml = document.documentElement;
-            if (parentHtml && parentHtml.dataset.bsTheme === "dark") {
-                wantsDark = true;
-            }
-
-            if (wantsDark) {
-                frameDoc.body.classList.add("night_mode", "nightMode", "night-mode");
-            }
-
-            if (parentHtml && frameDoc.documentElement && parentHtml.dataset.bsTheme) {
-                frameDoc.documentElement.dataset.bsTheme = parentHtml.dataset.bsTheme;
-            }
+            new Function(code)();
         } catch (err) {
-            console.error(err);
+            console.error("[Review Heatmap] Inline script error:", err);
         }
     };
 
-    const resizeFrame = (frame) => {
-        if (!frame || !frame.contentDocument) {
-            return;
-        }
-        try {
-            const doc = frame.contentDocument;
-            const body = doc.body;
-            if (!body) return;
-
-            const extraHeight = 24;
-            const height = body.scrollHeight;
-            if (height) {
-                frame.style.height = height + extraHeight + "px";
+    const parseMarkup = () => {
+        const template = document.createElement("template");
+        template.innerHTML = heatmapHtml;
+        const fragment = template.content;
+        const scripts = [];
+        fragment.querySelectorAll("script").forEach((script) => {
+            scripts.push({
+                src: script.src || null,
+                text: script.src ? "" : script.textContent || ""
+            });
+            script.remove();
+        });
+        const styles = [];
+        fragment.querySelectorAll('link[rel="stylesheet"]').forEach((link) => {
+            if (link.href) {
+                styles.push(link.href);
             }
-
-            const docElement = doc.documentElement;
-            const width = Math.max(
-                body.scrollWidth,
-                docElement ? docElement.scrollWidth : 0
-            );
-            if (width) {
-                const extraWidth = 8;
-                const totalWidth = width + extraWidth;
-                frame.style.width = totalWidth + "px";
-            }
-        } catch(e) { /* ignore */ }
+            link.remove();
+        });
+        return { fragment, scripts, styles };
     };
 
-    const insertFrame = () => {
+    const mountHeatmap = async () => {
         const container = ensureContainer();
         if (!container) {
-            return false;
+            return;
         }
-        
-        container.innerHTML = "";
+        if (container.dataset.rhMounting === "1") {
+            return;
+        }
+        container.dataset.rhMounting = "1";
 
-        let frame = document.createElement("iframe");
-        frame.id = frameId;
-        frame.setAttribute("scrolling", "no");
-        frame.setAttribute("frameborder", "0");
-        frame.setAttribute("allowtransparency", "true");
-        frame.style.display = "block";
-        frame.style.border = "0";
-        frame.style.margin = "0 auto";
-        frame.style.padding = "0";
-        frame.style.overflow = "hidden";
-        // Static init
-        frame.style.setProperty("background", "transparent", "important");
-        frame.style.setProperty("background-color", "transparent", "important");
-        container.appendChild(frame);
+        try {
+            ensureScopedStyles();
 
-        // HYBRID DEFENSE:
-        // 1. Embedded script runs inside.
-        // 2. This interval runs outside and forces the frame element AND reaches inside.
-        attachTransparencyInterval(frame, "_rhFrameInterval", () => {
-            try {
-                // Force outer frame (redundant but safe)
-                enforceNodeTransparency(frame);
-                
-                // Reach inside (Parent Watchdog)
-                const doc = frame.contentDocument;
-                if (doc) {
-                    if (doc.documentElement) enforceNodeTransparency(doc.documentElement);
-                    if (doc.body) enforceNodeTransparency(doc.body);
+            const { fragment, scripts, styles } = parseMarkup();
+            container.innerHTML = "";
+            container.style.opacity = "0";
+            container.style.transition = "opacity 0.2s ease-in";
+            container.appendChild(fragment);
+
+            await Promise.all(styles.map((href) => loadStylesheet(href)));
+
+            for (const script of scripts) {
+                if (script.src) {
+                    await loadScript(script.src);
+                } else {
+                    runInlineScript(script.text);
                 }
-            } catch(e) { /* ignore cross-origin/loading errors */ }
-        });
-
-        frame.style.height = "0px";
-        frame.style.width = "0px";
-
-        frame.onload = () => {
-            try {
-                if (frame.contentWindow) {
-                    try {
-                         frame.contentWindow.pycmd = window.pycmd;
-                    } catch (e) { /* ignore */ }
-                }
-                const doc = frame.contentDocument;
-                updateFrameClasses(doc);
-                resizeFrame(frame);
-                setTimeout(() => resizeFrame(frame), 400);
-                setTimeout(() => resizeFrame(frame), 1000);
-
-                if (window.ResizeObserver && doc && doc.body) {
-                    const resizeObserver = new ResizeObserver(() => resizeFrame(frame));
-                    resizeObserver.observe(doc.body);
-                    if (doc.documentElement) {
-                        resizeObserver.observe(doc.documentElement);
-                    }
-                    frame._rhResizeObserver = resizeObserver;
-                }
-            } catch (err) {
-                console.error("Heatmap frame load error:", err);
             }
-        };
 
-        frame.srcdoc = frameHtml;
-        return true;
+            requestAnimationFrame(() => {
+                container.style.opacity = "1";
+            });
+        } catch (err) {
+            console.error("[Review Heatmap] mount failed:", err);
+        } finally {
+            delete container.dataset.rhMounting;
+        }
     };
 
-    if (!insertFrame()) {
-        const observer = new MutationObserver(() => {
-            if (insertFrame()) {
-                observer.disconnect();
-            }
-        });
-        observer.observe(document.documentElement, { childList: true, subtree: true });
-        setTimeout(() => observer.disconnect(), 6000);
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", mountHeatmap, { once: true });
+    } else {
+        mountHeatmap();
     }
 })();
 """
 
         script = (
-            script_template.replace("__FRAME_HTML__", frame_html_json)
+            script_template.replace("__FRAME_HTML__", heatmap_html_json)
             .replace("__CONTAINER_ID__", container_id_json)
-            .replace("__FRAME_ID__", frame_id_json)
         )
 
         overview.web.eval(script)

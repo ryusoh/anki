@@ -34,39 +34,44 @@
 /* Heatmap navigation buttons */
 .hm-btn {
     height: 100%;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    background: #e6e6e6;
+    background: transparent !important;
+    background-color: transparent !important;
     color: #808080;
-    padding: 2px 8px;
-    border-radius: 3px;
+    padding: 2px 6px;
+    border-radius: 999px;
     margin-left: 2px;
     text-decoration: none;
     user-select: none;
     vertical-align: middle;
+    transition: background 0.15s ease, filter 0.15s ease;
 }
 
 .hm-btn:hover {
-    background: #bfbfbf;
+    background: rgba(128, 128, 128, 0.15);
 }
 
 .hm-btn:active {
-    background: #000;
+    background: rgba(0, 0, 0, 0.25);
 }
 
 body.nightMode .hm-btn,
 .night_mode .hm-btn {
-    background-color: #313d45;
+    color: #c9d3da;
 }
 
 body.nightMode .hm-btn:hover,
 .night_mode .hm-btn:hover {
-    background-color: #374f5b;
+    background: transparent;
 }
 
 body.nightMode .hm-btn:active,
 .night_mode .hm-btn:active {
-    background-color: #433376;
+    background: transparent;
+    background-color: transparent;
 }
 
 /* Options button uses narrower padding */
