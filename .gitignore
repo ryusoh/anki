@@ -1,6 +1,9 @@
 # macOS specific
 .DS_Store
 
+# User-provided custom stats template
+custom_stats.html
+
 # Python cache files and bytecode
 # Use __pycache__/ to specifically target directories
 __pycache__/
@@ -13,12 +16,14 @@ __pycache__/
 user_files/*
 
 # Addon-specific ignores
-## Addon 1210908941 (Custom Background, Image Resizer, etc.)
+## Custom Background (folder renamed from 1210908941)
+custom_background/user_files/background
+custom_background/user_files/gear
 1210908941/user_files/background
 
-## Addon 1436550454 (AwesomeTTS)
-1436550454/awesometts/.cache
-1436550454/user_files/*
-!1436550454/user_files/README.txt
-1436550454/user_files/cache/
-1436550454/user_files/*.sqlite
+## AwesomeTTS (folder renamed from 1436550454)
+awesome_tts/awesometts/.cache
+awesome_tts/user_files/*
+!awesome_tts/user_files/README.txt
+awesome_tts/user_files/cache/
+awesome_tts/user_files/*.sqlite
