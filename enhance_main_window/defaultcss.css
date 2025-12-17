@@ -27,6 +27,7 @@
           padding-left:15px;
           cursor: pointer;
           text-align: right;
+          font-weight: normal;
 	}
 
         .openDeck .number_cell {
