@@ -654,17 +654,19 @@ def renderDeckTree(self, nodes, depth=0):
             nodes = [make(node) for node in nodes]
         except:
             nodes = [make(node) for node in nodes.children]
-        buf = f"""<style>{css}</style><script>{js}</script>{start_header}{deck_header}"""
-        for colpos, conf in enumerate(getUserOption("columns")):
-            if conf.get("present", True):
-                heading = getHeader(conf)
-                if not _column_has_data(nodes, conf):
-                    heading = ""
-                buf += column_header(heading, colpos)
-        buf += option_header  # for deck's option
-        if getUserOption("option"):
-            buf += option_name_header
-        buf += end_header
+        buf = f"""<style>{css}</style><script>{js}</script>"""
+        if not getUserOption("hide header row", False):
+            buf += f"""{start_header}{deck_header}"""
+            for colpos, conf in enumerate(getUserOption("columns")):
+                if conf.get("present", True):
+                    heading = getHeader(conf)
+                    if not _column_has_data(nodes, conf):
+                        heading = ""
+                    buf += column_header(heading, colpos)
+            buf += option_header  # for deck's option
+            if getUserOption("option"):
+                buf += option_name_header
+            buf += end_header
         buf += self._topLevelDragRow()
     else:
         buf = ""

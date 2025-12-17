@@ -1,35 +1,41 @@
 /* Tooltip container */
-        a:hover{
-         cursor: pointer;
-        }
+a:hover{
+    cursor: pointer;
+}
 
-        /* Tooltip text */
-        .tooltip .tooltiptext {
-            visibility: hidden;
-            background-color: black;
-            color: #fff;
-            text-align: center;
-            padding: 5px 0;
-            border-radius: 6px;
+/* Tooltip text */
+.tooltip .tooltiptext {
+    visibility: hidden;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    padding: 5px 0;
+    border-radius: 6px;
 
-            /* Position the tooltip text - see examples below! */
-            position: absolute;
-            z-index: 1;
-        }
+    /* Position the tooltip text - see examples below! */
+    position: absolute;
+    z-index: 1;
+}
 
-        /* Show the tooltip text when you mouse over the tooltip container */
-        .tooltip:hover .tooltiptext {
-            visibility: visible;
-        }
+/* Show the tooltip text when you mouse over the tooltip container */
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+}
 
-	/* padding-left for header columns except deck-column */
-	th.count {
-          padding-left:15px;
-          cursor: pointer;
-          text-align: right;
-          font-weight: normal;
-	}
+/* padding-left for header columns except deck-column */
+th.count {
+    cursor: pointer;
+    text-align: right;
+    font-weight: normal;
+    display: table-cell;
+    padding-left: auto;
+}
 
-        .openDeck .number_cell {
-            visibility: hidden;
-        }
+th.count a {
+    display: grid;
+    text-align: right;
+}
+
+.openDeck .number_cell {
+    visibility: hidden;
+}

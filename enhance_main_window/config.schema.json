@@ -11,6 +11,10 @@
       "type": "boolean",
       "default": false
     },
+    "hide header row": {
+      "type": "boolean",
+      "default": false
+    },
     "default column color": {
       "type": "string",
       "default": "grey"
