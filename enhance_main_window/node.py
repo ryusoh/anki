@@ -538,49 +538,69 @@ class DeckNode:
     def getName(self, depth):
         return deck_name(depth, self.getCollapse(), self.getExtraClass(), self.did, self.getCss(), self.name)
 
+    def _columnDisplayData(self, conf):
+        name = conf["name"]
+        if name == "new":
+            # It used to be called "new". Introduced back for retrocomputability.
+            name = "new today"
+            conf["name"] = "new today"
+            writeConfig()
+        if conf.get("percent", False):
+            if conf.get("absolute", False):
+                number = "both"
+            else:
+                number = "percent"
+        else:
+            number = "absolute"
+        kind = "subdeck" if conf.get("subdeck", False) else "deck"
+        colour = getColor(conf)
+        overlay = getOverlay(conf)
+        if name == "bar":
+            if "names" not in conf:
+                print("""A configuration whose name is "bar", should have a field "names".""", file=sys.stderr)
+                return None
+            contents = self.makeBar(kind, conf["names"])
+        else:
+            countNumberKind = self.count[number][kind][True]
+            if name not in countNumberKind:
+                if name not in warned:
+                    warned.add(name)
+                    debug(
+                        "The add-on enhance main window does not know any column whose name is {name}. It thus won't be displayed. Please correct your add-on's configuration.", file=sys.stderr)
+                return None
+            contents = countNumberKind[name]
+        # In some cases, we decided contents is empty. Instead of having complex value such as "0/0%" or "0(0)". Then we set it back to 0, which nicely summarize everything.
+        if contents == "":
+            contents = 0
+        isZeroValue = contents in [0, "0", "0%", ""]
+        if isZeroValue:
+            whatToDo = getUserOption("color zero")
+            if whatToDo is False:
+                contents = ""
+            elif isinstance(whatToDo, str):
+                colour = whatToDo
+        return contents, colour, overlay, isZeroValue
+
+    def hasColumnValue(self, conf):
+        columnData = self._columnDisplayData(conf)
+        if columnData:
+            _, _, _, isZeroValue = columnData
+            if not isZeroValue:
+                return True
+        for child in self.children:
+            if child.hasColumnValue(conf):
+                return True
+        return False
+
     def getNumberColumns(self):
         buf = ""
         for conf in getUserOption("columns"):
             if conf.get("present", True):
-                name = conf["name"]
-                if name == "new":
-                    # It used to be called "new". Introduced back for retrocomputability.
-                    name = "new today"
-                    conf["name"] = "new today"
-                    writeConfig()
-                if conf.get("percent", False):
-                    if conf.get("absolute", False):
-                        number = "both"
-                    else:
-                        number = "percent"
-                else:
-                    number = "absolute"
-                kind = "subdeck" if conf.get("subdeck", False) else "deck"
-                if name == "bar":
-                    if not "names" in conf:
-                        print("""A configuration whose name is "bar", should have a field "names".""", file=sys.stderr)
-                        continue
-                    contents = self.makeBar(kind, conf["names"])
-                else:
-                    countNumberKind = self.count[number][kind][True]
-                    if name not in countNumberKind:
-                        if name not in warned:
-                            warned.add(name)
-                            debug(
-                                "The add-on enhance main window does not know any column whose name is {name}. It thus won't be displayed. Please correct your add-on's configuration.", file=sys.stderr)
-                        continue
-                    contents = countNumberKind[name]
-                colour = getColor(conf)
-                # In some case, we decided contents is empty. Instead of having complex value such as "0/0%" or "0(0)". Then we set it back to 0, which nicely summarize everything.
-                if contents == "":
-                    contents = 0
-                if contents in [0, "0", "0%", ""]:
-                    whatToDo = getUserOption("color zero")
-                    if whatToDo is False:
-                        contents = ""
-                    elif isinstance(whatToDo, str):
-                        colour = whatToDo
-                buf += number_cell(colour, contents, getOverlay(conf))
+                columnData = self._columnDisplayData(conf)
+                if not columnData:
+                    continue
+                contents, colour, overlay, _ = columnData
+                buf += number_cell(colour, contents, overlay)
         return buf
 
     def getOptionName(self):
@@ -612,6 +632,13 @@ def make(oldNode, endedParent=False, givenUpParent=False, pauseParent=False):
         idToOldNode[did] = oldNode
     return idToNode[did]
 
+
+def _column_has_data(nodes, conf):
+    for node in nodes:
+        if node.hasColumnValue(conf):
+            return True
+    return False
+
 # based on Anki 2.0.36 aqt/deckbrowser.py DeckBrowser._renderDeckTree
 
 
@@ -622,21 +649,22 @@ def renderDeckTree(self, nodes, depth=0):
     if depth == 0:
         tree.computeValues()
         tree.computeTime()
-        buf = f"""<style>{css}</style><script>{js}</script>{start_header}{deck_header}"""
-        for colpos, conf in enumerate(getUserOption("columns")):
-            if conf.get("present", True):
-                buf += column_header(getHeader(conf), colpos)
-        buf += option_header  # for deck's option
-        if getUserOption("option"):
-            buf += option_name_header
-        buf += end_header
-
         # convert nodes
         try:
             nodes = [make(node) for node in nodes]
         except:
             nodes = [make(node) for node in nodes.children]
-
+        buf = f"""<style>{css}</style><script>{js}</script>{start_header}{deck_header}"""
+        for colpos, conf in enumerate(getUserOption("columns")):
+            if conf.get("present", True):
+                heading = getHeader(conf)
+                if not _column_has_data(nodes, conf):
+                    heading = ""
+                buf += column_header(heading, colpos)
+        buf += option_header  # for deck's option
+        if getUserOption("option"):
+            buf += option_name_header
+        buf += end_header
         buf += self._topLevelDragRow()
     else:
         buf = ""
