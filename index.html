@@ -47,6 +47,29 @@
         <script src="js/vendor/gsap.min.js"></script>
         <script type="module" src="js/cursor-init.js"></script>
         <script src="js/terminal_sweep.js"></script>
+        <script type="importmap">
+            {
+                "imports": {
+                    "@js/": "./js/",
+                    "@ui/": "./js/ui/"
+                }
+            }
+        </script>
+        <script type="module">
+            import { TableGlassEffect } from "@ui/tableGlassEffect.js";
+            import { TABLE_GLASS_EFFECT } from "@js/config.js";
+
+            window.addEventListener("DOMContentLoaded", () => {
+                try {
+                    new TableGlassEffect(".terminal", {
+                        ...TABLE_GLASS_EFFECT,
+                        excludeHeader: false,
+                    });
+                } catch (err) {
+                    console.error("Failed to init glass effect", err);
+                }
+            });
+        </script>
 
     </head>
     <body class="body-terminal no-pull-to-refresh">
