@@ -70,9 +70,30 @@
                 }
             });
         </script>
-
     </head>
-    <body class="body-terminal no-pull-to-refresh">
+    <body class="body-terminal body-main no-pull-to-refresh">
+        <div class="mobile-landing" aria-hidden="true">
+            <div class="video-background">
+                <video
+                    autoplay
+                    loop
+                    muted
+                    playsinline
+                    preload="metadata"
+                    poster="assets/mobile_bg.jpg"
+                    src="assets/mobile_bg.mp4"
+                    webkit-playsinline
+                ></video>
+            </div>
+            <img
+                class="mobile-banner"
+                alt="Anki Stats"
+                loading="lazy"
+                data-fallbacks='[
+                    "assets/banners/banner.png"
+                ]'
+            />
+        </div>
         <div class="nav-container">
             <ul>
                 <li>
@@ -164,8 +185,8 @@
             ></a>
         </footer>
 
-                
         <script src="js/terminal.js"></script>
+        <script type="module" src="js/mobile_ambient_bootstrap.js"></script>
 
     </body>
 </html>

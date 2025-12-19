@@ -227,3 +227,16 @@ footer {
         rgba(120, 120, 128, 0.65) 100%
     );
 }
+
+.desktop-terminal {
+    position: relative;
+    z-index: 10;
+}
+
+.mobile-landing,
+.video-background,
+.mobile-banner,
+.quantum-widget,
+.quantum-background-canvas {
+    display: none;
+}

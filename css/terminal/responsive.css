@@ -50,84 +50,115 @@
         font-size: 12px;
     }
 
-    .transaction-container {
-        max-width: 100%;
+    body::before,
+    body::after {
+        display: none !important;
+    }
+
+    .desktop-terminal {
+        display: none;
+    }
+
+    .nav-container {
+        display: none;
+    }
+
+    .mobile-landing {
+        display: block !important;
+        position: relative;
         width: 100%;
-        margin: 0;
-        padding: 0 12px;
-        margin-top: 5px;
-        height: calc(100dvh - 118px);
-        box-sizing: border-box;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
+        height: 100vh;
         overflow: hidden;
+        background: transparent;
+        z-index: 0;
     }
 
-    .terminal {
+    .video-background {
+        display: block !important;
+        position: fixed;
+        top: 0;
+        left: 0;
         width: 100%;
-        margin-left: 0;
-        margin-right: 0;
-        box-sizing: border-box;
-        flex-shrink: 0;
+        height: 100%;
+        z-index: -1;
+        opacity: 1;
+        visibility: visible;
+        overflow: hidden;
+        pointer-events: none;
     }
 
-    .terminal-output {
-        height: 170px;
+    .video-background video {
         width: 100%;
-        box-sizing: border-box;
+        height: 100%;
+        object-fit: cover;
+        display: block;
     }
 
-    .terminal-prompt {
-        width: 100%;
-        box-sizing: border-box;
+    .mobile-banner {
+        display: block !important;
+        position: fixed;
+        left: 50%;
+        bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+        transform: translateX(-50%);
+        width: 80vw;
+        max-width: 300px;
+        z-index: 4;
+        pointer-events: none;
+        opacity: 0;
+        visibility: hidden;
+        mix-blend-mode: difference;
+        transition:
+            opacity 0.3s ease,
+            visibility 0s linear 0.3s;
     }
 
-    .terminal-input {
-        width: 100%;
-        min-width: 0;
-        box-sizing: border-box;
-        font-size: 12px !important;
+    .mobile-banner.is-fallback-ready {
+        opacity: 0.65;
+        visibility: visible;
+        transition-delay: 0s;
     }
 
-    .chart-card,
-    .table-responsive-container {
-        flex: 1;
-        min-height: 0;
-        width: 100%;
-        box-sizing: border-box;
-        margin: 0;
+    .quantum-widget {
+        display: block !important;
+        position: fixed;
+        top: -50%;
+        left: 50%;
+        transform: translate(-50%, 0);
+        width: clamp(1120px, 180vw, 1440px);
+        aspect-ratio: 1;
+        z-index: 6;
+        pointer-events: auto;
+        display: grid;
+        place-items: center;
+        padding: 0;
+        background: none;
+        gap: 0;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+        cursor: grab;
+        filter: drop-shadow(0 24px 56px rgba(0, 0, 0, 0.55));
     }
 
-    .chart-card {
-        padding: 12px 16px 16px;
-    }
-
-    .table-responsive-container {
-        -webkit-overflow-scrolling: touch !important;
-        padding: 0 0 10px 0 !important;
+    .quantum-widget canvas,
+    .quantum-widget .quantum-wave-canvas {
         width: 100% !important;
+        height: 100% !important;
+        border-radius: 42px;
     }
 
-    table {
-        touch-action: auto !important;
-        width: 100% !important;
-        box-sizing: border-box !important;
+    .quantum-background-canvas {
+        display: block !important;
+        position: fixed;
+        inset: 0;
+        width: 100vw !important;
+        height: 100vh !important;
+        pointer-events: none;
+        z-index: 5;
     }
 
-    thead {
-        position: -webkit-sticky !important;
-        position: sticky !important;
-        top: 0 !important;
-        z-index: 10 !important;
-    }
-
-    .table-responsive-container thead th {
-        top: 0 !important;
-    }
-
-    #transactionTable thead th:first-child {
-        z-index: 12 !important;
+    .transaction-container {
+        display: none;
     }
 
     #runningAmountCanvas {
@@ -141,9 +172,24 @@
         gap: 16px;
         font-size: 11px;
     }
+
+    footer {
+        width: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+        z-index: 4;
+    }
 }
 
 @media screen and (min-width: 769px) {
+    .mobile-landing,
+    .video-background,
+    .mobile-banner,
+    .quantum-widget {
+        display: none !important;
+    }
+
     .table-responsive-container,
     .chart-card {
         height: min(clamp(320px, 50vh, 480px), calc(100vh - 260px));
