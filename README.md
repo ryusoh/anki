@@ -1,3 +1,3 @@
-![](assets/DSCF8402-3.jpg)
+![](assets/background/readme-background.png)
 
 <div align="right"><em>San Francisco, CA &middot; 2023 © <a href="https://instagram.com/lyeutsaon" target="_blank" rel="noopener noreferrer">@lyeutsaon</a></em></div>

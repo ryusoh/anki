@@ -5,13 +5,15 @@ Customizes the stats page to remove the '1 year' option and default to 'All time
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, List
 
 try:
-    from aqt import gui_hooks
-    from aqt.qt import QTimer
+    from aqt import gui_hooks, mw
+    from aqt.qt import QAction, QDialog, QTimer, QVBoxLayout, QUrl
     from aqt.stats import DeckStats, NewDeckStats
+    from aqt.utils import qconnect, showInfo
     from aqt.webview import AnkiWebView
 except Exception:  # pragma: no cover - only when run outside Anki
     gui_hooks = None  # type: ignore
@@ -19,130 +21,29 @@ except Exception:  # pragma: no cover - only when run outside Anki
     NewDeckStats = None  # type: ignore[misc,assignment]
     AnkiWebView = Any  # type: ignore[misc,assignment]
     QTimer = None  # type: ignore[misc,assignment]
+    mw = None  # type: ignore[assignment]
+    QAction = None  # type: ignore[assignment]
+    QDialog = None  # type: ignore[assignment]
+    QVBoxLayout = None  # type: ignore[assignment]
+    QUrl = None  # type: ignore[assignment]
 
-JS_CODE = """
-(function() {
-    if (window.statsCustomizerInterval) clearInterval(window.statsCustomizerInterval);
-    document.documentElement.dataset.statsCustomizer = "active";
+    def qconnect(*args: Any, **kwargs: Any) -> None:  # type: ignore[override]
+        return None
 
-    function applyChanges() {
-        const candidateSelectors = [
-            "button",
-            "label",
-            "[role='button']",
-            "[role='tab']",
-            "[role='radio']"
-        ];
+    def showInfo(*args: Any, **kwargs: Any) -> None:  # type: ignore[override]
+        return None
 
-        const candidates = Array.from(
-            document.querySelectorAll(candidateSelectors.join(","))
-        );
-        
-        let yearBtn = null;
-        let allBtn = null;
+JS_CODE = ""
 
-        const containsNeedle = (text, needles) => {
-            if (!text) {
-                return false;
-            }
-            const normalized = text.toLowerCase();
-            return needles.some((needle) => normalized.includes(needle));
-        };
+JS_INJECT_PATH = Path(__file__).with_name("injected.js")
+ADDONS_ROOT = Path(__file__).resolve().parent.parent
+CUSTOM_STATS_HTML = ADDONS_ROOT / "index.html"
+CUSTOM_STATS_JSON = ADDONS_ROOT / "custom_stats_data.json"
+FUTURE_DUE_DAYS = 30
+MATURE_INTERVAL_DAYS = 21
 
-        for (const el of candidates) {
-            const textBits = [
-                el.textContent,
-                el.getAttribute("aria-label"),
-                el.getAttribute("title"),
-                el.getAttribute("data-key"),
-            ]
-                .filter(Boolean)
-                .map((s) => s.trim());
-
-            const haystack = textBits.join(" ").trim();
-            if (!haystack) {
-                continue;
-            }
-
-            if (
-                !yearBtn &&
-                containsNeedle(haystack, [
-                    "1 year",
-                    "year",
-                    "年間",
-                    "１年間",
-                    "1年間",
-                ]) &&
-                !containsNeedle(haystack, ["all", "全", "all history", "全期間"])
-            ) {
-                yearBtn = el;
-            }
-
-            if (
-                !allBtn &&
-                containsNeedle(haystack, [
-                    "all",
-                    "all time",
-                    "all history",
-                    "全",
-                    "全期間",
-                    "全期間",
-                    "全歴史",
-                ])
-            ) {
-                allBtn = el;
-            }
-        }
-
-        if (yearBtn && yearBtn.style.display !== 'none') {
-            yearBtn.style.display = 'none';
-        }
-
-        if (allBtn) {
-            const isActive = allBtn.classList.contains('active') || 
-                             (allBtn.querySelector('input') && allBtn.querySelector('input').checked);
-            
-            if (!isActive) {
-                let siblingActive = false;
-                if (allBtn.parentElement) {
-                    const siblings = allBtn.parentElement.querySelectorAll('button, label');
-                    for (const s of siblings) {
-                        if (s !== allBtn && s !== yearBtn) {
-                             if (s.classList.contains('active') || (s.querySelector('input') && s.querySelector('input').checked)) {
-                                 siblingActive = true;
-                             }
-                        }
-                    }
-                }
-                
-                // If no sibling (Month) is active, then Year (or nothing) is active. Click All.
-                if (!siblingActive) {
-                    allBtn.click();
-                }
-            }
-
-            // Hide the All button once it's enforced; there's no reason to show it alone.
-            if (allBtn.style.display !== 'none') {
-                allBtn.style.display = 'none';
-            }
-
-            // If its container now only has hidden children, hide that too.
-            if (allBtn.parentElement) {
-                const visibleChildren = Array.from(
-                    allBtn.parentElement.querySelectorAll('button, label')
-                ).filter((el) => el !== allBtn && el.style.display !== 'none');
-                if (visibleChildren.length === 0) {
-                    allBtn.parentElement.style.display = 'none';
-                }
-            }
-        }
-    }
-
-    // Run frequently
-    applyChanges();
-    window.statsCustomizerInterval = setInterval(applyChanges, 200);
-})();
-"""
+_custom_stats_dialog: Any = None
+_custom_stats_action: Any = None
 
 def _log(message: str) -> None:
     """Append debug info to a log file next to this add-on."""
@@ -155,6 +56,237 @@ def _log(message: str) -> None:
     except Exception:
         pass
 
+
+def _load_injected_js() -> str:
+    """Load the stats injection script from disk."""
+
+    if JS_INJECT_PATH.exists():
+        try:
+            code = JS_INJECT_PATH.read_text(encoding="utf-8")
+            if code.strip():
+                _log(f"Loaded injected JS from {JS_INJECT_PATH}")
+                return code
+        except Exception as err:
+            _log(f"Failed to read {JS_INJECT_PATH}: {err}")
+    else:
+        _log(f"Injected JS missing: {JS_INJECT_PATH}")
+    return ""
+
+
+JS_CODE = _load_injected_js()
+
+
+def _read_custom_stats_template() -> str | None:
+    """Return the index.html template if present."""
+
+    if not CUSTOM_STATS_HTML.exists():
+        _log(f"Custom stats template missing: {CUSTOM_STATS_HTML}")
+        return None
+
+    try:
+        return CUSTOM_STATS_HTML.read_text(encoding="utf-8")
+    except Exception as err:  # pragma: no cover - file IO guard
+        _log(f"Failed to read {CUSTOM_STATS_HTML}: {err}")
+        return None
+
+
+def _inject_payload_into_html(html: str, payload: Dict[str, Any]) -> str:
+    """Inject the computed stats payload into the template."""
+
+    data_json = json.dumps(payload, ensure_ascii=False)
+    injection = f"<script>window.customStatsData = {data_json};</script>"
+    if "</body>" in html:
+        return html.replace("</body>", f"{injection}\n</body>", 1)
+    return f"{html}\n{injection}"
+
+
+def _gather_future_due(days: int = FUTURE_DUE_DAYS) -> List[Dict[str, int]]:
+    """Return daily mature/young counts for the next `days` days."""
+
+    max_days = max(0, int(days))
+    if not mw or not getattr(mw, "col", None):
+        _log("Collection unavailable; future due stats empty.")
+        return []
+
+    try:
+        today = mw.col.sched.today  # type: ignore[attr-defined]
+    except Exception as err:
+        _log(f"Failed to determine scheduler day: {err}")
+        return []
+
+    rows = mw.col.db.all(  # type: ignore[attr-defined]
+        """
+        SELECT due - ? AS delta,
+               SUM(CASE WHEN ivl >= ? THEN 1 ELSE 0 END) AS mature,
+               SUM(CASE WHEN ivl < ? THEN 1 ELSE 0 END) AS young
+        FROM cards
+        WHERE queue = 2
+          AND due BETWEEN ? AND ?
+        GROUP BY delta
+        ORDER BY delta
+        """,
+        today,
+        MATURE_INTERVAL_DAYS,
+        MATURE_INTERVAL_DAYS,
+        today,
+        today + max_days,
+    )
+
+    counts_by_day: Dict[int, Dict[str, int]] = {}
+    for delta, mature, young in rows:
+        day = int(delta or 0)
+        if day < 0 or day > max_days:
+            continue
+        counts_by_day[day] = {
+            "mature": int(mature or 0),
+            "young": int(young or 0),
+        }
+
+    future_due: List[Dict[str, int]] = []
+    for day in range(max_days + 1):
+        counts = counts_by_day.get(day)
+        future_due.append(
+            {
+                "day": day,
+                "mature": counts["mature"] if counts else 0,
+                "young": counts["young"] if counts else 0,
+            }
+        )
+
+    _log(f"Prepared futureDue data for {len(future_due)} days.")
+    return future_due
+
+
+def _write_custom_stats_payload(payload: Dict[str, Any]) -> None:
+    """Persist the JSON payload so index.html can work standalone."""
+
+    try:
+        CUSTOM_STATS_JSON.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        _log(f"Wrote custom stats payload to {CUSTOM_STATS_JSON}")
+    except Exception as err:
+        _log(f"Failed to write {CUSTOM_STATS_JSON}: {err}")
+
+
+def _build_custom_stats_payload() -> Dict[str, Any]:
+    """Compose the payload consumed by index.html."""
+
+    payload = {"futureDue": _gather_future_due()}
+    _write_custom_stats_payload(payload)
+    return payload
+
+
+def _render_custom_stats_html() -> str | None:
+    """Load the template and inject the latest stats."""
+
+    template = _read_custom_stats_template()
+    if template is None:
+        return None
+    payload = _build_custom_stats_payload()
+    return _inject_payload_into_html(template, payload)
+
+
+def _clear_custom_stats_dialog() -> None:
+    """Drop the dialog reference when it closes."""
+
+    global _custom_stats_dialog
+    _custom_stats_dialog = None
+
+
+def _show_custom_stats_dialog() -> None:
+    """Open the stats website in a dialog backed by index.html."""
+
+    global _custom_stats_dialog
+    if (
+        not mw
+        or QDialog is None
+        or QVBoxLayout is None
+        or AnkiWebView is None
+    ):
+        _log("Qt dependencies missing; cannot show custom stats dialog.")
+        return
+
+    html = _render_custom_stats_html()
+    if html is None:
+        if showInfo:
+            showInfo(
+                f"index.html が見つかりません。\n{CUSTOM_STATS_HTML}",
+                title="Custom Stats",
+            )
+        return
+
+    dialog = QDialog(mw)
+    dialog.setWindowTitle("Custom Stats Website")
+    layout = QVBoxLayout(dialog)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(0)
+
+    web = AnkiWebView(dialog)
+    layout.addWidget(web)
+
+    if QUrl is not None:
+        web.setHtml(html, QUrl.fromLocalFile(str(CUSTOM_STATS_HTML)))
+    else:
+        web.setHtml(html)
+
+    dialog.resize(780, 620)
+    dialog.show()
+    _custom_stats_dialog = dialog
+
+    destroyed = getattr(dialog, "destroyed", None)
+    if destroyed and qconnect:
+        qconnect(destroyed, lambda *_args: _clear_custom_stats_dialog())
+
+
+def _on_main_window_did_init(mw_obj: Any | None = None) -> None:
+    """Add a Tools menu item that opens the stats website."""
+
+    global _custom_stats_action
+    if QAction is None or qconnect is None:
+        _log("Cannot create custom stats action; Qt dependencies missing.")
+        return
+
+    window = mw_obj or mw
+    if not window:
+        _log("Cannot create custom stats action; main window unavailable.")
+        return
+
+    if _custom_stats_action:
+        return
+
+    menu = getattr(getattr(window, "form", None), "menuTools", None)
+    if menu is None:
+        _log("menuTools missing; skipping custom stats action.")
+        return
+
+    action = QAction("Custom Stats Website", window)
+    action.setToolTip("Opens addons21/index.html with live Anki stats.")
+    qconnect(action.triggered, _show_custom_stats_dialog)
+    menu.addAction(action)
+    _custom_stats_action = action
+    _log("Custom stats Tools action installed.")
+
+
+def _refresh_custom_stats_cache() -> None:
+    """Rebuild the JSON payload so static hosting stays in sync."""
+
+    if not mw or not getattr(mw, "col", None):
+        _log("Cannot refresh custom stats cache; collection unavailable.")
+        return
+
+    payload = _build_custom_stats_payload()
+    future_due = payload.get("futureDue", [])
+    _log(f"Custom stats cache refreshed with {len(future_due)} days.")
+
+
+def _on_profile_did_open(_profile: Any | None = None) -> None:
+    _refresh_custom_stats_cache()
+
+
+def _on_collection_did_load(_col: Any | None = None) -> None:
+    _refresh_custom_stats_cache()
 def _schedule_js_eval(web: AnkiWebView) -> None:
     """Run the JavaScript a few times to catch async loads."""
 
@@ -204,6 +336,15 @@ def _on_stats_dialog_will_show(stats_dialog: Any) -> None:
 
 if gui_hooks and hasattr(gui_hooks, "stats_dialog_will_show"):
     gui_hooks.stats_dialog_will_show.append(_on_stats_dialog_will_show)
+
+if gui_hooks and hasattr(gui_hooks, "main_window_did_init"):
+    gui_hooks.main_window_did_init.append(_on_main_window_did_init)
+
+if gui_hooks and hasattr(gui_hooks, "profile_did_open"):
+    gui_hooks.profile_did_open.append(_on_profile_did_open)
+
+if gui_hooks and hasattr(gui_hooks, "collection_did_load"):
+    gui_hooks.collection_did_load.append(_on_collection_did_load)
 
 
 def _patch_stats_class(cls: Any) -> None:

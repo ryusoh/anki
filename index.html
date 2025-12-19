@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="author" content="Zhuang Liu" />
+        <meta name="color-scheme" content="dark" />
+        <meta property="og:title" content="Anki" />
+        <meta property="og:description" content="Anki" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="http://anki.lyeutsaon.com" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=auto"
+        />
+        <title>Anki</title>
+        <link rel="shortcut icon" href="assets/icons/icon-180.png" type="image/png" />
+        <link rel="icon" href="assets/icons/icon-180.png" type="image/png" />
+        <link rel="apple-touch-icon" href="assets/icons/icon-180.png" />
+        <link rel="bookmark" href="assets/icons/icon-180.png" type="image/png" />
+        <link rel="manifest" href="assets/manifest.webmanifest" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="theme-color" content="#000000" />
+        <meta property="og:image" content="assets/og-image.png" />
+        <meta property="og:image:width" content="1447" />
+        <meta property="og:image:height" content="965" />
+        <meta name="twitter:image" content="assets/og-image.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <link rel="stylesheet" href="css/table.css" />
+        <link rel="stylesheet" href="css/container.css" />
+        <link rel="stylesheet" href="css/terminal/base.css" />
+        <link rel="stylesheet" href="css/terminal/terminal.css" />
+        <link rel="stylesheet" href="css/terminal/table.css" />
+        <link rel="stylesheet" href="css/terminal/chart.css" />
+        <link rel="stylesheet" href="css/terminal/responsive.css" />
+        <link rel="stylesheet" href="css/toggle.css" />
+        <link rel="stylesheet" href="css/cursor.css" />
+        <link
+            rel="preload"
+            href="assets/vendor/fonts/fontawesome-webfont.woff2?v=4.7.0"
+            as="font"
+            type="font/woff2"
+            crossorigin
+        />
+        <link rel="stylesheet" href="assets/vendor/css/font-awesome-4.7.0.min.css" />
+        <script src="js/vendor/chart.umd.min.js"></script>
+        <script src="js/vendor/gsap.min.js"></script>
+        <script type="module" src="js/cursor-init.js"></script>
+        <script src="js/terminal_sweep.js"></script>
+
+    </head>
+    <body class="body-terminal no-pull-to-refresh">
+        <div class="nav-container">
+            <ul>
+                <li>
+                    <a href="https://www.lyeutsaon.com/" aria-label="Home">
+                        <i class="fa fa-chevron-right"></i>
+                    </a>
+                </li>
+                <li class="is-current-page">
+                    <a href="../" aria-label="Terminal">
+                        <i class="fa fa-code"></i>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div id="terminalSweepOverlay" aria-hidden="true"></div>
+        <div class="transaction-container">
+            <div class="terminal" id="terminal">
+                <div class="terminal-output" id="terminalOutput"></div>
+                <div class="terminal-prompt">
+                    <span class="prompt-user">lz@anki:~$</span>
+                    <input
+                        type="text"
+                        id="terminalInput"
+                        class="terminal-input"
+                        autocomplete="off"
+                        spellcheck="false"
+                        autofocus
+                    />
+                </div>
+            </div>
+
+            <section
+                id="runningAmountSection"
+                class="chart-card is-hidden"
+                aria-labelledby="runningAmountTitle"
+            >
+                <div class="chart-container" role="img" aria-describedby="runningAmountTitle">
+                    <canvas id="runningAmountCanvas"></canvas>
+                    <div class="chart-empty" id="runningAmountEmpty" style="display: none"></div>
+                </div>
+                <div class="chart-legend">
+                    <span><i class="legend-color color-young"></i> 未習熟</span>
+                    <span><i class="legend-color color-mature"></i> 習熟済み</span>
+                </div>
+            </section>
+
+            <div class="table-responsive-container is-hidden" aria-live="polite">
+                <table id="transactionTable">
+                    <thead>
+                        <tr>
+                            <th id="header-tradeDate" class="sortable">
+                                Date<span class="sort-indicator"></span>
+                            </th>
+                            <th id="header-orderType" class="filterable">
+                                Type
+                                <span class="filter-indicator" aria-hidden="true">
+                                    <i class="fa fa-filter"></i>
+                                </span>
+                            </th>
+                            <th id="header-security" class="sortable filterable">
+                                Security
+                                <span class="sort-indicator"></span>
+                                <span class="filter-indicator" aria-hidden="true">
+                                    <i class="fa fa-filter"></i>
+                                </span>
+                            </th>
+                            <th>Quantity</th>
+                            <th>Price</th>
+                            <th id="header-netAmount" class="sortable">
+                                Amount<span class="sort-indicator"></span>
+                            </th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionBody"></tbody>
+                </table>
+            </div>
+
+            <div id="error" class="error" style="display: none"></div>
+        </div>
+
+        <footer>
+            <a
+                href="https://github.com/ryusoh"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="GitHub Profile"
+                ><i class="fa fa-github" style="color: #aaa; opacity: 0.5" aria-hidden="true"></i
+            ></a>
+        </footer>
+
+                
+        <script src="js/terminal.js"></script>
+
+    </body>
+</html>

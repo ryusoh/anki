@@ -3,6 +3,8 @@
 
 # User-provided custom stats template
 custom_stats.html
+# Generated stats payload for the custom stats site
+custom_stats_data.json
 
 # Python cache files and bytecode
 # Use __pycache__/ to specifically target directories
