@@ -295,10 +295,7 @@ function initTerminal() {
     attachCommandTriggers(historyState);
     bootstrapCustomStats().then((ready) => {
         if (!ready) {
-            appendLine(
-                "Stats data unavailable. Keep Anki open or refresh this page once the JSON is generated.",
-                "warn"
-            );
+            // appendLine removed per request
             setChartEmpty("データがありません。Anki を起動してからこのページを再読み込みしてください。");
         }
     });
