@@ -111,5 +111,5 @@ html.force-hide-cursor .custom-cursor {
 .container ul li i,
 .fa,
 footer a {
-    cursor: none !important;
+    cursor: pointer;
 }
