@@ -138,3 +138,21 @@
     border: none;
     align-self: center;
 }
+
+/* Legend color dots for terminal due chart */
+.legend-color {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.3);
+}
+
+.legend-color.color-young {
+    background: rgba(73, 168, 236, 0.85);
+}
+
+.legend-color.color-mature {
+    background: rgba(72, 199, 142, 0.85);
+}
