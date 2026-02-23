@@ -142,7 +142,7 @@ footer {
 }
 
 #terminalSweepOverlay {
-    position: absolute;
+    position: fixed;
     inset: 0;
     pointer-events: none;
     z-index: 0;
@@ -150,18 +150,16 @@ footer {
     background: linear-gradient(
         115deg,
         transparent 25%,
-        rgba(60, 120, 255, 0.08) 40%,
-        rgba(100, 150, 255, 0.15) 45%,
-        rgba(150, 180, 255, 0.45) 50%,
-        rgba(100, 150, 255, 0.15) 55%,
-        rgba(60, 120, 255, 0.08) 60%,
+        rgba(var(--optic-color-1, 60, 120, 255), 0.08) 40%,
+        rgba(200, 220, 255, 0.18) 45%,
+        rgba(255, 255, 255, 0.45) 50%,
+        rgba(255, 200, 220, 0.18) 55%,
+        rgba(var(--optic-color-2, 255, 80, 160), 0.08) 60%,
         transparent 75%
     );
     background-size: 300% 100%;
     filter: blur(12px);
     mix-blend-mode: screen;
-    border-radius: 16px;
-    overflow: hidden;
 }
 
 #terminalSweepOverlay.sweeping {
