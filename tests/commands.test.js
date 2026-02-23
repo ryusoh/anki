@@ -46,6 +46,18 @@ function parseCommand(input, state = { currentChart: null }) {
         }
     }
 
+    // Handle "plot due/reviews [range]" command
+    const plotMatch = normalized.match(/^plot\s+(due|reviews)\s*(.*)$/);
+    if (plotMatch) {
+        const [, chartType, rangeStr] = plotMatch;
+        const range = rangeStr.trim() || DEFAULT_RANGE;
+        if (range in TIME_RANGES) {
+            state.currentChart = chartType === "due" ? "due" : "reviews";
+            return { handled: true, command: `plot-${chartType}`, range };
+        }
+        return { handled: true, command: "plot", error: "invalid range" };
+    }
+
     // Handle "due" command
     if (normalized === "due" || normalized === "future") {
         state.currentChart = "due";
@@ -389,6 +401,42 @@ function runTests() {
         passed++;
     } catch (e) {
         console.log(`   ✗ Rapid commands: ${e.message}`);
+        failed++;
+    }
+    
+    // Test 13: Plot umbrella command
+    console.log("\n📋 Test 13: 'plot' umbrella command");
+    try {
+        const state = {};
+        
+        // plot due
+        const result1 = parseCommand("plot due", state);
+        assert.strictEqual(result1.handled, true, "Should handle 'plot due'");
+        assert.strictEqual(result1.command, "plot-due", "Should be plot-due command");
+        assert.strictEqual(state.currentChart, "due", "Should show due chart");
+        
+        // plot reviews
+        const result2 = parseCommand("plot reviews", state);
+        assert.strictEqual(result2.handled, true, "Should handle 'plot reviews'");
+        assert.strictEqual(result2.command, "plot-reviews", "Should be plot-reviews command");
+        assert.strictEqual(state.currentChart, "reviews", "Should show reviews chart");
+        
+        // plot due 3m
+        const result3 = parseCommand("plot due 3m", state);
+        assert.strictEqual(result3.handled, true, "Should handle 'plot due 3m'");
+        assert.strictEqual(result3.command, "plot-due", "Should be plot-due command");
+        assert.strictEqual(result3.range, "3m", "Should have 3m range");
+        
+        // plot reviews 1y
+        const result4 = parseCommand("plot reviews 1y", state);
+        assert.strictEqual(result4.handled, true, "Should handle 'plot reviews 1y'");
+        assert.strictEqual(result4.command, "plot-reviews", "Should be plot-reviews command");
+        assert.strictEqual(result4.range, "1y", "Should have 1y range");
+        
+        console.log("   ✓ 'plot' umbrella command works");
+        passed++;
+    } catch (e) {
+        console.log(`   ✗ 'plot' command: ${e.message}`);
         failed++;
     }
     

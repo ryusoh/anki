@@ -55,6 +55,32 @@ export function handleCommand(input, appendLine) {
         }
     }
     
+    // Handle "plot due [range]" command (new umbrella syntax)
+    const plotMatch = normalized.match(/^plot\s+(due|reviews)\s*(.*)$/);
+    if (plotMatch) {
+        const [, chartType, rangeStr] = plotMatch;
+        const range = rangeStr.trim() || DEFAULT_RANGE;
+        
+        if (range && !(range in TIME_RANGES)) {
+            appendLine(`Unknown range: ${range}`, "warn");
+            appendLine("Valid ranges: 1m, 2m, 3m, 6m, 1y, 2y, 3y, 5y, 10y, all", "muted");
+            return { handled: true, command: "plot", error: "invalid range" };
+        }
+        
+        clearCurrentChart();
+        if (chartType === "due") {
+            const message = showDue(range);
+            appendLine(message, "success");
+            currentChart = "due";
+            return { handled: true, command: "plot-due", range };
+        } else {
+            const message = showReviews(range);
+            appendLine(message, "success");
+            currentChart = "reviews";
+            return { handled: true, command: "plot-reviews", range };
+        }
+    }
+    
     // Handle "due" command
     if (normalized === "due" || normalized === "future") {
         clearCurrentChart();
@@ -140,27 +166,42 @@ export function showHelp(appendLine) {
     appendLine("Available commands:", "muted");
     appendLine(" - help: show this message", "muted");
     appendLine(" - charts: list available charts", "muted");
-    getDueHelp().forEach(line => appendLine(line, "muted"));
-    getReviewsHelp().forEach(line => appendLine(line, "muted"));
+    appendLine(" - plot due [range]: render upcoming reviews chart", "muted");
+    appendLine(" - plot reviews [range]: render review history chart", "muted");
+    appendLine(" - clear: clear terminal output", "muted");
     appendLine("", "muted");
-    appendLine("Quick ranges (no command needed):", "muted");
-    appendLine("  1m, 2m, 3m, 6m, 1y, 2y, all, etc.", "muted");
+    appendLine("Time ranges:", "muted");
+    appendLine("  1m, 2m, 3m, 6m (months)", "muted");
+    appendLine("  1y, 2y, 3y, 5y, 10y (years)", "muted");
+    appendLine("  all (full history)", "muted");
+    appendLine("", "muted");
+    appendLine("Examples:", "muted");
+    appendLine("  plot due          - Default: 1 month", "muted");
+    appendLine("  plot due 3m       - 3 months", "muted");
+    appendLine("  plot reviews 1y   - 1 year", "muted");
+    appendLine("", "muted");
+    appendLine("Shortcuts (no 'plot' needed):", "muted");
+    appendLine("  due, reviews     - Show default charts", "muted");
+    appendLine("  1m, 3m, 1y, all  - Quick ranges for current chart", "muted");
 }
 
 export function listCharts(appendLine) {
     appendLine("Charts available:", "muted");
-    getDueHelp().slice(0, 1).forEach(line => appendLine(line, "muted"));
-    getReviewsHelp().slice(0, 1).forEach(line => appendLine(line, "muted"));
+    appendLine(" - plot due [range]: stacked mature vs. young cards", "muted");
+    appendLine(" - plot reviews [range]: review count + retention rate", "muted");
     appendLine("", "muted");
     appendLine("Time ranges:", "muted");
     appendLine("  1m, 2m, 3m, 6m | 1y, 2y, 3y, 5y, 10y | all", "muted");
     appendLine("", "muted");
     appendLine("Examples:", "muted");
-    appendLine("  due            - Next 30 days (default)", "muted");
-    appendLine("  due 3m         - Next 3 months", "muted");
-    appendLine("  reviews        - Last 30 days (default)", "muted");
-    appendLine("  reviews 6m     - Last 6 months", "muted");
-    appendLine("  2m             - Quick: 2 months (due chart)", "muted");
+    appendLine("  plot due            - Next 30 days (default)", "muted");
+    appendLine("  plot due 3m         - Next 3 months", "muted");
+    appendLine("  plot reviews        - Last 30 days (default)", "muted");
+    appendLine("  plot reviews 6m     - Last 6 months", "muted");
+    appendLine("", "muted");
+    appendLine("Shortcuts:", "muted");
+    appendLine("  due, reviews        - Quick chart access", "muted");
+    appendLine("  2m, 1y, all         - Ranges for current chart", "muted");
 }
 
 export function getCurrentChart() {
