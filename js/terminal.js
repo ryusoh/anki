@@ -11,20 +11,20 @@ const PROMPT = "lz@anki:~$";
 let statsReady = false;
 let triggerTerminalSweep = null;
 
-// Initialize background sweep effect (matches fund project terminal)
-const sweepController = initBackgroundSweepEffect({
-    selector: '#terminalSweepOverlay',
-    effectConfig: {
-        ...TERMINAL_BACKGROUND_EFFECT,
-        targetElement: '#terminalSweepOverlay',
-    },
-});
-triggerTerminalSweep = sweepController.triggerSweep;
-
 // Focus terminal input when clicking anywhere on the terminal
 document.addEventListener("DOMContentLoaded", () => {
     const terminal = document.getElementById("terminal");
     const terminalInput = document.getElementById("terminalInput");
+
+    // Initialize background sweep effect (matches fund project terminal)
+    const sweepController = initBackgroundSweepEffect({
+        selector: '#terminalSweepOverlay',
+        effectConfig: {
+            ...TERMINAL_BACKGROUND_EFFECT,
+            targetElement: '#terminalSweepOverlay',
+        },
+    });
+    triggerTerminalSweep = sweepController.triggerSweep;
 
     if (terminal && terminalInput) {
         terminal.addEventListener("click", (e) => {

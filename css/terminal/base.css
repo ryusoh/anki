@@ -142,10 +142,10 @@ footer {
 }
 
 #terminalSweepOverlay {
-    position: fixed;
+    position: absolute;
     inset: 0;
     pointer-events: none;
-    z-index: 0;
+    z-index: -2;
     opacity: 0;
     background: linear-gradient(
         115deg,
@@ -160,11 +160,11 @@ footer {
     background-size: 300% 100%;
     filter: blur(12px);
     mix-blend-mode: screen;
+    border-radius: 16px;
 }
 
 #terminalSweepOverlay.sweeping {
-    animation: terminal-optic-sweep var(--optic-sweep-duration, 3s) cubic-bezier(0.35, 0, 0.25, 1)
-        forwards;
+    animation: terminal-optic-sweep 2s cubic-bezier(0.35, 0, 0.25, 1) forwards;
 }
 
 @keyframes terminal-optic-sweep {
