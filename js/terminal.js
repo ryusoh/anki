@@ -1,6 +1,7 @@
 const PROMPT = "lz@anki:~$";
 let statsReady = false;
 let futureChart = null;
+let reviewsChart = null;
 
 // Time range filters (in days)
 const TIME_RANGES = {
@@ -162,17 +163,177 @@ function showFutureDue(rangeKey = DEFAULT_RANGE) {
         appendLine("Stats are still syncing. Keep Anki open and try again.", "warn");
         return;
     }
-    
+
     const rangeLabel = rangeKey || DEFAULT_RANGE;
     const days = TIME_RANGES[rangeLabel];
     const rangeText = days === null ? "all time" : `${days} days`;
-    
+
     const data = getFutureDueData(rangeLabel);
     if (!data.length) {
         setChartEmpty("データがありません。Anki を起動してからこのページを再読み込みしてください。");
     }
     renderFutureDueChart(data);
     appendLine(`Rendered upcoming reviews chart (${rangeText}).`, "success");
+}
+
+function getReviewStatsData(rangeKey = DEFAULT_RANGE) {
+    const payload = window.reviewStatsData || {};
+    const allData = Array.isArray(payload.reviews) ? payload.reviews : [];
+
+    const days = TIME_RANGES[rangeKey];
+    if (days === null || days === undefined) {
+        return allData;  // "all" or invalid key returns everything
+    }
+
+    // Get last N days of data
+    return allData.slice(-Math.min(days, allData.length));
+}
+
+function renderReviewsChart(data) {
+    const canvas = document.getElementById("runningAmountCanvas");
+    const section = document.getElementById("runningAmountSection");
+    if (!canvas || !section) {
+        return;
+    }
+
+    if (!Array.isArray(data) || data.length === 0) {
+        setChartEmpty("レビューデータがありません。");
+        section.classList.remove("is-hidden");
+        if (reviewsChart) {
+            reviewsChart.destroy();
+            reviewsChart = null;
+        }
+        return;
+    }
+
+    hideChartEmpty();
+    const labels = data.map((entry) => entry.date);
+    const counts = data.map((entry) => entry.count);
+    const times = data.map((entry) => Math.round(entry.time / 60)); // minutes
+    const retentions = data.map((entry) => (entry.retention * 100).toFixed(1));
+
+    const ctx = canvas.getContext("2d");
+    if (reviewsChart) {
+        reviewsChart.destroy();
+    }
+
+    reviewsChart = new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels,
+            datasets: [
+                {
+                    type: "line",
+                    label: "Retention %",
+                    data: retentions,
+                    borderColor: "rgba(240, 185, 11, 0.9)",
+                    backgroundColor: "rgba(240, 185, 11, 0.1)",
+                    yAxisID: "y1",
+                    tension: 0.3,
+                    pointRadius: 2,
+                },
+                {
+                    label: "Reviews",
+                    data: counts,
+                    backgroundColor: "rgba(73, 168, 236, 0.7)",
+                    yAxisID: "y",
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    ticks: {
+                        color: "#a9b4d0",
+                        font: { family: "JetBrains Mono, monospace", size: 9 },
+                        maxRotation: 45,
+                        minRotation: 45,
+                    },
+                    grid: { display: false },
+                },
+                y: {
+                    type: "linear",
+                    display: true,
+                    position: "left",
+                    ticks: {
+                        color: "#a9b4d0",
+                        precision: 0,
+                        font: { family: "JetBrains Mono, monospace", size: 10 },
+                    },
+                    grid: {
+                        color: "rgba(255,255,255,0.1)",
+                    },
+                    title: {
+                        display: true,
+                        text: "Reviews",
+                        color: "#a9b4d0",
+                        font: { family: "JetBrains Mono, monospace", size: 10 },
+                    },
+                },
+                y1: {
+                    type: "linear",
+                    display: true,
+                    position: "right",
+                    min: 0,
+                    max: 100,
+                    ticks: {
+                        color: "#f0b90b",
+                        font: { family: "JetBrains Mono, monospace", size: 10 },
+                        callback: (value) => value + "%",
+                    },
+                    grid: {
+                        display: false,
+                    },
+                    title: {
+                        display: true,
+                        text: "Retention",
+                        color: "#f0b90b",
+                        font: { family: "JetBrains Mono, monospace", size: 10 },
+                    },
+                },
+            },
+            plugins: {
+                legend: { display: true },
+                tooltip: {
+                    backgroundColor: "rgba(2, 6, 20, 0.9)",
+                    titleFont: { family: "JetBrains Mono, monospace", size: 12 },
+                    bodyFont: { family: "JetBrains Mono, monospace", size: 11 },
+                    callbacks: {
+                        title: (items) => items.map((item) => item.label).join("\n"),
+                        label: (ctx) => {
+                            if (ctx.datasetIndex === 0) {
+                                return `Retention: ${ctx.raw}%`;
+                            }
+                            const time = times[ctx.dataIndex];
+                            return `${ctx.dataset.label}: ${ctx.raw} (${time} min)`;
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    section.classList.remove("is-hidden");
+}
+
+function showReviews(rangeKey = DEFAULT_RANGE) {
+    if (!statsReady) {
+        appendLine("Stats are still syncing. Keep Anki open and try again.", "warn");
+        return;
+    }
+
+    const rangeLabel = rangeKey || DEFAULT_RANGE;
+    const days = TIME_RANGES[rangeLabel];
+    const rangeText = days === null ? "all time" : `${days} days`;
+
+    const data = getReviewStatsData(rangeLabel);
+    if (!data.length) {
+        setChartEmpty("レビューデータがありません。");
+    }
+    renderReviewsChart(data);
+    appendLine(`Rendered review history chart (${rangeText}).`, "success");
 }
 
 function appendLine(text, variant = "info") {
@@ -196,37 +357,44 @@ function showHelp() {
     appendLine(" - help: show this message", "muted");
     appendLine(" - charts: list available charts", "muted");
     appendLine(" - due [range]: render upcoming reviews chart", "muted");
+    appendLine(" - reviews [range]: render review history chart", "muted");
     appendLine(" - clear: clear terminal output", "muted");
     appendLine("", "muted");
-    appendLine("Time ranges for 'due':", "muted");
+    appendLine("Time ranges for 'due' and 'reviews':", "muted");
     appendLine("  1m, 2m, 3m, 6m (months)", "muted");
     appendLine("  1y, 2y, 3y, 5y, 10y (years)", "muted");
-    appendLine("  all (full forecast)", "muted");
+    appendLine("  all (full history)", "muted");
     appendLine("", "muted");
     appendLine("Examples:", "muted");
-    appendLine("  due        - Default: 1 month", "muted");
-    appendLine("  due 3m     - 3 months", "muted");
-    appendLine("  due 1y     - 1 year", "muted");
-    appendLine("  due all    - Full forecast", "muted");
+    appendLine("  due            - Default: 1 month", "muted");
+    appendLine("  due 3m         - 3 months", "muted");
+    appendLine("  due 1y         - 1 year", "muted");
+    appendLine("  reviews        - Default: 1 month", "muted");
+    appendLine("  reviews 6m     - 6 months", "muted");
+    appendLine("  reviews all    - Full history", "muted");
     appendLine("", "muted");
-    appendLine("Quick ranges (no 'due' needed):", "muted");
+    appendLine("Quick ranges (no command needed):", "muted");
     appendLine("  1m, 2m, 3m, 6m, 1y, 2y, all, etc.", "muted");
 }
 
 function listCharts() {
     appendLine("Charts available:", "muted");
     appendLine(" - due [range]: stacked mature vs. young cards", "muted");
+    appendLine(" - reviews [range]: review count + retention rate", "muted");
     appendLine("", "muted");
     appendLine("Time ranges:", "muted");
     appendLine("  1m, 2m, 3m, 6m | 1y, 2y, 3y, 5y, 10y | all", "muted");
     appendLine("", "muted");
     appendLine("Examples:", "muted");
-    appendLine("  due        - Next 30 days (default)", "muted");
-    appendLine("  due 3m     - Next 3 months", "muted");
-    appendLine("  due 1y     - Next 1 year", "muted");
-    appendLine("  due all    - Full forecast", "muted");
-    appendLine("  2m         - Quick: 2 months", "muted");
-    appendLine("  1y         - Quick: 1 year", "muted");
+    appendLine("  due            - Next 30 days (default)", "muted");
+    appendLine("  due 3m         - Next 3 months", "muted");
+    appendLine("  due 1y         - Next 1 year", "muted");
+    appendLine("  due all        - Full forecast", "muted");
+    appendLine("  reviews        - Last 30 days (default)", "muted");
+    appendLine("  reviews 6m     - Last 6 months", "muted");
+    appendLine("  reviews all    - Full history", "muted");
+    appendLine("  2m             - Quick: 2 months (due chart)", "muted");
+    appendLine("  1y             - Quick: 1 year (due chart)", "muted");
 }
 
 function clearTerminal() {
@@ -265,15 +433,21 @@ function handleCommand(rawInput, historyState) {
         showFutureDue(normalized);
         return;
     }
-    
+
     // Handle "due" command with optional range
-    if (normalized === "due" || normalized === "future" || normalized === "reviews") {
+    if (normalized === "due" || normalized === "future") {
         showFutureDue(DEFAULT_RANGE);
         return;
     }
-    
+
+    // Handle "reviews" command with optional range
+    if (normalized === "reviews") {
+        showReviews(DEFAULT_RANGE);
+        return;
+    }
+
     // Handle "due [range]" command
-    const dueMatch = normalized.match(/^(due|future|reviews)\s+(.+)$/);
+    const dueMatch = normalized.match(/^(due|future)\s+(.+)$/);
     if (dueMatch) {
         const [, , range] = dueMatch;
         if (range in TIME_RANGES) {
@@ -284,14 +458,35 @@ function handleCommand(rawInput, historyState) {
         }
         return;
     }
-    
+
+    // Handle "reviews [range]" command
+    const reviewsMatch = normalized.match(/^reviews\s+(.+)$/);
+    if (reviewsMatch) {
+        const [, range] = reviewsMatch;
+        if (range in TIME_RANGES) {
+            showReviews(range);
+        } else {
+            appendLine(`Unknown range: ${range}`, "warn");
+            appendLine("Valid ranges: 1m, 2m, 3m, 6m, 1y, 2y, 3y, 5y, 10y, all", "muted");
+        }
+        return;
+    }
+
     // Handle "show due [range]" command
     if (normalized.startsWith("show ")) {
         const parts = normalized.split(/\s+/);
-        if (parts[1] === "due" || parts[1] === "future" || parts[1] === "reviews") {
+        if (parts[1] === "due" || parts[1] === "future") {
             const range = parts[2] || DEFAULT_RANGE;
             if (range in TIME_RANGES) {
                 showFutureDue(range);
+            } else {
+                appendLine(`Unknown range: ${range}`, "warn");
+                appendLine("Valid ranges: 1m, 2m, 3m, 6m, 1y, 2y, 3y, 5y, 10y, all", "muted");
+            }
+        } else if (parts[1] === "reviews") {
+            const range = parts[2] || DEFAULT_RANGE;
+            if (range in TIME_RANGES) {
+                showReviews(range);
             } else {
                 appendLine(`Unknown range: ${range}`, "warn");
                 appendLine("Valid ranges: 1m, 2m, 3m, 6m, 1y, 2y, 3y, 5y, 10y, all", "muted");
@@ -357,6 +552,14 @@ async function fetchCustomStatsData() {
     return response.json();
 }
 
+async function fetchReviewStatsData() {
+    const response = await fetch("review_stats_data.json", { cache: "no-store" });
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+    }
+    return response.json();
+}
+
 window.initCustomStats = function (data) {
     if (data) {
         window.customStatsData = data;
@@ -382,6 +585,20 @@ async function bootstrapCustomStats() {
     return false;
 }
 
+async function bootstrapReviewStats() {
+    try {
+        const payload = await fetchReviewStatsData();
+        if (payload && Array.isArray(payload.reviews)) {
+            window.reviewStatsData = payload;
+            return true;
+        }
+    } catch (error) {
+        console.error("review stats fetch failed", error);
+        return false;
+    }
+    return false;
+}
+
 function initTerminal() {
     const terminalInput = document.getElementById("terminalInput");
     const historyState = { entries: [], index: 0 };
@@ -389,9 +606,13 @@ function initTerminal() {
         setupHistoryNavigation(terminalInput, historyState);
     }
     attachCommandTriggers(historyState);
-    bootstrapCustomStats().then((ready) => {
-        if (!ready) {
-            // appendLine removed per request
+    
+    // Bootstrap both custom stats and review stats
+    Promise.all([
+        bootstrapCustomStats(),
+        bootstrapReviewStats()
+    ]).then(([customReady, reviewReady]) => {
+        if (!customReady) {
             setChartEmpty("データがありません。Anki を起動してからこのページを再読み込みしてください。");
         }
     });

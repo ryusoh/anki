@@ -227,6 +227,19 @@ Examples:
             print(result.stdout.strip())
         else:
             print(f"   ⚠️  Stats generation failed: {result.stderr.strip()}")
+        
+        # Generate review stats for terminal
+        print()
+        print("📊 Generating review stats...")
+        result = subprocess.run(
+            ["python3", str(output_dir / "generate_review_stats.py")],
+            capture_output=True,
+            text=True
+        )
+        if result.returncode == 0:
+            print(result.stdout.strip())
+        else:
+            print(f"   ⚠️  Review stats generation failed: {result.stderr.strip()}")
 
         # Summary
         total_size = sum(f[1] for f in files_created)
