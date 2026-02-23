@@ -150,11 +150,11 @@ footer {
     background: linear-gradient(
         115deg,
         transparent 25%,
-        rgba(var(--optic-color-1, 60, 120, 255), 0.08) 40%,
+        rgba(60, 120, 255, 0.08) 40%,
         rgba(200, 220, 255, 0.18) 45%,
         rgba(255, 255, 255, 0.45) 50%,
         rgba(255, 200, 220, 0.18) 55%,
-        rgba(var(--optic-color-2, 255, 80, 160), 0.08) 60%,
+        rgba(255, 80, 160, 0.08) 60%,
         transparent 75%
     );
     background-size: 300% 100%;

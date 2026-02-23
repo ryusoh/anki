@@ -449,7 +449,7 @@ export const CALENDAR_BACKGROUND_EFFECT = {
 };
 
 export const TERMINAL_BACKGROUND_EFFECT = {
-    enabled: false,
+    enabled: true,
     sweepDuration: 2,
     sweepPauseTime: 0,
     colors: {
