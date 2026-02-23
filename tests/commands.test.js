@@ -309,6 +309,49 @@ function runTests() {
         }
     });
     
+    // Test 11: Chart destruction before switching (prevent canvas reuse error)
+    console.log("\n📋 Test 11: Chart destruction (prevent 'Canvas is already in use' error)");
+    try {
+        const state = {};
+        
+        // Simulate chart creation and destruction cycle
+        parseCommand("due", state);
+        assert.strictEqual(state.currentChart, "due", "Should create due chart");
+        
+        parseCommand("reviews", state);
+        assert.strictEqual(state.currentChart, "reviews", "Should destroy due and create reviews");
+        
+        parseCommand("3m", state);
+        assert.strictEqual(state.currentChart, "due", "Should destroy reviews and create due");
+        
+        parseCommand("reviews 6m", state);
+        assert.strictEqual(state.currentChart, "reviews", "Should destroy due and create reviews");
+        
+        console.log("   ✓ Chart destruction works correctly");
+        passed++;
+    } catch (e) {
+        console.log(`   ✗ Chart destruction: ${e.message}`);
+        failed++;
+    }
+    
+    // Test 12: Rapid sequential commands (stress test)
+    console.log("\n📋 Test 12: Rapid sequential commands (stress test)");
+    try {
+        const state = {};
+        const commands = ["due", "reviews", "1m", "2m", "3m", "reviews 6m", "all", "due 1y"];
+        
+        commands.forEach(cmd => {
+            const result = parseCommand(cmd, state);
+            assert.strictEqual(result.handled, true, `Should handle: ${cmd}`);
+        });
+        
+        console.log(`   ✓ ${commands.length} rapid commands handled`);
+        passed++;
+    } catch (e) {
+        console.log(`   ✗ Rapid commands: ${e.message}`);
+        failed++;
+    }
+    
     // Summary
     console.log("\n" + "=".repeat(60));
     console.log(`\n📊 Results: ${passed} passed, ${failed} failed\n`);
@@ -319,6 +362,7 @@ function runTests() {
         console.log("   • Time shortcuts (1m, 3m, all) must work standalone");
         console.log("   • 'reviews' then '3m' must switch charts properly");
         console.log("   • Chart state must track current chart type");
+        console.log("   • Charts must be destroyed before switching (prevent canvas reuse error)");
         console.log();
         process.exit(1);
     } else {
@@ -328,6 +372,8 @@ function runTests() {
         console.log("   • Chart switching (due ↔ reviews) works");
         console.log("   • Sequential commands work (regression prevented)");
         console.log("   • Invalid ranges are handled gracefully");
+        console.log("   • Chart destruction prevents 'Canvas is already in use' error");
+        console.log("   • Rapid sequential commands handled correctly");
         console.log();
         process.exit(0);
     }

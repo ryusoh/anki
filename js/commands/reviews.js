@@ -20,6 +20,13 @@ export const TIME_RANGES = {
 
 let reviewsChart = null;
 
+export function destroyChart() {
+    if (reviewsChart) {
+        reviewsChart.destroy();
+        reviewsChart = null;
+    }
+}
+
 export function getReviewStatsData(rangeKey = DEFAULT_RANGE) {
     const payload = window.reviewStatsData || {};
     const allData = Array.isArray(payload.reviews) ? payload.reviews : [];

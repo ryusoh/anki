@@ -3,8 +3,8 @@
  * Routes commands to appropriate handlers and manages chart state
  */
 
-import { showDue, getDueHelp, TIME_RANGES as DUE_RANGES, DEFAULT_RANGE as DUE_DEFAULT } from './due.js';
-import { showReviews, getReviewsHelp, TIME_RANGES as REVIEWS_RANGES } from './reviews.js';
+import { showDue, getDueHelp, TIME_RANGES as DUE_RANGES, DEFAULT_RANGE as DUE_DEFAULT, destroyChart as destroyDueChart } from './due.js';
+import { showReviews, getReviewsHelp, TIME_RANGES as REVIEWS_RANGES, destroyChart as destroyReviewsChart } from './reviews.js';
 
 // Combined time ranges (use due ranges as canonical)
 export const TIME_RANGES = DUE_RANGES;
@@ -13,6 +13,10 @@ export const DEFAULT_RANGE = DUE_DEFAULT;
 let currentChart = null;
 
 export function clearCurrentChart() {
+    // Destroy any existing chart instances
+    destroyDueChart();
+    destroyReviewsChart();
+    
     const section = document.getElementById("runningAmountSection");
     const legend = document.getElementById("chartLegend");
     

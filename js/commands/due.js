@@ -20,6 +20,13 @@ export const TIME_RANGES = {
 
 let futureChart = null;
 
+export function destroyChart() {
+    if (futureChart) {
+        futureChart.destroy();
+        futureChart = null;
+    }
+}
+
 export function getFutureDueData(rangeKey = DEFAULT_RANGE) {
     const payload = window.customStatsData || {};
     const allData = Array.isArray(payload.futureDue) ? payload.futureDue : [];
