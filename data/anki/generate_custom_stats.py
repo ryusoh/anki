@@ -154,11 +154,27 @@ def main():
     full_stats = calculate_future_due(cards_data, max_days=None)
     full_output = {"futureDue": full_stats}
     full_file = SCRIPT_DIR / "full_forecast.json.gz"
-    with gzip.open(full_file, "wt", encoding="utf-8") as f:
-        json.dump(full_output, f)
+    
+    # Only write if content changed
+    new_content = json.dumps(full_output)
+    write_full = True
+    if full_file.exists():
+        try:
+            with gzip.open(full_file, "rt", encoding="utf-8") as f:
+                existing_content = f.read()
+            if new_content == existing_content:
+                write_full = False
+        except Exception:
+            pass
+    
+    if write_full:
+        with gzip.open(full_file, "wt", encoding="utf-8") as f:
+            f.write(new_content)
+    
     full_total = sum(d["mature"] + d["young"] for d in full_stats)
     max_day = max(d["day"] for d in full_stats) if full_stats else 0
-    print(f"   ✓ {full_file.name} ({max_day:,} days, {full_total:,} cards, {full_file.stat().st_size / 1024:.1f} KB)")
+    status = "updated" if write_full else "unchanged"
+    print(f"   ✓ {full_file.name} ({max_day:,} days, {full_total:,} cards, {full_file.stat().st_size / 1024:.1f} KB) [{status}]")
 
     return True
 
