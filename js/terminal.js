@@ -175,13 +175,13 @@ function attachCommandTriggers(historyState) {
 }
 
 async function fetchCustomStatsData() {
-    const response = await fetch("custom_stats_data.json", { cache: "no-store" });
+    const response = await fetch("data/anki/custom_stats_data.json", { cache: "no-store" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return response.json();
 }
 
 async function fetchReviewStatsData() {
-    const response = await fetch("review_stats_data.json", { cache: "no-store" });
+    const response = await fetch("data/anki/review_stats_data.json", { cache: "no-store" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return response.json();
 }
