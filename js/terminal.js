@@ -208,6 +208,9 @@ function showHelp() {
     appendLine("  due 3m     - 3 months", "muted");
     appendLine("  due 1y     - 1 year", "muted");
     appendLine("  due all    - Full forecast", "muted");
+    appendLine("", "muted");
+    appendLine("Quick ranges (no 'due' needed):", "muted");
+    appendLine("  1m, 2m, 3m, 6m, 1y, 2y, all, etc.", "muted");
 }
 
 function listCharts() {
@@ -222,6 +225,8 @@ function listCharts() {
     appendLine("  due 3m     - Next 3 months", "muted");
     appendLine("  due 1y     - Next 1 year", "muted");
     appendLine("  due all    - Full forecast", "muted");
+    appendLine("  2m         - Quick: 2 months", "muted");
+    appendLine("  1y         - Quick: 1 year", "muted");
 }
 
 function clearTerminal() {
@@ -252,6 +257,12 @@ function handleCommand(rawInput, historyState) {
     }
     if (normalized === "clear" || normalized === "cls") {
         clearTerminal();
+        return;
+    }
+    
+    // Handle time range shortcuts (e.g., "1m", "2y", "all")
+    if (normalized in TIME_RANGES) {
+        showFutureDue(normalized);
         return;
     }
     

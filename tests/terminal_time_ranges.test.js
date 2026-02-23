@@ -61,6 +61,11 @@ function filterByRange(data, rangeKey) {
 function parseCommand(input) {
     const normalized = input.toLowerCase().trim();
     
+    // Handle time range shortcuts (e.g., "1m", "2y", "all")
+    if (normalized in TIME_RANGES) {
+        return { command: 'due', range: normalized };
+    }
+    
     // Handle "due [range]" command
     const dueMatch = normalized.match(/^(due|future|reviews)\s+(.+)$/);
     if (dueMatch) {
@@ -187,8 +192,23 @@ function runTests() {
         }
     });
     
-    // Test 7: Invalid ranges are rejected
-    console.log("\n📋 Test 7: Invalid ranges are rejected");
+    // Test 7: Time range shortcuts work (no "due" prefix needed)
+    console.log("\n📋 Test 7: Time range shortcuts (no 'due' prefix)");
+    REQUIRED_RANGES.forEach(range => {
+        try {
+            const result = parseCommand(range);
+            assert.strictEqual(result.command, 'due', 'Should parse as due command');
+            assert.strictEqual(result.range, range, `Should recognize range: ${range}`);
+            console.log(`   ✓ "${range}" works as shortcut`);
+            passed++;
+        } catch (e) {
+            console.log(`   ✗ "${range}" shortcut: ${e.message}`);
+            failed++;
+        }
+    });
+    
+    // Test 8: Invalid ranges are rejected
+    console.log("\n📋 Test 8: Invalid ranges are rejected");
     const invalidRanges = ["1w", "5m", "100d", "xyz", "20y"];
     invalidRanges.forEach(range => {
         try {
@@ -203,8 +223,8 @@ function runTests() {
         }
     });
     
-    // Test 8: Data integrity after filtering
-    console.log("\n📋 Test 8: Data integrity after filtering");
+    // Test 9: Data integrity after filtering
+    console.log("\n📋 Test 9: Data integrity after filtering");
     const testData = generateMockFutureDueData(1000);
     Object.entries(TIME_RANGES).slice(0, 5).forEach(([range, days]) => {
         try {
@@ -228,8 +248,8 @@ function runTests() {
         }
     });
     
-    // Test 9: Enforce future chart commands support all ranges
-    console.log("\n📋 Test 9: Enforce all chart commands support required ranges");
+    // Test 10: Enforce future chart commands support all ranges
+    console.log("\n📋 Test 10: Enforce all chart commands support required ranges");
     const chartCommands = ["due", "future", "reviews"];
     chartCommands.forEach(cmd => {
         REQUIRED_RANGES.forEach(range => {
