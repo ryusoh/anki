@@ -6,20 +6,52 @@ Creates future due chart data based on card intervals and due dates.
 
 import json
 import gzip
+import sqlite3
 from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).parent
 CARDS_FILE = SCRIPT_DIR / "cards.json.gz"
 OUTPUT_FILE = SCRIPT_DIR.parent.parent / "custom_stats_data.json"
 
+# Find Anki collection to get crt (creation time)
+def find_anki_collection():
+    """Find the Anki collection.anki2 file."""
+    anki_base = Path.home() / "Library" / "Application Support" / "Anki2"
+    for profile_dir in anki_base.iterdir():
+        if profile_dir.is_dir():
+            collection_db = profile_dir / "collection.anki2"
+            if collection_db.exists():
+                return collection_db
+    return None
+
 
 def get_anki_today():
-    """Get today's Anki day number (days since Anki's epoch ~2007-01-01)."""
-    # Anki uses days since 2007-01-01 (approximately)
-    anki_epoch = datetime(2007, 1, 1)
-    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-    return (today - anki_epoch).days
+    """Get today's Anki day number based on collection creation time."""
+    collection_db = find_anki_collection()
+    if not collection_db:
+        # Fallback: use 2007 epoch (old Anki versions)
+        anki_epoch = datetime(2007, 1, 1)
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        return (today - anki_epoch).days
+    
+    try:
+        conn = sqlite3.connect(collection_db)
+        cur = conn.cursor()
+        cur.execute("SELECT crt FROM col")
+        crt = cur.fetchone()[0]
+        conn.close()
+        
+        # Anki's day 0 is the collection creation date
+        crt_date = datetime.fromtimestamp(crt).replace(hour=0, minute=0, second=0, microsecond=0)
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        return (today - crt_date).days
+    except Exception:
+        # Fallback to 2007 epoch
+        anki_epoch = datetime(2007, 1, 1)
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        return (today - anki_epoch).days
 
 
 def calculate_future_due(cards_data, days=30):
