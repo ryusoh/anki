@@ -30,29 +30,34 @@ const DEFAULT_RANGE = "1m";
 
 function parseCommand(input, state = { currentChart: null }) {
     const normalized = input.toLowerCase().trim();
-    
+
     if (!normalized) {
         return { handled: false };
     }
-    
-    // Handle time range shortcuts
+
+    // Handle time range shortcuts - apply to current chart
     if (normalized in TIME_RANGES) {
-        state.currentChart = "due";
-        return { handled: true, command: "due", range: normalized };
+        if (state.currentChart === "reviews") {
+            state.currentChart = "reviews";
+            return { handled: true, command: "reviews", range: normalized };
+        } else {
+            state.currentChart = "due";
+            return { handled: true, command: "due", range: normalized };
+        }
     }
-    
+
     // Handle "due" command
     if (normalized === "due" || normalized === "future") {
         state.currentChart = "due";
         return { handled: true, command: "due", range: DEFAULT_RANGE };
     }
-    
+
     // Handle "reviews" command
     if (normalized === "reviews") {
         state.currentChart = "reviews";
         return { handled: true, command: "reviews", range: DEFAULT_RANGE };
     }
-    
+
     // Handle "due [range]" command
     const dueMatch = normalized.match(/^(due|future)\s+(.+)$/);
     if (dueMatch) {
@@ -63,7 +68,7 @@ function parseCommand(input, state = { currentChart: null }) {
         }
         return { handled: true, command: "due", error: "invalid range" };
     }
-    
+
     // Handle "reviews [range]" command
     const reviewsMatch = normalized.match(/^reviews\s+(.+)$/);
     if (reviewsMatch) {
@@ -74,7 +79,7 @@ function parseCommand(input, state = { currentChart: null }) {
         }
         return { handled: true, command: "reviews", error: "invalid range" };
     }
-    
+
     // Handle "show due [range]" command
     if (normalized.startsWith("show ")) {
         const parts = normalized.split(/\s+/);
@@ -196,23 +201,53 @@ function runTests() {
     console.log("\n📋 Test 5: Sequential commands (regression test)");
     try {
         const state = {};
-        
+
         // User types "reviews" first
         const result1 = parseCommand("reviews", state);
         assert.strictEqual(result1.handled, true, "Should handle 'reviews'");
         assert.strictEqual(state.currentChart, "reviews", "Should show reviews chart");
-        
-        // User then types "3m" (should work as shortcut)
+
+        // User then types "3m" (should apply to reviews, not switch to due)
         const result2 = parseCommand("3m", state);
         assert.strictEqual(result2.handled, true, "Should handle '3m'");
-        assert.strictEqual(result2.command, "due", "Shortcut should trigger due command");
+        assert.strictEqual(result2.command, "reviews", "Shortcut should apply to reviews chart");
         assert.strictEqual(result2.range, "3m", "Should have 3m range");
-        assert.strictEqual(state.currentChart, "due", "Should switch to due chart");
-        
-        console.log("   ✓ Sequential 'reviews' → '3m' works");
+        assert.strictEqual(state.currentChart, "reviews", "Should stay on reviews chart");
+
+        console.log("   ✓ Sequential 'reviews' → '3m' stays on reviews");
         passed++;
     } catch (e) {
         console.log(`   ✗ Sequential commands: ${e.message}`);
+        failed++;
+    }
+    
+    // Test 5b: Time shortcuts respect current chart context
+    console.log("\n📋 Test 5b: Time shortcuts respect chart context");
+    try {
+        const state = {};
+        
+        // Start with due chart, shortcut should stay on due
+        parseCommand("due", state);
+        assert.strictEqual(state.currentChart, "due", "Should be on due");
+        
+        parseCommand("6m", state);
+        assert.strictEqual(state.currentChart, "due", "Shortcut should stay on due");
+        
+        // Switch to reviews, shortcut should stay on reviews
+        parseCommand("reviews", state);
+        assert.strictEqual(state.currentChart, "reviews", "Should switch to reviews");
+        
+        parseCommand("1y", state);
+        assert.strictEqual(state.currentChart, "reviews", "Shortcut should stay on reviews");
+        
+        // Explicit command should switch
+        parseCommand("due", state);
+        assert.strictEqual(state.currentChart, "due", "Explicit 'due' should switch");
+        
+        console.log("   ✓ Time shortcuts respect chart context");
+        passed++;
+    } catch (e) {
+        console.log(`   ✗ Chart context: ${e.message}`);
         failed++;
     }
     
@@ -313,20 +348,25 @@ function runTests() {
     console.log("\n📋 Test 11: Chart destruction (prevent 'Canvas is already in use' error)");
     try {
         const state = {};
-        
+
         // Simulate chart creation and destruction cycle
         parseCommand("due", state);
         assert.strictEqual(state.currentChart, "due", "Should create due chart");
-        
+
         parseCommand("reviews", state);
         assert.strictEqual(state.currentChart, "reviews", "Should destroy due and create reviews");
-        
+
+        // Shortcut should stay on reviews (not switch to due)
         parseCommand("3m", state);
-        assert.strictEqual(state.currentChart, "due", "Should destroy reviews and create due");
-        
+        assert.strictEqual(state.currentChart, "reviews", "Should stay on reviews with 3m");
+
+        // Explicit command should switch
+        parseCommand("due", state);
+        assert.strictEqual(state.currentChart, "due", "Should switch to due");
+
         parseCommand("reviews 6m", state);
-        assert.strictEqual(state.currentChart, "reviews", "Should destroy due and create reviews");
-        
+        assert.strictEqual(state.currentChart, "reviews", "Should switch to reviews");
+
         console.log("   ✓ Chart destruction works correctly");
         passed++;
     } catch (e) {

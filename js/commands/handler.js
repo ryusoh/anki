@@ -4,7 +4,7 @@
  */
 
 import { showDue, getDueHelp, TIME_RANGES as DUE_RANGES, DEFAULT_RANGE as DUE_DEFAULT, destroyChart as destroyDueChart } from './due.js';
-import { showReviews, getReviewsHelp, TIME_RANGES as REVIEWS_RANGES, destroyChart as destroyReviewsChart } from './reviews.js';
+import { showReviews, getReviewsHelp, TIME_RANGES as REVIEWS_RANGES, DEFAULT_RANGE as REVIEWS_DEFAULT, destroyChart as destroyReviewsChart } from './reviews.js';
 
 // Combined time ranges (use due ranges as canonical)
 export const TIME_RANGES = DUE_RANGES;
@@ -39,13 +39,20 @@ export function handleCommand(input, appendLine) {
         return { handled: false };
     }
     
-    // Handle time range shortcuts (e.g., "1m", "2y", "all")
+    // Handle time range shortcuts - apply to current chart
     if (normalized in TIME_RANGES) {
-        clearCurrentChart();
-        const message = showDue(normalized);
-        appendLine(message, "success");
-        currentChart = "due";
-        return { handled: true, command: "due", range: normalized };
+        // Apply shortcut to current chart (don't switch)
+        if (currentChart === "reviews") {
+            const message = showReviews(normalized);
+            appendLine(message, "success");
+            return { handled: true, command: "reviews", range: normalized };
+        } else {
+            // Default to due chart
+            const message = showDue(normalized);
+            appendLine(message, "success");
+            currentChart = "due";
+            return { handled: true, command: "due", range: normalized };
+        }
     }
     
     // Handle "due" command
