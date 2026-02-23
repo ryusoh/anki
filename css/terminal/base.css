@@ -142,7 +142,7 @@ footer {
 }
 
 #terminalSweepOverlay {
-    position: fixed;
+    position: absolute;
     inset: 0;
     pointer-events: none;
     z-index: 0;
@@ -160,6 +160,8 @@ footer {
     background-size: 300% 100%;
     filter: blur(12px);
     mix-blend-mode: screen;
+    border-radius: 16px;
+    overflow: hidden;
 }
 
 #terminalSweepOverlay.sweeping {
