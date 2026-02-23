@@ -46,6 +46,30 @@ function parseCommand(input, state = { currentChart: null }) {
         }
     }
 
+    // Handle abbreviations
+    if (normalized === "h" || normalized === "?") {
+        return { handled: true, command: "help" };
+    }
+    if (normalized === "p") {
+        return { handled: true, command: "plot" };
+    }
+    if (normalized === "pd") {
+        state.currentChart = "due";
+        return { handled: true, command: "plot-due", range: DEFAULT_RANGE };
+    }
+    if (normalized === "pr") {
+        state.currentChart = "reviews";
+        return { handled: true, command: "plot-reviews", range: DEFAULT_RANGE };
+    }
+    if (normalized === "d") {
+        state.currentChart = "due";
+        return { handled: true, command: "due", range: DEFAULT_RANGE };
+    }
+    if (normalized === "r") {
+        state.currentChart = "reviews";
+        return { handled: true, command: "reviews", range: DEFAULT_RANGE };
+    }
+
     // Handle "plot due/reviews [range]" command
     const plotMatch = normalized.match(/^plot\s+(due|reviews)\s*(.*)$/);
     if (plotMatch) {
