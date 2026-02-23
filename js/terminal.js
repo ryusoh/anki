@@ -4,27 +4,14 @@
  */
 
 import { handleCommand, showHelp, listCharts, getCurrentChart, getAutocomplete, getAllCommands } from './commands/handler.js';
-import { initBackgroundSweepEffect } from './ui/backgroundSweep.js';
-import { TERMINAL_BACKGROUND_EFFECT } from './config.js';
 
 const PROMPT = "lz@anki:~$";
 let statsReady = false;
-let triggerTerminalSweep = null;
 
 // Focus terminal input when clicking anywhere on the terminal
 document.addEventListener("DOMContentLoaded", () => {
     const terminal = document.getElementById("terminal");
     const terminalInput = document.getElementById("terminalInput");
-
-    // Initialize background sweep effect (matches fund project terminal)
-    const sweepController = initBackgroundSweepEffect({
-        selector: '#terminalSweepOverlay',
-        effectConfig: {
-            ...TERMINAL_BACKGROUND_EFFECT,
-            targetElement: '#terminalSweepOverlay',
-        },
-    });
-    triggerTerminalSweep = sweepController.triggerSweep;
 
     if (terminal && terminalInput) {
         terminal.addEventListener("click", (e) => {
@@ -70,25 +57,16 @@ function handleCommandWrapper(rawInput, historyState) {
 
     if (normalized === "help" || normalized === "?") {
         showHelp(appendLine);
-        if (typeof triggerTerminalSweep === 'function') {
-            triggerTerminalSweep();
-        }
         return;
     }
 
     if (normalized === "charts" || normalized === "list") {
         listCharts(appendLine);
-        if (typeof triggerTerminalSweep === 'function') {
-            triggerTerminalSweep();
-        }
         return;
     }
 
     if (normalized === "clear" || normalized === "cls") {
         clearTerminal();
-        if (typeof triggerTerminalSweep === 'function') {
-            triggerTerminalSweep();
-        }
         return;
     }
 
@@ -97,11 +75,6 @@ function handleCommandWrapper(rawInput, historyState) {
 
     if (!result.handled) {
         appendLine(`Unknown command: ${input}`, "error");
-    }
-    
-    // Trigger sweep effect after command execution
-    if (typeof triggerTerminalSweep === 'function') {
-        triggerTerminalSweep();
     }
 }
 
