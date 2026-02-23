@@ -1,5 +1,5 @@
 // Custom cursor and UI enhancements
-import { initCursor } from './vendor/cursor.js';
+import { initCursor } from './vendor/cursor.js?v=20240223';
 
 document.addEventListener('DOMContentLoaded', () => {
     // Wait for GSAP to be fully loaded
