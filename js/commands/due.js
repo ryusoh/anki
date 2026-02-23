@@ -3,9 +3,9 @@
  * Displays upcoming reviews split by mature/young cards
  */
 
-const DEFAULT_RANGE = "1m";
+export const DEFAULT_RANGE = "1m";
 
-const TIME_RANGES = {
+export const TIME_RANGES = {
     "1m": 30,
     "2m": 60,
     "3m": 90,
