@@ -60,8 +60,17 @@ function hideChartEmpty() {
 function renderFutureDueChart(data) {
     const canvas = document.getElementById("runningAmountCanvas");
     const section = document.getElementById("runningAmountSection");
+    const legend = document.getElementById("chartLegend");
     if (!canvas || !section) {
         return;
+    }
+
+    // Update legend for due chart
+    if (legend) {
+        legend.innerHTML = `
+            <span><i class="legend-color color-young"></i> 未習熟</span>
+            <span><i class="legend-color color-mature"></i> 習熟済み</span>
+        `;
     }
 
     if (!Array.isArray(data) || !data.some((d) => (d.mature || 0) + (d.young || 0) > 0)) {
@@ -192,8 +201,17 @@ function getReviewStatsData(rangeKey = DEFAULT_RANGE) {
 function renderReviewsChart(data) {
     const canvas = document.getElementById("runningAmountCanvas");
     const section = document.getElementById("runningAmountSection");
+    const legend = document.getElementById("chartLegend");
     if (!canvas || !section) {
         return;
+    }
+
+    // Update legend for reviews chart
+    if (legend) {
+        legend.innerHTML = `
+            <span><i class="legend-color color-reviews"></i> Reviews</span>
+            <span><i class="legend-color color-retention"></i> Retention</span>
+        `;
     }
 
     if (!Array.isArray(data) || data.length === 0) {
@@ -295,7 +313,7 @@ function renderReviewsChart(data) {
                 },
             },
             plugins: {
-                legend: { display: true },
+                legend: { display: false },
                 tooltip: {
                     backgroundColor: "rgba(2, 6, 20, 0.9)",
                     titleFont: { family: "JetBrains Mono, monospace", size: 12 },

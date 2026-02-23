@@ -156,3 +156,11 @@
 .legend-color.color-mature {
     background: rgba(72, 199, 142, 0.85);
 }
+
+.legend-color.color-reviews {
+    background: rgba(73, 168, 236, 0.7);
+}
+
+.legend-color.color-retention {
+    background: rgba(240, 185, 11, 0.9);
+}
