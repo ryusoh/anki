@@ -214,6 +214,20 @@ Examples:
         data = fetch_and_anonymize(temp_db)
         files_created, files_unchanged = export_for_git(data, output_dir, verbose)
 
+        # Generate custom stats for terminal
+        print()
+        print("📊 Generating terminal stats...")
+        import subprocess
+        result = subprocess.run(
+            ["python3", str(output_dir / "generate_custom_stats.py")],
+            capture_output=True,
+            text=True
+        )
+        if result.returncode == 0:
+            print(result.stdout.strip())
+        else:
+            print(f"   ⚠️  Stats generation failed: {result.stderr.strip()}")
+
         # Summary
         total_size = sum(f[1] for f in files_created)
         total_reviews = data['reviews'].__len__() if 'reviews' in data else sum(f[2] for f in files_created if 'reviews' in f[0])
