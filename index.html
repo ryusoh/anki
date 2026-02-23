@@ -26,15 +26,15 @@
         <meta property="og:image:height" content="965" />
         <meta name="twitter:image" content="assets/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
-        <link rel="stylesheet" href="css/table.css" />
-        <link rel="stylesheet" href="css/container.css" />
+        <link rel="stylesheet" href="css/table.css?v=20240223" />
+        <link rel="stylesheet" href="css/container.css?v=20240223" />
         <link rel="stylesheet" href="css/terminal/base.css?v=20240223" />
         <link rel="stylesheet" href="css/terminal/terminal.css?v=20240223" />
         <link rel="stylesheet" href="css/terminal/table.css?v=20240223" />
         <link rel="stylesheet" href="css/terminal/chart.css?v=20240223" />
         <link rel="stylesheet" href="css/terminal/responsive.css?v=20240223" />
-        <link rel="stylesheet" href="css/toggle.css" />
-        <link rel="stylesheet" href="css/cursor.css" />
+        <link rel="stylesheet" href="css/toggle.css?v=20240223" />
+        <link rel="stylesheet" href="css/cursor.css?v=20240223" />
         <link
             rel="preload"
             href="assets/vendor/fonts/fontawesome-webfont.woff2?v=4.7.0"
@@ -45,7 +45,7 @@
         <link rel="stylesheet" href="assets/vendor/css/font-awesome-4.7.0.min.css" />
         <script src="js/vendor/chart.umd.min.js"></script>
         <script src="js/vendor/gsap.min.js"></script>
-        <script type="module" src="js/cursor-init.js"></script>
+        <script type="module" src="js/cursor-init.js?v=20240223"></script>
         <script type="importmap">
             {
                 "imports": {
@@ -55,15 +55,17 @@
             }
         </script>
         <script type="module">
-            import { TableGlassEffect } from "@ui/tableGlassEffect.js";
-            import { TABLE_GLASS_EFFECT } from "@js/config.js";
+            import { TableGlassEffect } from "@ui/tableGlassEffect.js?v=20240223";
+            import { TABLE_GLASS_EFFECT } from "@js/config.js?v=20240223";
 
             window.addEventListener("DOMContentLoaded", () => {
                 try {
-                    new TableGlassEffect(".terminal", {
+                    console.log("Initializing TableGlassEffect...");
+                    const glass = new TableGlassEffect(".terminal", {
                         ...TABLE_GLASS_EFFECT,
                         excludeHeader: false,
                     });
+                    console.log("TableGlassEffect initialized:", glass);
                 } catch (err) {
                     console.error("Failed to init glass effect", err);
                 }
