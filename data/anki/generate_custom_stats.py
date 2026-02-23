@@ -142,13 +142,13 @@ def main():
 
     print(f"   Loaded {len(cards_data):,} cards")
 
-    # Generate web terminal stats (30 days - small, fast for browser)
-    web_stats = calculate_future_due(cards_data, max_days=30)
+    # Generate web terminal stats (10 years - covers all ranges except "all")
+    web_stats = calculate_future_due(cards_data, max_days=3650)
     web_output = {"futureDue": web_stats}
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(web_output, f, indent=2)
     web_total = sum(d["mature"] + d["young"] for d in web_stats)
-    print(f"   ✓ {OUTPUT_FILE.name} (30 days, {web_total:,} cards)")
+    print(f"   ✓ {OUTPUT_FILE.name} (10 years, {web_total:,} cards)")
 
     # Generate full forecast for analytics (all cards, compressed)
     full_stats = calculate_future_due(cards_data, max_days=None)
