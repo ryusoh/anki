@@ -2,6 +2,21 @@ const PROMPT = "lz@anki:~$";
 let statsReady = false;
 let futureChart = null;
 
+// Focus terminal input when clicking anywhere on the terminal
+document.addEventListener("DOMContentLoaded", () => {
+    const terminal = document.getElementById("terminal");
+    const terminalInput = document.getElementById("terminalInput");
+    
+    if (terminal && terminalInput) {
+        terminal.addEventListener("click", (e) => {
+            // Don't steal focus if clicking directly on the input
+            if (e.target !== terminalInput) {
+                terminalInput.focus();
+            }
+        });
+    }
+});
+
 function formatDayLabel(day) {
     if (day === 0) return "今日";
     if (day === 1) return "明日";
