@@ -1,0 +1,257 @@
+#!/usr/bin/env python3
+"""
+fetch - Fetch Anki stats to Git-friendly format
+
+Usage:
+    fetch [options]
+
+Options:
+    -h, --help      Show this help message
+    -v, --verbose   Show detailed output
+    -q, --quiet     Minimal output
+
+Run from anywhere in the project.
+"""
+
+import sqlite3
+import json
+import gzip
+import sys
+import argparse
+from pathlib import Path
+from datetime import datetime
+
+
+def find_project_root():
+    """Find project root by looking for data/anki directory."""
+    current = Path.cwd()
+    
+    # Check if we're already in data/anki
+    if (current / "export_for_git.py").exists():
+        return current
+    
+    # Search up the directory tree
+    for parent in [current, *current.parents]:
+        if (parent / "data" / "anki").exists():
+            return parent / "data" / "anki"
+    
+    # Fallback: use script location
+    script_dir = Path(__file__).parent
+    if (script_dir / "export_for_git.py").exists():
+        return script_dir
+    
+    raise RuntimeError("Could not find data/anki directory")
+
+
+def fetch_and_anonymize(source_db):
+    """Load data from Anki DB, excluding content fields."""
+    conn = sqlite3.connect(source_db)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    
+    # Cards with deck info
+    cur.execute("""
+        SELECT c.id, c.nid, c.did, c.ord, c.type, c.queue, c.due, 
+               c.ivl, c.factor, c.reps, c.lapses, c.flags,
+               d.name as deck_name
+        FROM cards c
+        LEFT JOIN decks d ON c.did = d.id
+    """)
+    cards = [dict(row) for row in cur.fetchall()]
+    
+    # Reviews (full history)
+    cur.execute("""
+        SELECT id, cid, ease, ivl, lastIvl, factor, time, type
+        FROM revlog
+        ORDER BY id
+    """)
+    reviews = [dict(row) for row in cur.fetchall()]
+    
+    # Decks
+    cur.execute("SELECT id, name FROM decks")
+    decks = {row[0]: row[1] for row in cur.fetchall()}
+    
+    # Note types
+    cur.execute("SELECT id, name FROM notetypes")
+    notetypes = {row[0]: row[1] for row in cur.fetchall()}
+    
+    # Notes metadata (no content)
+    cur.execute("""
+        SELECT id, mid, mod, usn, sfld, csum, flags
+        FROM notes
+    """)
+    notes = [dict(row) for row in cur.fetchall()]
+    
+    conn.close()
+    
+    return {
+        'cards': cards,
+        'reviews': reviews,
+        'decks': decks,
+        'notetypes': notetypes,
+        'notes': notes
+    }
+
+
+def files_are_identical(new_data, existing_file):
+    """Check if new data is identical to existing file content."""
+    if not existing_file.exists():
+        return False
+    
+    import io
+    try:
+        with gzip.open(existing_file, 'rt', encoding='utf-8') as f:
+            existing_data = f.read()
+        
+        new_json = json.dumps(new_data, ensure_ascii=False)
+        return existing_data == new_json
+    except Exception:
+        return False
+
+
+def export_for_git(data, output_dir, verbose=True):
+    """Export data in Git-friendly format.
+
+    Only writes files if content has changed to minimize Git diffs.
+    """
+
+    files_created = []
+    files_unchanged = []
+
+    # Export cards (current snapshot - check if changed)
+    cards_file = output_dir / "cards.json.gz"
+    if files_are_identical(data['cards'], cards_file):
+        files_unchanged.append('cards.json.gz')
+    else:
+        with gzip.open(cards_file, 'wt', encoding='utf-8') as f:
+            json.dump(data['cards'], f, ensure_ascii=False)
+        files_created.append(('cards.json.gz', cards_file.stat().st_size, len(data['cards'])))
+
+    # Export decks (always update - small file)
+    decks_file = output_dir / "decks.json"
+    with open(decks_file, 'w', encoding='utf-8') as f:
+        json.dump(data['decks'], f, ensure_ascii=False, indent=2)
+    files_created.append(('decks.json', decks_file.stat().st_size, len(data['decks'])))
+
+    # Export reviews partitioned by month
+    reviews_dir = output_dir / "reviews"
+    reviews_dir.mkdir(exist_ok=True)
+
+    # Group reviews by YYYY-MM
+    reviews_by_month = {}
+    for review in data['reviews']:
+        ts = review['id'] / 1000
+        dt = datetime.fromtimestamp(ts)
+        month_key = dt.strftime('%Y-%m')
+
+        if month_key not in reviews_by_month:
+            reviews_by_month[month_key] = []
+        reviews_by_month[month_key].append(review)
+
+    # Write each month to separate file ONLY if content changed
+    for month, reviews in sorted(reviews_by_month.items()):
+        month_file = reviews_dir / f"{month}.json.gz"
+        
+        # Check if file content is identical
+        if files_are_identical(reviews, month_file):
+            files_unchanged.append(f'reviews/{month}.json.gz')
+        else:
+            with gzip.open(month_file, 'wt', encoding='utf-8') as f:
+                json.dump(reviews, f, ensure_ascii=False)
+            files_created.append((f'reviews/{month}.json.gz', month_file.stat().st_size, len(reviews)))
+
+    return files_created, files_unchanged
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog='fetch',
+        description='Fetch Anki stats to Git-friendly format',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+    fetch                 # Full output
+    fetch -q              # Minimal output  
+    fetch --verbose       # Detailed output
+        """
+    )
+    parser.add_argument('-v', '--verbose', action='store_true', help='Show detailed output')
+    parser.add_argument('-q', '--quiet', action='store_true', help='Minimal output')
+    
+    args = parser.parse_args()
+    verbose = args.verbose and not args.quiet
+    quiet = args.quiet
+    
+    try:
+        output_dir = find_project_root()
+    except RuntimeError as e:
+        print(f"❌ Error: {e}", file=sys.stderr)
+        sys.exit(1)
+    
+    # Find Anki profile directory
+    ankis = list(Path("/Users/lz/Library/Application Support/Anki2").glob("*/collection.anki2"))
+    if not ankis:
+        print("❌ No Anki collection found", file=sys.stderr)
+        sys.exit(1)
+    
+    # Use first found (or could add profile selection)
+    anki_profile_dir = ankis[0].parent
+    source_db = anki_profile_dir / "collection.anki2"
+    
+    if not quiet:
+        print("📦 Fetching Anki collection...")
+        if verbose:
+            print(f"   Source: {source_db}")
+            print(f"   Output: {output_dir}")
+    
+    # Copy DB to temp location
+    import shutil
+    temp_db = output_dir / "collection.anki2"
+    shutil.copy2(source_db, temp_db)
+    
+    try:
+        # Fetch and export
+        data = fetch_and_anonymize(temp_db)
+        files_created, files_unchanged = export_for_git(data, output_dir, verbose)
+
+        # Summary
+        total_size = sum(f[1] for f in files_created)
+        total_reviews = data['reviews'].__len__() if 'reviews' in data else sum(f[2] for f in files_created if 'reviews' in f[0])
+
+        if quiet:
+            new_count = len(files_created)
+            unchanged_count = len(files_unchanged)
+            if unchanged_count > 0:
+                print(f"✓ {new_count} new/changed, {unchanged_count} unchanged")
+            else:
+                print(f"✓ {new_count} files, {total_size/1024/1024:.1f} MB")
+        else:
+            print()
+            if files_created:
+                for name, size, count in files_created:
+                    if 'reviews' in name:
+                        print(f"   ✓ {name} ({size/1024:.1f} KB, {count:,} reviews)")
+                    else:
+                        print(f"   ✓ {name} ({size/1024:.1f} KB)")
+            
+            if files_unchanged and verbose:
+                print()
+                print(f"   = {len(files_unchanged)} review files unchanged (skipped)")
+
+            print()
+            print(f"✅ Done! ({total_size/1024/1024:.1f} MB new/changed, {total_reviews:,} reviews)")
+            if files_unchanged:
+                print(f"   {len(files_unchanged)} historical months unchanged")
+            print()
+            print("📝 Commit with:")
+            print("   git add data/anki/ && git commit -m 'Update Anki stats'")
+    
+    finally:
+        # Cleanup temp DB
+        temp_db.unlink(missing_ok=True)
+        (output_dir / "collection.anki2-shm").unlink(missing_ok=True)
+        (output_dir / "collection.anki2-wal").unlink(missing_ok=True)
+
+
+if __name__ == "__main__":
+    main()
