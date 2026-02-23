@@ -207,6 +207,20 @@ function runTests() {
         }
     });
     
+    // Test 7b: Verify TIME_RANGES object has all required keys
+    console.log("\n📋 Test 7b: TIME_RANGES object completeness");
+    try {
+        assert.ok(typeof TIME_RANGES === 'object', 'TIME_RANGES must be an object');
+        REQUIRED_RANGES.forEach(range => {
+            assert.ok(range in TIME_RANGES, `TIME_RANGES must have key: ${range}`);
+        });
+        console.log(`   ✓ TIME_RANGES has all ${REQUIRED_RANGES.length} required keys`);
+        passed++;
+    } catch (e) {
+        console.log(`   ✗ TIME_RANGES: ${e.message}`);
+        failed++;
+    }
+    
     // Test 8: Invalid ranges are rejected
     console.log("\n📋 Test 8: Invalid ranges are rejected");
     const invalidRanges = ["1w", "5m", "100d", "xyz", "20y"];
