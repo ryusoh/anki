@@ -1,16 +1,48 @@
 /**
  * Terminal Command Handler
  * Routes commands to appropriate handlers and manages chart state
+ * Uses trie for command validation and autocomplete
  */
 
+import { createCommandTrie } from '../utils/trie.js';
 import { showDue, getDueHelp, TIME_RANGES as DUE_RANGES, DEFAULT_RANGE as DUE_DEFAULT, destroyChart as destroyDueChart } from './due.js';
 import { showReviews, getReviewsHelp, TIME_RANGES as REVIEWS_RANGES, DEFAULT_RANGE as REVIEWS_DEFAULT, destroyChart as destroyReviewsChart } from './reviews.js';
+
+// Create command trie for validation
+const commandTrie = createCommandTrie();
 
 // Combined time ranges (use due ranges as canonical)
 export const TIME_RANGES = DUE_RANGES;
 export const DEFAULT_RANGE = DUE_DEFAULT;
 
 let currentChart = null;
+
+/**
+ * Validate command against trie
+ * @param {string} command - Command to validate
+ * @returns {{valid: boolean, error?: string, suggestions?: string[]}}
+ */
+export function validateCommand(command) {
+    return commandTrie.validate(command);
+}
+
+/**
+ * Get autocomplete suggestions
+ * @param {string} prefix - Current input prefix
+ * @param {number} limit - Max suggestions
+ * @returns {string[]} - Suggestions
+ */
+export function getAutocomplete(prefix, limit = 5) {
+    return commandTrie.autocomplete(prefix, limit);
+}
+
+/**
+ * Get all registered commands
+ * @returns {string[]} - All commands
+ */
+export function getAllCommands() {
+    return commandTrie.getAllCommands();
+}
 
 export function clearCurrentChart() {
     // Destroy any existing chart instances
@@ -39,6 +71,20 @@ export function handleCommand(input, appendLine) {
         return { handled: false };
     }
     
+    // Validate command against trie
+    const validation = commandTrie.validate(normalized);
+    
+    // If command is not valid and not a partial match, reject it
+    if (!validation.valid && !validation.isPartial) {
+        appendLine(`Unknown command: ${input}`, "error");
+        if (validation.suggestions && validation.suggestions.length > 0) {
+            appendLine(`Did you mean: ${validation.suggestions.join(', ')}`, "muted");
+        } else {
+            appendLine(`Type 'help' for available commands`, "muted");
+        }
+        return { handled: true, command: "unknown", error: "not in trie" };
+    }
+    
     // Handle time range shortcuts - apply to current chart
     if (normalized in TIME_RANGES) {
         // Apply shortcut to current chart (don't switch)
@@ -54,7 +100,46 @@ export function handleCommand(input, appendLine) {
             return { handled: true, command: "due", range: normalized };
         }
     }
-    
+
+    // Handle abbreviations
+    if (normalized === "h" || normalized === "?") {
+        showHelp(appendLine);
+        return { handled: true, command: "help" };
+    }
+    if (normalized === "p") {
+        appendLine("Usage: plot due|reviews [range]", "muted");
+        appendLine("Examples: pd, pd 3m, pr, pr 1y", "muted");
+        return { handled: true, command: "plot" };
+    }
+    if (normalized === "pd") {
+        clearCurrentChart();
+        const message = showDue(DEFAULT_RANGE);
+        appendLine(message, "success");
+        currentChart = "due";
+        return { handled: true, command: "plot-due", range: DEFAULT_RANGE };
+    }
+    if (normalized === "pr") {
+        clearCurrentChart();
+        const message = showReviews(DEFAULT_RANGE);
+        appendLine(message, "success");
+        currentChart = "reviews";
+        return { handled: true, command: "plot-reviews", range: DEFAULT_RANGE };
+    }
+    if (normalized === "d") {
+        clearCurrentChart();
+        const message = showDue(DEFAULT_RANGE);
+        appendLine(message, "success");
+        currentChart = "due";
+        return { handled: true, command: "due", range: DEFAULT_RANGE };
+    }
+    if (normalized === "r") {
+        clearCurrentChart();
+        const message = showReviews(DEFAULT_RANGE);
+        appendLine(message, "success");
+        currentChart = "reviews";
+        return { handled: true, command: "reviews", range: DEFAULT_RANGE };
+    }
+
     // Handle "plot due [range]" command (new umbrella syntax)
     const plotMatch = normalized.match(/^plot\s+(due|reviews)\s*(.*)$/);
     if (plotMatch) {

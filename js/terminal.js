@@ -3,7 +3,7 @@
  * Initializes terminal UI and loads command modules
  */
 
-import { handleCommand, showHelp, listCharts, getCurrentChart } from './commands/handler.js';
+import { handleCommand, showHelp, listCharts, getCurrentChart, getAutocomplete, getAllCommands } from './commands/handler.js';
 
 const PROMPT = "lz@anki:~$";
 let statsReady = false;
@@ -25,7 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
 function appendLine(text, variant = "info") {
     const terminalOutput = document.getElementById("terminalOutput");
     if (!terminalOutput) return;
-    
+
     const line = document.createElement("div");
     line.className = `terminal-line variant-${variant}`;
     line.textContent = text;
@@ -47,24 +47,24 @@ function clearTerminal() {
 function handleCommandWrapper(rawInput, historyState) {
     const input = (rawInput || "").trim();
     printPrompt(input);
-    
+
     if (!input) return;
 
     historyState.entries.push(input);
     historyState.index = historyState.entries.length;
 
     const normalized = input.toLowerCase();
-    
+
     if (normalized === "help" || normalized === "?") {
         showHelp(appendLine);
         return;
     }
-    
+
     if (normalized === "charts" || normalized === "list") {
         listCharts(appendLine);
         return;
     }
-    
+
     if (normalized === "clear" || normalized === "cls") {
         clearTerminal();
         return;
@@ -72,14 +72,69 @@ function handleCommandWrapper(rawInput, historyState) {
 
     // Delegate to command handler
     const result = handleCommand(input, appendLine);
-    
+
     if (!result.handled) {
         appendLine(`Unknown command: ${input}`, "error");
     }
 }
 
-function setupHistoryNavigation(input, historyState) {
+// Tab autocomplete state
+let autocompleteState = {
+    suggestions: [],
+    currentIndex: 0,
+    originalInput: ''
+};
+
+function setupAutocomplete(input, historyState) {
     input.addEventListener("keydown", (event) => {
+        // Tab key for autocomplete
+        if (event.key === "Tab") {
+            event.preventDefault();
+            const currentInput = input.value.trim();
+            
+            if (!currentInput) {
+                // Show all commands if input is empty
+                const allCommands = getAllCommands();
+                appendLine("Available commands: " + allCommands.slice(0, 20).join(", ") + (allCommands.length > 20 ? "..." : ""), "muted");
+                return;
+            }
+            
+            // Get suggestions
+            const suggestions = getAutocomplete(currentInput, 10);
+            
+            if (suggestions.length === 0) {
+                appendLine("No matching commands", "muted");
+                autocompleteState = { suggestions: [], currentIndex: 0, originalInput: '' };
+                return;
+            }
+            
+            // Cycle through suggestions
+            if (autocompleteState.suggestions.length === 0 || 
+                autocompleteState.originalInput !== currentInput) {
+                autocompleteState = {
+                    suggestions,
+                    currentIndex: 0,
+                    originalInput: currentInput
+                };
+            } else {
+                autocompleteState.currentIndex = (autocompleteState.currentIndex + 1) % autocompleteState.suggestions.length;
+            }
+            
+            // Apply suggestion
+            input.value = autocompleteState.suggestions[autocompleteState.currentIndex];
+            
+            // Show remaining suggestions if multiple
+            if (suggestions.length > 1) {
+                appendLine(`Tab ${autocompleteState.currentIndex + 1}/${suggestions.length}: ${suggestions.join(" | ")}`, "muted");
+            }
+        }
+        
+        // Escape key to clear autocomplete
+        if (event.key === "Escape") {
+            autocompleteState = { suggestions: [], currentIndex: 0, originalInput: '' };
+        }
+        
+        // Arrow up/down for history (existing)
         if (event.key === "ArrowUp") {
             if (!historyState.entries.length) return;
             event.preventDefault();
@@ -94,6 +149,9 @@ function setupHistoryNavigation(input, historyState) {
             event.preventDefault();
             clearTerminal();
         } else if (event.key === "Enter") {
+            // Reset autocomplete on enter
+            autocompleteState = { suggestions: [], currentIndex: 0, originalInput: '' };
+            
             const value = input.value;
             input.value = "";
             handleCommandWrapper(value, historyState);
@@ -162,11 +220,11 @@ async function bootstrapReviewStats() {
 function initTerminal() {
     const terminalInput = document.getElementById("terminalInput");
     const historyState = { entries: [], index: 0 };
-    
+
     if (terminalInput) {
-        setupHistoryNavigation(terminalInput, historyState);
+        setupAutocomplete(terminalInput, historyState);
     }
-    
+
     attachCommandTriggers(historyState);
     
     Promise.all([

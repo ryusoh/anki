@@ -1,27 +1,31 @@
-.PHONY: help fetch test
+.PHONY: help fetch check
 
 help:
 	@echo "Targets:"
 	@echo "  fetch    Fetch Anki stats to Git-friendly format"
-	@echo "  test     Run all tests"
-	@echo "  test-data    Run data files structure test"
-	@echo "  test-ranges  Run time range filters test"
-	@echo "  test-commands Run command handler test"
-	@echo "  test-legend  Run chart legend test"
+	@echo "  check    Run all tests"
+	@echo "  check-data    Run data files structure test"
+	@echo "  check-ranges  Run time range filters test"
+	@echo "  check-commands Run command handler test"
+	@echo "  check-legend  Run chart legend test"
+	@echo "  check-trie    Run trie autocomplete test"
 
 fetch:
 	@python3 data/anki/fetch
 
-test: test-data test-ranges test-commands test-legend
+check: check-data check-ranges check-commands check-legend check-trie
 
-test-data:
+check-data:
 	@node tests/data_files.test.js
 
-test-ranges:
+check-ranges:
 	@node tests/terminal_time_ranges.test.js
 
-test-commands:
+check-commands:
 	@node tests/commands.test.js
 
-test-legend:
+check-legend:
 	@node tests/legend.test.js
+
+check-trie:
+	@node tests/trie.test.js
