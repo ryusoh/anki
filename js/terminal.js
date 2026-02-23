@@ -2,6 +2,22 @@ const PROMPT = "lz@anki:~$";
 let statsReady = false;
 let futureChart = null;
 
+// Time range filters (in days)
+const TIME_RANGES = {
+    "1m": 30,
+    "2m": 60,
+    "3m": 90,
+    "6m": 180,
+    "1y": 365,
+    "2y": 730,
+    "3y": 1095,
+    "5y": 1825,
+    "10y": 3650,
+    "all": null  // No limit
+};
+
+const DEFAULT_RANGE = "1m";
+
 // Focus terminal input when clicking anywhere on the terminal
 document.addEventListener("DOMContentLoaded", () => {
     const terminal = document.getElementById("terminal");
@@ -129,22 +145,34 @@ function renderFutureDueChart(data) {
     section.classList.remove("is-hidden");
 }
 
-function getFutureDueData() {
+function getFutureDueData(rangeKey = DEFAULT_RANGE) {
     const payload = window.customStatsData || {};
-    return Array.isArray(payload.futureDue) ? payload.futureDue : [];
+    const allData = Array.isArray(payload.futureDue) ? payload.futureDue : [];
+    
+    const days = TIME_RANGES[rangeKey];
+    if (days === null || days === undefined) {
+        return allData;  // "all" or invalid key returns everything
+    }
+    
+    return allData.slice(0, Math.min(days, allData.length));
 }
 
-function showFutureDue() {
+function showFutureDue(rangeKey = DEFAULT_RANGE) {
     if (!statsReady) {
         appendLine("Stats are still syncing. Keep Anki open and try again.", "warn");
         return;
     }
-    const data = getFutureDueData();
+    
+    const rangeLabel = rangeKey || DEFAULT_RANGE;
+    const days = TIME_RANGES[rangeLabel];
+    const rangeText = days === null ? "all time" : `${days} days`;
+    
+    const data = getFutureDueData(rangeLabel);
     if (!data.length) {
         setChartEmpty("データがありません。Anki を起動してからこのページを再読み込みしてください。");
     }
     renderFutureDueChart(data);
-    appendLine("Rendered upcoming reviews chart.", "success");
+    appendLine(`Rendered upcoming reviews chart (${rangeText}).`, "success");
 }
 
 function appendLine(text, variant = "info") {
@@ -167,14 +195,33 @@ function showHelp() {
     appendLine("Available commands:", "muted");
     appendLine(" - help: show this message", "muted");
     appendLine(" - charts: list available charts", "muted");
-    appendLine(" - due / show due: render upcoming reviews chart", "muted");
+    appendLine(" - due [range]: render upcoming reviews chart", "muted");
     appendLine(" - clear: clear terminal output", "muted");
+    appendLine("", "muted");
+    appendLine("Time ranges for 'due':", "muted");
+    appendLine("  1m, 2m, 3m, 6m (months)", "muted");
+    appendLine("  1y, 2y, 3y, 5y, 10y (years)", "muted");
+    appendLine("  all (full forecast)", "muted");
+    appendLine("", "muted");
+    appendLine("Examples:", "muted");
+    appendLine("  due        - Default: 1 month", "muted");
+    appendLine("  due 3m     - 3 months", "muted");
+    appendLine("  due 1y     - 1 year", "muted");
+    appendLine("  due all    - Full forecast", "muted");
 }
 
 function listCharts() {
     appendLine("Charts available:", "muted");
-    appendLine(" - due: stacked mature vs. young cards for the next 30 days", "muted");
-    appendLine("Type `due` or `show due` to render.", "muted");
+    appendLine(" - due [range]: stacked mature vs. young cards", "muted");
+    appendLine("", "muted");
+    appendLine("Time ranges:", "muted");
+    appendLine("  1m, 2m, 3m, 6m | 1y, 2y, 3y, 5y, 10y | all", "muted");
+    appendLine("", "muted");
+    appendLine("Examples:", "muted");
+    appendLine("  due        - Next 30 days (default)", "muted");
+    appendLine("  due 3m     - Next 3 months", "muted");
+    appendLine("  due 1y     - Next 1 year", "muted");
+    appendLine("  due all    - Full forecast", "muted");
 }
 
 function clearTerminal() {
@@ -207,16 +254,39 @@ function handleCommand(rawInput, historyState) {
         clearTerminal();
         return;
     }
+    
+    // Handle "due" command with optional range
     if (normalized === "due" || normalized === "future" || normalized === "reviews") {
-        showFutureDue();
+        showFutureDue(DEFAULT_RANGE);
         return;
     }
-    if (normalized.startsWith("show ")) {
-        const [, chartName] = normalized.split(/\s+/, 2);
-        if (["due", "future", "reviews"].includes(chartName)) {
-            showFutureDue();
+    
+    // Handle "due [range]" command
+    const dueMatch = normalized.match(/^(due|future|reviews)\s+(.+)$/);
+    if (dueMatch) {
+        const [, , range] = dueMatch;
+        if (range in TIME_RANGES) {
+            showFutureDue(range);
         } else {
-            appendLine(`Unknown chart: ${chartName}`, "warn");
+            appendLine(`Unknown range: ${range}`, "warn");
+            appendLine("Valid ranges: 1m, 2m, 3m, 6m, 1y, 2y, 3y, 5y, 10y, all", "muted");
+        }
+        return;
+    }
+    
+    // Handle "show due [range]" command
+    if (normalized.startsWith("show ")) {
+        const parts = normalized.split(/\s+/);
+        if (parts[1] === "due" || parts[1] === "future" || parts[1] === "reviews") {
+            const range = parts[2] || DEFAULT_RANGE;
+            if (range in TIME_RANGES) {
+                showFutureDue(range);
+            } else {
+                appendLine(`Unknown range: ${range}`, "warn");
+                appendLine("Valid ranges: 1m, 2m, 3m, 6m, 1y, 2y, 3y, 5y, 10y, all", "muted");
+            }
+        } else {
+            appendLine(`Unknown chart: ${parts[1]}`, "warn");
         }
         return;
     }
