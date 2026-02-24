@@ -741,6 +741,66 @@ function runTests() {
     failed++;
   }
 
+  // Test 17: Chart switching between all chart types
+  console.log("\n📋 Test 17: Chart switching (due ↔ reviews ↔ retention)");
+  try {
+    const state = {};
+
+    // Start with due chart
+    parseCommand("plot due", state);
+    assert.strictEqual(
+      state.currentChart,
+      "due",
+      "Should start with due chart",
+    );
+
+    // Switch to reviews - should properly destroy due and create reviews
+    parseCommand("plot reviews", state);
+    assert.strictEqual(
+      state.currentChart,
+      "reviews",
+      "Should switch from due to reviews",
+    );
+
+    // Switch to retention - should properly destroy reviews and create retention
+    parseCommand("plot retention", state);
+    assert.strictEqual(
+      state.currentChart,
+      "retention",
+      "Should switch from reviews to retention",
+    );
+
+    // Switch back to due - should properly destroy retention and create due
+    parseCommand("plot due", state);
+    assert.strictEqual(
+      state.currentChart,
+      "due",
+      "Should switch from retention back to due",
+    );
+
+    // Switch to retention directly from due
+    parseCommand("plot retention", state);
+    assert.strictEqual(
+      state.currentChart,
+      "retention",
+      "Should switch from due to retention",
+    );
+
+    // Switch to reviews from retention
+    parseCommand("plot reviews", state);
+    assert.strictEqual(
+      state.currentChart,
+      "reviews",
+      "Should switch from retention to reviews",
+    );
+
+    console.log("   ✓ Chart switching works between all chart types");
+    passed++;
+  } catch (e) {
+    console.log(`   ✗ Chart switching: ${e.message}`);
+    failed++;
+  }
+
   // Summary
   console.log("\n" + "=".repeat(60));
   console.log(`\n📊 Results: ${passed} passed, ${failed} failed\n`);
@@ -769,6 +829,8 @@ function runTests() {
     console.log("   • Rapid sequential commands handled correctly");
     console.log("   • 'retention' command works");
     console.log("   • 'plot' shows subcommand help");
+    console.log("   • Range shortcuts work on retention chart");
+    console.log("   • Chart switching works between all chart types");
     console.log();
     process.exit(0);
   }

@@ -58,7 +58,8 @@ export function getAllCommands() {
 }
 
 export function clearCurrentChart() {
-  // Destroy any existing chart instances
+  // Destroy any existing chart instances (due, reviews, retention)
+  destroyDueChart();
   destroyCharts();
 
   const section = document.getElementById("runningAmountSection");

@@ -34962,19 +34962,19 @@
     },
     {
       "date": "2026-02-23",
-      "count": 242,
-      "time": 2399.4,
-      "mature": 181,
-      "young": 61,
+      "count": 254,
+      "time": 2501.3,
+      "mature": 182,
+      "young": 72,
       "again": 18,
       "hard": 23,
       "good": 0,
-      "easy": 185,
-      "learn": 1,
+      "easy": 189,
+      "learn": 5,
       "review": 207,
       "relearn": 18,
       "filtered": 0,
-      "retention": 0.8186
+      "retention": 0.8217
     }
   ]
 }
