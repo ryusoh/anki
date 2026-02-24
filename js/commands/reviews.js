@@ -54,10 +54,13 @@ export function renderReviewsChart(data) {
     return { success: false, error: "Canvas or section not found" };
   }
 
-  // Update legend for reviews chart (only reviews, no retention)
+  // Update legend for reviews chart (stacked by card status)
   if (legend) {
     legend.innerHTML = `
-            <span><i class="legend-color color-reviews"></i> Reviews</span>
+            <span><i class="legend-color color-mature"></i> Mature</span>
+            <span><i class="legend-color color-young"></i> Young</span>
+            <span><i class="legend-color color-learn"></i> Learn</span>
+            <span><i class="legend-color color-relearn"></i> Relearn</span>
         `;
     legend.style.display = "flex";
   }
@@ -83,7 +86,10 @@ export function renderReviewsChart(data) {
   if (empty) empty.style.display = "none";
 
   const labels = data.map((entry) => entry.date);
-  const counts = data.map((entry) => entry.count);
+  const matureData = data.map((entry) => entry.mature || 0);
+  const youngData = data.map((entry) => entry.young || 0);
+  const learnData = data.map((entry) => entry.learn || 0);
+  const relearnData = data.map((entry) => entry.relearn || 0);
   const times = data.map((entry) => Math.round(entry.time / 60)); // minutes
 
   const ctx = canvas.getContext("2d");
@@ -93,10 +99,32 @@ export function renderReviewsChart(data) {
       labels,
       datasets: [
         {
-          label: "Reviews",
-          data: counts,
-          backgroundColor: "rgba(73, 168, 236, 0.7)",
+          label: "Mature",
+          data: matureData,
+          backgroundColor: "rgba(72, 199, 142, 0.85)",
           borderRadius: 4,
+          stack: "reviews",
+        },
+        {
+          label: "Young",
+          data: youngData,
+          backgroundColor: "rgba(73, 168, 236, 0.85)",
+          borderRadius: 4,
+          stack: "reviews",
+        },
+        {
+          label: "Relearn",
+          data: relearnData,
+          backgroundColor: "rgba(234, 67, 53, 0.85)",
+          borderRadius: 4,
+          stack: "reviews",
+        },
+        {
+          label: "Learn",
+          data: learnData,
+          backgroundColor: "rgba(240, 185, 11, 0.85)",
+          borderRadius: 4,
+          stack: "reviews",
         },
       ],
     },
@@ -105,6 +133,7 @@ export function renderReviewsChart(data) {
       maintainAspectRatio: false,
       scales: {
         x: {
+          stacked: true,
           ticks: {
             color: "#a9b4d0",
             font: { family: "JetBrains Mono, monospace", size: 9 },
@@ -114,6 +143,7 @@ export function renderReviewsChart(data) {
           grid: { display: false },
         },
         y: {
+          stacked: true,
           type: "linear",
           display: true,
           position: "left",
@@ -292,7 +322,7 @@ export function showRetention(rangeKey = DEFAULT_RANGE) {
 
 export function getReviewsHelp() {
   return [
-    "reviews [range] - Render review history chart (bar chart)",
+    "reviews [range] - Render review history chart (stacked bar chart)",
     "retention [range] - Render retention rate chart (line chart)",
     "",
     "Ranges: 1m, 2m, 3m, 6m, 1y, 2y, 3y, 5y, 10y, all",
@@ -303,6 +333,12 @@ export function getReviewsHelp() {
     "  reviews all        - Full history",
     "  retention          - Default: 1 month",
     "  retention 1y       - 1 year retention trend",
+    "",
+    "Review chart shows stacked bars by card status:",
+    "  🟢 Mature   - Cards with interval ≥ 21 days",
+    "  🔵 Young    - Cards with interval < 21 days",
+    "  🟡 Learn    - Cards in learning phase",
+    "  🔴 Relearn  - Cards being relearned",
     "",
     "Plot subcommands:",
     "  plot due [range]       - Due forecast",

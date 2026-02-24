@@ -67,12 +67,16 @@ function renderDueChart(mockDOM) {
   return { success: true, chart: "due" };
 }
 
-// Mock reviews chart rendering
+// Mock reviews chart rendering (stacked by card status)
 function renderReviewsChart(mockDOM) {
   if (mockDOM.chartLegend) {
+    // Legend order matches stack order (first = bottom, last = top)
+    // Stack: Mature (bottom) → Young → Relearn → Learn (top)
     mockDOM.chartLegend.innerHTML = `
-            <span><i class="legend-color color-reviews"></i> Reviews</span>
-            <span><i class="legend-color color-retention"></i> Retention</span>
+            <span><i class="legend-color color-mature"></i> Mature</span>
+            <span><i class="legend-color color-young"></i> Young</span>
+            <span><i class="legend-color color-relearn"></i> Relearn</span>
+            <span><i class="legend-color color-learn"></i> Learn</span>
         `;
     mockDOM.chartLegend.style.display = "flex";
   }
@@ -101,9 +105,9 @@ const DUE_LEGEND_EXPECTED = {
 };
 
 const REVIEWS_LEGEND_EXPECTED = {
-  items: 2,
-  labels: ["Reviews", "Retention"],
-  classes: ["color-reviews", "color-retention"],
+  items: 4,
+  labels: ["Mature", "Young", "Learn", "Relearn"],
+  classes: ["color-mature", "color-young", "color-learn", "color-relearn"],
 };
 
 function validateLegend(mockDOM, expected, chartName) {
@@ -366,16 +370,16 @@ function runTests() {
     assert.ok(/未習熟/.test(dueHtml), "Due legend should have Japanese text");
     assert.ok(/習熟済み/.test(dueHtml), "Due legend should have Japanese text");
 
-    // Reviews chart should have English
+    // Reviews chart should have English (card status categories)
     renderReviewsChart(mockDOM);
     const reviewsHtml = mockDOM.chartLegend.innerHTML;
     assert.ok(
-      /Reviews/.test(reviewsHtml),
-      "Reviews legend should have English text",
+      /Mature/.test(reviewsHtml),
+      "Reviews legend should have English text (Mature)",
     );
     assert.ok(
-      /Retention/.test(reviewsHtml),
-      "Reviews legend should have English text",
+      /Young/.test(reviewsHtml),
+      "Reviews legend should have English text (Young)",
     );
 
     console.log("   ✓ Legend text uses correct languages");
@@ -402,22 +406,72 @@ function runTests() {
       "Due should have mature color class (green)",
     );
 
-    // Reviews chart colors
+    // Reviews chart colors (stacked by card status)
     renderReviewsChart(mockDOM);
     const reviewsHtml = mockDOM.chartLegend.innerHTML;
     assert.ok(
-      reviewsHtml.includes("color-reviews"),
-      "Reviews should have reviews color class (blue)",
+      reviewsHtml.includes("color-mature"),
+      "Reviews should have mature color class (green)",
     );
     assert.ok(
-      reviewsHtml.includes("color-retention"),
-      "Reviews should have retention color class (yellow)",
+      reviewsHtml.includes("color-young"),
+      "Reviews should have young color class (blue)",
+    );
+    assert.ok(
+      reviewsHtml.includes("color-learn"),
+      "Reviews should have learn color class (yellow)",
+    );
+    assert.ok(
+      reviewsHtml.includes("color-relearn"),
+      "Reviews should have relearn color class (red)",
     );
 
     console.log("   ✓ Legend color classes match chart colors");
     passed++;
   } catch (e) {
     console.log(`   ✗ Legend colors: ${e.message}`);
+    failed++;
+  }
+
+  // Test 11: Reviews chart has stacked datasets by card status
+  console.log("\n📋 Test 11: Reviews chart stacked by card status");
+  try {
+    const mockDOM = createMockDOM();
+
+    // Render reviews chart
+    renderReviewsChart(mockDOM);
+    const reviewsHtml = mockDOM.chartLegend.innerHTML;
+
+    // Check all 4 categories are present in legend
+    assert.ok(
+      reviewsHtml.includes("Mature"),
+      "Reviews legend should have Mature",
+    );
+    assert.ok(
+      reviewsHtml.includes("Young"),
+      "Reviews legend should have Young",
+    );
+    assert.ok(
+      reviewsHtml.includes("Learn"),
+      "Reviews legend should have Learn",
+    );
+    assert.ok(
+      reviewsHtml.includes("Relearn"),
+      "Reviews legend should have Relearn",
+    );
+
+    // Verify correct order in legend (Learn should be last = top of stack)
+    const learnIndex = reviewsHtml.indexOf("Learn");
+    const relearnIndex = reviewsHtml.indexOf("Relearn");
+    assert.ok(
+      learnIndex > relearnIndex,
+      "Learn should appear after Relearn (top of stack)",
+    );
+
+    console.log("   ✓ Reviews chart stacked by card status");
+    passed++;
+  } catch (e) {
+    console.log(`   ✗ Reviews stacked: ${e.message}`);
     failed++;
   }
 
@@ -432,7 +486,7 @@ function runTests() {
       "   • Due chart: 未習熟 / 習熟済み (Japanese, blue/green dots)",
     );
     console.log(
-      "   • Reviews chart: Reviews / Retention (English, blue/yellow dots)",
+      "   • Reviews chart: Mature / Young / Learn / Relearn (stacked)",
     );
     console.log("   • Legend must update on chart switch");
     console.log("   • Legend must be hidden when chart cleared");
@@ -442,12 +496,11 @@ function runTests() {
     console.log("✅ ALL TESTS PASSED - Legend working correctly");
     console.log("\n📝 Verified:");
     console.log("   • Due chart legend: 未習熟 / 習熟済み with dot symbols");
-    console.log(
-      "   • Reviews chart legend: Reviews / Retention with dot symbols",
-    );
+    console.log("   • Reviews chart legend: Mature / Young / Learn / Relearn");
     console.log("   • Legend updates on chart switching");
     console.log("   • Legend visibility managed correctly");
     console.log("   • Color classes match chart colors");
+    console.log("   • Reviews stacked by card status (Learn on top)");
     console.log();
     process.exit(0);
   }

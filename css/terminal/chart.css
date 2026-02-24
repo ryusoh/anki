@@ -164,3 +164,11 @@
 .legend-color.color-retention {
   background: rgba(240, 185, 11, 0.9);
 }
+
+.legend-color.color-learn {
+  background: rgba(240, 185, 11, 0.85);
+}
+
+.legend-color.color-relearn {
+  background: rgba(234, 67, 53, 0.85);
+}
