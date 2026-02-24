@@ -14,10 +14,11 @@ import {
 } from "./due.js";
 import {
   showReviews,
+  showRetention,
   getReviewsHelp,
   TIME_RANGES as REVIEWS_RANGES,
   DEFAULT_RANGE as REVIEWS_DEFAULT,
-  destroyChart as destroyReviewsChart,
+  destroyCharts,
 } from "./reviews.js";
 
 // Create command trie for validation
@@ -58,8 +59,7 @@ export function getAllCommands() {
 
 export function clearCurrentChart() {
   // Destroy any existing chart instances
-  destroyDueChart();
-  destroyReviewsChart();
+  destroyCharts();
 
   const section = document.getElementById("runningAmountSection");
   const legend = document.getElementById("chartLegend");
@@ -104,6 +104,10 @@ export function handleCommand(input, appendLine) {
       const message = showReviews(normalized);
       appendLine(message, "success");
       return { handled: true, command: "reviews", range: normalized };
+    } else if (currentChart === "retention") {
+      const message = showRetention(normalized);
+      appendLine(message, "success");
+      return { handled: true, command: "retention", range: normalized };
     } else {
       // Default to due chart
       const message = showDue(normalized);
@@ -118,8 +122,12 @@ export function handleCommand(input, appendLine) {
     showHelp(appendLine);
     return { handled: true, command: "help" };
   }
-  if (normalized === "p") {
-    appendLine("Usage: plot due|reviews [range]", "muted");
+  if (normalized === "p" || normalized === "plot") {
+    appendLine("Usage: plot <due|reviews|retention> [range]", "muted");
+    appendLine("Subcommands:", "muted");
+    appendLine("  plot due [range]        - Due forecast chart", "muted");
+    appendLine("  plot reviews [range]    - Review history chart", "muted");
+    appendLine("  plot retention [range]  - Retention rate chart", "muted");
     appendLine("Examples: pd, pd 3m, pr, pr 1y", "muted");
     return { handled: true, command: "plot" };
   }
@@ -153,7 +161,7 @@ export function handleCommand(input, appendLine) {
   }
 
   // Handle "plot due [range]" command (new umbrella syntax)
-  const plotMatch = normalized.match(/^plot\s+(due|reviews)\s*(.*)$/);
+  const plotMatch = normalized.match(/^plot\s+(due|reviews|retention)\s*(.*)$/);
   if (plotMatch) {
     const [, chartType, rangeStr] = plotMatch;
     const range = rangeStr.trim() || DEFAULT_RANGE;
@@ -173,11 +181,16 @@ export function handleCommand(input, appendLine) {
       appendLine(message, "success");
       currentChart = "due";
       return { handled: true, command: "plot-due", range };
-    } else {
+    } else if (chartType === "reviews") {
       const message = showReviews(range);
       appendLine(message, "success");
       currentChart = "reviews";
       return { handled: true, command: "plot-reviews", range };
+    } else {
+      const message = showRetention(range);
+      appendLine(message, "success");
+      currentChart = "retention";
+      return { handled: true, command: "plot-retention", range };
     }
   }
 
@@ -197,6 +210,15 @@ export function handleCommand(input, appendLine) {
     appendLine(message, "success");
     currentChart = "reviews";
     return { handled: true, command: "reviews", range: DEFAULT_RANGE };
+  }
+
+  // Handle "retention" command
+  if (normalized === "retention") {
+    clearCurrentChart();
+    const message = showRetention(DEFAULT_RANGE);
+    appendLine(message, "success");
+    currentChart = "retention";
+    return { handled: true, command: "retention", range: DEFAULT_RANGE };
   }
 
   // Handle "due [range]" command
@@ -236,6 +258,26 @@ export function handleCommand(input, appendLine) {
         "muted",
       );
       return { handled: true, command: "reviews", error: "invalid range" };
+    }
+  }
+
+  // Handle "retention [range]" command
+  const retentionMatch = normalized.match(/^retention\s+(.+)$/);
+  if (retentionMatch) {
+    const [, range] = retentionMatch;
+    if (range in TIME_RANGES) {
+      clearCurrentChart();
+      const message = showRetention(range);
+      appendLine(message, "success");
+      currentChart = "retention";
+      return { handled: true, command: "retention", range };
+    } else {
+      appendLine(`Unknown range: ${range}`, "warn");
+      appendLine(
+        "Valid ranges: 1m, 2m, 3m, 6m, 1y, 2y, 3y, 5y, 10y, all",
+        "muted",
+      );
+      return { handled: true, command: "retention", error: "invalid range" };
     }
   }
 

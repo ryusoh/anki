@@ -11,7 +11,7 @@ from datetime import datetime
 
 SCRIPT_DIR = Path(__file__).parent
 REVIEWS_DIR = SCRIPT_DIR / "reviews"
-OUTPUT_FILE = SCRIPT_DIR.parent.parent / "review_stats_data.json"
+OUTPUT_FILE = SCRIPT_DIR / "review_stats_data.json"
 
 
 def parse_review_timestamp(ts_ms):

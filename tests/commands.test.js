@@ -40,6 +40,8 @@ function parseCommand(input, state = { currentChart: null }) {
     if (state.currentChart === "reviews") {
       state.currentChart = "reviews";
       return { handled: true, command: "reviews", range: normalized };
+    } else if (state.currentChart === "retention") {
+      return { handled: true, command: "retention", range: normalized };
     } else {
       state.currentChart = "due";
       return { handled: true, command: "due", range: normalized };
@@ -70,13 +72,13 @@ function parseCommand(input, state = { currentChart: null }) {
     return { handled: true, command: "reviews", range: DEFAULT_RANGE };
   }
 
-  // Handle "plot due/reviews [range]" command
-  const plotMatch = normalized.match(/^plot\s+(due|reviews)\s*(.*)$/);
+  // Handle "plot due/reviews/retention [range]" command
+  const plotMatch = normalized.match(/^plot\s+(due|reviews|retention)\s*(.*)$/);
   if (plotMatch) {
     const [, chartType, rangeStr] = plotMatch;
     const range = rangeStr.trim() || DEFAULT_RANGE;
     if (range in TIME_RANGES) {
-      state.currentChart = chartType === "due" ? "due" : "reviews";
+      state.currentChart = chartType;
       return { handled: true, command: `plot-${chartType}`, range };
     }
     return { handled: true, command: "plot", error: "invalid range" };
@@ -92,6 +94,12 @@ function parseCommand(input, state = { currentChart: null }) {
   if (normalized === "reviews") {
     state.currentChart = "reviews";
     return { handled: true, command: "reviews", range: DEFAULT_RANGE };
+  }
+
+  // Handle "retention" command
+  if (normalized === "retention") {
+    state.currentChart = "retention";
+    return { handled: true, command: "retention", range: DEFAULT_RANGE };
   }
 
   // Handle "due [range]" command
@@ -114,6 +122,22 @@ function parseCommand(input, state = { currentChart: null }) {
       return { handled: true, command: "reviews", range };
     }
     return { handled: true, command: "reviews", error: "invalid range" };
+  }
+
+  // Handle "retention [range]" command
+  const retentionMatch = normalized.match(/^retention\s+(.+)$/);
+  if (retentionMatch) {
+    const [, range] = retentionMatch;
+    if (range in TIME_RANGES) {
+      state.currentChart = "retention";
+      return { handled: true, command: "retention", range };
+    }
+    return { handled: true, command: "retention", error: "invalid range" };
+  }
+
+  // Handle "plot" or "p" alone (shows help)
+  if (normalized === "plot" || normalized === "p") {
+    return { handled: true, command: "plot" };
   }
 
   // Handle "show due [range]" command
@@ -611,6 +635,112 @@ function runTests() {
     failed++;
   }
 
+  // Test 14: Retention command
+  console.log("\n📋 Test 14: 'retention' command");
+  try {
+    const state = {};
+
+    // retention (default)
+    const result1 = parseCommand("retention", state);
+    assert.strictEqual(result1.handled, true, "Should handle 'retention'");
+    assert.strictEqual(
+      result1.command,
+      "retention",
+      "Should be retention command",
+    );
+    assert.strictEqual(
+      state.currentChart,
+      "retention",
+      "Should show retention chart",
+    );
+
+    // retention with range
+    const result2 = parseCommand("retention 1y", state);
+    assert.strictEqual(result2.handled, true, "Should handle 'retention 1y'");
+    assert.strictEqual(result2.range, "1y", "Should have 1y range");
+
+    console.log("   ✓ 'retention' command works");
+    passed++;
+  } catch (e) {
+    console.log(`   ✗ 'retention' command: ${e.message}`);
+    failed++;
+  }
+
+  // Test 15: Plot subcommand help
+  console.log("\n📋 Test 15: 'plot' shows subcommand help");
+  try {
+    const state = {};
+
+    // plot alone should show help
+    const result1 = parseCommand("plot", state);
+    assert.strictEqual(result1.handled, true, "Should handle 'plot'");
+    assert.strictEqual(result1.command, "plot", "Should be plot command");
+
+    // p alone should also show help
+    const result2 = parseCommand("p", state);
+    assert.strictEqual(result2.handled, true, "Should handle 'p'");
+    assert.strictEqual(result2.command, "plot", "Should be plot command");
+
+    console.log("   ✓ 'plot' and 'p' show subcommand help");
+    passed++;
+  } catch (e) {
+    console.log(`   ✗ 'plot' help: ${e.message}`);
+    failed++;
+  }
+
+  // Test 16: Range shortcuts work on retention chart
+  console.log("\n📋 Test 16: Range shortcuts respect retention chart");
+  try {
+    const state = {};
+
+    // Start with retention chart
+    parseCommand("retention", state);
+    assert.strictEqual(
+      state.currentChart,
+      "retention",
+      "Should be on retention",
+    );
+
+    // Range shortcut should stay on retention
+    parseCommand("all", state);
+    assert.strictEqual(
+      state.currentChart,
+      "retention",
+      "Shortcut should stay on retention",
+    );
+
+    parseCommand("1y", state);
+    assert.strictEqual(
+      state.currentChart,
+      "retention",
+      "Shortcut should stay on retention",
+    );
+
+    parseCommand("6m", state);
+    assert.strictEqual(
+      state.currentChart,
+      "retention",
+      "Shortcut should stay on retention",
+    );
+
+    // Can switch to other charts and back
+    parseCommand("due", state);
+    assert.strictEqual(state.currentChart, "due", "Should switch to due");
+
+    parseCommand("retention", state);
+    assert.strictEqual(
+      state.currentChart,
+      "retention",
+      "Should switch back to retention",
+    );
+
+    console.log("   ✓ Range shortcuts work on retention chart");
+    passed++;
+  } catch (e) {
+    console.log(`   ✗ Retention range shortcuts: ${e.message}`);
+    failed++;
+  }
+
   // Summary
   console.log("\n" + "=".repeat(60));
   console.log(`\n📊 Results: ${passed} passed, ${failed} failed\n`);
@@ -637,6 +767,8 @@ function runTests() {
       "   • Chart destruction prevents 'Canvas is already in use' error",
     );
     console.log("   • Rapid sequential commands handled correctly");
+    console.log("   • 'retention' command works");
+    console.log("   • 'plot' shows subcommand help");
     console.log();
     process.exit(0);
   }

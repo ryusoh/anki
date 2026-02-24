@@ -3,12 +3,12 @@
 PYTHON := python3
 NPM := npm
 
-# File patterns for formatters/linters (exclude vendor and data directories)
+# File patterns for formatters/linters (exclude vendor, data, and node_modules directories)
 JS_FILES := $(shell git ls-files '*.js' 2>/dev/null | grep -v '^js/vendor/' | grep -v '^data/' | grep -v 'node_modules')
 CSS_FILES := $(shell git ls-files '*.css' 2>/dev/null)
 MD_FILES := $(shell git ls-files '*.md' 2>/dev/null)
 HTML_FILES := $(shell git ls-files '*.html' 2>/dev/null)
-JSON_FILES := $(shell git ls-files '*.json' 2>/dev/null | grep -v '^data/' | grep -v 'package-lock.json')
+JSON_FILES := $(shell git ls-files '*.json' 2>/dev/null | grep -v '^data/' | grep -v 'package-lock.json' | grep -v 'custom_stats_data.json' | grep -v 'review_stats_data.json')
 PRETTIER_FILES := $(JS_FILES) $(CSS_FILES) $(MD_FILES) $(HTML_FILES) $(JSON_FILES)
 
 help:

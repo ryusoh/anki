@@ -13,7 +13,7 @@ from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).parent
 CARDS_FILE = SCRIPT_DIR / "cards.json.gz"
-OUTPUT_FILE = SCRIPT_DIR.parent.parent / "custom_stats_data.json"
+OUTPUT_FILE = SCRIPT_DIR / "custom_stats_data.json"
 
 # Find Anki collection to get crt (creation time)
 def find_anki_collection():

@@ -34959,6 +34959,22 @@
       "relearn": 36,
       "filtered": 0,
       "retention": 0.8164
+    },
+    {
+      "date": "2026-02-23",
+      "count": 242,
+      "time": 2399.4,
+      "mature": 181,
+      "young": 61,
+      "again": 18,
+      "hard": 23,
+      "good": 0,
+      "easy": 185,
+      "learn": 1,
+      "review": 207,
+      "relearn": 18,
+      "filtered": 0,
+      "retention": 0.8186
     }
   ]
 }

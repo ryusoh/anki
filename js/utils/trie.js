@@ -200,12 +200,14 @@ export function createCommandTrie() {
     "pd", // plot due abbreviation
     "plot reviews",
     "pr", // plot reviews abbreviation
+    "plot retention", // retention rate chart
     "due",
     "d", // due shortcut
     "future",
     "f", // future shortcut
     "reviews",
     "r", // reviews shortcut
+    "retention", // retention rate shortcut
     "show",
     "s", // show command
     "show due",
@@ -233,6 +235,7 @@ export function createCommandTrie() {
   ranges.forEach((range) => {
     trie.insert(`plot due ${range}`);
     trie.insert(`plot reviews ${range}`);
+    trie.insert(`plot retention ${range}`);
     trie.insert(`show due ${range}`);
     trie.insert(`show reviews ${range}`);
   });

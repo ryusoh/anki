@@ -11,6 +11,7 @@ import {
   getAutocomplete,
   getAllCommands,
 } from "./commands/handler.js";
+import { destroyCharts } from "./commands/reviews.js";
 
 const PROMPT = "lz@anki:~$";
 let statsReady = false;
@@ -183,12 +184,13 @@ function setupAutocomplete(input, historyState) {
       event.preventDefault();
       clearTerminal();
     } else if (event.key === "Enter") {
-      // Reset autocomplete on enter
+      // Reset autocomplete and destroy charts on enter
       autocompleteState = {
         suggestions: [],
         currentIndex: 0,
         originalInput: "",
       };
+      destroyCharts();
 
       const value = input.value;
       input.value = "";
