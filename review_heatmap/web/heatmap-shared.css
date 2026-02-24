@@ -3,85 +3,87 @@
 
 /* Heatmap controls layout mirrors the original inline HTML */
 .heatmap-controls {
-    margin-bottom: 0;
+  margin-bottom: 0;
 }
 
 .heatmap-controls::after {
-    content: "";
-    display: block;
-    clear: both;
+  content: "";
+  display: block;
+  clear: both;
 }
 
 .alignleft,
 .aligncenter,
 .alignright {
-    float: left;
-    width: 33.3333%;
+  float: left;
+  width: 33.3333%;
 }
 
 .alignleft {
-    text-align: left;
+  text-align: left;
 }
 
 .aligncenter {
-    text-align: center;
+  text-align: center;
 }
 
 .alignright {
-    text-align: right;
+  text-align: right;
 }
 
 /* Heatmap navigation buttons */
 .hm-btn {
-    height: 100%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    background: transparent !important;
-    background-color: transparent !important;
-    color: #808080;
-    padding: 2px 6px;
-    border-radius: 999px;
-    margin-left: 2px;
-    text-decoration: none;
-    user-select: none;
-    vertical-align: middle;
-    transition: background 0.15s ease, filter 0.15s ease;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: transparent !important;
+  background-color: transparent !important;
+  color: #808080;
+  padding: 2px 6px;
+  border-radius: 999px;
+  margin-left: 2px;
+  text-decoration: none;
+  user-select: none;
+  vertical-align: middle;
+  transition:
+    background 0.15s ease,
+    filter 0.15s ease;
 }
 
 .hm-btn:hover {
-    background: rgba(128, 128, 128, 0.15);
+  background: rgba(128, 128, 128, 0.15);
 }
 
 .hm-btn:active {
-    background: rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.25);
 }
 
 body.nightMode .hm-btn,
 .night_mode .hm-btn {
-    color: #c9d3da;
+  color: #c9d3da;
 }
 
 body.nightMode .hm-btn:hover,
 .night_mode .hm-btn:hover {
-    background: transparent;
+  background: transparent;
 }
 
 body.nightMode .hm-btn:active,
 .night_mode .hm-btn:active {
-    background: transparent;
-    background-color: transparent;
+  background: transparent;
+  background-color: transparent;
 }
 
 /* Options button uses narrower padding */
 .opts-btn {
-    padding: 2px 4px;
+  padding: 2px 4px;
 }
 
-.opts-btn>img {
-    position: relative;
-    top: calc(50% - 12px);
-    height: 10px;
-    width: 10px;
+.opts-btn > img {
+  position: relative;
+  top: calc(50% - 12px);
+  height: 10px;
+  width: 10px;
 }

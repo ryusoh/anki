@@ -1,7 +1,8 @@
 # Custom background image and gear icon
- Customize the background image in the main Anki screen as well as replace the gear icon with an image
- 
- See this link for Ankiweb download and details: https://ankiweb.net/shared/info/1210908941
+
+Customize the background image in the main Anki screen as well as replace the gear icon with an image
+
+See this link for Ankiweb download and details: https://ankiweb.net/shared/info/1210908941
 
  <img src="https://raw.githubusercontent.com/AnKingMed/Custom-background-image-and-gear-icon/master/screenshots/Backgrounds.jpg?raw=true">
 <img src="https://raw.githubusercontent.com/AnKingMed/Custom-background-image-and-gear-icon/master/screenshots/Backgrounds.gif?raw=true">
@@ -11,7 +12,9 @@
 <b>Gear icons</b> were obtained from [Wikimedia Commons](https://commons.wikimedia.org/wiki/Category:Noto_Color_Emoji_Pie)
 
 ## Add image to ipad background
+
 Add this code to the note styling to add a background image to the ipad when reviewing:
+
 ```
 /*IPAD custom background image - */
 
@@ -21,6 +24,7 @@ Add this code to the note styling to add a background image to the ipad when rev
 ```
 
 ---
+
 **Please consider supporting us via:**
 
 <center><div style="vertical-align:middle;"><a href="https://www.theanking.com"><img src="https://raw.githubusercontent.com/AnKingMed/My-images/master/AnKing/TheAnKing-New.png?raw=true"></a></div></center>
@@ -32,7 +36,5 @@ Add this code to the note styling to add a background image to the ipad when rev
 <a href="https://www.twitter.com/ankingmed"><img src="https://raw.githubusercontent.com/AnKingMed/My-images/master/Social/Twitter.png?raw=true"></a></center>
 
 <div><center><a href="https://www.theanking.com/vip"><img src="https://raw.githubusercontent.com/AnKingMed/My-images/master/AnKing/Patreon.jpg?raw=true"></a></center></div>
-
-
 
 <div><center><a href="https://courses.theanking.com"><img src="https://raw.githubusercontent.com/AnKingMed/My-images/master/AnKing/MasteryCourse.png?raw=true"></a></center></div>

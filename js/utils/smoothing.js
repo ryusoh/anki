@@ -14,38 +14,38 @@
  * @returns {Array} Smoothed data points
  */
 export function simpleMovingAverage(data, window = 3, preserveEnd = true) {
-    if (!Array.isArray(data) || data.length === 0) {
-        return data;
+  if (!Array.isArray(data) || data.length === 0) {
+    return data;
+  }
+
+  if (data.length < window) {
+    return data;
+  }
+
+  const smoothed = [];
+
+  for (let i = 0; i < data.length; i++) {
+    // Preserve the last point if requested
+    if (preserveEnd && i === data.length - 1) {
+      smoothed.push({ ...data[i] });
+      continue;
     }
 
-    if (data.length < window) {
-        return data;
-    }
+    // Calculate the average for the window
+    const start = Math.max(0, i - Math.floor(window / 2));
+    const end = Math.min(data.length, start + window);
+    const windowData = data.slice(start, end);
 
-    const smoothed = [];
+    const sum = windowData.reduce((acc, point) => acc + point.y, 0);
+    const average = sum / windowData.length;
 
-    for (let i = 0; i < data.length; i++) {
-        // Preserve the last point if requested
-        if (preserveEnd && i === data.length - 1) {
-            smoothed.push({ ...data[i] });
-            continue;
-        }
+    smoothed.push({
+      x: data[i].x,
+      y: average,
+    });
+  }
 
-        // Calculate the average for the window
-        const start = Math.max(0, i - Math.floor(window / 2));
-        const end = Math.min(data.length, start + window);
-        const windowData = data.slice(start, end);
-
-        const sum = windowData.reduce((acc, point) => acc + point.y, 0);
-        const average = sum / windowData.length;
-
-        smoothed.push({
-            x: data[i].x,
-            y: average,
-        });
-    }
-
-    return smoothed;
+  return smoothed;
 }
 
 /**
@@ -56,35 +56,39 @@ export function simpleMovingAverage(data, window = 3, preserveEnd = true) {
  * @param {boolean} preserveEnd - Whether to preserve the last point unchanged
  * @returns {Array} Smoothed data points
  */
-export function exponentialMovingAverage(data, alpha = 0.3, preserveEnd = true) {
-    if (!Array.isArray(data) || data.length === 0) {
-        return data;
+export function exponentialMovingAverage(
+  data,
+  alpha = 0.3,
+  preserveEnd = true,
+) {
+  if (!Array.isArray(data) || data.length === 0) {
+    return data;
+  }
+
+  if (data.length === 1) {
+    return data;
+  }
+
+  const smoothed = [{ ...data[0] }];
+
+  for (let i = 1; i < data.length; i++) {
+    // Preserve the last point if requested
+    if (preserveEnd && i === data.length - 1) {
+      smoothed.push({ ...data[i] });
+      continue;
     }
 
-    if (data.length === 1) {
-        return data;
-    }
+    const prevSmoothed = smoothed[i - 1].y;
+    const current = data[i].y;
+    const smoothedValue = alpha * current + (1 - alpha) * prevSmoothed;
 
-    const smoothed = [{ ...data[0] }];
+    smoothed.push({
+      x: data[i].x,
+      y: smoothedValue,
+    });
+  }
 
-    for (let i = 1; i < data.length; i++) {
-        // Preserve the last point if requested
-        if (preserveEnd && i === data.length - 1) {
-            smoothed.push({ ...data[i] });
-            continue;
-        }
-
-        const prevSmoothed = smoothed[i - 1].y;
-        const current = data[i].y;
-        const smoothedValue = alpha * current + (1 - alpha) * prevSmoothed;
-
-        smoothed.push({
-            x: data[i].x,
-            y: smoothedValue,
-        });
-    }
-
-    return smoothed;
+  return smoothed;
 }
 
 /**
@@ -97,48 +101,48 @@ export function exponentialMovingAverage(data, alpha = 0.3, preserveEnd = true) 
  * @returns {Array} Smoothed data points
  */
 export function savitzkyGolay(data, window = 5, order = 2, preserveEnd = true) {
-    if (!Array.isArray(data) || data.length === 0) {
-        return data;
+  if (!Array.isArray(data) || data.length === 0) {
+    return data;
+  }
+
+  if (data.length < window) {
+    return data;
+  }
+
+  // Ensure window is odd
+  if (window % 2 === 0) {
+    window += 1;
+  }
+
+  const halfWindow = Math.floor(window / 2);
+  const smoothed = [];
+
+  for (let i = 0; i < data.length; i++) {
+    // Preserve the last point if requested
+    if (preserveEnd && i === data.length - 1) {
+      smoothed.push({ ...data[i] });
+      continue;
     }
 
-    if (data.length < window) {
-        return data;
+    // Calculate the window boundaries
+    const start = Math.max(0, i - halfWindow);
+    const end = Math.min(data.length, i + halfWindow + 1);
+    const windowData = data.slice(start, end);
+
+    if (windowData.length < 3) {
+      smoothed.push({ ...data[i] });
+      continue;
     }
 
-    // Ensure window is odd
-    if (window % 2 === 0) {
-        window += 1;
-    }
+    // Simple polynomial fitting for small windows
+    const smoothedValue = polynomialFit(windowData, order, i - start);
+    smoothed.push({
+      x: data[i].x,
+      y: smoothedValue,
+    });
+  }
 
-    const halfWindow = Math.floor(window / 2);
-    const smoothed = [];
-
-    for (let i = 0; i < data.length; i++) {
-        // Preserve the last point if requested
-        if (preserveEnd && i === data.length - 1) {
-            smoothed.push({ ...data[i] });
-            continue;
-        }
-
-        // Calculate the window boundaries
-        const start = Math.max(0, i - halfWindow);
-        const end = Math.min(data.length, i + halfWindow + 1);
-        const windowData = data.slice(start, end);
-
-        if (windowData.length < 3) {
-            smoothed.push({ ...data[i] });
-            continue;
-        }
-
-        // Simple polynomial fitting for small windows
-        const smoothedValue = polynomialFit(windowData, order, i - start);
-        smoothed.push({
-            x: data[i].x,
-            y: smoothedValue,
-        });
-    }
-
-    return smoothed;
+  return smoothed;
 }
 
 /**
@@ -150,31 +154,31 @@ export function savitzkyGolay(data, window = 5, order = 2, preserveEnd = true) {
  * @returns {Array} Smoothed data points
  */
 export function lowess(data, bandwidth = 0.3, preserveEnd = true) {
-    if (!Array.isArray(data) || data.length === 0) {
-        return data;
+  if (!Array.isArray(data) || data.length === 0) {
+    return data;
+  }
+
+  if (data.length < 3) {
+    return data;
+  }
+
+  const smoothed = [];
+
+  for (let i = 0; i < data.length; i++) {
+    // Preserve the last point if requested
+    if (preserveEnd && i === data.length - 1) {
+      smoothed.push({ ...data[i] });
+      continue;
     }
 
-    if (data.length < 3) {
-        return data;
-    }
+    const smoothedValue = weightedLocalRegression(data, i, bandwidth);
+    smoothed.push({
+      x: data[i].x,
+      y: smoothedValue,
+    });
+  }
 
-    const smoothed = [];
-
-    for (let i = 0; i < data.length; i++) {
-        // Preserve the last point if requested
-        if (preserveEnd && i === data.length - 1) {
-            smoothed.push({ ...data[i] });
-            continue;
-        }
-
-        const smoothedValue = weightedLocalRegression(data, i, bandwidth);
-        smoothed.push({
-            x: data[i].x,
-            y: smoothedValue,
-        });
-    }
-
-    return smoothed;
+  return smoothed;
 }
 
 /**
@@ -185,129 +189,130 @@ export function lowess(data, bandwidth = 0.3, preserveEnd = true) {
  * @returns {Array} Smoothed data points
  */
 export function adaptiveSmoothing(data, preserveEnd = true) {
-    if (!Array.isArray(data) || data.length === 0) {
-        return data;
-    }
+  if (!Array.isArray(data) || data.length === 0) {
+    return data;
+  }
 
-    if (data.length < 10) {
-        return exponentialMovingAverage(data, 0.2, preserveEnd);
-    }
-
-    // Calculate volatility to determine smoothing strength
-    const returns = [];
-    for (let i = 1; i < data.length; i++) {
-        const ret = (data[i].y - data[i - 1].y) / data[i - 1].y;
-        returns.push(Math.abs(ret));
-    }
-
-    const avgVolatility = returns.reduce((sum, ret) => sum + ret, 0) / returns.length;
-
-    // Choose smoothing method based on volatility
-    if (avgVolatility > 0.05) {
-        // High volatility
-        return exponentialMovingAverage(data, 0.4, preserveEnd);
-    } else if (avgVolatility > 0.02) {
-        // Medium volatility
-        return exponentialMovingAverage(data, 0.3, preserveEnd);
-    }
-    // Low volatility
+  if (data.length < 10) {
     return exponentialMovingAverage(data, 0.2, preserveEnd);
+  }
+
+  // Calculate volatility to determine smoothing strength
+  const returns = [];
+  for (let i = 1; i < data.length; i++) {
+    const ret = (data[i].y - data[i - 1].y) / data[i - 1].y;
+    returns.push(Math.abs(ret));
+  }
+
+  const avgVolatility =
+    returns.reduce((sum, ret) => sum + ret, 0) / returns.length;
+
+  // Choose smoothing method based on volatility
+  if (avgVolatility > 0.05) {
+    // High volatility
+    return exponentialMovingAverage(data, 0.4, preserveEnd);
+  } else if (avgVolatility > 0.02) {
+    // Medium volatility
+    return exponentialMovingAverage(data, 0.3, preserveEnd);
+  }
+  // Low volatility
+  return exponentialMovingAverage(data, 0.2, preserveEnd);
 }
 
 /**
  * Helper function for polynomial fitting in Savitzky-Golay
  */
 function polynomialFit(points, order, targetIndex) {
-    const n = points.length;
-    if (n <= order) {
-        return points[targetIndex]?.y || 0;
-    }
-
-    // Simple linear regression for order 1, quadratic for order 2
-    if (order === 1) {
-        const sumX = points.reduce((sum, p, i) => sum + i, 0);
-        const sumY = points.reduce((sum, p) => sum + p.y, 0);
-        const sumXY = points.reduce((sum, p, i) => sum + i * p.y, 0);
-        const sumXX = points.reduce((sum, p, i) => sum + i * i, 0);
-
-        const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-        const intercept = (sumY - slope * sumX) / n;
-
-        return slope * targetIndex + intercept;
-    }
-    // For higher orders, use a simplified approach
+  const n = points.length;
+  if (n <= order) {
     return points[targetIndex]?.y || 0;
+  }
+
+  // Simple linear regression for order 1, quadratic for order 2
+  if (order === 1) {
+    const sumX = points.reduce((sum, p, i) => sum + i, 0);
+    const sumY = points.reduce((sum, p) => sum + p.y, 0);
+    const sumXY = points.reduce((sum, p, i) => sum + i * p.y, 0);
+    const sumXX = points.reduce((sum, p, i) => sum + i * i, 0);
+
+    const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+    const intercept = (sumY - slope * sumX) / n;
+
+    return slope * targetIndex + intercept;
+  }
+  // For higher orders, use a simplified approach
+  return points[targetIndex]?.y || 0;
 }
 
 /**
  * Helper function for weighted local regression in LOWESS
  */
 function weightedLocalRegression(data, index, bandwidth) {
-    const n = data.length;
-    const targetX = data[index].x;
+  const n = data.length;
+  const targetX = data[index].x;
 
-    // Calculate weights using tricube function
-    const weights = [];
-    for (let i = 0; i < n; i++) {
-        const distance = Math.abs(data[i].x - targetX);
-        const maxDistance = Math.max(...data.map((p) => Math.abs(p.x - targetX)));
-        const normalizedDistance = distance / (bandwidth * maxDistance);
+  // Calculate weights using tricube function
+  const weights = [];
+  for (let i = 0; i < n; i++) {
+    const distance = Math.abs(data[i].x - targetX);
+    const maxDistance = Math.max(...data.map((p) => Math.abs(p.x - targetX)));
+    const normalizedDistance = distance / (bandwidth * maxDistance);
 
-        if (normalizedDistance < 1) {
-            const weight = Math.pow(1 - Math.pow(normalizedDistance, 3), 3);
-            weights.push(weight);
-        } else {
-            weights.push(0);
-        }
+    if (normalizedDistance < 1) {
+      const weight = Math.pow(1 - Math.pow(normalizedDistance, 3), 3);
+      weights.push(weight);
+    } else {
+      weights.push(0);
     }
+  }
 
-    // Weighted average
-    let weightedSum = 0;
-    let weightSum = 0;
+  // Weighted average
+  let weightedSum = 0;
+  let weightSum = 0;
 
-    for (let i = 0; i < n; i++) {
-        weightedSum += weights[i] * data[i].y;
-        weightSum += weights[i];
-    }
+  for (let i = 0; i < n; i++) {
+    weightedSum += weights[i] * data[i].y;
+    weightSum += weights[i];
+  }
 
-    return weightSum > 0 ? weightedSum / weightSum : data[index].y;
+  return weightSum > 0 ? weightedSum / weightSum : data[index].y;
 }
 
 /**
  * Default smoothing configuration for financial charts
  */
 export const SMOOTHING_CONFIGS = {
-    // Conservative smoothing - minimal impact
-    conservative: {
-        method: 'exponential',
-        params: { alpha: 0.2 },
-        passes: 1,
-        description: 'Minimal smoothing, preserves most detail',
-    },
+  // Conservative smoothing - minimal impact
+  conservative: {
+    method: "exponential",
+    params: { alpha: 0.2 },
+    passes: 1,
+    description: "Minimal smoothing, preserves most detail",
+  },
 
-    // Balanced smoothing - industry standard
-    balanced: {
-        method: 'exponential',
-        params: { alpha: 0.3 },
-        passes: 1,
-        description: 'Balanced smoothing, good for most financial data',
-    },
+  // Balanced smoothing - industry standard
+  balanced: {
+    method: "exponential",
+    params: { alpha: 0.3 },
+    passes: 1,
+    description: "Balanced smoothing, good for most financial data",
+  },
 
-    // Aggressive smoothing - very smooth lines
-    aggressive: {
-        method: 'exponential',
-        params: { alpha: 0.5 },
-        passes: 2,
-        description: 'Strong smoothing, reduces noise significantly',
-    },
+  // Aggressive smoothing - very smooth lines
+  aggressive: {
+    method: "exponential",
+    params: { alpha: 0.5 },
+    passes: 2,
+    description: "Strong smoothing, reduces noise significantly",
+  },
 
-    // Adaptive smoothing - automatically adjusts
-    adaptive: {
-        method: 'adaptive',
-        params: {},
-        passes: 1,
-        description: 'Automatically adjusts based on data volatility',
-    },
+  // Adaptive smoothing - automatically adjusts
+  adaptive: {
+    method: "adaptive",
+    params: {},
+    passes: 1,
+    description: "Automatically adjusts based on data volatility",
+  },
 };
 
 /**
@@ -317,58 +322,66 @@ export const SMOOTHING_CONFIGS = {
  * @param {boolean} preserveEnd - Whether to preserve the last point unchanged
  * @returns {Array} Smoothed data points
  */
-export function smoothFinancialData(data, config = 'balanced', preserveEnd = true) {
-    if (!Array.isArray(data) || data.length === 0) {
-        return data;
+export function smoothFinancialData(
+  data,
+  config = "balanced",
+  preserveEnd = true,
+) {
+  if (!Array.isArray(data) || data.length === 0) {
+    return data;
+  }
+
+  // Get configuration
+  const smoothingConfig =
+    typeof config === "string"
+      ? SMOOTHING_CONFIGS[config] || SMOOTHING_CONFIGS.balanced
+      : config;
+
+  // Apply the appropriate smoothing method
+  const passes = Number.isFinite(smoothingConfig.passes)
+    ? Math.max(1, Math.round(smoothingConfig.passes))
+    : 1;
+
+  let result = data;
+  for (let i = 0; i < passes; i += 1) {
+    switch (smoothingConfig.method) {
+      case "simple":
+        result = simpleMovingAverage(
+          result,
+          smoothingConfig.params.window || 3,
+          preserveEnd,
+        );
+        break;
+      case "exponential":
+        result = exponentialMovingAverage(
+          result,
+          smoothingConfig.params.alpha || 0.3,
+          preserveEnd,
+        );
+        break;
+      case "savitzky":
+        result = savitzkyGolay(
+          result,
+          smoothingConfig.params.window || 5,
+          smoothingConfig.params.order || 2,
+          preserveEnd,
+        );
+        break;
+      case "lowess":
+        result = lowess(
+          result,
+          smoothingConfig.params.bandwidth || 0.3,
+          preserveEnd,
+        );
+        break;
+      case "adaptive":
+        result = adaptiveSmoothing(result, preserveEnd);
+        break;
+      default:
+        result = exponentialMovingAverage(result, 0.3, preserveEnd);
+        break;
     }
+  }
 
-    // Get configuration
-    const smoothingConfig =
-        typeof config === 'string'
-            ? SMOOTHING_CONFIGS[config] || SMOOTHING_CONFIGS.balanced
-            : config;
-
-    // Apply the appropriate smoothing method
-    const passes = Number.isFinite(smoothingConfig.passes)
-        ? Math.max(1, Math.round(smoothingConfig.passes))
-        : 1;
-
-    let result = data;
-    for (let i = 0; i < passes; i += 1) {
-        switch (smoothingConfig.method) {
-            case 'simple':
-                result = simpleMovingAverage(
-                    result,
-                    smoothingConfig.params.window || 3,
-                    preserveEnd
-                );
-                break;
-            case 'exponential':
-                result = exponentialMovingAverage(
-                    result,
-                    smoothingConfig.params.alpha || 0.3,
-                    preserveEnd
-                );
-                break;
-            case 'savitzky':
-                result = savitzkyGolay(
-                    result,
-                    smoothingConfig.params.window || 5,
-                    smoothingConfig.params.order || 2,
-                    preserveEnd
-                );
-                break;
-            case 'lowess':
-                result = lowess(result, smoothingConfig.params.bandwidth || 0.3, preserveEnd);
-                break;
-            case 'adaptive':
-                result = adaptiveSmoothing(result, preserveEnd);
-                break;
-            default:
-                result = exponentialMovingAverage(result, 0.3, preserveEnd);
-                break;
-        }
-    }
-
-    return result;
+  return result;
 }

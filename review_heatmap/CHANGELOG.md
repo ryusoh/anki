@@ -8,17 +8,17 @@ If you enjoy Review Heatmap, please consider **supporting my work on Patreon**:
 
 :heart: My heartfelt thanks goes out to everyone who has supported this add-on through their tips, contributions, or any other means (you know who you are!). All of the recent additions would not have been possible without you. **Thank you** for being awesome!
 
------
+---
 
 ## Public Service Announcement (2022-05-18):
 
 ### You can now download Review Heatmap [directly off of AnkiWeb](https://ankiweb.net/shared/info/1771074083)! Please use this installation method if you can as it's much simpler to follow and will allow you to automatically receive updates in the future.
 
-**IMPORTANT**: Releases of the add-on past v1.0.0 have only been extensively tested on Anki 2.1.49 and up. The AnkiWeb upload is therefore limited to Anki 2.1.49+ for the time being (but might be expanded to earlier releases in the future). 
+**IMPORTANT**: Releases of the add-on past v1.0.0 have only been extensively tested on Anki 2.1.49 and up. The AnkiWeb upload is therefore limited to Anki 2.1.49+ for the time being (but might be expanded to earlier releases in the future).
 
 If you are on an earlier Anki release there is no need to worry: Copying the AnkiWeb add-on code into the app will automatically download a compatible version of the add-on for you. However, please be aware that it will not include the latest changes below.
 
------
+---
 
 ## [Unreleased]
 
@@ -28,11 +28,11 @@ If you are on an earlier Anki release there is no need to worry: Copying the Ank
 
 ### Fixed
 
-- Fixed due counts showing NaN for counts >1000 *(thanks to @chkmte for the report)*
-- Fixed an error that could appear when deleting an ignored deck *(thanks to /u/GabiGrice_FalcoBraun & @purequant for the report)*
-- Fixed an error that could appear when switching profiles *(thanks to @rafaelcdepaula for the report)*
+- Fixed due counts showing NaN for counts >1000 _(thanks to @chkmte for the report)_
+- Fixed an error that could appear when deleting an ignored deck _(thanks to /u/GabiGrice_FalcoBraun & @purequant for the report)_
+- Fixed an error that could appear when switching profiles _(thanks to @rafaelcdepaula for the report)_
 - Fixed an issue that could cause the add-on to raise an error when importing colpkg files
-- Added a workaround to enable compatibility with the Stats Plus add-on *(thanks to @MickyAnne, @kguy18, @swerage, and @agentca for the reports and testing)*
+- Added a workaround to enable compatibility with the Stats Plus add-on _(thanks to @MickyAnne, @kguy18, @swerage, and @agentca for the reports and testing)_
 
 ## [1.0.0] - 2022-05-15
 
@@ -47,16 +47,15 @@ If you are on an earlier Anki release there is no need to worry: Copying the Ank
 ### Added
 
 - Added support for **Anki 2.1.50 and up**. Both Qt6 and Qt5 builds are supported. On Apple silicon the add-on now benefits from the performance improvements that Anki's native Qt6 build provides.
-- Added an option to **exclude review history entries** created by manually **rescheduling or forgetting** cards. This option is enabled by default, but can be disabled under Settings → Fine Tuning → *Exclude manual reschedules from history*
+- Added an option to **exclude review history entries** created by manually **rescheduling or forgetting** cards. This option is enabled by default, but can be disabled under Settings → Fine Tuning → _Exclude manual reschedules from history_
 - Added a number of changes that should improve the **rendering performance** of the heatmap when switching between Anki screens
-
 
 ### Fixed
 
 - Fixed an issue where invalid card scheduling could cause the heatmap to disappear
 - Fixed an issue where clicking on today's repetitions would not draw up any cards in the browser
 - Fixed an issue where config changes could not be written
-- On recent Anki versions: Potentially fixed a number of issues with time-zone handling that would sometimes cause mismapping of repetitions to the wrong days. If you are still experiencing issues like this, I would kindly ask you to please [report them here](https://github.com/glutanimate/review-heatmap/issues/151) in order to help me troubleshoot them. 
+- On recent Anki versions: Potentially fixed a number of issues with time-zone handling that would sometimes cause mismapping of repetitions to the wrong days. If you are still experiencing issues like this, I would kindly ask you to please [report them here](https://github.com/glutanimate/review-heatmap/issues/151) in order to help me troubleshoot them.
 
 ### Changed
 
@@ -100,29 +99,28 @@ Temporary test release. Changelog entry merged into v1.0.0 changes.
 ### Added
 
 - Full **Anki 2.1 support** (and 2.0 backwards compatibility)
-    - Yes, it's finally here!
+  - Yes, it's finally here!
 - **Completely reworked months mode**
-    - shows a **continuous timeline** of activity, instead of being bound to a yearly schedule
-    - more **granular insight** into monthly activity, and activity by weekday
+  - shows a **continuous timeline** of activity, instead of being bound to a yearly schedule
+  - more **granular insight** into monthly activity, and activity by weekday
 - A **multitude of new options**, granting you more control over your stats than ever before:
-    - the ability to set a **starting date** for the heatmap
-    - the ability to **exclude certain decks** from being tracked
-    - an option to **exclude deleted cards** from your stats
-    - the ability to set a custom hotkey to toggle the heatmap
+  - the ability to set a **starting date** for the heatmap
+  - the ability to **exclude certain decks** from being tracked
+  - an option to **exclude deleted cards** from your stats
+  - the ability to set a custom hotkey to toggle the heatmap
 - **Secondary actions** when **Shift-clicking** heatmap **buttons**:
-    - quickly move to the very beginning of your review history
-    - quickly move to the last scheduled review
-    - instantly change the display mode or color theme
-    - and more!
+  - quickly move to the very beginning of your review history
+  - quickly move to the last scheduled review
+  - instantly change the display mode or color theme
+  - and more!
 - **Support** for the **[Night Mode](https://ankiweb.net/shared/info/1496166067) add-on**
-    - all **themes** now come with beautiful **night mode versions** that are automatically switched on when Night Mode is active (requires Night Mode version 2.2.3 and up)
-    - special thanks to [Michał Krassowski](https://github.com/krassowski) for laying the groundwork on Night Mode's side!
+  - all **themes** now come with beautiful **night mode versions** that are automatically switched on when Night Mode is active (requires Night Mode version 2.2.3 and up)
+  - special thanks to [Michał Krassowski](https://github.com/krassowski) for laying the groundwork on Night Mode's side!
 - A **beautiful new UI** with updated buttons, new tooltips, and more polish than ever before
 
 <center><img src="screenshots/0.7.0_regular_year.png"></center>
 
 <center><img src="screenshots/0.7.0_night_mode_months.png"></center>
-
 
 ### Changed
 
@@ -139,7 +137,6 @@ Temporary test release. Changelog entry merged into v1.0.0 changes.
 - Fixes some macOS- and Windows-specific layout and sizing issues
 - Quite a few other smaller issues which would take too long to list here
 
-
 ### Deprecated
 
 - the `seen:` query phrase has been superseded by the new `rid:` phrase, and is likely to be removed in the future
@@ -148,7 +145,6 @@ Temporary test release. Changelog entry merged into v1.0.0 changes.
 
 - Throughout the redesign of Review Heatmap I had to develop a completely new set new tools for building and testing my add-ons. The fruits of this work will also benefit my other projects, making for a faster iteration time, and more 2.1 add-on releases coming soon!
 - Review Heatmap and all of the other add-ons I'm working on are now tested against all platforms supported by Anki. If you are a macOS or Windows user you should see a lot of improvements in ironing out platform-specific kinks in the future.
-
 
 ## [0.6.1-anki21-alpha] - 2018-09-23
 
@@ -163,28 +159,35 @@ Temporary test release. Changelog entry merged into v1.0.0 changes.
 - A number of smaller bug fixes and improvements
 
 ## [0.6.0] - 2017-02-19
+
 ### Note
 
 **Important**: As this version uses a new file structure you will have to remove older versions of the add-on before installing it.
 
-
 ### Added
+
 - Toggle heatmap display on the deck browser and overview pages by using CTRL + R
 
 ### Changed
+
 - New modularized add-on structure which should make maintenance easier
 
-
 ## [0.5.2] - 2017-01-15
+
 ### Fixed
+
 - Fix review count tooltips for counts over 999 (#3)
 
 ## [0.5.1] - 2017-01-11
+
 ### Fixed
+
 - Fix an error in the calculation of "days learned" (thanks to David Bailey!)
 
 ## [0.5.0] - 2017-01-10
+
 ### Added
+
 - Stats on average review counts and days learned, each graded with a custom color scale
 - Customizable calendar modes - display the days as a continuous year, or split them up into months
 - Customizable color schemes - choose between 5 different color palettes
@@ -201,7 +204,9 @@ Temporary test release. Changelog entry merged into v1.0.0 changes.
 - Fix negative pending review counts (thanks to David Bailey!)
 
 ## 0.2.0 - 2017-01-01
+
 ### Changed
+
 - Switched to relative scaling and scoring of user activity
 
 ## 0.1.0 - 2016-12-31
@@ -219,8 +224,7 @@ First release of Review Heatmap.
 [0.5.1]: https://github.com/glutanimate/review-heatmap/compare/39f686fd8dbfe532e97ff9c4a8189a684a011492...v0.5.1
 [0.5.0]: https://github.com/glutanimate/review-heatmap/compare/22fcaa60d71967a453473de0b1f1fe970438ad08...v0.5.0
 
-
------
+---
 
 The format of this file is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).

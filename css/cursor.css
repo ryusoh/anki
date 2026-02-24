@@ -1,6 +1,8 @@
 :root {
-    --hidden-cursor-value:
-        url('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==') 0 0, none;
+  --hidden-cursor-value:
+    url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==")
+      0 0,
+    none;
 }
 
 /* Global switch that wins every specificity battle */
@@ -9,101 +11,101 @@ html.force-hide-cursor body,
 html.force-hide-cursor body *,
 html.force-hide-cursor body *::before,
 html.force-hide-cursor body *::after {
-    cursor: var(--hidden-cursor-value, none) !important;
+  cursor: var(--hidden-cursor-value, none) !important;
 }
 
 html.force-hide-cursor a,
 html.force-hide-cursor button,
-html.force-hide-cursor [role='button'],
-html.force-hide-cursor [class*='nav'],
-html.force-hide-cursor [class*='back'],
+html.force-hide-cursor [role="button"],
+html.force-hide-cursor [class*="nav"],
+html.force-hide-cursor [class*="back"],
 html.force-hide-cursor .nav-back,
 html.force-hide-cursor .nav-back *,
 html.force-hide-cursor .nav-container *,
 html.force-hide-cursor .nav-container a {
-    cursor: var(--hidden-cursor-value, none) !important;
+  cursor: var(--hidden-cursor-value, none) !important;
 }
 
 html.force-hide-cursor .custom-cursor {
-    cursor: var(--hidden-cursor-value, none) !important;
+  cursor: var(--hidden-cursor-value, none) !important;
 }
 
 .custom-cursor--wrapper {
-    position: fixed;
-    pointer-events: none;
-    transform: translate(-50%, -50%);
-    z-index: 99999 !important; /* Very high z-index to ensure visibility above all other elements */
-    mix-blend-mode: difference;
+  position: fixed;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 99999 !important; /* Very high z-index to ensure visibility above all other elements */
+  mix-blend-mode: difference;
 }
 
 .custom-cursor__core {
-    width: 20px;
-    height: 20px;
-    border: 2px solid #fff;
-    border-radius: 50%;
-    transition: transform 0.15s ease;
-    transform: scale(1);
-    will-change: transform;
-    background: transparent;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  transition: transform 0.15s ease;
+  transform: scale(1);
+  will-change: transform;
+  background: transparent;
 }
 
 .custom-cursor__core.is-hovered {
-    transform: scale(3);
+  transform: scale(3);
 }
 
 .logo-button {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    z-index: 10000;
-    width: 50px;
-    height: 50px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  z-index: 10000;
+  width: 50px;
+  height: 50px;
 }
 
 .logo-button__media {
-    width: 100%;
-    height: 100%;
+  width: 100%;
+  height: 100%;
 }
 
 .logo-button__media path {
-    stroke: #fff;
-    stroke-width: 1.5;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    fill: none;
+  stroke: #fff;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
 }
 
 .menu-nav {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    z-index: 9999;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  z-index: 9999;
 }
 
 .menu-nav__button {
-    display: block;
-    text-decoration: none;
-    color: #fff;
-    font-size: 1.5rem;
-    cursor: pointer;
-    position: relative;
+  display: block;
+  text-decoration: none;
+  color: #fff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  position: relative;
 }
 
 .menu-nav__line {
-    position: absolute;
-    bottom: -5px;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    background-color: #fff;
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: #fff;
 }
 
 /* Specifically target navigation icons and other elements that may have explicit cursors */
@@ -111,5 +113,5 @@ html.force-hide-cursor .custom-cursor {
 .container ul li i,
 .fa,
 footer a {
-    cursor: pointer;
+  cursor: pointer;
 }

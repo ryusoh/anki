@@ -1,7 +1,8 @@
 .fancy table {
-    backdrop-filter: none;
+  backdrop-filter: none;
 }
 
-current td, tr:hover:not(.top-level-drag-row) td {
-    background: #e4e4e4ad;
+current td,
+tr:hover:not(.top-level-drag-row) td {
+  background: #e4e4e4ad;
 }

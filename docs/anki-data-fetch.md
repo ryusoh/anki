@@ -34,11 +34,11 @@ python3 data/anki/fetch --help
 
 After running `fetch`, the following files are created in `data/anki/`:
 
-| File                      | Size            | Description                             |
-| ------------------------- | --------------- | --------------------------------------- |
-| `cards.json.gz`           | ~2.6 MB         | Current card states (intervals, reps)   |
-| `decks.json`              | <1 KB           | Deck names and IDs                      |
-| `reviews/YYYY-MM.json.gz` | ~100-700 KB     | Monthly review history partitions       |
+| File                      | Size        | Description                           |
+| ------------------------- | ----------- | ------------------------------------- |
+| `cards.json.gz`           | ~2.6 MB     | Current card states (intervals, reps) |
+| `decks.json`              | <1 KB       | Deck names and IDs                    |
+| `reviews/YYYY-MM.json.gz` | ~100-700 KB | Monthly review history partitions     |
 
 **Total size:** ~24 MB for full history
 

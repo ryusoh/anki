@@ -1,1 +1,11 @@
-{"name": "AwesomeTTS", "mod": 1755306130, "min_point_version": 50, "max_point_version": 240401, "branch_index": 1, "disabled": false, "conflicts": [], "update_enabled": true, "config": {"user_uuid": "2307b41bca434e6e864d03f428f4ca20"}}
+{
+  "name": "AwesomeTTS",
+  "mod": 1755306130,
+  "min_point_version": 50,
+  "max_point_version": 240401,
+  "branch_index": 1,
+  "disabled": false,
+  "conflicts": [],
+  "update_enabled": true,
+  "config": { "user_uuid": "2307b41bca434e6e864d03f428f4ca20" }
+}

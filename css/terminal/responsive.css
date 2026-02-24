@@ -1,203 +1,203 @@
 @media screen and (max-width: 768px) {
-    input,
-    textarea,
-    select {
-        font-size: 16px !important;
-    }
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 }
 
 @media screen and (min-width: 769px) {
-    .transaction-container > * + * {
-        margin-top: 24px;
-    }
+  .transaction-container > * + * {
+    margin-top: 24px;
+  }
 
-    .chart-card,
-    .table-responsive-container {
-        overflow-y: auto;
-    }
+  .chart-card,
+  .table-responsive-container {
+    overflow-y: auto;
+  }
 
-    .chart-card {
-        display: flex;
-        flex-direction: column;
-    }
+  .chart-card {
+    display: flex;
+    flex-direction: column;
+  }
 
-    .chart-container {
-        flex: 1 1 auto;
-    }
+  .chart-container {
+    flex: 1 1 auto;
+  }
 
-    .table-responsive-container {
-        display: flex;
-        flex-direction: column;
-    }
+  .table-responsive-container {
+    display: flex;
+    flex-direction: column;
+  }
 
-    .table-responsive-container table {
-        flex: 0 0 auto;
-        align-self: flex-start;
-    }
+  .table-responsive-container table {
+    flex: 0 0 auto;
+    align-self: flex-start;
+  }
 }
 
 @media screen and (max-width: 768px) {
-    body {
-        padding: 0;
-        background: #000 url(../../assets/mobile_bg.jpg) center center no-repeat !important;
-        background-size: cover !important;
-        box-sizing: border-box;
-        position: fixed;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        overscroll-behavior: none;
-        font-size: 12px;
-    }
+  body {
+    padding: 0;
+    background: #000 url(../../assets/mobile_bg.jpg) center center no-repeat !important;
+    background-size: cover !important;
+    box-sizing: border-box;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    font-size: 12px;
+  }
 
-    body::before,
-    body::after {
-        display: none !important;
-    }
+  body::before,
+  body::after {
+    display: none !important;
+  }
 
-    .desktop-terminal {
-        display: none;
-    }
+  .desktop-terminal {
+    display: none;
+  }
 
-    .nav-container {
-        display: none;
-    }
+  .nav-container {
+    display: none;
+  }
 
-    .mobile-landing {
-        display: block !important;
-        position: relative;
-        width: 100%;
-        height: 100vh;
-        overflow: hidden;
-        background: transparent;
-        z-index: 0;
-    }
+  .mobile-landing {
+    display: block !important;
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    background: transparent;
+    z-index: 0;
+  }
 
-    .video-background {
-        display: block !important;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: -1;
-        opacity: 1;
-        visibility: visible;
-        overflow: hidden;
-        pointer-events: none;
-    }
+  .video-background {
+    display: block !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    opacity: 1;
+    visibility: visible;
+    overflow: hidden;
+    pointer-events: none;
+  }
 
-    .video-background video {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-    }
+  .video-background video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
 
-    .mobile-banner {
-        display: block !important;
-        position: fixed;
-        left: 50%;
-        bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-        transform: translateX(-50%);
-        width: 80vw;
-        max-width: 300px;
-        z-index: 4;
-        pointer-events: none;
-        opacity: 0;
-        visibility: hidden;
-        mix-blend-mode: difference;
-        transition:
-            opacity 0.3s ease,
-            visibility 0s linear 0.3s;
-    }
+  .mobile-banner {
+    display: block !important;
+    position: fixed;
+    left: 50%;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
+    width: 80vw;
+    max-width: 300px;
+    z-index: 4;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    mix-blend-mode: difference;
+    transition:
+      opacity 0.3s ease,
+      visibility 0s linear 0.3s;
+  }
 
-    .mobile-banner.is-fallback-ready {
-        opacity: 0.65;
-        visibility: visible;
-        transition-delay: 0s;
-    }
+  .mobile-banner.is-fallback-ready {
+    opacity: 0.65;
+    visibility: visible;
+    transition-delay: 0s;
+  }
 
-    .quantum-widget {
-        display: block !important;
-        position: fixed;
-        top: -50%;
-        left: 50%;
-        transform: translate(-50%, 0);
-        width: clamp(1120px, 180vw, 1440px);
-        aspect-ratio: 1;
-        z-index: 6;
-        pointer-events: auto;
-        display: grid;
-        place-items: center;
-        padding: 0;
-        background: none;
-        gap: 0;
-        touch-action: none;
-        user-select: none;
-        -webkit-user-select: none;
-        cursor: grab;
-        filter: drop-shadow(0 24px 56px rgba(0, 0, 0, 0.55));
-    }
+  .quantum-widget {
+    display: block !important;
+    position: fixed;
+    top: -50%;
+    left: 50%;
+    transform: translate(-50%, 0);
+    width: clamp(1120px, 180vw, 1440px);
+    aspect-ratio: 1;
+    z-index: 6;
+    pointer-events: auto;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    background: none;
+    gap: 0;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: grab;
+    filter: drop-shadow(0 24px 56px rgba(0, 0, 0, 0.55));
+  }
 
-    .quantum-widget canvas,
-    .quantum-widget .quantum-wave-canvas {
-        width: 100% !important;
-        height: 100% !important;
-        border-radius: 42px;
-    }
+  .quantum-widget canvas,
+  .quantum-widget .quantum-wave-canvas {
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 42px;
+  }
 
-    .quantum-background-canvas {
-        display: block !important;
-        position: fixed;
-        inset: 0;
-        width: 100vw !important;
-        height: 100vh !important;
-        pointer-events: none;
-        z-index: 5;
-    }
+  .quantum-background-canvas {
+    display: block !important;
+    position: fixed;
+    inset: 0;
+    width: 100vw !important;
+    height: 100vh !important;
+    pointer-events: none;
+    z-index: 5;
+  }
 
-    .transaction-container {
-        display: none;
-    }
+  .transaction-container {
+    display: none;
+  }
 
-    #runningAmountCanvas {
-        width: 100%;
-        box-sizing: border-box;
-        height: 100%;
-    }
+  #runningAmountCanvas {
+    width: 100%;
+    box-sizing: border-box;
+    height: 100%;
+  }
 
-    .chart-legend {
-        margin-top: 12px;
-        gap: 16px;
-        font-size: 11px;
-    }
+  .chart-legend {
+    margin-top: 12px;
+    gap: 16px;
+    font-size: 11px;
+  }
 
-    footer {
-        width: 100%;
-        left: 50%;
-        transform: translateX(-50%);
-        bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-        z-index: 4;
-    }
+  footer {
+    width: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    z-index: 4;
+  }
 }
 
 @media screen and (min-width: 769px) {
-    .mobile-landing,
-    .video-background,
-    .mobile-banner,
-    .quantum-widget {
-        display: none !important;
-    }
+  .mobile-landing,
+  .video-background,
+  .mobile-banner,
+  .quantum-widget {
+    display: none !important;
+  }
 
-    .table-responsive-container,
-    .chart-card {
-        height: min(clamp(320px, 50vh, 480px), calc(100vh - 260px));
-    }
+  .table-responsive-container,
+  .chart-card {
+    height: min(clamp(320px, 50vh, 480px), calc(100vh - 260px));
+  }
 }
 
 @media (max-width: 768px) {
-    footer {
-        width: 95%;
-    }
+  footer {
+    width: 95%;
+  }
 }

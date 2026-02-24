@@ -1,4 +1,4 @@
-import { logger } from './logger.js';
+import { logger } from "./logger.js";
 
 /**
  * Formats a numeric value as a currency string in the target currency.
@@ -8,31 +8,38 @@ import { logger } from './logger.js';
  * @param {Object} currencySymbols - An object mapping currency codes to their symbols.
  * @returns {string} The formatted currency string.
  */
-export function formatCurrency(valueInUSD, targetCurrency, exchangeRates, currencySymbols) {
-    const numValueInUSD = parseFloat(valueInUSD);
-    if (isNaN(numValueInUSD)) {
-        return typeof valueInUSD === 'string'
-            ? valueInUSD
-            : `${currencySymbols[targetCurrency] || '$'}0.00`;
-    }
+export function formatCurrency(
+  valueInUSD,
+  targetCurrency,
+  exchangeRates,
+  currencySymbols,
+) {
+  const numValueInUSD = parseFloat(valueInUSD);
+  if (isNaN(numValueInUSD)) {
+    return typeof valueInUSD === "string"
+      ? valueInUSD
+      : `${currencySymbols[targetCurrency] || "$"}0.00`;
+  }
 
-    const rate = exchangeRates[targetCurrency];
-    if (typeof rate !== 'number') {
-        logger.warn(`Exchange rate for ${targetCurrency} not found. Displaying in USD.`);
-        return `${currencySymbols['USD'] || '$'}${numValueInUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    }
+  const rate = exchangeRates[targetCurrency];
+  if (typeof rate !== "number") {
+    logger.warn(
+      `Exchange rate for ${targetCurrency} not found. Displaying in USD.`,
+    );
+    return `${currencySymbols["USD"] || "$"}${numValueInUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
 
-    // Work with the absolute value for conversion and formatting
-    const absoluteConvertedValue = Math.abs(numValueInUSD * rate);
-    const symbol = currencySymbols[targetCurrency] || targetCurrency; // Fallback to code if symbol missing
+  // Work with the absolute value for conversion and formatting
+  const absoluteConvertedValue = Math.abs(numValueInUSD * rate);
+  const symbol = currencySymbols[targetCurrency] || targetCurrency; // Fallback to code if symbol missing
 
-    // Format the number with locale-specific thousand separators and 2 decimal places.
-    const formattedNumber = absoluteConvertedValue.toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    });
+  // Format the number with locale-specific thousand separators and 2 decimal places.
+  const formattedNumber = absoluteConvertedValue.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
-    return `${symbol}${formattedNumber}`;
+  return `${symbol}${formattedNumber}`;
 }
 
 /**
@@ -41,36 +48,36 @@ export function formatCurrency(valueInUSD, targetCurrency, exchangeRates, curren
  * @returns {string} The compacted number string (e.g., "1.23M", "25.5k").
  */
 export function compactNumber(num) {
-    if (typeof num !== 'number' || isNaN(num)) {
-        return '0';
-    }
+  if (typeof num !== "number" || isNaN(num)) {
+    return "0";
+  }
 
-    const absNum = Math.abs(num);
+  const absNum = Math.abs(num);
 
-    if (absNum < 1000) {
-        return num.toString();
-    }
+  if (absNum < 1000) {
+    return num.toString();
+  }
 
-    const units = ['k', 'M', 'B', 'T'];
-    const unitIndex = Math.floor(Math.log10(absNum) / 3) - 1;
-    const unit = units[unitIndex];
+  const units = ["k", "M", "B", "T"];
+  const unitIndex = Math.floor(Math.log10(absNum) / 3) - 1;
+  const unit = units[unitIndex];
 
-    if (!unit) {
-        return num.toExponential(2);
-    }
+  if (!unit) {
+    return num.toExponential(2);
+  }
 
-    const value = absNum / Math.pow(1000, unitIndex + 1);
+  const value = absNum / Math.pow(1000, unitIndex + 1);
 
-    let formattedValue;
-    if (value >= 100) {
-        formattedValue = value.toFixed(0);
-    } else if (value >= 10) {
-        formattedValue = value.toFixed(1);
-    } else {
-        formattedValue = value.toFixed(2);
-    }
+  let formattedValue;
+  if (value >= 100) {
+    formattedValue = value.toFixed(0);
+  } else if (value >= 10) {
+    formattedValue = value.toFixed(1);
+  } else {
+    formattedValue = value.toFixed(2);
+  }
 
-    return `${num < 0 ? '-' : ''}${formattedValue}${unit}`;
+  return `${num < 0 ? "-" : ""}${formattedValue}${unit}`;
 }
 
 /**
@@ -79,11 +86,11 @@ export function compactNumber(num) {
  * @returns {string} The formatted percentage string (e.g., "+5.00%").
  */
 export function formatPercentage(value) {
-    if (typeof value !== 'number' || isNaN(value)) {
-        return '0.00%';
-    }
-    const sign = value > 0 ? '+' : '';
-    return `${sign}${(value * 100).toFixed(2)}%`;
+  if (typeof value !== "number" || isNaN(value)) {
+    return "0.00%";
+  }
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${(value * 100).toFixed(2)}%`;
 }
 
 /**
@@ -93,25 +100,29 @@ export function formatPercentage(value) {
  * @param {string} valueType Either 'total' or 'dailyChange'.
  * @returns {number} The value in the specified currency.
  */
-export function getHistoricalCurrencyValue(entry, currency, valueType = 'total') {
-    if (!entry) {
-        return 0;
-    }
+export function getHistoricalCurrencyValue(
+  entry,
+  currency,
+  valueType = "total",
+) {
+  if (!entry) {
+    return 0;
+  }
 
-    const currencyKey = `${valueType}${currency}`;
+  const currencyKey = `${valueType}${currency}`;
 
-    // Check if historical currency data exists
-    if (
-        entry[currencyKey] !== undefined &&
-        entry[currencyKey] !== null &&
-        !isNaN(entry[currencyKey])
-    ) {
-        return entry[currencyKey];
-    }
+  // Check if historical currency data exists
+  if (
+    entry[currencyKey] !== undefined &&
+    entry[currencyKey] !== null &&
+    !isNaN(entry[currencyKey])
+  ) {
+    return entry[currencyKey];
+  }
 
-    // Fallback to default field with rate conversion (backwards compatibility)
-    const baseValue = entry[valueType] || 0;
-    return baseValue; // Return as-is since this is already in base currency
+  // Fallback to default field with rate conversion (backwards compatibility)
+  const baseValue = entry[valueType] || 0;
+  return baseValue; // Return as-is since this is already in base currency
 }
 
 /**
@@ -127,105 +138,105 @@ export function getHistoricalCurrencyValue(entry, currency, valueType = 'total')
  * @returns {string} The formatted number string.
  */
 export function formatNumber(
-    num,
-    currencySymbols,
-    withSign = false,
-    currency = 'USD',
-    rates = {},
-    entry = null,
-    valueType = 'total'
+  num,
+  currencySymbols,
+  withSign = false,
+  currency = "USD",
+  rates = {},
+  entry = null,
+  valueType = "total",
 ) {
-    if (num === null || num === undefined || isNaN(num)) {
-        return '';
-    }
+  if (num === null || num === undefined || isNaN(num)) {
+    return "";
+  }
 
-    let convertedNum;
+  let convertedNum;
 
-    // If we have historical data entry, use actual historical currency values
-    if (entry && (valueType === 'total' || valueType === 'dailyChange')) {
-        convertedNum = getHistoricalCurrencyValue(entry, currency, valueType);
-    } else {
-        // Fallback to rate conversion for real-time or non-historical data
-        convertedNum = num * (rates[currency] || 1);
-    }
+  // If we have historical data entry, use actual historical currency values
+  if (entry && (valueType === "total" || valueType === "dailyChange")) {
+    convertedNum = getHistoricalCurrencyValue(entry, currency, valueType);
+  } else {
+    // Fallback to rate conversion for real-time or non-historical data
+    convertedNum = num * (rates[currency] || 1);
+  }
 
-    const sign = convertedNum > 0 ? '+' : convertedNum < 0 ? '-' : '';
-    const absNum = Math.abs(convertedNum);
-    let formattedNum;
+  const sign = convertedNum > 0 ? "+" : convertedNum < 0 ? "-" : "";
+  const absNum = Math.abs(convertedNum);
+  let formattedNum;
 
-    const symbol = currencySymbols[currency] || '';
+  const symbol = currencySymbols[currency] || "";
 
-    if (withSign) {
-        let val;
-        let suffix = '';
-        if (absNum >= 1e9) {
-            val = absNum / 1e9;
-            suffix = 'b';
-        } else if (absNum >= 1e6) {
-            val = absNum / 1e6;
-            suffix = 'm';
-        } else if (absNum >= 1e3) {
-            val = absNum / 1e3;
-            suffix = 'k';
-        } else {
-            val = absNum;
-        }
-
-        let formattedVal;
-        if (val >= 100) {
-            formattedVal = val.toFixed(0);
-        } else if (val >= 10) {
-            formattedVal = val.toFixed(1);
-        } else if (val >= 1) {
-            formattedVal = val.toFixed(2);
-        } else {
-            formattedVal = val.toPrecision(3);
-        }
-
-        formattedNum = symbol + formattedVal + suffix;
-        return sign + formattedNum;
-    }
+  if (withSign) {
     let val;
-    let suffix = '';
-    if (currency === 'KRW' && absNum >= 1e6 && absNum < 1e9) {
-        val = absNum / 1e6;
-        suffix = 'm';
-        let precision = 3 - Math.floor(Math.log10(val)) - 1;
-        if (precision < 0) {
-            precision = 0;
-        }
-        formattedNum = symbol + val.toFixed(precision) + suffix;
+    let suffix = "";
+    if (absNum >= 1e9) {
+      val = absNum / 1e9;
+      suffix = "b";
+    } else if (absNum >= 1e6) {
+      val = absNum / 1e6;
+      suffix = "m";
+    } else if (absNum >= 1e3) {
+      val = absNum / 1e3;
+      suffix = "k";
     } else {
-        if (absNum >= 1e9) {
-            val = absNum / 1e9;
-            suffix = 'b';
-        } else if (absNum >= 1e6) {
-            val = absNum / 1e6;
-            suffix = 'm';
-        } else if (absNum >= 1e3) {
-            val = absNum / 1e3;
-            suffix = 'k';
-        } else {
-            val = absNum;
-        }
-
-        let precision = 0;
-        if (val > 0) {
-            if (suffix === '' && val % 1 === 0) {
-                precision = 0;
-            } else {
-                precision = 4 - Math.floor(Math.log10(val)) - 1;
-                if (precision < 0) {
-                    precision = 0;
-                }
-                if (suffix === 'k' && precision > 2) {
-                    precision = 2;
-                }
-            }
-        }
-        formattedNum = symbol + val.toFixed(precision) + suffix;
+      val = absNum;
     }
-    return formattedNum;
+
+    let formattedVal;
+    if (val >= 100) {
+      formattedVal = val.toFixed(0);
+    } else if (val >= 10) {
+      formattedVal = val.toFixed(1);
+    } else if (val >= 1) {
+      formattedVal = val.toFixed(2);
+    } else {
+      formattedVal = val.toPrecision(3);
+    }
+
+    formattedNum = symbol + formattedVal + suffix;
+    return sign + formattedNum;
+  }
+  let val;
+  let suffix = "";
+  if (currency === "KRW" && absNum >= 1e6 && absNum < 1e9) {
+    val = absNum / 1e6;
+    suffix = "m";
+    let precision = 3 - Math.floor(Math.log10(val)) - 1;
+    if (precision < 0) {
+      precision = 0;
+    }
+    formattedNum = symbol + val.toFixed(precision) + suffix;
+  } else {
+    if (absNum >= 1e9) {
+      val = absNum / 1e9;
+      suffix = "b";
+    } else if (absNum >= 1e6) {
+      val = absNum / 1e6;
+      suffix = "m";
+    } else if (absNum >= 1e3) {
+      val = absNum / 1e3;
+      suffix = "k";
+    } else {
+      val = absNum;
+    }
+
+    let precision = 0;
+    if (val > 0) {
+      if (suffix === "" && val % 1 === 0) {
+        precision = 0;
+      } else {
+        precision = 4 - Math.floor(Math.log10(val)) - 1;
+        if (precision < 0) {
+          precision = 0;
+        }
+        if (suffix === "k" && precision > 2) {
+          precision = 2;
+        }
+      }
+    }
+    formattedNum = symbol + val.toFixed(precision) + suffix;
+  }
+  return formattedNum;
 }
 
 /**
@@ -235,10 +246,10 @@ export function formatNumber(
  * @returns {string} The formatted number string.
  */
 export function toFixed(num, decimalPlaces) {
-    if (isNaN(num) || num === null) {
-        return '';
-    }
-    return num.toFixed(decimalPlaces);
+  if (isNaN(num) || num === null) {
+    return "";
+  }
+  return num.toFixed(decimalPlaces);
 }
 
 /**
@@ -248,12 +259,12 @@ export function toFixed(num, decimalPlaces) {
  * @returns {string} The formatted currency string.
  */
 export function formatAsCurrency(amount, currency) {
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: currency,
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    }).format(amount);
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
 }
 
 /**
@@ -262,10 +273,10 @@ export function formatAsCurrency(amount, currency) {
  * @returns {string} The formatted number string.
  */
 export function addCommas(num) {
-    if (num === null || num === undefined) {
-        return '';
-    }
-    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  if (num === null || num === undefined) {
+    return "";
+  }
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
 /**
@@ -274,14 +285,14 @@ export function addCommas(num) {
  * @returns {string} The formatted date string.
  */
 export function formatDate(date) {
-    if (!date) {
-        return '';
-    }
-    const d = new Date(date);
-    const year = d.getFullYear();
-    const month = ('0' + (d.getMonth() + 1)).slice(-2);
-    const day = ('0' + d.getDate()).slice(-2);
-    return `${year}-${month}-${day}`;
+  if (!date) {
+    return "";
+  }
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = ("0" + (d.getMonth() + 1)).slice(-2);
+  const day = ("0" + d.getDate()).slice(-2);
+  return `${year}-${month}-${day}`;
 }
 
 /**
@@ -290,10 +301,10 @@ export function formatDate(date) {
  * @returns {string} The formatted number string with a sign.
  */
 export function formatWithSign(num) {
-    if (num > 0) {
-        return '+' + num;
-    }
-    return num.toString();
+  if (num > 0) {
+    return "+" + num;
+  }
+  return num.toString();
 }
 
 /**
@@ -302,88 +313,104 @@ export function formatWithSign(num) {
  * @returns {string} The formatted number string.
  */
 export function formatToTwoDecimals(num) {
-    return num.toFixed(2);
+  return num.toFixed(2);
 }
 
 function defaultCurrencyFormatter(value) {
-    const numeric = Number(value);
-    if (!Number.isFinite(numeric)) {
-        return '$0.00';
-    }
-    const sign = numeric < 0 ? '-' : '';
-    const formatted = Math.abs(numeric).toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    });
-    return `${sign}$${formatted}`;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return "$0.00";
+  }
+  const sign = numeric < 0 ? "-" : "";
+  const formatted = Math.abs(numeric).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return `${sign}$${formatted}`;
 }
 
-export function formatCurrencyChange(value, formatter = defaultCurrencyFormatter) {
-    const numeric = Number(value);
-    if (!Number.isFinite(numeric)) {
-        return 'n/a';
-    }
-    const formatFn = typeof formatter === 'function' ? formatter : defaultCurrencyFormatter;
-    const formatted = formatFn(numeric);
-    if (numeric > 0) {
-        return formatted?.startsWith('+') ? formatted : `+${formatted}`;
-    }
-    return formatted;
+export function formatCurrencyChange(
+  value,
+  formatter = defaultCurrencyFormatter,
+) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return "n/a";
+  }
+  const formatFn =
+    typeof formatter === "function" ? formatter : defaultCurrencyFormatter;
+  const formatted = formatFn(numeric);
+  if (numeric > 0) {
+    return formatted?.startsWith("+") ? formatted : `+${formatted}`;
+  }
+  return formatted;
 }
 
 export function formatSummaryDateSuffix(actualDate, targetDateStr) {
-    if (!(actualDate instanceof Date)) {
-        return '';
-    }
-    const actual = actualDate.toISOString().split('T')[0];
-    if (!targetDateStr || actual === targetDateStr) {
-        return '';
-    }
-    return ` (${actual})`;
+  if (!(actualDate instanceof Date)) {
+    return "";
+  }
+  const actual = actualDate.toISOString().split("T")[0];
+  if (!targetDateStr || actual === targetDateStr) {
+    return "";
+  }
+  return ` (${actual})`;
 }
 
-export function formatSummaryBlock(label, summary, dateRange, { formatValue } = {}) {
-    if (!summary || !summary.hasData) {
-        return `  ${label}\n    (no data for selected range)`;
-    }
-    const formatValueFn =
-        typeof formatValue === 'function' ? formatValue : defaultCurrencyFormatter;
-    const startSuffix = formatSummaryDateSuffix(summary.startDate, dateRange?.from);
-    const endSuffix = formatSummaryDateSuffix(summary.endDate, dateRange?.to);
-    const startText = formatValueFn(summary.startValue);
-    const endText = formatValueFn(summary.endValue);
-    const changeText = formatCurrencyChange(summary.netChange, formatValueFn);
-    return [
-        `  ${label}`,
-        `    Start: ${startText}${startSuffix}`,
-        `    End: ${endText}${endSuffix}`,
-        `    Change: ${changeText}`,
-    ].join('\n');
+export function formatSummaryBlock(
+  label,
+  summary,
+  dateRange,
+  { formatValue } = {},
+) {
+  if (!summary || !summary.hasData) {
+    return `  ${label}\n    (no data for selected range)`;
+  }
+  const formatValueFn =
+    typeof formatValue === "function" ? formatValue : defaultCurrencyFormatter;
+  const startSuffix = formatSummaryDateSuffix(
+    summary.startDate,
+    dateRange?.from,
+  );
+  const endSuffix = formatSummaryDateSuffix(summary.endDate, dateRange?.to);
+  const startText = formatValueFn(summary.startValue);
+  const endText = formatValueFn(summary.endValue);
+  const changeText = formatCurrencyChange(summary.netChange, formatValueFn);
+  return [
+    `  ${label}`,
+    `    Start: ${startText}${startSuffix}`,
+    `    End: ${endText}${endSuffix}`,
+    `    Change: ${changeText}`,
+  ].join("\n");
 }
 
-export function formatAppreciationBlock(balanceSummary, contributionSummary, { formatValue } = {}) {
-    if (
-        !balanceSummary ||
-        !contributionSummary ||
-        !balanceSummary.hasData ||
-        !contributionSummary.hasData
-    ) {
-        return '';
-    }
-    const formatValueFn =
-        typeof formatValue === 'function' ? formatValue : defaultCurrencyFormatter;
-    const deltaContribution = contributionSummary.netChange;
-    const deltaBalance = balanceSummary.netChange;
-    const valueAdded = deltaBalance - deltaContribution;
-    if (!Number.isFinite(valueAdded)) {
-        return '';
-    }
-    const changeText = formatCurrencyChange(valueAdded, formatValueFn);
-    return [
-        '  Appreciation',
-        `    Value: ${changeText}`,
-        '    (balance change minus contribution change)',
-    ].join('\n');
+export function formatAppreciationBlock(
+  balanceSummary,
+  contributionSummary,
+  { formatValue } = {},
+) {
+  if (
+    !balanceSummary ||
+    !contributionSummary ||
+    !balanceSummary.hasData ||
+    !contributionSummary.hasData
+  ) {
+    return "";
+  }
+  const formatValueFn =
+    typeof formatValue === "function" ? formatValue : defaultCurrencyFormatter;
+  const deltaContribution = contributionSummary.netChange;
+  const deltaBalance = balanceSummary.netChange;
+  const valueAdded = deltaBalance - deltaContribution;
+  if (!Number.isFinite(valueAdded)) {
+    return "";
+  }
+  const changeText = formatCurrencyChange(valueAdded, formatValueFn);
+  return [
+    "  Appreciation",
+    `    Value: ${changeText}`,
+    "    (balance change minus contribution change)",
+  ].join("\n");
 }
 
 /**
@@ -392,7 +419,7 @@ export function formatAppreciationBlock(balanceSummary, contributionSummary, { f
  * @returns {string} The formatted percentage string.
  */
 export function formatAsPercentage(num) {
-    return `${(num * 100).toFixed(2)}%`;
+  return `${(num * 100).toFixed(2)}%`;
 }
 
 /**
@@ -401,16 +428,16 @@ export function formatAsPercentage(num) {
  * @returns {string} The formatted compact number string.
  */
 export function formatCompact(num) {
-    if (num >= 1e9) {
-        return (num / 1e9).toFixed(1) + 'b';
-    }
-    if (num >= 1e6) {
-        return (num / 1e6).toFixed(1) + 'm';
-    }
-    if (num >= 1e3) {
-        return (num / 1e3).toFixed(1) + 'k';
-    }
-    return num.toString();
+  if (num >= 1e9) {
+    return (num / 1e9).toFixed(1) + "b";
+  }
+  if (num >= 1e6) {
+    return (num / 1e6).toFixed(1) + "m";
+  }
+  if (num >= 1e3) {
+    return (num / 1e3).toFixed(1) + "k";
+  }
+  return num.toString();
 }
 
 /**
@@ -420,7 +447,7 @@ export function formatCompact(num) {
  * @returns {string} The formatted currency string.
  */
 export function formatWithCurrencySymbol(num, symbol) {
-    return `${symbol}${num.toFixed(2)}`;
+  return `${symbol}${num.toFixed(2)}`;
 }
 
 /**
@@ -430,7 +457,7 @@ export function formatWithCurrencySymbol(num, symbol) {
  * @returns {string} The formatted number string.
  */
 export function formatWithPrecision(num, precision) {
-    return num.toPrecision(precision);
+  return num.toPrecision(precision);
 }
 
 /**
@@ -440,7 +467,7 @@ export function formatWithPrecision(num, precision) {
  * @returns {string} The formatted exponential string.
  */
 export function formatExponential(num, fractionDigits) {
-    return num.toExponential(fractionDigits);
+  return num.toExponential(fractionDigits);
 }
 
 /**
@@ -451,7 +478,7 @@ export function formatExponential(num, fractionDigits) {
  * @returns {string} The formatted locale-specific string.
  */
 export function formatToLocaleString(num, locales, options) {
-    return num.toLocaleString(locales, options);
+  return num.toLocaleString(locales, options);
 }
 
 /**
@@ -461,7 +488,7 @@ export function formatToLocaleString(num, locales, options) {
  * @returns {string} The formatted number string.
  */
 export function formatToString(num, radix) {
-    return num.toString(radix);
+  return num.toString(radix);
 }
 
 /**
@@ -471,7 +498,7 @@ export function formatToString(num, radix) {
  * @returns {string} The formatted number string.
  */
 export function formatToPrecision(num, significantDigits) {
-    return num.toPrecision(significantDigits);
+  return num.toPrecision(significantDigits);
 }
 
 /**
@@ -481,7 +508,7 @@ export function formatToPrecision(num, significantDigits) {
  * @returns {string} The formatted number string.
  */
 export function formatToFixed(num, fractionDigits) {
-    return num.toFixed(fractionDigits);
+  return num.toFixed(fractionDigits);
 }
 
 /**
@@ -491,7 +518,7 @@ export function formatToFixed(num, fractionDigits) {
  * @returns {string} The formatted number string.
  */
 export function formatToExponential(num, fractionDigits) {
-    return num.toExponential(fractionDigits);
+  return num.toExponential(fractionDigits);
 }
 
 /**
@@ -501,7 +528,7 @@ export function formatToExponential(num, fractionDigits) {
  * @returns {string} The formatted number string.
  */
 export function formatToLocale(num, locale) {
-    return num.toLocaleString(locale);
+  return num.toLocaleString(locale);
 }
 
 /**
@@ -511,7 +538,7 @@ export function formatToLocale(num, locale) {
  * @returns {string} The formatted number string.
  */
 export function padWithLeadingZeros(num, length) {
-    return num.toString().padStart(length, '0');
+  return num.toString().padStart(length, "0");
 }
 
 /**
@@ -521,11 +548,11 @@ export function padWithLeadingZeros(num, length) {
  * @returns {string} The formatted number string.
  */
 export function padWithTrailingZeros(num, length) {
-    let str = num.toString();
-    if (str.indexOf('.') === -1) {
-        str += '.';
-    }
-    return str.padEnd(length, '0');
+  let str = num.toString();
+  if (str.indexOf(".") === -1) {
+    str += ".";
+  }
+  return str.padEnd(length, "0");
 }
 
 /**
@@ -535,7 +562,7 @@ export function padWithTrailingZeros(num, length) {
  * @returns {string} The formatted number string.
  */
 export function padWithSpaces(num, length) {
-    return num.toString().padStart(length, ' ');
+  return num.toString().padStart(length, " ");
 }
 
 /**
@@ -546,7 +573,7 @@ export function padWithSpaces(num, length) {
  * @returns {string} The formatted number string.
  */
 export function padWithChar(num, length, char) {
-    return num.toString().padStart(length, char);
+  return num.toString().padStart(length, char);
 }
 
 /**
@@ -556,7 +583,7 @@ export function padWithChar(num, length, char) {
  * @returns {string} The formatted number string.
  */
 export function addPrefix(num, prefix) {
-    return prefix + num.toString();
+  return prefix + num.toString();
 }
 
 /**
@@ -566,7 +593,7 @@ export function addPrefix(num, prefix) {
  * @returns {string} The formatted number string.
  */
 export function addSuffix(num, suffix) {
-    return num.toString() + suffix;
+  return num.toString() + suffix;
 }
 
 /**
@@ -576,7 +603,7 @@ export function addSuffix(num, suffix) {
  * @returns {string} The formatted number string.
  */
 export function addSeparator(num, separator) {
-    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, separator);
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, separator);
 }
 
 /**
@@ -586,7 +613,7 @@ export function addSeparator(num, separator) {
  * @returns {string} The formatted number string.
  */
 export function changeDecimalSeparator(num, separator) {
-    return num.toString().replace('.', separator);
+  return num.toString().replace(".", separator);
 }
 
 /**
@@ -596,7 +623,7 @@ export function changeDecimalSeparator(num, separator) {
  * @returns {string} The formatted number string.
  */
 export function changeThousandSeparator(num, separator) {
-    return num.toString().replace(/,/g, separator);
+  return num.toString().replace(/,/g, separator);
 }
 
 /**
@@ -607,10 +634,10 @@ export function changeThousandSeparator(num, separator) {
  * @returns {string} The formatted number string.
  */
 export function changeCurrencySymbolPosition(num, symbol, position) {
-    if (position === 'after') {
-        return num.toString() + symbol;
-    }
-    return symbol + num.toString();
+  if (position === "after") {
+    return num.toString() + symbol;
+  }
+  return symbol + num.toString();
 }
 
 /**
@@ -620,12 +647,12 @@ export function changeCurrencySymbolPosition(num, symbol, position) {
  * @returns {string} The formatted number string.
  */
 export function changeSignPosition(num, position) {
-    const sign = num > 0 ? '+' : '-';
-    const absNum = Math.abs(num);
-    if (position === 'after') {
-        return absNum.toString() + sign;
-    }
-    return sign + absNum.toString();
+  const sign = num > 0 ? "+" : "-";
+  const absNum = Math.abs(num);
+  if (position === "after") {
+    return absNum.toString() + sign;
+  }
+  return sign + absNum.toString();
 }
 
 /**
@@ -635,7 +662,7 @@ export function changeSignPosition(num, position) {
  * @returns {string} The formatted number string.
  */
 export function toDigits(num, digits) {
-    return num.toExponential(digits - 1);
+  return num.toExponential(digits - 1);
 }
 
 /**
@@ -645,6 +672,6 @@ export function toDigits(num, digits) {
  * @returns {string} The formatted number string.
  */
 export function toIntegerDigits(num, digits) {
-    const parts = num.toString().split('.');
-    return parts[0].padStart(digits, '0') + (parts[1] ? '.' + parts[1] : '');
+  const parts = num.toString().split(".");
+  return parts[0].padStart(digits, "0") + (parts[1] ? "." + parts[1] : "");
 }

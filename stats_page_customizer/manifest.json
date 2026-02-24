@@ -1,10 +1,10 @@
 {
-    "name": "Stats Page Customizer",
-    "package": "stats_page_customizer",
-    "ankiweb_id": 0,
-    "author": "lz",
-    "version": "0.0.1",
-    "homepage": "",
-    "mod": 1765869546,
-    "min_point_version": 28
+  "name": "Stats Page Customizer",
+  "package": "stats_page_customizer",
+  "ankiweb_id": 0,
+  "author": "lz",
+  "version": "0.0.1",
+  "homepage": "",
+  "mod": 1765869546,
+  "min_point_version": 28
 }
