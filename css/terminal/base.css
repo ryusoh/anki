@@ -117,13 +117,23 @@ body {
 
 footer {
   position: fixed;
-  z-index: 2;
+  z-index: 1001;
   bottom: 10px;
+  width: 85%;
+  max-width: 900px;
   left: 50%;
   transform: translateX(-50%);
-  width: min(1400px, 50vw);
-  text-align: center;
   font-size: 12px;
+  line-height: 1;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-family:
+    "Helvetica Neue", Helvetica, "Segoe UI", Arial, freesans, sans-serif;
+  font-weight: 100;
+  letter-spacing: 1px;
+  padding: 0;
+  border: 0;
+  vertical-align: baseline;
 }
 
 .body-terminal footer {
@@ -134,13 +144,13 @@ footer {
 }
 
 .body-terminal footer a {
-  color: #dfe7ff;
-  opacity: 0.6;
+  color: rgba(255, 255, 255, 0.5);
+  opacity: 1;
   transition: opacity 0.2s ease;
 }
 
 .body-terminal footer a:hover {
-  opacity: 1;
+  opacity: 0.8;
 }
 
 #terminalOutput,

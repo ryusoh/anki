@@ -178,7 +178,7 @@
     left: 50%;
     transform: translateX(-50%);
     bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-    z-index: 4;
+    z-index: 1001;
   }
 }
 
