@@ -4,7 +4,7 @@
 # User-provided custom stats template
 custom_stats.html
 # Generated stats payload for the custom stats site
-# Note: custom_stats_data.json is committed for web terminal
+# Note: data/anki/custom_stats_data.json is committed sample data for web terminal
 
 # Python cache files and bytecode
 # Use __pycache__/ to specifically target directories

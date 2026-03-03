@@ -37,8 +37,10 @@ JS_CODE = ""
 
 JS_INJECT_PATH = Path(__file__).with_name("injected.js")
 ADDONS_ROOT = Path(__file__).resolve().parent.parent
+# Load stats from data/anki/ directory (single source of truth)
+DATA_ROOT = ADDONS_ROOT / "data" / "anki"
 CUSTOM_STATS_HTML = ADDONS_ROOT / "index.html"
-CUSTOM_STATS_JSON = ADDONS_ROOT / "custom_stats_data.json"
+CUSTOM_STATS_JSON = DATA_ROOT / "custom_stats_data.json"
 FUTURE_DUE_DAYS = 30
 MATURE_INTERVAL_DAYS = 21
 

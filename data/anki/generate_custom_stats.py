@@ -13,6 +13,7 @@ from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).parent
 CARDS_FILE = SCRIPT_DIR / "cards.json.gz"
+# Output to data/anki for web terminal and stats_page_customizer add-on
 OUTPUT_FILE = SCRIPT_DIR / "custom_stats_data.json"
 
 # Find Anki collection to get crt (creation time)
@@ -142,7 +143,7 @@ def main():
 
     print(f"   Loaded {len(cards_data):,} cards")
 
-    # Generate web terminal stats (all days - no limit)
+    # Generate stats for web terminal and stats_page_customizer add-on
     web_stats = calculate_future_due(cards_data, max_days=None)
     web_output = {"futureDue": web_stats}
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
@@ -155,7 +156,7 @@ def main():
     full_stats = calculate_future_due(cards_data, max_days=None)
     full_output = {"futureDue": full_stats}
     full_file = SCRIPT_DIR / "full_forecast.json.gz"
-    
+
     # Only write if content changed
     new_content = json.dumps(full_output)
     write_full = True
@@ -167,11 +168,11 @@ def main():
                 write_full = False
         except Exception:
             pass
-    
+
     if write_full:
         with gzip.open(full_file, "wt", encoding="utf-8") as f:
             f.write(new_content)
-    
+
     full_total = sum(d["mature"] + d["young"] for d in full_stats)
     max_day = max(d["day"] for d in full_stats) if full_stats else 0
     status = "updated" if write_full else "unchanged"
