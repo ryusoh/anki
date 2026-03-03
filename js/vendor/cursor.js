@@ -1,5 +1,5 @@
-// GSAP is loaded globally via script tag - check dynamically at runtime
-const getGsap = () => window.gsap;
+// GSAP is loaded globally via script tag
+const gsap = window.gsap;
 
 const isTouchDevice =
     typeof window !== 'undefined' &&
@@ -257,18 +257,15 @@ export class CustomCursor {
         this.coords.x.value = lerp(this.coords.x.value, this.coords.x.current, this.followEase);
         this.coords.y.value = lerp(this.coords.y.value, this.coords.y.current, this.followEase);
 
-        const gsap = getGsap();
-        if (gsap) {
-            gsap.set(this.element, {
-                opacity: this.coords.opacity.value,
-                x: this.coords.x.value,
-                y: this.coords.y.value,
-                zIndex: 100,
-            });
-            gsap.set(this.core, {
-                scale: this.coords.scale.value,
-            });
-        }
+        gsap.set(this.element, {
+            opacity: this.coords.opacity.value,
+            x: this.coords.x.value,
+            y: this.coords.y.value,
+            zIndex: 100,
+        });
+        gsap.set(this.core, {
+            scale: this.coords.scale.value,
+        });
 
         this.rafId = requestAnimationFrame(this.loop);
     }
