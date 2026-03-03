@@ -20,10 +20,6 @@
 Storage and management of add-on configuration
 """
 
-# TODO Would it be possible to get these configuration options to sync with
-#      AnkiWeb, e.g. by moving them into the collections database?
-#      See also <https://anki.tenderapp.com/discussions/add-ons/8512>.
-
 import sqlite3
 
 __all__ = ['Config']

@@ -137,8 +137,6 @@ Number of cards in learning (now+later)
 Number of repetition to cards in learning today (sum of repetition
 from card from a past day, and from today).
 
-Isn't it equal to "Repetition of today learning"???TODO
-
 ### learning repetition
 
 Number of repetition of cards in learning, any days (sum of
@@ -165,14 +163,7 @@ cards in learning whose last review is today)
 ### repeated today
 
 Number of times you saw today a question from this deck. (A card
-deleted after review is not counted anymore. A card reviewed and moved
-is counted in its new deck.)
-
-### repeated today
-
-Number of times you saw a question from this deck anytime in the
-past. (A card deleted after review is not counted anymore. A card
-reviewed and moved is counted in its new deck.)
+deleted after review is not counted anymore. A card reviewed and moved is counted in its new deck.)
 
 ### unseen later
 
