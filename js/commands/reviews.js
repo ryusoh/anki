@@ -93,71 +93,73 @@ export function renderReviewsChart(data) {
   const times = data.map((entry) => Math.round(entry.time / 60)); // minutes
 
   const ctx = canvas.getContext("2d");
-  reviewsChart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [
-        {
-          label: "Mature",
-          data: matureData,
-          backgroundColor: "rgba(72, 199, 142, 0.85)",
-          borderRadius: 4,
-          stack: "reviews",
-        },
-        {
-          label: "Young",
-          data: youngData,
-          backgroundColor: "rgba(73, 168, 236, 0.85)",
-          borderRadius: 4,
-          stack: "reviews",
-        },
-        {
-          label: "Relearn",
-          data: relearnData,
-          backgroundColor: "rgba(234, 67, 53, 0.85)",
-          borderRadius: 4,
-          stack: "reviews",
-        },
-        {
-          label: "Learn",
-          data: learnData,
-          backgroundColor: "rgba(240, 185, 11, 0.85)",
-          borderRadius: 4,
-          stack: "reviews",
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: {
-          stacked: true,
-          ticks: {
-            color: "#a9b4d0",
-            font: { family: "JetBrains Mono, monospace", size: 9 },
-            maxRotation: 45,
-            minRotation: 45,
+  try {
+    reviewsChart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Mature",
+            data: matureData,
+            backgroundColor: "rgba(72, 199, 142, 0.85)",
+            borderRadius: 4,
+            stack: "reviews",
           },
-          grid: { display: false },
-        },
-        y: {
-          stacked: true,
-          type: "linear",
-          display: true,
-          position: "left",
-          ticks: {
-            color: "#a9b4d0",
-            precision: 0,
-            font: { family: "JetBrains Mono, monospace", size: 10 },
+          {
+            label: "Young",
+            data: youngData,
+            backgroundColor: "rgba(73, 168, 236, 0.85)",
+            borderRadius: 4,
+            stack: "reviews",
           },
-          grid: { color: "rgba(255,255,255,0.1)" },
-          title: {
+          {
+            label: "Relearn",
+            data: relearnData,
+            backgroundColor: "rgba(234, 67, 53, 0.85)",
+            borderRadius: 4,
+            stack: "reviews",
+          },
+          {
+            label: "Learn",
+            data: learnData,
+            backgroundColor: "rgba(240, 185, 11, 0.85)",
+            borderRadius: 4,
+            stack: "reviews",
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            stacked: true,
+            ticks: {
+              color: "#a9b4d0",
+              font: { family: "JetBrains Mono, monospace", size: 9 },
+              maxRotation: 45,
+              minRotation: 45,
+            },
+            grid: { display: false },
+          },
+          y: {
+            stacked: true,
+            type: "linear",
             display: true,
-            text: "Reviews",
-            color: "#a9b4d0",
-            font: { family: "JetBrains Mono, monospace", size: 10 },
+            position: "left",
+            ticks: {
+              color: "#a9b4d0",
+              precision: 0,
+              font: { family: "JetBrains Mono, monospace", size: 10 },
+            },
+            grid: { color: "rgba(255,255,255,0.1)" },
+            title: {
+              display: true,
+              text: "Reviews",
+              color: "#a9b4d0",
+              font: { family: "JetBrains Mono, monospace", size: 10 },
+            },
           },
         },
       },
@@ -176,8 +178,17 @@ export function renderReviewsChart(data) {
           },
         },
       },
-    },
-  });
+    });
+  } catch (error) {
+    console.error("Failed to render reviews chart:", error);
+    const empty = document.getElementById("runningAmountEmpty");
+    if (empty) {
+      empty.style.display = "block";
+      empty.textContent = "Chart rendering failed: " + error.message;
+    }
+    section.classList.remove("is-hidden");
+    return { success: false, error: error.message };
+  }
 
   section.classList.remove("is-hidden");
   return { success: true };
@@ -224,54 +235,56 @@ export function renderRetentionChart(data) {
   const retentions = data.map((entry) => (entry.retention * 100).toFixed(1));
 
   const ctx = canvas.getContext("2d");
-  retentionChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [
-        {
-          label: "Retention %",
-          data: retentions,
-          borderColor: "rgba(240, 185, 11, 0.9)",
-          backgroundColor: "rgba(240, 185, 11, 0.1)",
-          borderWidth: 2,
-          pointRadius: 2,
-          pointHoverRadius: 4,
-          tension: 0.3,
-          fill: true,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: {
-          ticks: {
-            color: "#a9b4d0",
-            font: { family: "JetBrains Mono, monospace", size: 9 },
-            maxRotation: 45,
-            minRotation: 45,
+  try {
+    retentionChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Retention %",
+            data: retentions,
+            borderColor: "rgba(240, 185, 11, 0.9)",
+            backgroundColor: "rgba(240, 185, 11, 0.1)",
+            borderWidth: 2,
+            pointRadius: 2,
+            pointHoverRadius: 4,
+            tension: 0.3,
+            fill: true,
           },
-          grid: { display: false },
-        },
-        y: {
-          type: "linear",
-          display: true,
-          position: "left",
-          min: 0,
-          max: 100,
-          ticks: {
-            color: "#f0b90b",
-            font: { family: "JetBrains Mono, monospace", size: 10 },
-            callback: (value) => value + "%",
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            ticks: {
+              color: "#a9b4d0",
+              font: { family: "JetBrains Mono, monospace", size: 9 },
+              maxRotation: 45,
+              minRotation: 45,
+            },
+            grid: { display: false },
           },
-          grid: { color: "rgba(255,255,255,0.1)" },
-          title: {
+          y: {
+            type: "linear",
             display: true,
-            text: "Retention Rate",
-            color: "#f0b90b",
-            font: { family: "JetBrains Mono, monospace", size: 10 },
+            position: "left",
+            min: 0,
+            max: 100,
+            ticks: {
+              color: "#f0b90b",
+              font: { family: "JetBrains Mono, monospace", size: 10 },
+              callback: (value) => value + "%",
+            },
+            grid: { color: "rgba(255,255,255,0.1)" },
+            title: {
+              display: true,
+              text: "Retention Rate",
+              color: "#f0b90b",
+              font: { family: "JetBrains Mono, monospace", size: 10 },
+            },
           },
         },
       },
@@ -287,14 +300,31 @@ export function renderRetentionChart(data) {
           },
         },
       },
-    },
-  });
+    });
+  } catch (error) {
+    console.error("Failed to render retention chart:", error);
+    const empty = document.getElementById("runningAmountEmpty");
+    if (empty) {
+      empty.style.display = "block";
+      empty.textContent = "Chart rendering failed: " + error.message;
+    }
+    section.classList.remove("is-hidden");
+    return { success: false, error: error.message };
+  }
 
   section.classList.remove("is-hidden");
   return { success: true };
 }
 
 export function showReviews(rangeKey = DEFAULT_RANGE) {
+  // Check if data is loaded
+  if (
+    !window.reviewStatsData ||
+    !Array.isArray(window.reviewStatsData.reviews)
+  ) {
+    return "Review stats not loaded yet. Please wait a moment and try again.";
+  }
+
   const data = getReviewStatsData(rangeKey);
   const rangeLabel = rangeKey || DEFAULT_RANGE;
   const days = TIME_RANGES[rangeLabel];
@@ -308,6 +338,14 @@ export function showReviews(rangeKey = DEFAULT_RANGE) {
 }
 
 export function showRetention(rangeKey = DEFAULT_RANGE) {
+  // Check if data is loaded
+  if (
+    !window.reviewStatsData ||
+    !Array.isArray(window.reviewStatsData.reviews)
+  ) {
+    return "Review stats not loaded yet. Please wait a moment and try again.";
+  }
+
   const data = getReviewStatsData(rangeKey);
   const rangeLabel = rangeKey || DEFAULT_RANGE;
   const days = TIME_RANGES[rangeLabel];

@@ -90,68 +90,87 @@ export function renderFutureDueChart(data) {
   const youngDataset = data.map((entry) => entry.young || 0);
 
   const ctx = canvas.getContext("2d");
-  futureChart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [
-        {
-          label: "習熟済み",
-          data: matureDataset,
-          backgroundColor: "rgba(72, 199, 142, 0.85)",
-          borderRadius: 4,
-          stack: "future",
-        },
-        {
-          label: "未習熟",
-          data: youngDataset,
-          backgroundColor: "rgba(73, 168, 236, 0.85)",
-          borderRadius: 4,
-          stack: "future",
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: {
-          stacked: true,
-          ticks: {
-            color: "#a9b4d0",
-            font: { family: "JetBrains Mono, monospace", size: 10 },
+  try {
+    futureChart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "習熟済み",
+            data: matureDataset,
+            backgroundColor: "rgba(72, 199, 142, 0.85)",
+            borderRadius: 4,
+            stack: "future",
           },
-          grid: { display: false },
-        },
-        y: {
-          stacked: true,
-          ticks: {
-            color: "#a9b4d0",
-            precision: 0,
-            font: { family: "JetBrains Mono, monospace", size: 10 },
+          {
+            label: "未習熟",
+            data: youngDataset,
+            backgroundColor: "rgba(73, 168, 236, 0.85)",
+            borderRadius: 4,
+            stack: "future",
           },
-          grid: { color: "rgba(255,255,255,0.1)" },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            stacked: true,
+            ticks: {
+              color: "#a9b4d0",
+              font: { family: "JetBrains Mono, monospace", size: 10 },
+            },
+            grid: { display: false },
+          },
+          y: {
+            stacked: true,
+            ticks: {
+              color: "#a9b4d0",
+              precision: 0,
+              font: { family: "JetBrains Mono, monospace", size: 10 },
+            },
+            grid: { color: "rgba(255,255,255,0.1)" },
+          },
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "rgba(2, 6, 20, 0.9)",
+            titleFont: { family: "JetBrains Mono, monospace", size: 12 },
+            bodyFont: { family: "JetBrains Mono, monospace", size: 12 },
+            callbacks: {
+              title: (items) => items.map((item) => item.label).join("\n"),
+            },
+          },
         },
       },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: "rgba(2, 6, 20, 0.9)",
-          titleFont: { family: "JetBrains Mono, monospace", size: 12 },
-          bodyFont: { family: "JetBrains Mono, monospace", size: 12 },
-          callbacks: {
-            title: (items) => items.map((item) => item.label).join("\n"),
-          },
-        },
-      },
-    },
-  });
+    });
+  } catch (error) {
+    console.error("Failed to render due chart:", error);
+    const empty = document.getElementById("runningAmountEmpty");
+    if (empty) {
+      empty.style.display = "block";
+      empty.textContent = "Chart rendering failed: " + error.message;
+    }
+    section.classList.remove("is-hidden");
+    return { success: false, error: error.message };
+  }
 
   section.classList.remove("is-hidden");
   return { success: true };
 }
 
 export function showDue(rangeKey = DEFAULT_RANGE) {
+  // Check if data is loaded
+  if (
+    !window.customStatsData ||
+    !Array.isArray(window.customStatsData.futureDue)
+  ) {
+    return "Stats not loaded yet. Please wait a moment and try again.";
+  }
+
   const data = getFutureDueData(rangeKey);
   const rangeLabel = rangeKey || DEFAULT_RANGE;
   const days = TIME_RANGES[rangeLabel];
