@@ -3,6 +3,8 @@
  * Displays past review counts and retention rates
  */
 
+const Chart = window.Chart;
+
 export const DEFAULT_RANGE = "1m";
 
 export const TIME_RANGES = {

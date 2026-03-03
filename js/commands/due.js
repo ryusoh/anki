@@ -3,6 +3,8 @@
  * Displays upcoming reviews split by mature/young cards
  */
 
+const Chart = window.Chart;
+
 export const DEFAULT_RANGE = "1m";
 
 export const TIME_RANGES = {
