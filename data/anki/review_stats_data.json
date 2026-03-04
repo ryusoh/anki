@@ -35087,6 +35087,22 @@
       "relearn": 29,
       "filtered": 0,
       "retention": 0.7878
+    },
+    {
+      "date": "2026-03-03",
+      "count": 282,
+      "time": 3161.2,
+      "mature": 186,
+      "young": 96,
+      "again": 35,
+      "hard": 14,
+      "good": 0,
+      "easy": 209,
+      "learn": 16,
+      "review": 207,
+      "relearn": 35,
+      "filtered": 0,
+      "retention": 0.8101
     }
   ]
 }
