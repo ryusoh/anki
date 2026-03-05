@@ -80,8 +80,22 @@ export function handleCommand(input, appendLine) {
   // Validate command against trie
   const validation = commandTrie.validate(normalized);
 
-  // If command is not valid and not a partial match, reject it
-  if (!validation.valid && !validation.isPartial) {
+  // Check if it's a valid dynamic range shortcut (e.g. "1y5m")
+  const isShortcut = isValidRange(normalized);
+
+  // Check for dynamic range commands (e.g. "plot due 1y5m")
+  const dynamicPatterns = [
+    /^plot\s+(due|reviews|retention)\s+(.+)$/,
+    /^(due|future|reviews|retention)\s+(.+)$/,
+    /^show\s+(due|future|reviews)\s+(.+)$/,
+  ];
+  const isDynamic = dynamicPatterns.some((re) => {
+    const match = normalized.match(re);
+    return match && isValidRange(match[match.length - 1]);
+  });
+
+  // If command is not valid in trie, not a shortcut, and not dynamic, reject it
+  if (!validation.valid && !validation.isPartial && !isShortcut && !isDynamic) {
     appendLine(`Unknown command: ${input}`, "error");
     if (validation.suggestions && validation.suggestions.length > 0) {
       appendLine(`Did you mean: ${validation.suggestions.join(", ")}`, "muted");
@@ -301,37 +315,42 @@ export function showHelp(appendLine) {
   appendLine(" - clear: clear terminal output", "muted");
   appendLine("", "muted");
   appendLine("Time ranges:", "muted");
-  appendLine("  1m, 2m, 3m, 6m (months)", "muted");
-  appendLine("  1y, 2y, 3y, 5y, 10y (years)", "muted");
+  appendLine("  1m-12m, 1y+ (e.g. 13y), Nd (e.g. 15d)", "muted");
+  appendLine("  Combos: 1y4m, 3m9d, 2y6m15d", "muted");
   appendLine("  all (full history)", "muted");
   appendLine("", "muted");
   appendLine("Examples:", "muted");
   appendLine("  plot due          - Default: 1 month", "muted");
-  appendLine("  plot due 3m       - 3 months", "muted");
+  appendLine("  plot due 3m9d     - 3 months and 9 days", "muted");
   appendLine("  plot reviews 1y   - 1 year", "muted");
+  appendLine("  plot retention 1y4m - 1 year and 4 months", "muted");
   appendLine("", "muted");
   appendLine("Shortcuts (no 'plot' needed):", "muted");
   appendLine("  due, reviews     - Show default charts", "muted");
-  appendLine("  1m, 3m, 1y, all  - Quick ranges for current chart", "muted");
+  appendLine("  1m, 1y4m, all    - Quick ranges for current chart", "muted");
 }
 
 export function listCharts(appendLine) {
   appendLine("Charts available:", "muted");
   appendLine(" - plot due [range]: stacked mature vs. young cards", "muted");
-  appendLine(" - plot reviews [range]: review count + retention rate", "muted");
+  appendLine(
+    " - plot reviews [range]: review history stacked by status",
+    "muted",
+  );
+  appendLine(" - plot retention [range]: retention rate line chart", "muted");
   appendLine("", "muted");
   appendLine("Time ranges:", "muted");
-  appendLine("  1m, 2m, 3m, 6m | 1y, 2y, 3y, 5y, 10y | all", "muted");
+  appendLine("  1m-12m, 1y+, Nd, combos (1y4m, 3m9d), all", "muted");
   appendLine("", "muted");
   appendLine("Examples:", "muted");
   appendLine("  plot due            - Next 30 days (default)", "muted");
-  appendLine("  plot due 3m         - Next 3 months", "muted");
-  appendLine("  plot reviews        - Last 30 days (default)", "muted");
-  appendLine("  plot reviews 6m     - Last 6 months", "muted");
+  appendLine("  plot due 3m9d       - Next 3 months and 9 days", "muted");
+  appendLine("  plot reviews 1y     - Last 1 year history", "muted");
+  appendLine("  plot retention 1y4m - Last 1 year and 4 months", "muted");
   appendLine("", "muted");
   appendLine("Shortcuts:", "muted");
   appendLine("  due, reviews        - Quick chart access", "muted");
-  appendLine("  2m, 1y, all         - Ranges for current chart", "muted");
+  appendLine("  2m, 1y4m, all       - Ranges for current chart", "muted");
 }
 
 export function getCurrentChart() {
