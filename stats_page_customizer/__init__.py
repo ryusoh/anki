@@ -162,8 +162,42 @@ def _gather_future_due(days: int = FUTURE_DUE_DAYS) -> List[Dict[str, int]]:
     return future_due
 
 
+def _read_existing_total_from_file(path: Path) -> int:
+    """Read the total card count from an existing JSON file (fail-open helper)."""
+    if not path.exists():
+        return 0
+    try:
+        content = path.read_text(encoding="utf-8")
+        data = json.loads(content)
+        entries = data.get("futureDue", [])
+        return sum(d.get("mature", 0) + d.get("young", 0) for d in entries)
+    except Exception:
+        return 0
+
+
 def _write_custom_stats_payload(payload: Dict[str, Any]) -> None:
-    """Persist the JSON payload for the add-on (30-day file, git-ignored)."""
+    """Persist the JSON payload for the add-on (30-day file, git-ignored).
+
+    Fail-open: if the new payload has no card data but the old file does,
+    keep the old file to avoid losing valid data.
+    """
+    new_entries = payload.get("futureDue", [])
+    new_total = sum(d.get("mature", 0) + d.get("young", 0) for d in new_entries)
+    old_total = _read_existing_total_from_file(CUSTOM_STATS_30D_JSON)
+
+    if old_total > 0 and new_total == 0:
+        _log(
+            f"Fail-open: new data is empty but old file has {old_total} cards; "
+            f"keeping {CUSTOM_STATS_30D_JSON}"
+        )
+        return
+
+    if old_total > 0 and new_total < old_total * 0.1:
+        _log(
+            f"Fail-open: new data suspiciously small ({new_total} vs old {old_total}); "
+            f"keeping {CUSTOM_STATS_30D_JSON}"
+        )
+        return
 
     try:
         CUSTOM_STATS_30D_JSON.write_text(

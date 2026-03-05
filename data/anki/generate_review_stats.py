@@ -105,15 +105,64 @@ def aggregate_reviews():
     return result
 
 
+def _read_existing_review_total(path):
+    """Read the total review count from an existing JSON file (fail-open helper)."""
+    if not path.exists():
+        return 0
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        entries = data.get("reviews", [])
+        return sum(d.get("count", 0) for d in entries)
+    except Exception:
+        return 0
+
+
+def _should_write_reviews(new_reviews, old_path):
+    """Return True if new data looks valid enough to overwrite old_path.
+
+    Fail-open: if the old file had data but the new generation is empty or
+    suspiciously small (< 10% of old total), keep the old file.
+    """
+    new_total = sum(r["count"] for r in new_reviews)
+    old_total = _read_existing_review_total(old_path)
+
+    if old_total == 0:
+        return True
+
+    if new_total == 0:
+        print(f"   ⚠ New data is empty; keeping old file ({old_total:,} reviews)")
+        return False
+
+    if new_total < old_total * 0.1:
+        print(
+            f"   ⚠ New data suspiciously small ({new_total:,} vs old {old_total:,}); "
+            f"keeping old file"
+        )
+        return False
+
+    return True
+
+
 def main():
     print("📊 Generating review stats from Anki data...")
     
     reviews = aggregate_reviews()
     
     if not reviews:
+        # Fail-open: if old file exists, keep it
+        old_total = _read_existing_review_total(OUTPUT_FILE)
+        if old_total > 0:
+            print(f"   ⚠ No new review data; keeping old file ({old_total:,} reviews)")
+            return True
         print("   ❌ No review data found")
         return False
     
+    # Fail-open: validate before overwriting
+    if not _should_write_reviews(reviews, OUTPUT_FILE):
+        print(f"   ✗ {OUTPUT_FILE.name} skipped (fail-open: old data preserved)")
+        return True
+
     output = {"reviews": reviews}
     
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:

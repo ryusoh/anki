@@ -129,6 +129,46 @@ def calculate_future_due(cards_data, max_days=None):
     return result
 
 
+def _read_existing_total(path):
+    """Read the total card count from an existing JSON file (fail-open helper)."""
+    if not path.exists():
+        return 0
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        entries = data.get("futureDue", [])
+        return sum(d.get("mature", 0) + d.get("young", 0) for d in entries)
+    except Exception:
+        return 0
+
+
+def _should_write(new_stats, old_path, label=""):
+    """Return True if new_stats look valid enough to overwrite old_path.
+
+    Fail-open: if the old file had data but the new generation is empty or
+    suspiciously small (< 10% of old total), keep the old file.
+    """
+    new_total = sum(d["mature"] + d["young"] for d in new_stats)
+    old_total = _read_existing_total(old_path)
+
+    if old_total == 0:
+        # No old data to protect; always write
+        return True
+
+    if new_total == 0:
+        print(f"   ⚠ {label}New data is empty; keeping old file ({old_total:,} cards)")
+        return False
+
+    if new_total < old_total * 0.1:
+        print(
+            f"   ⚠ {label}New data suspiciously small ({new_total:,} vs old {old_total:,}); "
+            f"keeping old file"
+        )
+        return False
+
+    return True
+
+
 def main():
     if not CARDS_FILE.exists():
         print(f"❌ Cards file not found: {CARDS_FILE}")
@@ -146,11 +186,16 @@ def main():
     # Generate stats for web terminal and stats_page_customizer add-on
     web_stats = calculate_future_due(cards_data, max_days=None)
     web_output = {"futureDue": web_stats}
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        json.dump(web_output, f, indent=2)
-    web_total = sum(d["mature"] + d["young"] for d in web_stats)
-    max_day = max(d["day"] for d in web_stats) if web_stats else 0
-    print(f"   ✓ {OUTPUT_FILE.name} ({max_day:,} days, {web_total:,} cards)")
+
+    # Fail-open: only overwrite if new data looks valid
+    if _should_write(web_stats, OUTPUT_FILE, label=f"{OUTPUT_FILE.name}: "):
+        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+            json.dump(web_output, f, indent=2)
+        web_total = sum(d["mature"] + d["young"] for d in web_stats)
+        max_day = max(d["day"] for d in web_stats) if web_stats else 0
+        print(f"   ✓ {OUTPUT_FILE.name} ({max_day:,} days, {web_total:,} cards)")
+    else:
+        print(f"   ✗ {OUTPUT_FILE.name} skipped (fail-open: old data preserved)")
 
     # Generate full forecast for analytics (all cards, compressed)
     full_stats = calculate_future_due(cards_data, max_days=None)
