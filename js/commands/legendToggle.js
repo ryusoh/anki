@@ -20,18 +20,18 @@
  * @param {HTMLElement} legendEl - The legend container element
  */
 export function bindLegendToggle(chart, legendEl) {
-    if (!chart || !legendEl) return;
+  if (!chart || !legendEl) return;
 
-    const items = legendEl.querySelectorAll("[data-dataset-index]");
-    items.forEach((item) => {
-        item.addEventListener("click", () => {
-            const index = parseInt(item.dataset.datasetIndex, 10);
-            if (isNaN(index)) return;
+  const items = legendEl.querySelectorAll("[data-dataset-index]");
+  items.forEach((item) => {
+    item.addEventListener("click", () => {
+      const index = parseInt(item.dataset.datasetIndex, 10);
+      if (isNaN(index)) return;
 
-            const meta = chart.getDatasetMeta(index);
-            meta.hidden = !meta.hidden;
-            item.classList.toggle("legend-disabled", meta.hidden);
-            chart.update("active"); // animated transition
-        });
+      const meta = chart.getDatasetMeta(index);
+      meta.hidden = !meta.hidden;
+      item.classList.toggle("legend-disabled", meta.hidden);
+      chart.update("active"); // animated transition
     });
+  });
 }

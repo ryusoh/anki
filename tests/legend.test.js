@@ -260,9 +260,7 @@ function runTests() {
     const mockDOM = createMockDOM();
     renderDueChart(mockDOM);
     validateLegend(mockDOM, DUE_LEGEND_EXPECTED, "due chart");
-    console.log(
-      "   ✓ Due chart legend shows Mature / Young with dot symbols",
-    );
+    console.log("   ✓ Due chart legend shows Mature / Young with dot symbols");
     passed++;
   } catch (e) {
     console.log(`   ✗ Due chart legend: ${e.message}`);
@@ -559,8 +557,8 @@ function runTests() {
       // legend.display must be inside options.plugins, NOT top-level plugins
       assert.ok(
         config.options &&
-        config.options.plugins &&
-        config.options.plugins.legend,
+          config.options.plugins &&
+          config.options.plugins.legend,
         `${name}: options.plugins.legend must exist`,
       );
       assert.strictEqual(
@@ -758,9 +756,7 @@ function runTests() {
   if (failed > 0) {
     console.log("❌ TESTS FAILED - Legend has issues");
     console.log("\n⚠️  Requirements:");
-    console.log(
-      "   • Due chart: Mature / Young (English, green/blue dots)",
-    );
+    console.log("   • Due chart: Mature / Young (English, green/blue dots)");
     console.log(
       "   • Reviews chart: Mature / Young / Relearn / Learn (stacked)",
     );
