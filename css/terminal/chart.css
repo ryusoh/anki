@@ -149,6 +149,18 @@
   box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.3);
 }
 
+/* Interactive legend items (click to toggle datasets) */
+.chart-legend span[data-dataset-index] {
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.2s ease;
+}
+
+.chart-legend span.legend-disabled {
+  opacity: 0.35;
+  text-decoration: line-through;
+}
+
 .legend-color.color-young {
   background: rgba(73, 168, 236, 0.85);
 }

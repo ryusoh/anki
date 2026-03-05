@@ -3,6 +3,8 @@
  * Displays upcoming reviews split by mature/young cards
  */
 
+import { bindLegendToggle } from "@js/commands/legendToggle.js";
+
 const Chart = window.Chart;
 
 export const DEFAULT_RANGE = "1m";
@@ -53,8 +55,8 @@ export function renderFutureDueChart(data) {
   // Update legend for due chart
   if (legend) {
     legend.innerHTML = `
-            <span><i class="legend-color color-young"></i> 未習熟</span>
-            <span><i class="legend-color color-mature"></i> 習熟済み</span>
+            <span data-dataset-index="0"><i class="legend-color color-mature"></i> 習熟済み</span>
+            <span data-dataset-index="1"><i class="legend-color color-young"></i> 未習熟</span>
         `;
     legend.style.display = "flex";
   }
@@ -161,6 +163,12 @@ export function renderFutureDueChart(data) {
   }
 
   section.classList.remove("is-hidden");
+
+  // Wire click-to-toggle on bottom legend
+  if (legend && futureChart) {
+    bindLegendToggle(futureChart, legend);
+  }
+
   return { success: true };
 }
 

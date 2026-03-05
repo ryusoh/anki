@@ -3,6 +3,8 @@
  * Displays past review counts and retention rates
  */
 
+import { bindLegendToggle } from "@js/commands/legendToggle.js";
+
 const Chart = window.Chart;
 
 export const DEFAULT_RANGE = "1m";
@@ -59,10 +61,10 @@ export function renderReviewsChart(data) {
   // Update legend for reviews chart (stacked by card status)
   if (legend) {
     legend.innerHTML = `
-            <span><i class="legend-color color-mature"></i> Mature</span>
-            <span><i class="legend-color color-young"></i> Young</span>
-            <span><i class="legend-color color-learn"></i> Learn</span>
-            <span><i class="legend-color color-relearn"></i> Relearn</span>
+            <span data-dataset-index="0"><i class="legend-color color-mature"></i> Mature</span>
+            <span data-dataset-index="1"><i class="legend-color color-young"></i> Young</span>
+            <span data-dataset-index="2"><i class="legend-color color-relearn"></i> Relearn</span>
+            <span data-dataset-index="3"><i class="legend-color color-learn"></i> Learn</span>
         `;
     legend.style.display = "flex";
   }
@@ -164,18 +166,18 @@ export function renderReviewsChart(data) {
             },
           },
         },
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: "rgba(2, 6, 20, 0.9)",
-          titleFont: { family: "JetBrains Mono, monospace", size: 12 },
-          bodyFont: { family: "JetBrains Mono, monospace", size: 11 },
-          callbacks: {
-            title: (items) => items.map((item) => item.label).join("\n"),
-            label: (ctx) => {
-              const time = times[ctx.dataIndex];
-              return `${ctx.dataset.label}: ${ctx.raw} (${time} min)`;
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "rgba(2, 6, 20, 0.9)",
+            titleFont: { family: "JetBrains Mono, monospace", size: 12 },
+            bodyFont: { family: "JetBrains Mono, monospace", size: 11 },
+            callbacks: {
+              title: (items) => items.map((item) => item.label).join("\n"),
+              label: (ctx) => {
+                const time = times[ctx.dataIndex];
+                return `${ctx.dataset.label}: ${ctx.raw} (${time} min)`;
+              },
             },
           },
         },
@@ -193,6 +195,12 @@ export function renderReviewsChart(data) {
   }
 
   section.classList.remove("is-hidden");
+
+  // Wire click-to-toggle on bottom legend
+  if (legend && reviewsChart) {
+    bindLegendToggle(reviewsChart, legend);
+  }
+
   return { success: true };
 }
 
@@ -208,7 +216,7 @@ export function renderRetentionChart(data) {
   // Update legend for retention chart
   if (legend) {
     legend.innerHTML = `
-            <span><i class="legend-color color-retention"></i> Retention Rate</span>
+            <span data-dataset-index="0"><i class="legend-color color-retention"></i> Retention Rate</span>
         `;
     legend.style.display = "flex";
   }
@@ -315,6 +323,12 @@ export function renderRetentionChart(data) {
   }
 
   section.classList.remove("is-hidden");
+
+  // Wire click-to-toggle on bottom legend
+  if (legend && retentionChart) {
+    bindLegendToggle(retentionChart, legend);
+  }
+
   return { success: true };
 }
 
