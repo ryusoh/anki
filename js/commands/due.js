@@ -55,8 +55,8 @@ export function renderFutureDueChart(data) {
   // Update legend for due chart
   if (legend) {
     legend.innerHTML = `
-            <span data-dataset-index="0"><i class="legend-color color-mature"></i> 習熟済み</span>
-            <span data-dataset-index="1"><i class="legend-color color-young"></i> 未習熟</span>
+            <span data-dataset-index="0"><i class="legend-color color-mature"></i> Mature</span>
+            <span data-dataset-index="1"><i class="legend-color color-young"></i> Young</span>
         `;
     legend.style.display = "flex";
   }
@@ -74,7 +74,7 @@ export function renderFutureDueChart(data) {
     const empty = document.getElementById("runningAmountEmpty");
     if (empty) {
       empty.style.display = "block";
-      empty.textContent = "まだデータがありません。復習を進めてください。";
+      empty.textContent = "No data yet. Complete some reviews first.";
     }
     section.classList.remove("is-hidden");
     return { success: false, error: "No data" };
@@ -85,9 +85,9 @@ export function renderFutureDueChart(data) {
   if (empty) empty.style.display = "none";
 
   const labels = data.map((entry, i) => {
-    if (i === 0) return "今日";
-    if (i === 1) return "明日";
-    return `${entry.day}日後`;
+    if (i === 0) return "Today";
+    if (i === 1) return "Tomorrow";
+    return `+${entry.day}d`;
   });
 
   const matureDataset = data.map((entry) => entry.mature || 0);
@@ -101,14 +101,14 @@ export function renderFutureDueChart(data) {
         labels,
         datasets: [
           {
-            label: "習熟済み",
+            label: "Mature",
             data: matureDataset,
             backgroundColor: "rgba(72, 199, 142, 0.85)",
             borderRadius: 4,
             stack: "future",
           },
           {
-            label: "未習熟",
+            label: "Young",
             data: youngDataset,
             backgroundColor: "rgba(73, 168, 236, 0.85)",
             borderRadius: 4,

@@ -97,8 +97,8 @@ const DEFAULT_RANGE = "1m";
 function renderDueChart(mockDOM) {
   if (mockDOM.chartLegend) {
     mockDOM.chartLegend.innerHTML = `
-            <span data-dataset-index="0"><i class="legend-color color-mature"></i> 習熟済み</span>
-            <span data-dataset-index="1"><i class="legend-color color-young"></i> 未習熟</span>
+            <span data-dataset-index="0"><i class="legend-color color-mature"></i> Mature</span>
+            <span data-dataset-index="1"><i class="legend-color color-young"></i> Young</span>
         `;
     mockDOM.chartLegend.style.display = "flex";
   }
@@ -188,7 +188,7 @@ function getRetentionChartConfig() {
 
 const DUE_LEGEND_EXPECTED = {
   items: 2,
-  labels: ["習熟済み", "未習熟"],
+  labels: ["Mature", "Young"],
   classes: ["color-mature", "color-young"],
   datasetIndices: ["0", "1"],
 };
@@ -261,7 +261,7 @@ function runTests() {
     renderDueChart(mockDOM);
     validateLegend(mockDOM, DUE_LEGEND_EXPECTED, "due chart");
     console.log(
-      "   ✓ Due chart legend shows 習熟済み / 未習熟 with dot symbols",
+      "   ✓ Due chart legend shows Mature / Young with dot symbols",
     );
     passed++;
   } catch (e) {
@@ -291,7 +291,7 @@ function runTests() {
 
     renderDueChart(mockDOM);
     assert.ok(
-      mockDOM.chartLegend.innerHTML.includes("習熟済み"),
+      mockDOM.chartLegend.innerHTML.includes("Mature"),
       "Should have due legend",
     );
 
@@ -465,11 +465,11 @@ function runTests() {
   console.log("\n📋 Test 9: Legend text language");
   try {
     const mockDOM = createMockDOM();
-
+    // Due chart should have English
     renderDueChart(mockDOM);
     const dueHtml = mockDOM.chartLegend.innerHTML;
-    assert.ok(/未習熟/.test(dueHtml), "Due legend should have Japanese text");
-    assert.ok(/習熟済み/.test(dueHtml), "Due legend should have Japanese text");
+    assert.ok(/Mature/.test(dueHtml), "Due legend should have Mature");
+    assert.ok(/Young/.test(dueHtml), "Due legend should have Young");
 
     renderReviewsChart(mockDOM);
     const reviewsHtml = mockDOM.chartLegend.innerHTML;
@@ -482,7 +482,7 @@ function runTests() {
       "Reviews legend should have English text (Young)",
     );
 
-    console.log("   ✓ Legend text uses correct languages");
+    console.log("   ✓ Legend text uses correct language (English)");
     passed++;
   } catch (e) {
     console.log(`   ✗ Legend language: ${e.message}`);
@@ -559,8 +559,8 @@ function runTests() {
       // legend.display must be inside options.plugins, NOT top-level plugins
       assert.ok(
         config.options &&
-          config.options.plugins &&
-          config.options.plugins.legend,
+        config.options.plugins &&
+        config.options.plugins.legend,
         `${name}: options.plugins.legend must exist`,
       );
       assert.strictEqual(
@@ -759,7 +759,7 @@ function runTests() {
     console.log("❌ TESTS FAILED - Legend has issues");
     console.log("\n⚠️  Requirements:");
     console.log(
-      "   • Due chart: 習熟済み / 未習熟 (Japanese, green/blue dots)",
+      "   • Due chart: Mature / Young (English, green/blue dots)",
     );
     console.log(
       "   • Reviews chart: Mature / Young / Relearn / Learn (stacked)",
@@ -774,7 +774,7 @@ function runTests() {
   } else {
     console.log("✅ ALL TESTS PASSED - Legend working correctly");
     console.log("\n📝 Verified:");
-    console.log("   • Due chart legend: 習熟済み / 未習熟 with dot symbols");
+    console.log("   • Due chart legend: Mature / Young with dot symbols");
     console.log("   • Reviews chart legend: Mature / Young / Relearn / Learn");
     console.log("   • Retention chart legend: Retention Rate");
     console.log("   • Legend updates on chart switching");
