@@ -217,21 +217,14 @@ export function createCommandTrie() {
   ]);
 
   // Range shortcuts (apply to current chart)
-  trie.insertAll([
-    "1m",
-    "2m",
-    "3m",
-    "6m",
-    "1y",
-    "2y",
-    "3y",
-    "5y",
-    "10y",
-    "all",
-  ]);
+  // All 12 months + common year ranges + all
+  const ranges = [];
+  for (let m = 1; m <= 12; m++) ranges.push(`${m}m`);
+  for (let y = 1; y <= 20; y++) ranges.push(`${y}y`);
+  ranges.push("all");
+  trie.insertAll(ranges);
 
-  // Full plot commands with ranges
-  const ranges = ["1m", "2m", "3m", "6m", "1y", "2y", "3y", "5y", "10y", "all"];
+  // Full plot/show commands with ranges
   ranges.forEach((range) => {
     trie.insert(`plot due ${range}`);
     trie.insert(`plot reviews ${range}`);

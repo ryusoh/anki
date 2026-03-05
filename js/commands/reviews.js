@@ -4,23 +4,9 @@
  */
 
 import { bindLegendToggle } from "@js/commands/legendToggle.js";
+import { parseRange, DEFAULT_RANGE } from "@js/utils/timeRange.js";
 
 const Chart = window.Chart;
-
-export const DEFAULT_RANGE = "1m";
-
-export const TIME_RANGES = {
-  "1m": 30,
-  "2m": 60,
-  "3m": 90,
-  "6m": 180,
-  "1y": 365,
-  "2y": 730,
-  "3y": 1095,
-  "5y": 1825,
-  "10y": 3650,
-  all: null,
-};
 
 let reviewsChart = null;
 
@@ -35,7 +21,7 @@ export function getReviewStatsData(rangeKey = DEFAULT_RANGE) {
   const payload = window.reviewStatsData || {};
   const allData = Array.isArray(payload.reviews) ? payload.reviews : [];
 
-  const days = TIME_RANGES[rangeKey];
+  const days = parseRange(rangeKey);
   if (days === null || days === undefined) {
     return allData;
   }
@@ -210,7 +196,7 @@ export function showReviews(rangeKey = DEFAULT_RANGE) {
 
   const data = getReviewStatsData(rangeKey);
   const rangeLabel = rangeKey || DEFAULT_RANGE;
-  const days = TIME_RANGES[rangeLabel];
+  const days = parseRange(rangeLabel);
   const rangeText = days === null ? "all time" : `${days} days`;
 
   const result = renderReviewsChart(data);

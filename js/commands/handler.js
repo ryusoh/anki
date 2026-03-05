@@ -6,27 +6,19 @@
 
 import { createCommandTrie } from "../utils/trie.js";
 import {
-  showDue,
-  getDueHelp,
-  TIME_RANGES as DUE_RANGES,
-  DEFAULT_RANGE as DUE_DEFAULT,
-  destroyChart as destroyDueChart,
-} from "./due.js";
-import {
-  showReviews,
-  getReviewsHelp,
-  TIME_RANGES as REVIEWS_RANGES,
-  DEFAULT_RANGE as REVIEWS_DEFAULT,
-  destroyCharts,
-} from "./reviews.js";
+  parseRange,
+  isValidRange,
+  formatRange,
+  DEFAULT_RANGE,
+} from "../utils/timeRange.js";
+import { showDue, getDueHelp, destroyChart as destroyDueChart } from "./due.js";
+import { showReviews, getReviewsHelp, destroyCharts } from "./reviews.js";
 import { showRetention, destroyRetentionChart } from "./retention.js";
 
 // Create command trie for validation
 const commandTrie = createCommandTrie();
 
-// Combined time ranges (use due ranges as canonical)
-export const TIME_RANGES = DUE_RANGES;
-export const DEFAULT_RANGE = DUE_DEFAULT;
+export { parseRange, isValidRange, DEFAULT_RANGE };
 
 let currentChart = null;
 
@@ -100,7 +92,7 @@ export function handleCommand(input, appendLine) {
   }
 
   // Handle time range shortcuts - apply to current chart
-  if (normalized in TIME_RANGES) {
+  if (isValidRange(normalized)) {
     // Apply shortcut to current chart (don't switch)
     if (currentChart === "reviews") {
       const message = showReviews(normalized);
@@ -168,12 +160,9 @@ export function handleCommand(input, appendLine) {
     const [, chartType, rangeStr] = plotMatch;
     const range = rangeStr.trim() || DEFAULT_RANGE;
 
-    if (range && !(range in TIME_RANGES)) {
+    if (range && !isValidRange(range)) {
       appendLine(`Unknown range: ${range}`, "warn");
-      appendLine(
-        "Valid ranges: 1m, 2m, 3m, 6m, 1y, 2y, 3y, 5y, 10y, all",
-        "muted",
-      );
+      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
       return { handled: true, command: "plot", error: "invalid range" };
     }
 
@@ -227,7 +216,7 @@ export function handleCommand(input, appendLine) {
   const dueMatch = normalized.match(/^(due|future)\s+(.+)$/);
   if (dueMatch) {
     const [, range] = dueMatch;
-    if (range in TIME_RANGES) {
+    if (isValidRange(range)) {
       clearCurrentChart();
       const message = showDue(range);
       appendLine(message, "success");
@@ -235,10 +224,7 @@ export function handleCommand(input, appendLine) {
       return { handled: true, command: "due", range };
     } else {
       appendLine(`Unknown range: ${range}`, "warn");
-      appendLine(
-        "Valid ranges: 1m, 2m, 3m, 6m, 1y, 2y, 3y, 5y, 10y, all",
-        "muted",
-      );
+      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
       return { handled: true, command: "due", error: "invalid range" };
     }
   }
@@ -247,7 +233,7 @@ export function handleCommand(input, appendLine) {
   const reviewsMatch = normalized.match(/^reviews\s+(.+)$/);
   if (reviewsMatch) {
     const [, range] = reviewsMatch;
-    if (range in TIME_RANGES) {
+    if (isValidRange(range)) {
       clearCurrentChart();
       const message = showReviews(range);
       appendLine(message, "success");
@@ -255,10 +241,7 @@ export function handleCommand(input, appendLine) {
       return { handled: true, command: "reviews", range };
     } else {
       appendLine(`Unknown range: ${range}`, "warn");
-      appendLine(
-        "Valid ranges: 1m, 2m, 3m, 6m, 1y, 2y, 3y, 5y, 10y, all",
-        "muted",
-      );
+      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
       return { handled: true, command: "reviews", error: "invalid range" };
     }
   }
@@ -267,7 +250,7 @@ export function handleCommand(input, appendLine) {
   const retentionMatch = normalized.match(/^retention\s+(.+)$/);
   if (retentionMatch) {
     const [, range] = retentionMatch;
-    if (range in TIME_RANGES) {
+    if (isValidRange(range)) {
       clearCurrentChart();
       const message = showRetention(range);
       appendLine(message, "success");
@@ -275,10 +258,7 @@ export function handleCommand(input, appendLine) {
       return { handled: true, command: "retention", range };
     } else {
       appendLine(`Unknown range: ${range}`, "warn");
-      appendLine(
-        "Valid ranges: 1m, 2m, 3m, 6m, 1y, 2y, 3y, 5y, 10y, all",
-        "muted",
-      );
+      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
       return { handled: true, command: "retention", error: "invalid range" };
     }
   }
@@ -288,7 +268,7 @@ export function handleCommand(input, appendLine) {
     const parts = normalized.split(/\s+/);
     if (parts[1] === "due" || parts[1] === "future") {
       const range = parts[2] || DEFAULT_RANGE;
-      if (range in TIME_RANGES) {
+      if (isValidRange(range)) {
         clearCurrentChart();
         const message = showDue(range);
         appendLine(message, "success");
@@ -297,7 +277,7 @@ export function handleCommand(input, appendLine) {
       }
     } else if (parts[1] === "reviews") {
       const range = parts[2] || DEFAULT_RANGE;
-      if (range in TIME_RANGES) {
+      if (isValidRange(range)) {
         clearCurrentChart();
         const message = showReviews(range);
         appendLine(message, "success");
