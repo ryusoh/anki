@@ -1,6 +1,6 @@
 /**
- * Reviews Chart - Review History with Retention
- * Displays past review counts and retention rates
+ * Reviews Chart - Review History
+ * Displays past review counts as a stacked bar chart
  */
 
 import { bindLegendToggle } from "@js/commands/legendToggle.js";
@@ -23,16 +23,11 @@ export const TIME_RANGES = {
 };
 
 let reviewsChart = null;
-let retentionChart = null;
 
 export function destroyCharts() {
   if (reviewsChart) {
     reviewsChart.destroy();
     reviewsChart = null;
-  }
-  if (retentionChart) {
-    retentionChart.destroy();
-    retentionChart = null;
   }
 }
 
@@ -79,7 +74,7 @@ export function renderReviewsChart(data) {
     const empty = document.getElementById("runningAmountEmpty");
     if (empty) {
       empty.style.display = "block";
-      empty.textContent = "レビューデータがありません。";
+      empty.textContent = "No review data available.";
     }
     section.classList.remove("is-hidden");
     return { success: false, error: "No data" };
@@ -204,134 +199,6 @@ export function renderReviewsChart(data) {
   return { success: true };
 }
 
-export function renderRetentionChart(data) {
-  const canvas = document.getElementById("runningAmountCanvas");
-  const section = document.getElementById("runningAmountSection");
-  const legend = document.getElementById("chartLegend");
-
-  if (!canvas || !section) {
-    return { success: false, error: "Canvas or section not found" };
-  }
-
-  // Update legend for retention chart
-  if (legend) {
-    legend.innerHTML = `
-            <span data-dataset-index="0"><i class="legend-color color-retention"></i> Retention Rate</span>
-        `;
-    legend.style.display = "flex";
-  }
-
-  // Destroy existing chart
-  if (retentionChart) {
-    retentionChart.destroy();
-    retentionChart = null;
-  }
-
-  if (!Array.isArray(data) || data.length === 0) {
-    const empty = document.getElementById("runningAmountEmpty");
-    if (empty) {
-      empty.style.display = "block";
-      empty.textContent = " retention データがありません。";
-    }
-    section.classList.remove("is-hidden");
-    return { success: false, error: "No data" };
-  }
-
-  // Hide empty message
-  const empty = document.getElementById("runningAmountEmpty");
-  if (empty) empty.style.display = "none";
-
-  const labels = data.map((entry) => entry.date);
-  const retentions = data.map((entry) => (entry.retention * 100).toFixed(1));
-
-  const ctx = canvas.getContext("2d");
-  try {
-    retentionChart = new Chart(ctx, {
-      type: "line",
-      data: {
-        labels,
-        datasets: [
-          {
-            label: "Retention %",
-            data: retentions,
-            borderColor: "rgba(240, 185, 11, 0.9)",
-            backgroundColor: "rgba(240, 185, 11, 0.1)",
-            borderWidth: 2,
-            pointRadius: 2,
-            pointHoverRadius: 4,
-            tension: 0.3,
-            fill: true,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          x: {
-            ticks: {
-              color: "#a9b4d0",
-              font: { family: "JetBrains Mono, monospace", size: 9 },
-              maxRotation: 45,
-              minRotation: 45,
-            },
-            grid: { display: false },
-          },
-          y: {
-            type: "linear",
-            display: true,
-            position: "left",
-            min: 0,
-            max: 100,
-            ticks: {
-              color: "#f0b90b",
-              font: { family: "JetBrains Mono, monospace", size: 10 },
-              callback: (value) => value + "%",
-            },
-            grid: { color: "rgba(255,255,255,0.1)" },
-            title: {
-              display: true,
-              text: "Retention Rate",
-              color: "#f0b90b",
-              font: { family: "JetBrains Mono, monospace", size: 10 },
-            },
-          },
-        },
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          backgroundColor: "rgba(2, 6, 20, 0.9)",
-          titleFont: { family: "JetBrains Mono, monospace", size: 12 },
-          bodyFont: { family: "JetBrains Mono, monospace", size: 11 },
-          callbacks: {
-            title: (items) => items.map((item) => item.label).join("\n"),
-            label: (ctx) => `Retention: ${ctx.raw}%`,
-          },
-        },
-      },
-    });
-  } catch (error) {
-    console.error("Failed to render retention chart:", error);
-    const empty = document.getElementById("runningAmountEmpty");
-    if (empty) {
-      empty.style.display = "block";
-      empty.textContent = "Chart rendering failed: " + error.message;
-    }
-    section.classList.remove("is-hidden");
-    return { success: false, error: error.message };
-  }
-
-  section.classList.remove("is-hidden");
-
-  // Wire click-to-toggle on bottom legend
-  if (legend && retentionChart) {
-    bindLegendToggle(retentionChart, legend);
-  }
-
-  return { success: true };
-}
-
 export function showReviews(rangeKey = DEFAULT_RANGE) {
   // Check if data is loaded
   if (
@@ -349,27 +216,6 @@ export function showReviews(rangeKey = DEFAULT_RANGE) {
   const result = renderReviewsChart(data);
   if (result.success) {
     return `Rendered review history chart (${rangeText}).`;
-  }
-  return result.error;
-}
-
-export function showRetention(rangeKey = DEFAULT_RANGE) {
-  // Check if data is loaded
-  if (
-    !window.reviewStatsData ||
-    !Array.isArray(window.reviewStatsData.reviews)
-  ) {
-    return "Review stats not loaded yet. Please wait a moment and try again.";
-  }
-
-  const data = getReviewStatsData(rangeKey);
-  const rangeLabel = rangeKey || DEFAULT_RANGE;
-  const days = TIME_RANGES[rangeLabel];
-  const rangeText = days === null ? "all time" : `${days} days`;
-
-  const result = renderRetentionChart(data);
-  if (result.success) {
-    return `Rendered retention rate chart (${rangeText}).`;
   }
   return result.error;
 }

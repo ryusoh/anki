@@ -14,12 +14,12 @@ import {
 } from "./due.js";
 import {
   showReviews,
-  showRetention,
   getReviewsHelp,
   TIME_RANGES as REVIEWS_RANGES,
   DEFAULT_RANGE as REVIEWS_DEFAULT,
   destroyCharts,
 } from "./reviews.js";
+import { showRetention, destroyRetentionChart } from "./retention.js";
 
 // Create command trie for validation
 const commandTrie = createCommandTrie();
@@ -61,6 +61,7 @@ export function clearCurrentChart() {
   // Destroy any existing chart instances (due, reviews, retention)
   destroyDueChart();
   destroyCharts();
+  destroyRetentionChart();
 
   const section = document.getElementById("runningAmountSection");
   const legend = document.getElementById("chartLegend");
