@@ -1,9 +1,9 @@
 ---
 name: Bug Report
 about: Report a bug or unexpected behavior
-title: 'fix: '
+title: "fix: "
 labels: bug
-assignees: ''
+assignees: ""
 ---
 
 ## Description
@@ -31,4 +31,5 @@ assignees: ''
 - Addon Version:
 
 ## Additional Context
+
 <!-- Logs, screenshots, or other relevant information -->

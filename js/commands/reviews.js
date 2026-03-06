@@ -77,7 +77,9 @@ export function renderReviewsChart(data, showTime = false) {
     matureData = data.map((entry) => Math.round((entry.time_mature || 0) / 60));
     youngData = data.map((entry) => Math.round((entry.time_young || 0) / 60));
     learnData = data.map((entry) => Math.round((entry.time_learn || 0) / 60));
-    relearnData = data.map((entry) => Math.round((entry.time_relearn || 0) / 60));
+    relearnData = data.map((entry) =>
+      Math.round((entry.time_relearn || 0) / 60),
+    );
   } else {
     matureData = data.map((entry) => entry.mature || 0);
     youngData = data.map((entry) => entry.young || 0);
@@ -227,7 +229,7 @@ export function showReviews(rangeKey = DEFAULT_RANGE, showTime = false) {
 
   const result = renderReviewsChart(data, showTime);
   if (result.success) {
-    return `Rendered review ${showTime ? 'time ' : ''}history chart (${rangeText}).`;
+    return `Rendered review ${showTime ? "time " : ""}history chart (${rangeText}).`;
   }
   return result.error;
 }

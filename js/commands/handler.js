@@ -155,11 +155,17 @@ export function handleCommand(input, appendLine) {
     return { handled: true, command: "help" };
   }
   if (normalized === "p" || normalized === "plot") {
-    appendLine("Usage: plot <due|reviews|reviews time|retention> [range]", "muted");
+    appendLine(
+      "Usage: plot <due|reviews|reviews time|retention> [range]",
+      "muted",
+    );
     appendLine("Subcommands:", "muted");
     appendLine("  plot due [range]          - Due forecast chart", "muted");
     appendLine("  plot reviews [range]      - Review history chart", "muted");
-    appendLine("  plot reviews time [range] - Review time history chart", "muted");
+    appendLine(
+      "  plot reviews time [range] - Review time history chart",
+      "muted",
+    );
     appendLine("  plot retention [range]    - Retention rate chart", "muted");
     appendLine("Examples: pd, pd 3m, pr, pr 1y, prt 1y", "muted");
     return { handled: true, command: "plot" };
@@ -183,7 +189,11 @@ export function handleCommand(input, appendLine) {
     const message = showReviews(activeTimeRange, true);
     appendLine(message, "success");
     currentChart = "reviews-time";
-    return { handled: true, command: "plot-reviews-time", range: activeTimeRange };
+    return {
+      handled: true,
+      command: "plot-reviews-time",
+      range: activeTimeRange,
+    };
   }
   if (normalized === "d") {
     clearCurrentChart();
@@ -208,7 +218,9 @@ export function handleCommand(input, appendLine) {
   }
 
   // Handle "plot due [range]" command (new umbrella syntax)
-  const plotMatch = normalized.match(/^plot\s+(due|reviews\s+time|reviews|retention)\s*(.*)$/);
+  const plotMatch = normalized.match(
+    /^plot\s+(due|reviews\s+time|reviews|retention)\s*(.*)$/,
+  );
   if (plotMatch) {
     const [, chartType, rangeStr] = plotMatch;
     const range = rangeStr.trim() || activeTimeRange;
@@ -389,7 +401,10 @@ export function showHelp(appendLine) {
   appendLine(" - charts: list available charts", "muted");
   appendLine(" - plot due [range]: render upcoming reviews chart", "muted");
   appendLine(" - plot reviews [range]: render review history chart", "muted");
-  appendLine(" - plot reviews time [range]: render review time history chart", "muted");
+  appendLine(
+    " - plot reviews time [range]: render review time history chart",
+    "muted",
+  );
   appendLine(" - plot retention [range]: render retention rate chart", "muted");
   appendLine(" - zoom (z): toggle terminal zoom", "muted");
   appendLine(" - clear: clear terminal output", "muted");
