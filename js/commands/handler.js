@@ -22,6 +22,7 @@ const commandTrie = createCommandTrie();
 export { parseRange, isValidRange, DEFAULT_RANGE };
 
 let currentChart = null;
+let activeTimeRange = DEFAULT_RANGE;
 
 /**
  * Validate command against trie
@@ -126,6 +127,7 @@ export function handleCommand(input, appendLine) {
       toggleZoom();
     }
     // Apply shortcut to current chart (don't switch)
+    activeTimeRange = normalized;
     if (currentChart === "reviews") {
       const message = showReviews(normalized);
       appendLine(message, "success");
@@ -159,38 +161,38 @@ export function handleCommand(input, appendLine) {
   }
   if (normalized === "pd") {
     clearCurrentChart();
-    const message = showDue(DEFAULT_RANGE);
+    const message = showDue(activeTimeRange);
     appendLine(message, "success");
     currentChart = "due";
-    return { handled: true, command: "plot-due", range: DEFAULT_RANGE };
+    return { handled: true, command: "plot-due", range: activeTimeRange };
   }
   if (normalized === "pr") {
     clearCurrentChart();
-    const message = showReviews(DEFAULT_RANGE);
+    const message = showReviews(activeTimeRange);
     appendLine(message, "success");
     currentChart = "reviews";
-    return { handled: true, command: "plot-reviews", range: DEFAULT_RANGE };
+    return { handled: true, command: "plot-reviews", range: activeTimeRange };
   }
   if (normalized === "d") {
     clearCurrentChart();
-    const message = showDue(DEFAULT_RANGE);
+    const message = showDue(activeTimeRange);
     appendLine(message, "success");
     currentChart = "due";
-    return { handled: true, command: "due", range: DEFAULT_RANGE };
+    return { handled: true, command: "due", range: activeTimeRange };
   }
   if (normalized === "r") {
     clearCurrentChart();
-    const message = showReviews(DEFAULT_RANGE);
+    const message = showReviews(activeTimeRange);
     appendLine(message, "success");
     currentChart = "reviews";
-    return { handled: true, command: "reviews", range: DEFAULT_RANGE };
+    return { handled: true, command: "reviews", range: activeTimeRange };
   }
 
   // Handle "plot due [range]" command (new umbrella syntax)
   const plotMatch = normalized.match(/^plot\s+(due|reviews|retention)\s*(.*)$/);
   if (plotMatch) {
     const [, chartType, rangeStr] = plotMatch;
-    const range = rangeStr.trim() || DEFAULT_RANGE;
+    const range = rangeStr.trim() || activeTimeRange;
 
     if (range && !isValidRange(range)) {
       appendLine(`Unknown range: ${range}`, "warn");
@@ -199,6 +201,7 @@ export function handleCommand(input, appendLine) {
     }
 
     clearCurrentChart();
+    activeTimeRange = range;
     if (chartType === "due") {
       const message = showDue(range);
       appendLine(message, "success");
@@ -220,28 +223,28 @@ export function handleCommand(input, appendLine) {
   // Handle "due" command
   if (normalized === "due" || normalized === "future") {
     clearCurrentChart();
-    const message = showDue(DEFAULT_RANGE);
+    const message = showDue(activeTimeRange);
     appendLine(message, "success");
     currentChart = "due";
-    return { handled: true, command: "due", range: DEFAULT_RANGE };
+    return { handled: true, command: "due", range: activeTimeRange };
   }
 
   // Handle "reviews" command
   if (normalized === "reviews") {
     clearCurrentChart();
-    const message = showReviews(DEFAULT_RANGE);
+    const message = showReviews(activeTimeRange);
     appendLine(message, "success");
     currentChart = "reviews";
-    return { handled: true, command: "reviews", range: DEFAULT_RANGE };
+    return { handled: true, command: "reviews", range: activeTimeRange };
   }
 
   // Handle "retention" command
   if (normalized === "retention") {
     clearCurrentChart();
-    const message = showRetention(DEFAULT_RANGE);
+    const message = showRetention(activeTimeRange);
     appendLine(message, "success");
     currentChart = "retention";
-    return { handled: true, command: "retention", range: DEFAULT_RANGE };
+    return { handled: true, command: "retention", range: activeTimeRange };
   }
 
   // Handle "due [range]" command
@@ -250,6 +253,7 @@ export function handleCommand(input, appendLine) {
     const [, range] = dueMatch;
     if (isValidRange(range)) {
       clearCurrentChart();
+      activeTimeRange = range;
       const message = showDue(range);
       appendLine(message, "success");
       currentChart = "due";
@@ -267,6 +271,7 @@ export function handleCommand(input, appendLine) {
     const [, range] = reviewsMatch;
     if (isValidRange(range)) {
       clearCurrentChart();
+      activeTimeRange = range;
       const message = showReviews(range);
       appendLine(message, "success");
       currentChart = "reviews";
@@ -284,6 +289,7 @@ export function handleCommand(input, appendLine) {
     const [, range] = retentionMatch;
     if (isValidRange(range)) {
       clearCurrentChart();
+      activeTimeRange = range;
       const message = showRetention(range);
       appendLine(message, "success");
       currentChart = "retention";
@@ -299,18 +305,20 @@ export function handleCommand(input, appendLine) {
   if (normalized.startsWith("show ")) {
     const parts = normalized.split(/\s+/);
     if (parts[1] === "due" || parts[1] === "future") {
-      const range = parts[2] || DEFAULT_RANGE;
+      const range = parts[2] || activeTimeRange;
       if (isValidRange(range)) {
         clearCurrentChart();
+        activeTimeRange = range;
         const message = showDue(range);
         appendLine(message, "success");
         currentChart = "due";
         return { handled: true, command: "due", range };
       }
     } else if (parts[1] === "reviews") {
-      const range = parts[2] || DEFAULT_RANGE;
+      const range = parts[2] || activeTimeRange;
       if (isValidRange(range)) {
         clearCurrentChart();
+        activeTimeRange = range;
         const message = showReviews(range);
         appendLine(message, "success");
         currentChart = "reviews";

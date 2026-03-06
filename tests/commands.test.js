@@ -28,7 +28,13 @@ const DEFAULT_RANGE = "1m";
 // COMMAND PARSER (mirrors handler.js logic)
 // ============================================================================
 
-function parseCommand(input, state = { currentChart: null }) {
+function parseCommand(
+  input,
+  state = { currentChart: null, activeRange: DEFAULT_RANGE },
+) {
+  if (state.activeRange === undefined) {
+    state.activeRange = DEFAULT_RANGE;
+  }
   const normalized = input.toLowerCase().trim();
 
   if (!normalized) {
@@ -44,6 +50,7 @@ function parseCommand(input, state = { currentChart: null }) {
   // Handle time range shortcuts - apply to current chart
   if (normalized in TIME_RANGES) {
     state.isZoomed = false; // Auto-unzoom
+    state.activeRange = normalized;
     if (state.currentChart === "reviews") {
       state.currentChart = "reviews";
       return { handled: true, command: "reviews", range: normalized };
@@ -65,32 +72,33 @@ function parseCommand(input, state = { currentChart: null }) {
   if (normalized === "pd") {
     state.isZoomed = false; // Auto-unzoom
     state.currentChart = "due";
-    return { handled: true, command: "plot-due", range: DEFAULT_RANGE };
+    return { handled: true, command: "plot-due", range: state.activeRange };
   }
   if (normalized === "pr") {
     state.isZoomed = false; // Auto-unzoom
     state.currentChart = "reviews";
-    return { handled: true, command: "plot-reviews", range: DEFAULT_RANGE };
+    return { handled: true, command: "plot-reviews", range: state.activeRange };
   }
   if (normalized === "d") {
     state.isZoomed = false; // Auto-unzoom
     state.currentChart = "due";
-    return { handled: true, command: "due", range: DEFAULT_RANGE };
+    return { handled: true, command: "due", range: state.activeRange };
   }
   if (normalized === "r") {
     state.isZoomed = false; // Auto-unzoom
     state.currentChart = "reviews";
-    return { handled: true, command: "reviews", range: DEFAULT_RANGE };
+    return { handled: true, command: "reviews", range: state.activeRange };
   }
 
   // Handle "plot due/reviews/retention [range]" command
   const plotMatch = normalized.match(/^plot\s+(due|reviews|retention)\s*(.*)$/);
   if (plotMatch) {
     const [, chartType, rangeStr] = plotMatch;
-    const range = rangeStr.trim() || DEFAULT_RANGE;
+    const range = rangeStr.trim() || state.activeRange;
     if (range in TIME_RANGES) {
       state.isZoomed = false; // Auto-unzoom
       state.currentChart = chartType;
+      state.activeRange = range;
       return { handled: true, command: `plot-${chartType}`, range };
     }
     return { handled: true, command: "plot", error: "invalid range" };
@@ -100,21 +108,21 @@ function parseCommand(input, state = { currentChart: null }) {
   if (normalized === "due" || normalized === "future") {
     state.isZoomed = false; // Auto-unzoom
     state.currentChart = "due";
-    return { handled: true, command: "due", range: DEFAULT_RANGE };
+    return { handled: true, command: "due", range: state.activeRange };
   }
 
   // Handle "reviews" command
   if (normalized === "reviews") {
     state.isZoomed = false; // Auto-unzoom
     state.currentChart = "reviews";
-    return { handled: true, command: "reviews", range: DEFAULT_RANGE };
+    return { handled: true, command: "reviews", range: state.activeRange };
   }
 
   // Handle "retention" command
   if (normalized === "retention") {
     state.isZoomed = false; // Auto-unzoom
     state.currentChart = "retention";
-    return { handled: true, command: "retention", range: DEFAULT_RANGE };
+    return { handled: true, command: "retention", range: state.activeRange };
   }
 
   // Handle "due [range]" command
@@ -124,6 +132,7 @@ function parseCommand(input, state = { currentChart: null }) {
     if (range in TIME_RANGES) {
       state.isZoomed = false; // Auto-unzoom
       state.currentChart = "due";
+      state.activeRange = range;
       return { handled: true, command: "due", range };
     }
     return { handled: true, command: "due", error: "invalid range" };
@@ -136,6 +145,7 @@ function parseCommand(input, state = { currentChart: null }) {
     if (range in TIME_RANGES) {
       state.isZoomed = false; // Auto-unzoom
       state.currentChart = "reviews";
+      state.activeRange = range;
       return { handled: true, command: "reviews", range };
     }
     return { handled: true, command: "reviews", error: "invalid range" };
@@ -148,6 +158,7 @@ function parseCommand(input, state = { currentChart: null }) {
     if (range in TIME_RANGES) {
       state.isZoomed = false; // Auto-unzoom
       state.currentChart = "retention";
+      state.activeRange = range;
       return { handled: true, command: "retention", range };
     }
     return { handled: true, command: "retention", error: "invalid range" };
@@ -162,17 +173,19 @@ function parseCommand(input, state = { currentChart: null }) {
   if (normalized.startsWith("show ")) {
     const parts = normalized.split(/\s+/);
     if (parts[1] === "due" || parts[1] === "future") {
-      const range = parts[2] || DEFAULT_RANGE;
+      const range = parts[2] || state.activeRange;
       if (range in TIME_RANGES) {
         state.isZoomed = false; // Auto-unzoom
         state.currentChart = "due";
+        state.activeRange = range;
         return { handled: true, command: "due", range };
       }
     } else if (parts[1] === "reviews") {
-      const range = parts[2] || DEFAULT_RANGE;
+      const range = parts[2] || state.activeRange;
       if (range in TIME_RANGES) {
         state.isZoomed = false; // Auto-unzoom
         state.currentChart = "reviews";
+        state.activeRange = range;
         return { handled: true, command: "reviews", range };
       }
     }
@@ -867,6 +880,56 @@ function runTests() {
     passed++;
   } catch (e) {
     console.log(`   ✗ Zoom auto-reset: ${e.message}`);
+    failed++;
+  }
+
+  // Test 19: Time range persists across charts
+  console.log("\n📋 Test 19: Time range persists across charts");
+  try {
+    const state = {
+      currentChart: null,
+      activeRange: DEFAULT_RANGE,
+      isZoomed: false,
+    };
+
+    // Switch to due with 1y range
+    const result1 = parseCommand("plot due 1y", state);
+    assert.strictEqual(result1.range, "1y", "Should plot due 1y");
+    assert.strictEqual(
+      state.activeRange,
+      "1y",
+      "Should persist 1y range to state",
+    );
+
+    // Switch to reviews, should implicitly use 1y
+    const result2 = parseCommand("reviews", state);
+    assert.strictEqual(
+      result2.range,
+      "1y",
+      "Should implicitly use 1y range on reviews",
+    );
+
+    // Provide explicit range, should update active range
+    const result3 = parseCommand("reviews 3m", state);
+    assert.strictEqual(result3.range, "3m", "Should use 3m explicitly");
+    assert.strictEqual(
+      state.activeRange,
+      "3m",
+      "Should update persisted state to 3m",
+    );
+
+    // Verify switching to retention uses 3m
+    const result4 = parseCommand("retention", state);
+    assert.strictEqual(
+      result4.range,
+      "3m",
+      "Should implicitly use 3m on retention",
+    );
+
+    console.log("   ✓ Chart switching persists time range");
+    passed++;
+  } catch (e) {
+    console.log(`   ✗ Chart switching persists time range: ${e.message}`);
     failed++;
   }
 
