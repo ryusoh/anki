@@ -55,6 +55,10 @@ export function renderRetentionChart(data) {
   const labels = data.map((entry) => entry.date);
   const retentions = data.map((entry) => (entry.retention * 100).toFixed(1));
 
+  const isDense = data.length > 200;
+  const borderWidth = isDense ? 1 : 2;
+  const pointRadius = isDense ? 0 : 2;
+
   const ctx = canvas.getContext("2d");
   try {
     retentionChart = new Chart(ctx, {
@@ -67,8 +71,8 @@ export function renderRetentionChart(data) {
             data: retentions,
             borderColor: "rgba(240, 185, 11, 0.9)",
             backgroundColor: "rgba(240, 185, 11, 0.1)",
-            borderWidth: 2,
-            pointRadius: 2,
+            borderWidth: borderWidth,
+            pointRadius: pointRadius,
             pointHoverRadius: 4,
             tension: 0.3,
             fill: true,
