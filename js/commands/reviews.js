@@ -77,6 +77,9 @@ export function renderReviewsChart(data) {
   const relearnData = data.map((entry) => entry.relearn || 0);
   const times = data.map((entry) => Math.round(entry.time / 60)); // minutes
 
+  const isDense = data.length > 100;
+  const radius = isDense ? 0 : 4;
+
   const ctx = canvas.getContext("2d");
   try {
     reviewsChart = new Chart(ctx, {
@@ -88,28 +91,36 @@ export function renderReviewsChart(data) {
             label: "Mature",
             data: matureData,
             backgroundColor: "rgba(72, 199, 142, 0.85)",
-            borderRadius: 4,
+            borderRadius: radius,
+            barPercentage: isDense ? 1.0 : 0.9,
+            categoryPercentage: isDense ? 1.0 : 0.8,
             stack: "reviews",
           },
           {
             label: "Young",
             data: youngData,
             backgroundColor: "rgba(73, 168, 236, 0.85)",
-            borderRadius: 4,
+            borderRadius: radius,
+            barPercentage: isDense ? 1.0 : 0.9,
+            categoryPercentage: isDense ? 1.0 : 0.8,
             stack: "reviews",
           },
           {
             label: "Relearn",
             data: relearnData,
             backgroundColor: "rgba(234, 67, 53, 0.85)",
-            borderRadius: 4,
+            borderRadius: radius,
+            barPercentage: isDense ? 1.0 : 0.9,
+            categoryPercentage: isDense ? 1.0 : 0.8,
             stack: "reviews",
           },
           {
             label: "Learn",
             data: learnData,
             backgroundColor: "rgba(240, 185, 11, 0.85)",
-            borderRadius: 4,
+            borderRadius: radius,
+            barPercentage: isDense ? 1.0 : 0.9,
+            categoryPercentage: isDense ? 1.0 : 0.8,
             stack: "reviews",
           },
         ],

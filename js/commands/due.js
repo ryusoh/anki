@@ -79,6 +79,9 @@ export function renderFutureDueChart(data) {
   const matureDataset = data.map((entry) => entry.mature || 0);
   const youngDataset = data.map((entry) => entry.young || 0);
 
+  const isDense = data.length > 100;
+  const radius = isDense ? 0 : 4;
+
   const ctx = canvas.getContext("2d");
   try {
     futureChart = new Chart(ctx, {
@@ -90,14 +93,18 @@ export function renderFutureDueChart(data) {
             label: "Mature",
             data: matureDataset,
             backgroundColor: "rgba(72, 199, 142, 0.85)",
-            borderRadius: 4,
+            borderRadius: radius,
+            barPercentage: isDense ? 1.0 : 0.9,
+            categoryPercentage: isDense ? 1.0 : 0.8,
             stack: "future",
           },
           {
             label: "Young",
             data: youngDataset,
             backgroundColor: "rgba(73, 168, 236, 0.85)",
-            borderRadius: 4,
+            borderRadius: radius,
+            barPercentage: isDense ? 1.0 : 0.9,
+            categoryPercentage: isDense ? 1.0 : 0.8,
             stack: "future",
           },
         ],
