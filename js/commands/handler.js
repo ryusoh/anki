@@ -56,6 +56,11 @@ export function clearCurrentChart() {
   destroyCharts();
   destroyRetentionChart();
 
+  // Auto-unzoom if zoomed
+  if (getZoomState()) {
+    toggleZoom();
+  }
+
   const section = document.getElementById("runningAmountSection");
   const legend = document.getElementById("chartLegend");
 

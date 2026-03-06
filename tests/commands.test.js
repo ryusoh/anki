@@ -35,8 +35,15 @@ function parseCommand(input, state = { currentChart: null }) {
     return { handled: false };
   }
 
+  // Handle zoom command
+  if (normalized === "zoom" || normalized === "z") {
+    state.isZoomed = !state.isZoomed;
+    return { handled: true, command: "zoom" };
+  }
+
   // Handle time range shortcuts - apply to current chart
   if (normalized in TIME_RANGES) {
+    state.isZoomed = false; // Auto-unzoom
     if (state.currentChart === "reviews") {
       state.currentChart = "reviews";
       return { handled: true, command: "reviews", range: normalized };
@@ -56,18 +63,22 @@ function parseCommand(input, state = { currentChart: null }) {
     return { handled: true, command: "plot" };
   }
   if (normalized === "pd") {
+    state.isZoomed = false; // Auto-unzoom
     state.currentChart = "due";
     return { handled: true, command: "plot-due", range: DEFAULT_RANGE };
   }
   if (normalized === "pr") {
+    state.isZoomed = false; // Auto-unzoom
     state.currentChart = "reviews";
     return { handled: true, command: "plot-reviews", range: DEFAULT_RANGE };
   }
   if (normalized === "d") {
+    state.isZoomed = false; // Auto-unzoom
     state.currentChart = "due";
     return { handled: true, command: "due", range: DEFAULT_RANGE };
   }
   if (normalized === "r") {
+    state.isZoomed = false; // Auto-unzoom
     state.currentChart = "reviews";
     return { handled: true, command: "reviews", range: DEFAULT_RANGE };
   }
@@ -78,6 +89,7 @@ function parseCommand(input, state = { currentChart: null }) {
     const [, chartType, rangeStr] = plotMatch;
     const range = rangeStr.trim() || DEFAULT_RANGE;
     if (range in TIME_RANGES) {
+      state.isZoomed = false; // Auto-unzoom
       state.currentChart = chartType;
       return { handled: true, command: `plot-${chartType}`, range };
     }
@@ -86,18 +98,21 @@ function parseCommand(input, state = { currentChart: null }) {
 
   // Handle "due" command
   if (normalized === "due" || normalized === "future") {
+    state.isZoomed = false; // Auto-unzoom
     state.currentChart = "due";
     return { handled: true, command: "due", range: DEFAULT_RANGE };
   }
 
   // Handle "reviews" command
   if (normalized === "reviews") {
+    state.isZoomed = false; // Auto-unzoom
     state.currentChart = "reviews";
     return { handled: true, command: "reviews", range: DEFAULT_RANGE };
   }
 
   // Handle "retention" command
   if (normalized === "retention") {
+    state.isZoomed = false; // Auto-unzoom
     state.currentChart = "retention";
     return { handled: true, command: "retention", range: DEFAULT_RANGE };
   }
@@ -107,6 +122,7 @@ function parseCommand(input, state = { currentChart: null }) {
   if (dueMatch) {
     const range = dueMatch[2];
     if (range in TIME_RANGES) {
+      state.isZoomed = false; // Auto-unzoom
       state.currentChart = "due";
       return { handled: true, command: "due", range };
     }
@@ -118,6 +134,7 @@ function parseCommand(input, state = { currentChart: null }) {
   if (reviewsMatch) {
     const [, range] = reviewsMatch;
     if (range in TIME_RANGES) {
+      state.isZoomed = false; // Auto-unzoom
       state.currentChart = "reviews";
       return { handled: true, command: "reviews", range };
     }
@@ -129,6 +146,7 @@ function parseCommand(input, state = { currentChart: null }) {
   if (retentionMatch) {
     const [, range] = retentionMatch;
     if (range in TIME_RANGES) {
+      state.isZoomed = false; // Auto-unzoom
       state.currentChart = "retention";
       return { handled: true, command: "retention", range };
     }
@@ -146,12 +164,14 @@ function parseCommand(input, state = { currentChart: null }) {
     if (parts[1] === "due" || parts[1] === "future") {
       const range = parts[2] || DEFAULT_RANGE;
       if (range in TIME_RANGES) {
+        state.isZoomed = false; // Auto-unzoom
         state.currentChart = "due";
         return { handled: true, command: "due", range };
       }
     } else if (parts[1] === "reviews") {
       const range = parts[2] || DEFAULT_RANGE;
       if (range in TIME_RANGES) {
+        state.isZoomed = false; // Auto-unzoom
         state.currentChart = "reviews";
         return { handled: true, command: "reviews", range };
       }
@@ -798,6 +818,55 @@ function runTests() {
     passed++;
   } catch (e) {
     console.log(`   ✗ Chart switching: ${e.message}`);
+    failed++;
+  }
+
+  // Test 18: Zoom auto-reset on plot commands
+  console.log(
+    "\n📋 Test 18: Zoom auto-reset on plot commands (regression test)",
+  );
+  try {
+    const state = { isZoomed: false, currentChart: null };
+
+    // Zoom in
+    parseCommand("zoom", state);
+    assert.strictEqual(state.isZoomed, true, "Should be zoomed in");
+
+    // Range shortcut should auto-unzoom
+    parseCommand("3m", state);
+    assert.strictEqual(
+      state.isZoomed,
+      false,
+      "Range shortcut should auto-unzoom",
+    );
+
+    // Zoom in again
+    parseCommand("zoom", state);
+    assert.strictEqual(state.isZoomed, true, "Should be zoomed in again");
+
+    // Explicit plot command should auto-unzoom
+    parseCommand("plot due", state);
+    assert.strictEqual(
+      state.isZoomed,
+      false,
+      "Explicit plot command should auto-unzoom",
+    );
+
+    // Zoom in again
+    parseCommand("zoom", state);
+
+    // Explicit chart command should auto-unzoom
+    parseCommand("reviews", state);
+    assert.strictEqual(
+      state.isZoomed,
+      false,
+      "Explicit chart command should auto-unzoom",
+    );
+
+    console.log("   ✓ Zoom auto-reset works for plot commands");
+    passed++;
+  } catch (e) {
+    console.log(`   ✗ Zoom auto-reset: ${e.message}`);
     failed++;
   }
 
