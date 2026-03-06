@@ -30,7 +30,7 @@ export function getReviewStatsData(rangeKey = DEFAULT_RANGE) {
   return allData.slice(-Math.min(days, allData.length));
 }
 
-export function renderReviewsChart(data) {
+export function renderReviewsChart(data, showTime = false) {
   const canvas = document.getElementById("runningAmountCanvas");
   const section = document.getElementById("runningAmountSection");
   const legend = document.getElementById("chartLegend");
@@ -71,11 +71,21 @@ export function renderReviewsChart(data) {
   if (empty) empty.style.display = "none";
 
   const labels = data.map((entry) => entry.date);
-  const matureData = data.map((entry) => entry.mature || 0);
-  const youngData = data.map((entry) => entry.young || 0);
-  const learnData = data.map((entry) => entry.learn || 0);
-  const relearnData = data.map((entry) => entry.relearn || 0);
-  const times = data.map((entry) => Math.round(entry.time / 60)); // minutes
+
+  let matureData, youngData, learnData, relearnData;
+  if (showTime) {
+    matureData = data.map((entry) => Math.round((entry.time_mature || 0) / 60));
+    youngData = data.map((entry) => Math.round((entry.time_young || 0) / 60));
+    learnData = data.map((entry) => Math.round((entry.time_learn || 0) / 60));
+    relearnData = data.map((entry) => Math.round((entry.time_relearn || 0) / 60));
+  } else {
+    matureData = data.map((entry) => entry.mature || 0);
+    youngData = data.map((entry) => entry.young || 0);
+    learnData = data.map((entry) => entry.learn || 0);
+    relearnData = data.map((entry) => entry.relearn || 0);
+  }
+
+  const totalTimes = data.map((entry) => Math.round(entry.time / 60)); // total minutes
 
   const isDense = data.length > 100;
   const radius = isDense ? 0 : 4;
@@ -152,7 +162,7 @@ export function renderReviewsChart(data) {
             grid: { color: "rgba(255,255,255,0.1)" },
             title: {
               display: true,
-              text: "Reviews",
+              text: showTime ? "Time (minutes)" : "Reviews",
               color: "#a9b4d0",
               font: { family: "JetBrains Mono, monospace", size: 10 },
             },
@@ -167,8 +177,13 @@ export function renderReviewsChart(data) {
             callbacks: {
               title: (items) => items.map((item) => item.label).join("\n"),
               label: (ctx) => {
-                const time = times[ctx.dataIndex];
-                return `${ctx.dataset.label}: ${ctx.raw} (${time} min)`;
+                if (showTime) {
+                  const hours = (ctx.raw / 60).toFixed(1);
+                  return `${ctx.dataset.label}: ${ctx.raw} min (${hours} h)`;
+                } else {
+                  const time = totalTimes[ctx.dataIndex];
+                  return `${ctx.dataset.label}: ${ctx.raw} (${time} min total)`;
+                }
               },
             },
           },
@@ -196,7 +211,7 @@ export function renderReviewsChart(data) {
   return { success: true };
 }
 
-export function showReviews(rangeKey = DEFAULT_RANGE) {
+export function showReviews(rangeKey = DEFAULT_RANGE, showTime = false) {
   // Check if data is loaded
   if (
     !window.reviewStatsData ||
@@ -210,23 +225,25 @@ export function showReviews(rangeKey = DEFAULT_RANGE) {
   const days = parseRange(rangeLabel);
   const rangeText = days === null ? "all time" : `${days} days`;
 
-  const result = renderReviewsChart(data);
+  const result = renderReviewsChart(data, showTime);
   if (result.success) {
-    return `Rendered review history chart (${rangeText}).`;
+    return `Rendered review ${showTime ? 'time ' : ''}history chart (${rangeText}).`;
   }
   return result.error;
 }
 
 export function getReviewsHelp() {
   return [
-    "reviews [range] - Render review history chart (stacked bar chart)",
-    "retention [range] - Render retention rate chart (line chart)",
+    "reviews [range]      - Render review history chart (stacked bar chart)",
+    "reviews time [range] - Render review time history chart (stacked bar chart)",
+    "retention [range]    - Render retention rate chart (line chart)",
     "",
     "Ranges: 1m, 2m, 3m, 6m, 1y, 2y, 3y, 5y, 10y, all",
     "",
     "Examples:",
     "  reviews            - Default: 1 month",
     "  reviews 6m         - 6 months",
+    "  reviews time 1y    - 1 year of time history",
     "  reviews all        - Full history",
     "  retention          - Default: 1 month",
     "  retention 1y       - 1 year retention trend",
@@ -238,8 +255,9 @@ export function getReviewsHelp() {
     "  🔴 Relearn  - Cards being relearned",
     "",
     "Plot subcommands:",
-    "  plot due [range]       - Due forecast",
-    "  plot reviews [range]   - Review history",
-    "  plot retention [range] - Retention rate",
+    "  plot due [range]          - Due forecast",
+    "  plot reviews [range]      - Review history",
+    "  plot reviews time [range] - Review time history",
+    "  plot retention [range]    - Retention rate",
   ];
 }

@@ -151,12 +151,13 @@ export function handleCommand(input, appendLine) {
     return { handled: true, command: "help" };
   }
   if (normalized === "p" || normalized === "plot") {
-    appendLine("Usage: plot <due|reviews|retention> [range]", "muted");
+    appendLine("Usage: plot <due|reviews|reviews time|retention> [range]", "muted");
     appendLine("Subcommands:", "muted");
-    appendLine("  plot due [range]        - Due forecast chart", "muted");
-    appendLine("  plot reviews [range]    - Review history chart", "muted");
-    appendLine("  plot retention [range]  - Retention rate chart", "muted");
-    appendLine("Examples: pd, pd 3m, pr, pr 1y", "muted");
+    appendLine("  plot due [range]          - Due forecast chart", "muted");
+    appendLine("  plot reviews [range]      - Review history chart", "muted");
+    appendLine("  plot reviews time [range] - Review time history chart", "muted");
+    appendLine("  plot retention [range]    - Retention rate chart", "muted");
+    appendLine("Examples: pd, pd 3m, pr, pr 1y, prt 1y", "muted");
     return { handled: true, command: "plot" };
   }
   if (normalized === "pd") {
@@ -168,10 +169,17 @@ export function handleCommand(input, appendLine) {
   }
   if (normalized === "pr") {
     clearCurrentChart();
-    const message = showReviews(activeTimeRange);
+    const message = showReviews(activeTimeRange, false);
     appendLine(message, "success");
     currentChart = "reviews";
     return { handled: true, command: "plot-reviews", range: activeTimeRange };
+  }
+  if (normalized === "prt") {
+    clearCurrentChart();
+    const message = showReviews(activeTimeRange, true);
+    appendLine(message, "success");
+    currentChart = "reviews-time";
+    return { handled: true, command: "plot-reviews-time", range: activeTimeRange };
   }
   if (normalized === "d") {
     clearCurrentChart();
@@ -182,14 +190,21 @@ export function handleCommand(input, appendLine) {
   }
   if (normalized === "r") {
     clearCurrentChart();
-    const message = showReviews(activeTimeRange);
+    const message = showReviews(activeTimeRange, false);
     appendLine(message, "success");
     currentChart = "reviews";
     return { handled: true, command: "reviews", range: activeTimeRange };
   }
+  if (normalized === "rt") {
+    clearCurrentChart();
+    const message = showReviews(activeTimeRange, true);
+    appendLine(message, "success");
+    currentChart = "reviews-time";
+    return { handled: true, command: "reviews-time", range: activeTimeRange };
+  }
 
   // Handle "plot due [range]" command (new umbrella syntax)
-  const plotMatch = normalized.match(/^plot\s+(due|reviews|retention)\s*(.*)$/);
+  const plotMatch = normalized.match(/^plot\s+(due|reviews\s+time|reviews|retention)\s*(.*)$/);
   if (plotMatch) {
     const [, chartType, rangeStr] = plotMatch;
     const range = rangeStr.trim() || activeTimeRange;
@@ -207,8 +222,13 @@ export function handleCommand(input, appendLine) {
       appendLine(message, "success");
       currentChart = "due";
       return { handled: true, command: "plot-due", range };
+    } else if (chartType === "reviews time") {
+      const message = showReviews(range, true);
+      appendLine(message, "success");
+      currentChart = "reviews-time";
+      return { handled: true, command: "plot-reviews-time", range };
     } else if (chartType === "reviews") {
-      const message = showReviews(range);
+      const message = showReviews(range, false);
       appendLine(message, "success");
       currentChart = "reviews";
       return { handled: true, command: "plot-reviews", range };
@@ -229,10 +249,19 @@ export function handleCommand(input, appendLine) {
     return { handled: true, command: "due", range: activeTimeRange };
   }
 
+  // Handle "reviews time" command
+  if (normalized === "reviews time") {
+    clearCurrentChart();
+    const message = showReviews(activeTimeRange, true);
+    appendLine(message, "success");
+    currentChart = "reviews-time";
+    return { handled: true, command: "reviews-time", range: activeTimeRange };
+  }
+
   // Handle "reviews" command
   if (normalized === "reviews") {
     clearCurrentChart();
-    const message = showReviews(activeTimeRange);
+    const message = showReviews(activeTimeRange, false);
     appendLine(message, "success");
     currentChart = "reviews";
     return { handled: true, command: "reviews", range: activeTimeRange };
@@ -265,14 +294,32 @@ export function handleCommand(input, appendLine) {
     }
   }
 
+  // Handle "reviews time [range]" command
+  const reviewsTimeMatch = normalized.match(/^reviews\s+time\s+(.+)$/);
+  if (reviewsTimeMatch) {
+    const [, range] = reviewsTimeMatch;
+    if (isValidRange(range)) {
+      clearCurrentChart();
+      activeTimeRange = range;
+      const message = showReviews(range, true);
+      appendLine(message, "success");
+      currentChart = "reviews-time";
+      return { handled: true, command: "reviews-time", range };
+    } else {
+      appendLine(`Unknown range: ${range}`, "warn");
+      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      return { handled: true, command: "reviews-time", error: "invalid range" };
+    }
+  }
+
   // Handle "reviews [range]" command
   const reviewsMatch = normalized.match(/^reviews\s+(.+)$/);
-  if (reviewsMatch) {
+  if (reviewsMatch && !normalized.startsWith("reviews time")) {
     const [, range] = reviewsMatch;
     if (isValidRange(range)) {
       clearCurrentChart();
       activeTimeRange = range;
-      const message = showReviews(range);
+      const message = showReviews(range, false);
       appendLine(message, "success");
       currentChart = "reviews";
       return { handled: true, command: "reviews", range };
@@ -338,6 +385,7 @@ export function showHelp(appendLine) {
   appendLine(" - charts: list available charts", "muted");
   appendLine(" - plot due [range]: render upcoming reviews chart", "muted");
   appendLine(" - plot reviews [range]: render review history chart", "muted");
+  appendLine(" - plot reviews time [range]: render review time history chart", "muted");
   appendLine(" - plot retention [range]: render retention rate chart", "muted");
   appendLine(" - zoom (z): toggle terminal zoom", "muted");
   appendLine(" - clear: clear terminal output", "muted");
@@ -364,6 +412,10 @@ export function listCharts(appendLine) {
   appendLine(" - plot due [range]: stacked mature vs. young cards", "muted");
   appendLine(
     " - plot reviews [range]: review history stacked by status",
+    "muted",
+  );
+  appendLine(
+    " - plot reviews time [range]: review time history stacked by status",
     "muted",
   );
   appendLine(" - plot retention [range]: retention rate line chart", "muted");
