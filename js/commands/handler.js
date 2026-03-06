@@ -92,8 +92,8 @@ export function handleCommand(input, appendLine) {
 
   // Check for dynamic range commands (e.g. "plot due 1y5m")
   const dynamicPatterns = [
-    /^plot\s+(due|reviews|retention)\s+(.+)$/,
-    /^(due|future|reviews|retention)\s+(.+)$/,
+    /^plot\s+(due|reviews\s+time|reviews|retention)\s+(.+)$/,
+    /^(due|future|reviews\s+time|reviews|retention)\s+(.+)$/,
     /^show\s+(due|future|reviews)\s+(.+)$/,
   ];
   const isDynamic = dynamicPatterns.some((re) => {
