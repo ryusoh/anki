@@ -47,6 +47,11 @@ def aggregate_reviews():
                 "date": date_str,
                 "count": 0,
                 "time": 0,
+                "time_mature": 0,
+                "time_young": 0,
+                "time_learn": 0,
+                "time_relearn": 0,
+                "time_filtered": 0,
                 "mature": 0,
                 "young": 0,
                 "again": 0,  # ease=1
@@ -61,13 +66,17 @@ def aggregate_reviews():
         
         stats = daily_stats[date_str]
         stats["count"] += 1
-        stats["time"] += review.get("time", 0)
+
+        rev_time = review.get("time", 0)
+        stats["time"] += rev_time
         
         # Count by maturity (ivl >= 21 = mature)
         if review.get("ivl", 0) >= 21:
             stats["mature"] += 1
+            stats["time_mature"] += rev_time
         else:
             stats["young"] += 1
+            stats["time_young"] += rev_time
         
         # Count by ease
         ease = review.get("ease", 0)
@@ -84,12 +93,15 @@ def aggregate_reviews():
         rtype = review.get("type", 0)
         if rtype == 0:
             stats["learn"] += 1
+            stats["time_learn"] += rev_time
         elif rtype == 1:
             stats["review"] += 1
         elif rtype == 2:
             stats["relearn"] += 1
+            stats["time_relearn"] += rev_time
         elif rtype == 3:
             stats["filtered"] += 1
+            stats["time_filtered"] += rev_time
     
     # Convert to list and calculate retention
     result = []
@@ -100,6 +112,11 @@ def aggregate_reviews():
         retention = (stats["good"] + stats["easy"]) / total_answered if total_answered > 0 else 0
         stats["retention"] = round(retention, 4)
         stats["time"] = round(stats["time"] / 1000, 1)  # Convert to seconds
+        stats["time_mature"] = round(stats["time_mature"] / 1000, 1)
+        stats["time_young"] = round(stats["time_young"] / 1000, 1)
+        stats["time_learn"] = round(stats["time_learn"] / 1000, 1)
+        stats["time_relearn"] = round(stats["time_relearn"] / 1000, 1)
+        stats["time_filtered"] = round(stats["time_filtered"] / 1000, 1)
         result.append(stats)
     
     return result
