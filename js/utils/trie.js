@@ -214,6 +214,8 @@ export function createCommandTrie() {
     "sd", // show due
     "show reviews",
     "sr", // show reviews
+    "zoom", // terminal zoom
+    "z", // zoom shortcut
   ]);
 
   // Range shortcuts (apply to current chart)

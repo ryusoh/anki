@@ -14,6 +14,7 @@ import {
 import { showDue, getDueHelp, destroyChart as destroyDueChart } from "./due.js";
 import { showReviews, getReviewsHelp, destroyCharts } from "./reviews.js";
 import { showRetention, destroyRetentionChart } from "./retention.js";
+import { toggleZoom, getZoomState } from "./zoom.js";
 
 // Create command trie for validation
 const commandTrie = createCommandTrie();
@@ -105,8 +106,20 @@ export function handleCommand(input, appendLine) {
     return { handled: true, command: "unknown", error: "not in trie" };
   }
 
+  // Handle zoom command
+  if (normalized === "zoom" || normalized === "z") {
+    toggleZoom().then((result) => {
+      appendLine(result.message, "success");
+    });
+    return { handled: true, command: "zoom" };
+  }
+
   // Handle time range shortcuts - apply to current chart
   if (isValidRange(normalized)) {
+    // Auto-unzoom if zoomed
+    if (getZoomState()) {
+      toggleZoom();
+    }
     // Apply shortcut to current chart (don't switch)
     if (currentChart === "reviews") {
       const message = showReviews(normalized);
@@ -312,6 +325,8 @@ export function showHelp(appendLine) {
   appendLine(" - charts: list available charts", "muted");
   appendLine(" - plot due [range]: render upcoming reviews chart", "muted");
   appendLine(" - plot reviews [range]: render review history chart", "muted");
+  appendLine(" - plot retention [range]: render retention rate chart", "muted");
+  appendLine(" - zoom (z): toggle terminal zoom", "muted");
   appendLine(" - clear: clear terminal output", "muted");
   appendLine("", "muted");
   appendLine("Time ranges:", "muted");
@@ -328,6 +343,7 @@ export function showHelp(appendLine) {
   appendLine("Shortcuts (no 'plot' needed):", "muted");
   appendLine("  due, reviews     - Show default charts", "muted");
   appendLine("  1m, 1y4m, all    - Quick ranges for current chart", "muted");
+  appendLine("  z                - Toggle zoom", "muted");
 }
 
 export function listCharts(appendLine) {
