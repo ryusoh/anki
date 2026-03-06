@@ -82,7 +82,11 @@ function parseCommand(
   if (normalized === "prt") {
     state.isZoomed = false; // Auto-unzoom
     state.currentChart = "reviews-time";
-    return { handled: true, command: "plot-reviews-time", range: state.activeRange };
+    return {
+      handled: true,
+      command: "plot-reviews-time",
+      range: state.activeRange,
+    };
   }
   if (normalized === "d") {
     state.isZoomed = false; // Auto-unzoom
@@ -101,7 +105,9 @@ function parseCommand(
   }
 
   // Handle "plot due/reviews/reviews time/retention [range]" command
-  const plotMatch = normalized.match(/^plot\s+(due|reviews\s+time|reviews|retention)\s*(.*)$/);
+  const plotMatch = normalized.match(
+    /^plot\s+(due|reviews\s+time|reviews|retention)\s*(.*)$/,
+  );
   if (plotMatch) {
     const [, chartType, rangeStr] = plotMatch;
     const range = rangeStr.trim() || state.activeRange;
