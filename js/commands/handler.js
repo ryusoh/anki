@@ -129,9 +129,13 @@ export function handleCommand(input, appendLine) {
     // Apply shortcut to current chart (don't switch)
     activeTimeRange = normalized;
     if (currentChart === "reviews") {
-      const message = showReviews(normalized);
+      const message = showReviews(normalized, false);
       appendLine(message, "success");
       return { handled: true, command: "reviews", range: normalized };
+    } else if (currentChart === "reviews-time") {
+      const message = showReviews(normalized, true);
+      appendLine(message, "success");
+      return { handled: true, command: "reviews-time", range: normalized };
     } else if (currentChart === "retention") {
       const message = showRetention(normalized);
       appendLine(message, "success");
@@ -195,7 +199,7 @@ export function handleCommand(input, appendLine) {
     currentChart = "reviews";
     return { handled: true, command: "reviews", range: activeTimeRange };
   }
-  if (normalized === "rt") {
+  if (normalized === "rt" || normalized === "t" || normalized === "time") {
     clearCurrentChart();
     const message = showReviews(activeTimeRange, true);
     appendLine(message, "success");
@@ -402,9 +406,9 @@ export function showHelp(appendLine) {
   appendLine("  plot retention 1y4m - 1 year and 4 months", "muted");
   appendLine("", "muted");
   appendLine("Shortcuts (no 'plot' needed):", "muted");
-  appendLine("  due, reviews     - Show default charts", "muted");
-  appendLine("  1m, 1y4m, all    - Quick ranges for current chart", "muted");
-  appendLine("  z                - Toggle zoom", "muted");
+  appendLine("  due, reviews, time - Show default charts", "muted");
+  appendLine("  1m, 1y4m, all      - Quick ranges for current chart", "muted");
+  appendLine("  z                  - Toggle zoom", "muted");
 }
 
 export function listCharts(appendLine) {
@@ -430,7 +434,7 @@ export function listCharts(appendLine) {
   appendLine("  plot retention 1y4m - Last 1 year and 4 months", "muted");
   appendLine("", "muted");
   appendLine("Shortcuts:", "muted");
-  appendLine("  due, reviews        - Quick chart access", "muted");
+  appendLine("  due, reviews, time  - Quick chart access", "muted");
   appendLine("  2m, 1y4m, all       - Ranges for current chart", "muted");
 }
 

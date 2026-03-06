@@ -211,6 +211,8 @@ export function createCommandTrie() {
     "r", // reviews shortcut
     "reviews time",
     "rt", // reviews time shortcut
+    "time",
+    "t", // time shortcut
     "retention", // retention rate shortcut
     "show",
     "s", // show command
