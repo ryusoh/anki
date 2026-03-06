@@ -79,6 +79,15 @@ function parseCommand(
     state.currentChart = "reviews";
     return { handled: true, command: "plot-reviews", range: state.activeRange };
   }
+  if (normalized === "prt") {
+    state.isZoomed = false; // Auto-unzoom
+    state.currentChart = "reviews-time";
+    return {
+      handled: true,
+      command: "plot-reviews-time",
+      range: state.activeRange,
+    };
+  }
   if (normalized === "d") {
     state.isZoomed = false; // Auto-unzoom
     state.currentChart = "due";
@@ -89,9 +98,16 @@ function parseCommand(
     state.currentChart = "reviews";
     return { handled: true, command: "reviews", range: state.activeRange };
   }
+  if (normalized === "rt" || normalized === "time" || normalized === "t") {
+    state.isZoomed = false; // Auto-unzoom
+    state.currentChart = "reviews-time";
+    return { handled: true, command: "reviews-time", range: state.activeRange };
+  }
 
-  // Handle "plot due/reviews/retention [range]" command
-  const plotMatch = normalized.match(/^plot\s+(due|reviews|retention)\s*(.*)$/);
+  // Handle "plot due/reviews/reviews time/retention [range]" command
+  const plotMatch = normalized.match(
+    /^plot\s+(due|reviews\s+time|reviews|retention)\s*(.*)$/,
+  );
   if (plotMatch) {
     const [, chartType, rangeStr] = plotMatch;
     const range = rangeStr.trim() || state.activeRange;
@@ -661,6 +677,20 @@ function runTests() {
     );
     assert.strictEqual(result4.range, "1y", "Should have 1y range");
 
+    // plot reviews time 6m
+    const result5 = parseCommand("plot reviews time 6m", state);
+    assert.strictEqual(
+      result5.handled,
+      true,
+      "Should handle 'plot reviews time 6m'",
+    );
+    assert.strictEqual(
+      result5.command,
+      "plot-reviews time",
+      "Should be plot-reviews time command",
+    );
+    assert.strictEqual(result5.range, "6m", "Should have 6m range");
+
     console.log("   ✓ 'plot' umbrella command works");
     passed++;
   } catch (e) {
@@ -825,6 +855,38 @@ function runTests() {
       state.currentChart,
       "reviews",
       "Should switch from retention to reviews",
+    );
+
+    // Switch to reviews time from reviews
+    parseCommand("plot reviews time", state);
+    assert.strictEqual(
+      state.currentChart,
+      "reviews time",
+      "Should switch from reviews to reviews time",
+    );
+
+    // Switch to reviews time directly via "time"
+    parseCommand("time", state);
+    assert.strictEqual(
+      state.currentChart,
+      "reviews-time",
+      "Should stay on reviews-time with time shortcut",
+    );
+
+    // Switch back to due via shortcut
+    parseCommand("due", state);
+    assert.strictEqual(
+      state.currentChart,
+      "due",
+      "Should switch from reviews-time to due",
+    );
+
+    // Switch to reviews time directly via "t" shortcut
+    parseCommand("t", state);
+    assert.strictEqual(
+      state.currentChart,
+      "reviews-time",
+      "Should switch from due to reviews-time via t shortcut",
     );
 
     console.log("   ✓ Chart switching works between all chart types");
