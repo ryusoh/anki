@@ -62,7 +62,7 @@ precommit: fmt-check lint check
 	@echo ""
 	@echo "✅ Pre-commit checks passed"
 
-precommit-fix: fetch fmt lint-fix check
+precommit-fix: $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch) fmt lint-fix check
 	@echo ""
 	@echo "✅ Pre-commit fix complete"
 	@echo "Review changes with: git diff"
