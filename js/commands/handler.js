@@ -90,10 +90,9 @@ export function handleCommand(input, appendLine) {
   // Check if it's a valid dynamic range shortcut (e.g. "1y5m")
   const isShortcut = isValidRange(normalized);
 
-  // Check for dynamic range commands (e.g. "plot due 1y5m")
   const dynamicPatterns = [
-    /^plot\s+(due|reviews\s+time\s+deck|reviews\s+deck|reviews\s+time|reviews|retention)\s+(.+)$/,
-    /^(due|future|reviews\s+time\s+deck|reviews\s+deck|reviews\s+time|reviews|retention)\s+(.+)$/,
+    /^plot\s+(due|reviews\s+time\s+deck|reviews\s+deck\s+time|reviews\s+deck|reviews\s+time|reviews|retention)\s+(.+)$/,
+    /^(due|future|reviews\s+time\s+deck|reviews\s+deck\s+time|reviews\s+deck|reviews\s+time|reviews|retention)\s+(.+)$/,
     /^show\s+(due|future|reviews)\s+(.+)$/,
   ];
   const isDynamic = dynamicPatterns.some((re) => {
@@ -352,7 +351,7 @@ export function handleCommand(input, appendLine) {
 
   // Handle "plot due [range]" command (new umbrella syntax)
   const plotMatch = normalized.match(
-    /^plot\s+(due|reviews\s+time\s+deck|reviews\s+deck|reviews\s+time|reviews|retention)\s*(.*)$/,
+    /^plot\s+(due|reviews\s+time\s+deck|reviews\s+deck\s+time|reviews\s+deck|reviews\s+time|reviews|retention)\s*(.*)$/,
   );
   if (plotMatch) {
     const [, chartType, rangeStr] = plotMatch;
@@ -381,7 +380,10 @@ export function handleCommand(input, appendLine) {
       appendLine(message, "success");
       currentChart = "reviews";
       return { handled: true, command: "plot-reviews", range };
-    } else if (chartType === "reviews time deck") {
+    } else if (
+      chartType === "reviews time deck" ||
+      chartType === "reviews deck time"
+    ) {
       const message = showReviews(range, true, true);
       appendLine(message, "success");
       currentChart = "reviews-time-deck";
@@ -408,8 +410,11 @@ export function handleCommand(input, appendLine) {
     return { handled: true, command: "due", range: activeTimeRange };
   }
 
-  // Handle "reviews time deck" command
-  if (normalized === "reviews time deck") {
+  // Handle "reviews time deck" or "reviews deck time" command
+  if (
+    normalized === "reviews time deck" ||
+    normalized === "reviews deck time"
+  ) {
     clearCurrentChart();
     const message = showReviews(activeTimeRange, true, true);
     appendLine(message, "success");
@@ -475,12 +480,12 @@ export function handleCommand(input, appendLine) {
     }
   }
 
-  // Handle "reviews time deck [range]" command
+  // Handle "reviews time deck [range]" or "reviews deck time [range]" command
   const reviewsTimeDeckMatch = normalized.match(
-    /^reviews\s+time\s+deck\s+(.+)$/,
+    /^reviews\s+(time\s+deck|deck\s+time)\s+(.+)$/,
   );
   if (reviewsTimeDeckMatch) {
-    const [, range] = reviewsTimeDeckMatch;
+    const [, , range] = reviewsTimeDeckMatch;
     if (isValidRange(range)) {
       clearCurrentChart();
       activeTimeRange = range;
@@ -501,7 +506,11 @@ export function handleCommand(input, appendLine) {
 
   // Handle "reviews time [range]" command
   const reviewsTimeMatch = normalized.match(/^reviews\s+time\s+(.+)$/);
-  if (reviewsTimeMatch && !normalized.startsWith("reviews time deck")) {
+  if (
+    reviewsTimeMatch &&
+    !normalized.startsWith("reviews time deck") &&
+    !normalized.startsWith("reviews deck time")
+  ) {
     const [, range] = reviewsTimeMatch;
     if (isValidRange(range)) {
       clearCurrentChart();
@@ -536,7 +545,7 @@ export function handleCommand(input, appendLine) {
   }
 
   // Handle "reviews [range]" command
-  // Avoid capturing "reviews time", "reviews deck", "reviews time deck"
+  // Avoid capturing "reviews time", "reviews deck", "reviews time deck", "reviews deck time"
   const reviewsMatch = normalized.match(/^reviews\s+(.+)$/);
   if (
     reviewsMatch &&
