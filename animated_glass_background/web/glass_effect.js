@@ -71,12 +71,19 @@
                   background-image: none !important;
               }
               
-              /* Strip backgrounds from toolbars so the glass effect shows through */
+              /* Strip backgrounds and borders from toolbars so the glass effect shows through seamlessly */
               #header, header, .toolbar, .nav, nav, 
               #bottom, .bottom, #bottom-bar,
               #toolbar, #bottombar, .top-toolbar, .bottom-toolbar {
                   background-color: transparent !important;
                   background-image: none !important;
+                  border: none !important;
+                  box-shadow: none !important;
+              }
+              
+              /* Remove border on main DeckBrowser / Reviewer containers if any */
+              #main, #qa {
+                  border: none !important;
               }
               
               /* Elevate Anki's main content and common add-ons above the glass effect */
@@ -124,6 +131,38 @@
       this.canvas.width = this.width * dpr;
       this.canvas.height = this.height * dpr;
       this.ctx.scale(dpr, dpr);
+
+      // Determine the role of this pane
+      const isBottom =
+        window.location.href.includes("bottom") ||
+        document.getElementById("bottom");
+      const isTop = window.location.href.includes("toolbar") && !isBottom;
+      this.paneRole = isBottom ? "bottom" : isTop ? "top" : "middle";
+
+      // Share our height with the other panes so we can all calculate the total window height
+      localStorage.setItem(`anki_glass_h_${this.paneRole}`, this.height);
+      localStorage.setItem(`anki_glass_w_${this.paneRole}`, this.width);
+    }
+
+    getSyncedLayout() {
+      const hTop = parseInt(localStorage.getItem("anki_glass_h_top") || 40);
+      const hMid = parseInt(localStorage.getItem("anki_glass_h_middle") || 800);
+      const hBot = parseInt(localStorage.getItem("anki_glass_h_bottom") || 40);
+
+      const totalWidth = Math.max(
+        parseInt(localStorage.getItem("anki_glass_w_top") || 0),
+        parseInt(localStorage.getItem("anki_glass_w_middle") || this.width),
+        parseInt(localStorage.getItem("anki_glass_w_bottom") || 0),
+      );
+
+      const totalHeight = hTop + hMid + hBot;
+
+      let offsetY = 0;
+      if (this.paneRole === "bottom") offsetY = hTop + hMid;
+      else if (this.paneRole === "middle") offsetY = hTop;
+      else offsetY = 0; // top
+
+      return { totalWidth, totalHeight, offsetY };
     }
 
     handleMouseMove(e) {
@@ -175,8 +214,11 @@
     draw() {
       this.ctx.clearRect(0, 0, this.width, this.height);
       const radius = 0; // Full bleed background, no rounded corners needed
-      this.drawAmbientGlow(radius);
-      this.drawReflection(radius);
+
+      const layout = this.getSyncedLayout();
+
+      this.drawAmbientGlow(radius, layout);
+      this.drawReflection(radius, layout);
     }
 
     getPointAtProgress(progress, radius) {
@@ -200,7 +242,7 @@
       ctx.closePath();
     }
 
-    drawAmbientGlow(radius) {
+    drawAmbientGlow(radius, layout) {
       const glow = this.options.threeD.ambientGlow;
       const pulse = 0.5 + 0.5 * Math.sin(this.state.ambientPhase * Math.PI * 2);
 
@@ -208,23 +250,18 @@
       this.drawPath(this.ctx, radius);
       this.ctx.clip();
 
-      // Anchor the gradient to the absolute monitor space to unify the separate panes
-      const winX = window.screenX || 0;
-      const winY = window.screenY || 0;
-      // Provide a fallback window size if screen width/height is unavailable
-      const monitorW = window.screen?.width || 1920;
-      const monitorH = window.screen?.height || 1080;
-
+      // A purely horizontal gradient is visually seamless across vertically stacked WebViews
+      // because the reflection sweep acts like a vertical beam of light moving left to right.
       const gradient = this.ctx.createLinearGradient(
-        -winX,
-        -winY,
-        monitorW - winX,
-        monitorH - winY,
+        0,
+        0,
+        layout.totalWidth,
+        0,
       );
-      gradient.addColorStop(0, glow.innerColor || "rgba(118, 183, 229, 0.2)");
+      gradient.addColorStop(0, glow.innerColor || "rgba(118, 183, 229, 0.6)");
       gradient.addColorStop(1, "rgba(0,0,0,0)");
 
-      this.ctx.globalAlpha = (glow.innerOpacity || 0.15) * (0.8 + pulse * 0.2);
+      this.ctx.globalAlpha = (glow.innerOpacity || 0.8) * (0.8 + pulse * 0.2);
       this.ctx.fillStyle = gradient;
       this.ctx.fill();
       this.ctx.restore();
@@ -301,7 +338,7 @@
       this.ctx.restore();
     }
 
-    drawReflection(radius) {
+    drawReflection(radius, layout) {
       const reflection = this.options.threeD.reflection;
       const intensity = reflection.intensity || 0.5;
       const color = reflection.color || "rgba(255,255,255,1)";
@@ -311,17 +348,13 @@
       this.ctx.save();
       this.ctx.globalCompositeOperation = "overlay";
 
-      // Anchor the reflection gradient to absolute monitor space as well
-      const winX = window.screenX || 0;
-      const winY = window.screenY || 0;
-      const monitorW = window.screen?.width || 1920;
-      const monitorH = window.screen?.height || 1080;
-
+      // A purely horizontal gradient is visually seamless across vertically stacked WebViews
+      // because the reflection sweep acts like a vertical beam of light moving left to right.
       const gradient = this.ctx.createLinearGradient(
-        -winX,
-        -winY,
-        monitorW - winX,
-        monitorH - winY,
+        0,
+        0,
+        layout.totalWidth,
+        0,
       );
       const phase = this.state.phase;
       const start = phase - width;
