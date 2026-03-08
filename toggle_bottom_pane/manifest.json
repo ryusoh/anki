@@ -1,6 +1,6 @@
 {
-    "name": "Toggle Bottom Pane",
-    "package": "toggle_bottom_pane",
-    "anki_version": "2.1.0",
-    "version": "1.0.0"
+  "name": "Toggle Bottom Pane",
+  "package": "toggle_bottom_pane",
+  "anki_version": "2.1.0",
+  "version": "1.0.0"
 }
