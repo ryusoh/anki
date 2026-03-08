@@ -107,7 +107,11 @@ export function groupAndSortDecks(byDeckData, showTime) {
     if (deckName === "Unknown") continue;
 
     const total = entries.reduce(
-      (sum, e) => sum + (showTime ? e.time || 0 : e.count || 0),
+      (sum, e) =>
+        sum +
+        (showTime
+          ? e.time || 0
+          : (e.count || 0) + (e.mature || 0) + (e.young || 0)),
       0,
     );
     if (total === 0) continue;
