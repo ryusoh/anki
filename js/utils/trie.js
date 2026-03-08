@@ -221,6 +221,8 @@ export function createCommandTrie() {
     "rtd", // reviews time deck shortcut
     "time",
     "t", // time shortcut
+    "deck",
+    "dk", // deck shortcut
     "retention", // retention rate shortcut
     "show",
     "s", // show command

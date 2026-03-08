@@ -264,11 +264,79 @@ export function handleCommand(input, appendLine) {
     return { handled: true, command: "reviews-deck", range: activeTimeRange };
   }
   if (normalized === "rt" || normalized === "t" || normalized === "time") {
-    clearCurrentChart();
-    const message = showReviews(activeTimeRange, true, false);
-    appendLine(message, "success");
-    currentChart = "reviews-time";
-    return { handled: true, command: "reviews-time", range: activeTimeRange };
+    if (currentChart === "reviews") {
+      clearCurrentChart();
+      const message = showReviews(activeTimeRange, true, false);
+      appendLine(message, "success");
+      currentChart = "reviews-time";
+      return { handled: true, command: "reviews-time", range: activeTimeRange };
+    } else if (currentChart === "reviews-time") {
+      clearCurrentChart();
+      const message = showReviews(activeTimeRange, false, false);
+      appendLine(message, "success");
+      currentChart = "reviews";
+      return { handled: true, command: "reviews", range: activeTimeRange };
+    } else if (currentChart === "reviews-deck") {
+      clearCurrentChart();
+      const message = showReviews(activeTimeRange, true, true);
+      appendLine(message, "success");
+      currentChart = "reviews-time-deck";
+      return {
+        handled: true,
+        command: "reviews-time-deck",
+        range: activeTimeRange,
+      };
+    } else if (currentChart === "reviews-time-deck") {
+      clearCurrentChart();
+      const message = showReviews(activeTimeRange, false, true);
+      appendLine(message, "success");
+      currentChart = "reviews-deck";
+      return { handled: true, command: "reviews-deck", range: activeTimeRange };
+    } else {
+      clearCurrentChart();
+      const message = showReviews(activeTimeRange, true, false);
+      appendLine(message, "success");
+      currentChart = "reviews-time";
+      return { handled: true, command: "reviews-time", range: activeTimeRange };
+    }
+  }
+
+  if (normalized === "deck" || normalized === "dk") {
+    if (currentChart === "reviews") {
+      clearCurrentChart();
+      const message = showReviews(activeTimeRange, false, true);
+      appendLine(message, "success");
+      currentChart = "reviews-deck";
+      return { handled: true, command: "reviews-deck", range: activeTimeRange };
+    } else if (currentChart === "reviews-deck") {
+      clearCurrentChart();
+      const message = showReviews(activeTimeRange, false, false);
+      appendLine(message, "success");
+      currentChart = "reviews";
+      return { handled: true, command: "reviews", range: activeTimeRange };
+    } else if (currentChart === "reviews-time") {
+      clearCurrentChart();
+      const message = showReviews(activeTimeRange, true, true);
+      appendLine(message, "success");
+      currentChart = "reviews-time-deck";
+      return {
+        handled: true,
+        command: "reviews-time-deck",
+        range: activeTimeRange,
+      };
+    } else if (currentChart === "reviews-time-deck") {
+      clearCurrentChart();
+      const message = showReviews(activeTimeRange, true, false);
+      appendLine(message, "success");
+      currentChart = "reviews-time";
+      return { handled: true, command: "reviews-time", range: activeTimeRange };
+    } else {
+      clearCurrentChart();
+      const message = showReviews(activeTimeRange, false, true);
+      appendLine(message, "success");
+      currentChart = "reviews-deck";
+      return { handled: true, command: "reviews-deck", range: activeTimeRange };
+    }
   }
   if (normalized === "rtd") {
     clearCurrentChart();
