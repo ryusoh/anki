@@ -781,11 +781,11 @@ def reviewer_hooks():
 
         menu.addMenu(submenu)
 
-    anki.hooks.addHook('AnkiWebView.contextMenuEvent', on_context_menu)
-    anki.hooks.addHook('EditorWebView.contextMenuEvent', on_context_menu)
-    anki.hooks.addHook('Reviewer.contextMenuEvent',
-                       lambda reviewer, menu:
-                       on_context_menu(reviewer.web, menu))
+    # anki.hooks.addHook('AnkiWebView.contextMenuEvent', on_context_menu)
+    # anki.hooks.addHook('EditorWebView.contextMenuEvent', on_context_menu)
+    # anki.hooks.addHook('Reviewer.contextMenuEvent',
+    #                    lambda reviewer, menu:
+    #                    on_context_menu(reviewer.web, menu))
 
 
 def temp_files():
