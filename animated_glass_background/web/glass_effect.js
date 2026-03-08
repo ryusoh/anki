@@ -117,11 +117,14 @@
         const isBottom = window.location.href.includes("bottom") || document.getElementById("bottom");
         const isTop = window.location.href.includes("toolbar") && !isBottom;
 
-        if (isTop) {
+        // Prevent writing 0 dimensions when Qt initializes WebViews in the background before showing them
+        if (isTop && this.height > 0) {
             localStorage.setItem('anki_glass_h_top', this.height);
-        } else if (!isBottom) {
+        } else if (!isBottom && this.height > 50) {
             localStorage.setItem('anki_glass_h_middle', this.height);
-            localStorage.setItem('anki_glass_w_middle', this.width);
+            if (this.width > 50) {
+                localStorage.setItem('anki_glass_w_middle', this.width);
+            }
         }
     }
 
@@ -135,9 +138,15 @@
         }
 
         // Unify the Top and Middle panes into a single virtual canvas
-        const hTop = parseInt(localStorage.getItem('anki_glass_h_top') || 40);
-        const hMid = parseInt(localStorage.getItem('anki_glass_h_middle') || 800);
-        const wMid = parseInt(localStorage.getItem('anki_glass_w_middle') || this.width);
+        let hTop = parseInt(localStorage.getItem('anki_glass_h_top'));
+        if (isNaN(hTop) || hTop <= 0) hTop = 40;
+        
+        let hMid = parseInt(localStorage.getItem('anki_glass_h_middle'));
+        // Fallback to local height or a safe minimum if the bridge is empty
+        if (isNaN(hMid) || hMid <= 50) hMid = Math.max(this.height, 800);
+        
+        let wMid = parseInt(localStorage.getItem('anki_glass_w_middle'));
+        if (isNaN(wMid) || wMid <= 50) wMid = Math.max(this.width, 1000);
 
         const totalWidth = wMid;
         const totalHeight = hTop + hMid;
@@ -199,28 +208,31 @@
     }
 
     drawAmbientGlow(radius, layout) {
-      const glow = this.options.threeD.ambientGlow;
-      const pulse = 0.5 + 0.5 * Math.sin(this.state.ambientPhase * Math.PI * 2);
+        const glow = this.options.threeD.ambientGlow;
+        const pulse = 0.5 + 0.5 * Math.sin(this.state.ambientPhase * Math.PI * 2);
 
-      this.ctx.save();
-      this.drawPath(this.ctx, radius);
-      this.ctx.clip();
+        this.ctx.save();
+        this.drawPath(this.ctx, radius);
+        this.ctx.clip();
 
-      const gradient = this.ctx.createLinearGradient(
-        0,
-        -layout.offsetY,
-        layout.totalWidth,
-        layout.totalHeight - layout.offsetY
-      );
-      gradient.addColorStop(0, glow.innerColor || "rgba(118, 183, 229, 0.4)");
-      gradient.addColorStop(1, "rgba(0,0,0,0)");
+        const gradient = this.ctx.createLinearGradient(
+          0,
+          -layout.offsetY,
+          layout.totalWidth,
+          layout.totalHeight - layout.offsetY
+        );
 
-      this.ctx.globalAlpha = (glow.innerOpacity || 0.8) * (0.8 + pulse * 0.2);
-      this.ctx.fillStyle = gradient;
-      this.ctx.fill();
-      this.ctx.restore();
+        // Distribute the blue glow more evenly across the diagonal
+        const baseColor = glow.innerColor || "rgba(118, 183, 229, 0.5)";
+        gradient.addColorStop(0, baseColor);
+        gradient.addColorStop(0.6, "rgba(118, 183, 229, 0.25)");
+        gradient.addColorStop(1, "rgba(118, 183, 229, 0.05)");
+
+        this.ctx.globalAlpha = (glow.innerOpacity || 0.8) * (0.8 + pulse * 0.2);
+        this.ctx.fillStyle = gradient;
+        this.ctx.fill();
+        this.ctx.restore();
     }
-
     drawReflection(radius, layout) {
       const reflection = this.options.threeD.reflection;
       const intensity = reflection.intensity || 0.5;
