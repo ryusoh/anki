@@ -99,6 +99,100 @@ function getDeckColor(index) {
   return DECK_COLORS[index % DECK_COLORS.length];
 }
 
+export function groupAndSortDecks(byDeckData, showTime) {
+  const groups = {};
+
+  // Group by top-level deck name
+  for (const [deckName, entries] of Object.entries(byDeckData)) {
+    if (deckName === "Unknown") continue;
+
+    const total = entries.reduce(
+      (sum, e) => sum + (showTime ? e.time || 0 : e.count || 0),
+      0,
+    );
+    if (total === 0) continue;
+
+    const topLevelName = deckName.split("::")[0];
+    if (!groups[topLevelName]) {
+      groups[topLevelName] = {
+        total: 0,
+        subDecks: [],
+      };
+    }
+
+    groups[topLevelName].total += total;
+    groups[topLevelName].subDecks.push({
+      deckName,
+      total,
+    });
+  }
+
+  // Sort groups by descending total
+  const sortedGroups = Object.keys(groups).sort(
+    (a, b) => groups[b].total - groups[a].total,
+  );
+
+  const result = [];
+  let groupIndex = 0;
+
+  for (const topLevel of sortedGroups) {
+    const group = groups[topLevel];
+    // Sort sub-decks within group by descending total
+    group.subDecks.sort((a, b) => b.total - a.total);
+
+    let subIndex = 0;
+    for (const subDeck of group.subDecks) {
+      result.push({
+        deckName: subDeck.deckName,
+        groupIndex,
+        subIndex,
+        totalInGroup: group.subDecks.length,
+      });
+      subIndex++;
+    }
+    groupIndex++;
+  }
+
+  return result;
+}
+
+export function getGroupedDeckColor(groupIndex, subIndex, totalInGroup) {
+  const baseColor = DECK_COLORS[groupIndex % DECK_COLORS.length];
+
+  if (totalInGroup <= 1 || subIndex === 0) return baseColor;
+
+  // Expected format: "hsla(H, S%, L%, A)"
+  const match = baseColor.match(
+    /hsla\((\d+),\s*(\d+)%,\s*([\d.]+)%,\s*([\d.]+)\)/,
+  );
+  if (!match) return baseColor;
+
+  let h = parseInt(match[1], 10);
+  const s = parseInt(match[2], 10);
+  let l = parseFloat(match[3]);
+  const a = match[4];
+
+  // Prime-number length offset arrays guarantee unique combinations
+  // without cumulatively drifting into mathematical maximums (clamping).
+  // Total unique combos within the family = 5 * 7 * 3 = 105 distinct colors.
+  const hueOffsets = [0, 9, -9, 16, -16]; // Length 5
+  const lightOffsets = [0, 18, -18, 10, -10, 26, -26]; // Length 7
+  const satOffsets = [0, -25, -12]; // Length 3
+
+  h = (h + hueOffsets[subIndex % hueOffsets.length] + 360) % 360;
+  l = Math.max(
+    25,
+    Math.min(85, l + lightOffsets[subIndex % lightOffsets.length]),
+  );
+
+  const newS = Math.max(
+    40,
+    Math.min(100, s + satOffsets[subIndex % satOffsets.length]),
+  );
+
+  return `hsla(${Math.round(h)}, ${Math.round(newS)}%, ${Math.round(l)}%, ${a})`;
+}
+
 export function renderReviewsChart(data, showTime = false, byDeck = false) {
   const canvas = document.getElementById("runningAmountCanvas");
   const section = document.getElementById("runningAmountSection");
@@ -152,29 +246,11 @@ export function renderReviewsChart(data, showTime = false, byDeck = false) {
     let datasetIndex = 0;
     const legendHTML = [];
 
-    // Sort decks by total reviews/time to put the biggest at the bottom
-    const deckNames = Object.keys(data.byDeck).sort((a, b) => {
-      const sumA = data.byDeck[a].reduce(
-        (sum, d) => sum + (showTime ? d.time : d.count),
-        0,
-      );
-      const sumB = data.byDeck[b].reduce(
-        (sum, d) => sum + (showTime ? d.time : d.count),
-        0,
-      );
-      return sumB - sumA;
-    });
+    const groupedDecks = groupAndSortDecks(data.byDeck, showTime);
 
-    for (const deckName of deckNames) {
-      if (deckName === "Unknown") continue; // Filter out deleted/unknown cards
-
+    for (const deckInfo of groupedDecks) {
+      const deckName = deckInfo.deckName;
       const deckEntries = data.byDeck[deckName];
-      // Skip empty decks in this range
-      const totalForDeck = deckEntries.reduce(
-        (sum, d) => sum + (showTime ? d.time : d.count),
-        0,
-      );
-      if (totalForDeck === 0) continue;
 
       let deckData;
       if (showTime) {
@@ -183,8 +259,12 @@ export function renderReviewsChart(data, showTime = false, byDeck = false) {
         deckData = deckEntries.map((e) => e.count || 0);
       }
 
-      // Assign a beautiful distinct color based on the consistently sorted order
-      const color = getDeckColor(datasetIndex);
+      // Assign a related color dynamically based on group category
+      const color = getGroupedDeckColor(
+        deckInfo.groupIndex,
+        deckInfo.subIndex,
+        deckInfo.totalInGroup,
+      );
 
       datasets.push({
         label: deckName,
