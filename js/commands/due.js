@@ -3,7 +3,7 @@
  * Displays upcoming reviews split by mature/young cards
  */
 
-import { bindLegendToggle } from "@js/commands/legendToggle.js";
+import { bindLegendToggle, isLabelHidden } from "@js/commands/legendToggle.js";
 import { parseRange, DEFAULT_RANGE } from "@js/utils/timeRange.js";
 
 const Chart = window.Chart;
@@ -151,6 +151,7 @@ export function renderFutureDueChart(data, byDeck = false, rangeDays = null) {
 
         datasets.push({
           label: deckName,
+          hidden: isLabelHidden(deckName),
           data: counts,
           backgroundColor: color,
           borderRadius: numDays > 100 ? 0 : 4,
@@ -194,6 +195,7 @@ export function renderFutureDueChart(data, byDeck = false, rangeDays = null) {
 
     datasets.push({
       label: "Mature",
+      hidden: isLabelHidden("Mature"),
       data: matureDataset,
       backgroundColor: "rgba(72, 199, 142, 0.85)",
       borderRadius: radius,
@@ -203,6 +205,7 @@ export function renderFutureDueChart(data, byDeck = false, rangeDays = null) {
     });
     datasets.push({
       label: "Young",
+      hidden: isLabelHidden("Young"),
       data: youngDataset,
       backgroundColor: "rgba(73, 168, 236, 0.85)",
       borderRadius: radius,

@@ -10,6 +10,18 @@
  *   bindLegendToggle(chart, legendEl);
  */
 
+// Persistent state for hidden dataset labels
+const hiddenLabels = new Set();
+
+/**
+ * Check if a label is currently hidden in the global legend state.
+ * @param {string} label
+ * @returns {boolean}
+ */
+export function isLabelHidden(label) {
+  return hiddenLabels.has(label);
+}
+
 /**
  * Bind click handlers on legend items to toggle dataset visibility.
  *
@@ -23,14 +35,46 @@ export function bindLegendToggle(chart, legendEl) {
   if (!chart || !legendEl) return;
 
   const items = legendEl.querySelectorAll("[data-dataset-index]");
+
+  // 1. Initial sync: Apply any previously hidden labels from our global state
+  chart.data.datasets.forEach((dataset, index) => {
+    if (hiddenLabels.has(dataset.label)) {
+      const meta = chart.getDatasetMeta(index);
+      meta.hidden = true;
+
+      // Find corresponding legend item and add disabled class
+      const item = Array.from(items).find(
+        (i) => parseInt(i.dataset.datasetIndex, 10) === index,
+      );
+      if (item) {
+        item.classList.add("legend-disabled");
+      }
+    }
+  });
+
+  // Trigger update if we modified any visibility (no animation for initial sync)
+  chart.update("none");
+
+  // 2. Click handlers: Toggle visibility and update global state
   items.forEach((item) => {
     item.addEventListener("click", () => {
       const index = parseInt(item.dataset.datasetIndex, 10);
       if (isNaN(index)) return;
 
+      const dataset = chart.data.datasets[index];
       const meta = chart.getDatasetMeta(index);
+
+      // Toggle state
       meta.hidden = !meta.hidden;
       item.classList.toggle("legend-disabled", meta.hidden);
+
+      // Persist by label name
+      if (meta.hidden) {
+        if (dataset.label) hiddenLabels.add(dataset.label);
+      } else {
+        if (dataset.label) hiddenLabels.delete(dataset.label);
+      }
+
       chart.update("active"); // animated transition
     });
   });
