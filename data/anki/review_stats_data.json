@@ -46157,6 +46157,27 @@
       "relearn": 37,
       "filtered": 0,
       "retention": 0.7868
+    },
+    {
+      "date": "2026-03-08",
+      "count": 259,
+      "time": 2863.5,
+      "time_mature": 2443.2,
+      "time_young": 420.3,
+      "time_learn": 6.7,
+      "time_relearn": 153.2,
+      "time_filtered": 0.0,
+      "mature": 199,
+      "young": 60,
+      "again": 33,
+      "hard": 14,
+      "good": 0,
+      "easy": 200,
+      "learn": 3,
+      "review": 211,
+      "relearn": 33,
+      "filtered": 0,
+      "retention": 0.8097
     }
   ],
   "reviewsByDeck": {
@@ -91919,6 +91940,27 @@
         "relearn": 14,
         "filtered": 0,
         "retention": 0.6533
+      },
+      {
+        "date": "2026-03-08",
+        "count": 59,
+        "time": 300.7,
+        "time_mature": 191.2,
+        "time_young": 109.5,
+        "time_learn": 0.0,
+        "time_relearn": 76.2,
+        "time_filtered": 0.0,
+        "mature": 39,
+        "young": 20,
+        "again": 10,
+        "hard": 9,
+        "good": 0,
+        "easy": 39,
+        "learn": 0,
+        "review": 48,
+        "relearn": 10,
+        "filtered": 0,
+        "retention": 0.6724
       }
     ],
     "\u8a00\u8a9e::\u65e5\u8a9e": [
@@ -137512,6 +137554,27 @@
         "relearn": 13,
         "filtered": 0,
         "retention": 0.7973
+      },
+      {
+        "date": "2026-03-08",
+        "count": 60,
+        "time": 261.9,
+        "time_mature": 210.9,
+        "time_young": 51.1,
+        "time_learn": 4.3,
+        "time_relearn": 16.1,
+        "time_filtered": 0.0,
+        "mature": 47,
+        "young": 13,
+        "again": 6,
+        "hard": 5,
+        "good": 0,
+        "easy": 46,
+        "learn": 2,
+        "review": 49,
+        "relearn": 6,
+        "filtered": 0,
+        "retention": 0.807
       }
     ],
     "Unknown": [
@@ -191906,6 +191969,27 @@
         "relearn": 0,
         "filtered": 0,
         "retention": 1.0
+      },
+      {
+        "date": "2026-03-08",
+        "count": 42,
+        "time": 1472.8,
+        "time_mature": 1323.5,
+        "time_young": 149.3,
+        "time_learn": 0.0,
+        "time_relearn": 0.0,
+        "time_filtered": 0.0,
+        "mature": 37,
+        "young": 5,
+        "again": 0,
+        "hard": 0,
+        "good": 0,
+        "easy": 40,
+        "learn": 0,
+        "review": 40,
+        "relearn": 0,
+        "filtered": 0,
+        "retention": 1.0
       }
     ],
     "\u8a00\u8a9e::\u7ca4\u8a9e": [
@@ -236197,6 +236281,27 @@
         "relearn": 1,
         "filtered": 0,
         "retention": 0.9375
+      },
+      {
+        "date": "2026-03-08",
+        "count": 27,
+        "time": 101.2,
+        "time_mature": 82.4,
+        "time_young": 18.8,
+        "time_learn": 0.0,
+        "time_relearn": 23.2,
+        "time_filtered": 0.0,
+        "mature": 23,
+        "young": 4,
+        "again": 4,
+        "hard": 0,
+        "good": 0,
+        "easy": 22,
+        "learn": 0,
+        "review": 22,
+        "relearn": 4,
+        "filtered": 0,
+        "retention": 0.8462
       }
     ],
     "\u8a00\u8a9e::\u5449\u8a9e": [
@@ -280572,6 +280677,27 @@
         "relearn": 4,
         "filtered": 0,
         "retention": 0.5
+      },
+      {
+        "date": "2026-03-08",
+        "count": 25,
+        "time": 99.9,
+        "time_mature": 51.1,
+        "time_young": 48.7,
+        "time_learn": 2.5,
+        "time_relearn": 18.1,
+        "time_filtered": 0.0,
+        "mature": 16,
+        "young": 9,
+        "again": 6,
+        "hard": 0,
+        "good": 0,
+        "easy": 16,
+        "learn": 1,
+        "review": 15,
+        "relearn": 6,
+        "filtered": 0,
+        "retention": 0.7273
       }
     ],
     "\u8a00\u8a9e::\u53f0\u8a9e": [
@@ -324758,6 +324884,27 @@
         "relearn": 5,
         "filtered": 0,
         "retention": 0.6875
+      },
+      {
+        "date": "2026-03-08",
+        "count": 22,
+        "time": 75.4,
+        "time_mature": 43.4,
+        "time_young": 32.0,
+        "time_learn": 0.0,
+        "time_relearn": 19.6,
+        "time_filtered": 0.0,
+        "mature": 14,
+        "young": 8,
+        "again": 7,
+        "hard": 0,
+        "good": 0,
+        "easy": 13,
+        "learn": 0,
+        "review": 13,
+        "relearn": 7,
+        "filtered": 0,
+        "retention": 0.65
       }
     ],
     "\u91d1\u878d::\u7406\u8ad6": [
@@ -338092,6 +338239,27 @@
         "easy": 21,
         "learn": 0,
         "review": 21,
+        "relearn": 0,
+        "filtered": 0,
+        "retention": 1.0
+      },
+      {
+        "date": "2026-03-08",
+        "count": 24,
+        "time": 551.6,
+        "time_mature": 540.6,
+        "time_young": 10.9,
+        "time_learn": 0.0,
+        "time_relearn": 0.0,
+        "time_filtered": 0.0,
+        "mature": 23,
+        "young": 1,
+        "again": 0,
+        "hard": 0,
+        "good": 0,
+        "easy": 24,
+        "learn": 0,
+        "review": 24,
         "relearn": 0,
         "filtered": 0,
         "retention": 1.0
