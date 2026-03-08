@@ -148,14 +148,18 @@
     }
 
     update(time) {
-      if (!this.state.lastTime) this.state.lastTime = time;
-      const delta = (time - this.state.lastTime) / 1000;
-      this.state.lastTime = time;
+      // Use a global timer (Date.now()) so all separate webviews are perfectly synchronized in time
+      const globalTime = Date.now();
+
+      if (!this.state.lastTime) this.state.lastTime = globalTime;
+      const delta = (globalTime - this.state.lastTime) / 1000;
+      this.state.lastTime = globalTime;
 
       const speed = this.options.threeD.reflection.speed || 0.05;
-      this.state.phase = (this.state.phase + delta * speed) % 1;
+      // Force phase based absolutely on time rather than accumulating delta to avoid drift across webviews
+      this.state.phase = ((globalTime / 1000) * speed) % 1;
       this.state.continuousPhase += delta * speed;
-      this.state.ambientPhase = (this.state.ambientPhase + delta * 0.5) % 1;
+      this.state.ambientPhase = ((globalTime / 1000) * 0.5) % 1;
 
       const damping = 0.1;
       this.state.pointerSmoothed.x +=
@@ -204,11 +208,18 @@
       this.drawPath(this.ctx, radius);
       this.ctx.clip();
 
+      // Anchor the gradient to the absolute monitor space to unify the separate panes
+      const winX = window.screenX || 0;
+      const winY = window.screenY || 0;
+      // Provide a fallback window size if screen width/height is unavailable
+      const monitorW = window.screen?.width || 1920;
+      const monitorH = window.screen?.height || 1080;
+
       const gradient = this.ctx.createLinearGradient(
-        0,
-        0,
-        this.width,
-        this.height,
+        -winX,
+        -winY,
+        monitorW - winX,
+        monitorH - winY,
       );
       gradient.addColorStop(0, glow.innerColor || "rgba(118, 183, 229, 0.2)");
       gradient.addColorStop(1, "rgba(0,0,0,0)");
@@ -300,11 +311,17 @@
       this.ctx.save();
       this.ctx.globalCompositeOperation = "overlay";
 
+      // Anchor the reflection gradient to absolute monitor space as well
+      const winX = window.screenX || 0;
+      const winY = window.screenY || 0;
+      const monitorW = window.screen?.width || 1920;
+      const monitorH = window.screen?.height || 1080;
+
       const gradient = this.ctx.createLinearGradient(
-        0,
-        0,
-        this.width,
-        this.height,
+        -winX,
+        -winY,
+        monitorW - winX,
+        monitorH - winY,
       );
       const phase = this.state.phase;
       const start = phase - width;
