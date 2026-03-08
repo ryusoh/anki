@@ -41,6 +41,8 @@
         pointerSmoothed: { x: 0, y: 0 },
       };
 
+      this.cachedLayout = null;
+      this.lastLayoutUpdate = 0;
       this.init();
     }
 
@@ -107,7 +109,11 @@
           "body > *:not(#glass-effect-bg):not(script):not(style)",
         );
         roots.forEach((el) => {
-          if (el.style) {
+          if (
+            el.style &&
+            (el.style.backgroundColor !== "transparent" ||
+              el.style.backgroundImage !== "none")
+          ) {
             el.style.setProperty(
               "background-color",
               "transparent",
@@ -119,8 +125,27 @@
       };
 
       appendCanvasAndStyle();
-      // Ensure Svelte doesn't destroy the canvas during hydration
-      setInterval(appendCanvasAndStyle, 250);
+
+      // Use MutationObserver instead of setInterval for better performance
+      const observer = new MutationObserver((mutations) => {
+        let shouldUpdate = false;
+        for (const mutation of mutations) {
+          if (
+            mutation.type === "childList" ||
+            (mutation.type === "attributes" &&
+              mutation.attributeName === "style")
+          ) {
+            shouldUpdate = true;
+            break;
+          }
+        }
+        if (shouldUpdate) appendCanvasAndStyle();
+      });
+      observer.observe(document.body, {
+        childList: true,
+        attributes: true,
+        subtree: false,
+      });
 
       window.addEventListener("resize", () => this.resize());
       this.resize();
@@ -138,6 +163,7 @@
       this.canvas.width = this.width * dpr;
       this.canvas.height = this.height * dpr;
       this.ctx.scale(dpr, dpr);
+      this.cachedLayout = null; // Reset cache on resize
 
       const isBottom =
         window.location.href.includes("bottom") ||
@@ -156,6 +182,12 @@
     }
 
     getSyncedLayout() {
+      // Throttling localStorage access to once per 100ms
+      const now = Date.now();
+      if (this.cachedLayout && now - this.lastLayoutUpdate < 100) {
+        return this.cachedLayout;
+      }
+
       const isBottom =
         window.location.href.includes("bottom") ||
         document.getElementById("bottom");
@@ -163,25 +195,32 @@
 
       if (isBottom) {
         // The bottom pane acts as a completely independent glass panel
-        return { totalWidth: this.width, totalHeight: this.height, offsetY: 0 };
+        this.cachedLayout = {
+          totalWidth: this.width,
+          totalHeight: this.height,
+          offsetY: 0,
+        };
+      } else {
+        // Unify the Top and Middle panes into a single virtual canvas
+        let hTop = parseInt(localStorage.getItem("anki_glass_h_top"));
+        if (isNaN(hTop) || hTop <= 0) hTop = 40;
+
+        let hMid = parseInt(localStorage.getItem("anki_glass_h_middle"));
+        // Fallback to local height or a safe minimum if the bridge is empty
+        if (isNaN(hMid) || hMid <= 50) hMid = Math.max(this.height, 800);
+
+        let wMid = parseInt(localStorage.getItem("anki_glass_w_middle"));
+        if (isNaN(wMid) || wMid <= 50) wMid = Math.max(this.width, 1000);
+
+        const totalWidth = wMid;
+        const totalHeight = hTop + hMid;
+        const offsetY = isTop ? 0 : hTop;
+
+        this.cachedLayout = { totalWidth, totalHeight, offsetY };
       }
 
-      // Unify the Top and Middle panes into a single virtual canvas
-      let hTop = parseInt(localStorage.getItem("anki_glass_h_top"));
-      if (isNaN(hTop) || hTop <= 0) hTop = 40;
-
-      let hMid = parseInt(localStorage.getItem("anki_glass_h_middle"));
-      // Fallback to local height or a safe minimum if the bridge is empty
-      if (isNaN(hMid) || hMid <= 50) hMid = Math.max(this.height, 800);
-
-      let wMid = parseInt(localStorage.getItem("anki_glass_w_middle"));
-      if (isNaN(wMid) || wMid <= 50) wMid = Math.max(this.width, 1000);
-
-      const totalWidth = wMid;
-      const totalHeight = hTop + hMid;
-      const offsetY = isTop ? 0 : hTop;
-
-      return { totalWidth, totalHeight, offsetY };
+      this.lastLayoutUpdate = now;
+      return this.cachedLayout;
     }
 
     handleMouseMove(e) {

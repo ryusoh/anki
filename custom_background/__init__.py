@@ -54,12 +54,15 @@ mw.addonManager.setWebExports(__name__, regex)
 #reset background when refreshing page (for use with "random" setting)
 def reset_background(new_state, old_state):
     if new_state == "deckBrowser":
-        mw.deckBrowser.show()
-        if pointVersion() >= 27:
-            #mw.reset(True)
-            # Anki 2.1.28 and up no longer fully redraw the toolbar on mw reset,
-            # so trigger the redraw manually:
-            mw.toolbar.draw()
+        # mw.deckBrowser.show() is handled by Anki, calling it here can be redundant
+        
+        # Only redraw toolbar if background actually changed (e.g. random mode)
+        # or if it's the first load.
+        global last_imgname
+        if gc("Image name for background", "").lower() == "random" or (globals().get('last_imgname') != globals().get('imgname')):
+            if pointVersion() >= 27:
+                mw.toolbar.draw()
+            globals()['last_imgname'] = globals().get('imgname')
 
 gui_hooks.state_did_change.append(reset_background)
 
