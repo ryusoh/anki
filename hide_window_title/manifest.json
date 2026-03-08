@@ -1,6 +1,6 @@
 {
-    "name": "Hide Window Title",
-    "package": "hide_window_title",
-    "anki_version": "2.1.0",
-    "version": "1.0.0"
+  "name": "Hide Window Title",
+  "package": "hide_window_title",
+  "anki_version": "2.1.0",
+  "version": "1.0.0"
 }
