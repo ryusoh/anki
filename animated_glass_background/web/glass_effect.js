@@ -107,16 +107,46 @@
     }
 
     resize() {
-      this.width = window.innerWidth;
-      this.height = window.innerHeight;
-      const dpr = window.devicePixelRatio || 1;
-      this.canvas.width = this.width * dpr;
-      this.canvas.height = this.height * dpr;
-      this.ctx.scale(dpr, dpr);
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
+        const dpr = window.devicePixelRatio || 1;
+        this.canvas.width = this.width * dpr;
+        this.canvas.height = this.height * dpr;
+        this.ctx.scale(dpr, dpr);
+
+        const isBottom = window.location.href.includes("bottom") || document.getElementById("bottom");
+        const isTop = window.location.href.includes("toolbar") && !isBottom;
+
+        if (isTop) {
+            localStorage.setItem('anki_glass_h_top', this.height);
+        } else if (!isBottom) {
+            localStorage.setItem('anki_glass_h_middle', this.height);
+            localStorage.setItem('anki_glass_w_middle', this.width);
+        }
     }
 
-    handleMouseMove(e) {
-      const x = e.clientX / this.width - 0.5;
+    getSyncedLayout() {
+        const isBottom = window.location.href.includes("bottom") || document.getElementById("bottom");
+        const isTop = window.location.href.includes("toolbar") && !isBottom;
+
+        if (isBottom) {
+            // The bottom pane acts as a completely independent glass panel
+            return { totalWidth: this.width, totalHeight: this.height, offsetY: 0 };
+        }
+
+        // Unify the Top and Middle panes into a single virtual canvas
+        const hTop = parseInt(localStorage.getItem('anki_glass_h_top') || 40);
+        const hMid = parseInt(localStorage.getItem('anki_glass_h_middle') || 800);
+        const wMid = parseInt(localStorage.getItem('anki_glass_w_middle') || this.width);
+
+        const totalWidth = wMid;
+        const totalHeight = hTop + hMid;
+        const offsetY = isTop ? 0 : hTop;
+
+        return { totalWidth, totalHeight, offsetY };
+    }
+
+    handleMouseMove(e) {      const x = e.clientX / this.width - 0.5;
       const y = e.clientY / this.height - 0.5;
       this.state.pointer.x = x * 2;
       this.state.pointer.y = y * 2;
@@ -157,8 +187,9 @@
     draw() {
       this.ctx.clearRect(0, 0, this.width, this.height);
       const radius = 0;
-      this.drawAmbientGlow(radius);
-      this.drawReflection(radius);
+      const layout = this.getSyncedLayout();
+      this.drawAmbientGlow(radius, layout);
+      this.drawReflection(radius, layout);
     }
 
     drawPath(ctx, radius) {
@@ -167,7 +198,7 @@
       ctx.closePath();
     }
 
-    drawAmbientGlow(radius) {
+    drawAmbientGlow(radius, layout) {
       const glow = this.options.threeD.ambientGlow;
       const pulse = 0.5 + 0.5 * Math.sin(this.state.ambientPhase * Math.PI * 2);
 
@@ -177,9 +208,9 @@
 
       const gradient = this.ctx.createLinearGradient(
         0,
-        0,
-        this.width,
-        this.height,
+        -layout.offsetY,
+        layout.totalWidth,
+        layout.totalHeight - layout.offsetY
       );
       gradient.addColorStop(0, glow.innerColor || "rgba(118, 183, 229, 0.4)");
       gradient.addColorStop(1, "rgba(0,0,0,0)");
@@ -190,7 +221,7 @@
       this.ctx.restore();
     }
 
-    drawReflection(radius) {
+    drawReflection(radius, layout) {
       const reflection = this.options.threeD.reflection;
       const intensity = reflection.intensity || 0.5;
       const color = reflection.color || "rgba(255,255,255,1)";
@@ -202,9 +233,9 @@
 
       const gradient = this.ctx.createLinearGradient(
         0,
-        0,
-        this.width,
-        this.height,
+        -layout.offsetY,
+        layout.totalWidth,
+        layout.totalHeight - layout.offsetY
       );
 
       const phase = this.state.phase;
