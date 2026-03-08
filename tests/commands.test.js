@@ -172,14 +172,17 @@ function parseCommand(
 
   // Handle "plot due/reviews/reviews time/retention [range]" command
   const plotMatch = normalized.match(
-    /^plot\s+(due|reviews\s+time\s+deck|reviews\s+deck|reviews\s+time|reviews|retention)\s*(.*)$/,
+    /^plot\s+(due|reviews\s+time\s+deck|reviews\s+deck\s+time|reviews\s+deck|reviews\s+time|reviews|retention)\s*(.*)$/,
   );
   if (plotMatch) {
     const [, chartType, rangeStr] = plotMatch;
     const range = rangeStr.trim() || state.activeRange;
     if (range in TIME_RANGES) {
       state.isZoomed = false; // Auto-unzoom
-      const formattedChartType = chartType.replace(/\s+/g, "-");
+      let formattedChartType = chartType.replace(/\s+/g, "-");
+      if (formattedChartType === "reviews-deck-time") {
+        formattedChartType = "reviews-time-deck";
+      }
       state.currentChart = formattedChartType;
       state.activeRange = range;
       return {

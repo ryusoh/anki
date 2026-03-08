@@ -206,6 +206,8 @@ export function createCommandTrie() {
     "prt", // plot reviews time abbreviation
     "plot reviews time deck",
     "prtd", // plot reviews time deck abbreviation
+    "plot reviews deck time",
+    "prdt", // plot reviews deck time abbreviation
     "plot retention", // retention rate chart
     "due",
     "d", // due shortcut
@@ -219,6 +221,8 @@ export function createCommandTrie() {
     "rt", // reviews time shortcut
     "reviews time deck",
     "rtd", // reviews time deck shortcut
+    "reviews deck time",
+    "rdt", // reviews deck time shortcut
     "time",
     "t", // time shortcut
     "deck",
@@ -249,6 +253,7 @@ export function createCommandTrie() {
     trie.insert(`plot reviews deck ${range}`);
     trie.insert(`plot reviews time ${range}`);
     trie.insert(`plot reviews time deck ${range}`);
+    trie.insert(`plot reviews deck time ${range}`);
     trie.insert(`plot retention ${range}`);
     trie.insert(`show due ${range}`);
     trie.insert(`show reviews ${range}`);
