@@ -92,8 +92,8 @@ export function handleCommand(input, appendLine) {
 
   // Check for dynamic range commands (e.g. "plot due 1y5m")
   const dynamicPatterns = [
-    /^plot\s+(due|reviews\s+time|reviews|retention)\s+(.+)$/,
-    /^(due|future|reviews\s+time|reviews|retention)\s+(.+)$/,
+    /^plot\s+(due|reviews\s+time\s+deck|reviews\s+deck|reviews\s+time|reviews|retention)\s+(.+)$/,
+    /^(due|future|reviews\s+time\s+deck|reviews\s+deck|reviews\s+time|reviews|retention)\s+(.+)$/,
     /^show\s+(due|future|reviews)\s+(.+)$/,
   ];
   const isDynamic = dynamicPatterns.some((re) => {
@@ -129,13 +129,21 @@ export function handleCommand(input, appendLine) {
     // Apply shortcut to current chart (don't switch)
     activeTimeRange = normalized;
     if (currentChart === "reviews") {
-      const message = showReviews(normalized, false);
+      const message = showReviews(normalized, false, false);
       appendLine(message, "success");
       return { handled: true, command: "reviews", range: normalized };
     } else if (currentChart === "reviews-time") {
-      const message = showReviews(normalized, true);
+      const message = showReviews(normalized, true, false);
       appendLine(message, "success");
       return { handled: true, command: "reviews-time", range: normalized };
+    } else if (currentChart === "reviews-deck") {
+      const message = showReviews(normalized, false, true);
+      appendLine(message, "success");
+      return { handled: true, command: "reviews-deck", range: normalized };
+    } else if (currentChart === "reviews-time-deck") {
+      const message = showReviews(normalized, true, true);
+      appendLine(message, "success");
+      return { handled: true, command: "reviews-time-deck", range: normalized };
     } else if (currentChart === "retention") {
       const message = showRetention(normalized);
       appendLine(message, "success");
@@ -160,14 +168,31 @@ export function handleCommand(input, appendLine) {
       "muted",
     );
     appendLine("Subcommands:", "muted");
-    appendLine("  plot due [range]          - Due forecast chart", "muted");
-    appendLine("  plot reviews [range]      - Review history chart", "muted");
     appendLine(
-      "  plot reviews time [range] - Review time history chart",
+      "  plot due [range]               - Due forecast chart",
       "muted",
     );
-    appendLine("  plot retention [range]    - Retention rate chart", "muted");
-    appendLine("Examples: pd, pd 3m, pr, pr 1y, prt 1y", "muted");
+    appendLine(
+      "  plot reviews [range]           - Review history chart",
+      "muted",
+    );
+    appendLine(
+      "  plot reviews deck [range]      - Review history by deck",
+      "muted",
+    );
+    appendLine(
+      "  plot reviews time [range]      - Review time history chart",
+      "muted",
+    );
+    appendLine(
+      "  plot reviews time deck [range] - Review time history by deck",
+      "muted",
+    );
+    appendLine(
+      "  plot retention [range]         - Retention rate chart",
+      "muted",
+    );
+    appendLine("Examples: pd, pd 3m, pr, pr 1y, prt 1y, prd 1m", "muted");
     return { handled: true, command: "plot" };
   }
   if (normalized === "pd") {
@@ -179,19 +204,41 @@ export function handleCommand(input, appendLine) {
   }
   if (normalized === "pr") {
     clearCurrentChart();
-    const message = showReviews(activeTimeRange, false);
+    const message = showReviews(activeTimeRange, false, false);
     appendLine(message, "success");
     currentChart = "reviews";
     return { handled: true, command: "plot-reviews", range: activeTimeRange };
   }
+  if (normalized === "prd") {
+    clearCurrentChart();
+    const message = showReviews(activeTimeRange, false, true);
+    appendLine(message, "success");
+    currentChart = "reviews-deck";
+    return {
+      handled: true,
+      command: "plot-reviews-deck",
+      range: activeTimeRange,
+    };
+  }
   if (normalized === "prt") {
     clearCurrentChart();
-    const message = showReviews(activeTimeRange, true);
+    const message = showReviews(activeTimeRange, true, false);
     appendLine(message, "success");
     currentChart = "reviews-time";
     return {
       handled: true,
       command: "plot-reviews-time",
+      range: activeTimeRange,
+    };
+  }
+  if (normalized === "prtd") {
+    clearCurrentChart();
+    const message = showReviews(activeTimeRange, true, true);
+    appendLine(message, "success");
+    currentChart = "reviews-time-deck";
+    return {
+      handled: true,
+      command: "plot-reviews-time-deck",
       range: activeTimeRange,
     };
   }
@@ -204,22 +251,40 @@ export function handleCommand(input, appendLine) {
   }
   if (normalized === "r") {
     clearCurrentChart();
-    const message = showReviews(activeTimeRange, false);
+    const message = showReviews(activeTimeRange, false, false);
     appendLine(message, "success");
     currentChart = "reviews";
     return { handled: true, command: "reviews", range: activeTimeRange };
   }
+  if (normalized === "rd") {
+    clearCurrentChart();
+    const message = showReviews(activeTimeRange, false, true);
+    appendLine(message, "success");
+    currentChart = "reviews-deck";
+    return { handled: true, command: "reviews-deck", range: activeTimeRange };
+  }
   if (normalized === "rt" || normalized === "t" || normalized === "time") {
     clearCurrentChart();
-    const message = showReviews(activeTimeRange, true);
+    const message = showReviews(activeTimeRange, true, false);
     appendLine(message, "success");
     currentChart = "reviews-time";
     return { handled: true, command: "reviews-time", range: activeTimeRange };
   }
+  if (normalized === "rtd") {
+    clearCurrentChart();
+    const message = showReviews(activeTimeRange, true, true);
+    appendLine(message, "success");
+    currentChart = "reviews-time-deck";
+    return {
+      handled: true,
+      command: "reviews-time-deck",
+      range: activeTimeRange,
+    };
+  }
 
   // Handle "plot due [range]" command (new umbrella syntax)
   const plotMatch = normalized.match(
-    /^plot\s+(due|reviews\s+time|reviews|retention)\s*(.*)$/,
+    /^plot\s+(due|reviews\s+time\s+deck|reviews\s+deck|reviews\s+time|reviews|retention)\s*(.*)$/,
   );
   if (plotMatch) {
     const [, chartType, rangeStr] = plotMatch;
@@ -239,15 +304,25 @@ export function handleCommand(input, appendLine) {
       currentChart = "due";
       return { handled: true, command: "plot-due", range };
     } else if (chartType === "reviews time") {
-      const message = showReviews(range, true);
+      const message = showReviews(range, true, false);
       appendLine(message, "success");
       currentChart = "reviews-time";
       return { handled: true, command: "plot-reviews-time", range };
     } else if (chartType === "reviews") {
-      const message = showReviews(range, false);
+      const message = showReviews(range, false, false);
       appendLine(message, "success");
       currentChart = "reviews";
       return { handled: true, command: "plot-reviews", range };
+    } else if (chartType === "reviews time deck") {
+      const message = showReviews(range, true, true);
+      appendLine(message, "success");
+      currentChart = "reviews-time-deck";
+      return { handled: true, command: "plot-reviews-time-deck", range };
+    } else if (chartType === "reviews deck") {
+      const message = showReviews(range, false, true);
+      appendLine(message, "success");
+      currentChart = "reviews-deck";
+      return { handled: true, command: "plot-reviews-deck", range };
     } else {
       const message = showRetention(range);
       appendLine(message, "success");
@@ -265,19 +340,41 @@ export function handleCommand(input, appendLine) {
     return { handled: true, command: "due", range: activeTimeRange };
   }
 
+  // Handle "reviews time deck" command
+  if (normalized === "reviews time deck") {
+    clearCurrentChart();
+    const message = showReviews(activeTimeRange, true, true);
+    appendLine(message, "success");
+    currentChart = "reviews-time-deck";
+    return {
+      handled: true,
+      command: "reviews-time-deck",
+      range: activeTimeRange,
+    };
+  }
+
   // Handle "reviews time" command
   if (normalized === "reviews time") {
     clearCurrentChart();
-    const message = showReviews(activeTimeRange, true);
+    const message = showReviews(activeTimeRange, true, false);
     appendLine(message, "success");
     currentChart = "reviews-time";
     return { handled: true, command: "reviews-time", range: activeTimeRange };
   }
 
+  // Handle "reviews deck" command
+  if (normalized === "reviews deck") {
+    clearCurrentChart();
+    const message = showReviews(activeTimeRange, false, true);
+    appendLine(message, "success");
+    currentChart = "reviews-deck";
+    return { handled: true, command: "reviews-deck", range: activeTimeRange };
+  }
+
   // Handle "reviews" command
   if (normalized === "reviews") {
     clearCurrentChart();
-    const message = showReviews(activeTimeRange, false);
+    const message = showReviews(activeTimeRange, false, false);
     appendLine(message, "success");
     currentChart = "reviews";
     return { handled: true, command: "reviews", range: activeTimeRange };
@@ -310,14 +407,38 @@ export function handleCommand(input, appendLine) {
     }
   }
 
+  // Handle "reviews time deck [range]" command
+  const reviewsTimeDeckMatch = normalized.match(
+    /^reviews\s+time\s+deck\s+(.+)$/,
+  );
+  if (reviewsTimeDeckMatch) {
+    const [, range] = reviewsTimeDeckMatch;
+    if (isValidRange(range)) {
+      clearCurrentChart();
+      activeTimeRange = range;
+      const message = showReviews(range, true, true);
+      appendLine(message, "success");
+      currentChart = "reviews-time-deck";
+      return { handled: true, command: "reviews-time-deck", range };
+    } else {
+      appendLine(`Unknown range: ${range}`, "warn");
+      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      return {
+        handled: true,
+        command: "reviews-time-deck",
+        error: "invalid range",
+      };
+    }
+  }
+
   // Handle "reviews time [range]" command
   const reviewsTimeMatch = normalized.match(/^reviews\s+time\s+(.+)$/);
-  if (reviewsTimeMatch) {
+  if (reviewsTimeMatch && !normalized.startsWith("reviews time deck")) {
     const [, range] = reviewsTimeMatch;
     if (isValidRange(range)) {
       clearCurrentChart();
       activeTimeRange = range;
-      const message = showReviews(range, true);
+      const message = showReviews(range, true, false);
       appendLine(message, "success");
       currentChart = "reviews-time";
       return { handled: true, command: "reviews-time", range };
@@ -328,14 +449,37 @@ export function handleCommand(input, appendLine) {
     }
   }
 
+  // Handle "reviews deck [range]" command
+  const reviewsDeckMatch = normalized.match(/^reviews\s+deck\s+(.+)$/);
+  if (reviewsDeckMatch) {
+    const [, range] = reviewsDeckMatch;
+    if (isValidRange(range)) {
+      clearCurrentChart();
+      activeTimeRange = range;
+      const message = showReviews(range, false, true);
+      appendLine(message, "success");
+      currentChart = "reviews-deck";
+      return { handled: true, command: "reviews-deck", range };
+    } else {
+      appendLine(`Unknown range: ${range}`, "warn");
+      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      return { handled: true, command: "reviews-deck", error: "invalid range" };
+    }
+  }
+
   // Handle "reviews [range]" command
+  // Avoid capturing "reviews time", "reviews deck", "reviews time deck"
   const reviewsMatch = normalized.match(/^reviews\s+(.+)$/);
-  if (reviewsMatch && !normalized.startsWith("reviews time")) {
+  if (
+    reviewsMatch &&
+    !normalized.startsWith("reviews time") &&
+    !normalized.startsWith("reviews deck")
+  ) {
     const [, range] = reviewsMatch;
     if (isValidRange(range)) {
       clearCurrentChart();
       activeTimeRange = range;
-      const message = showReviews(range, false);
+      const message = showReviews(range, false, false);
       appendLine(message, "success");
       currentChart = "reviews";
       return { handled: true, command: "reviews", range };
@@ -402,7 +546,15 @@ export function showHelp(appendLine) {
   appendLine(" - plot due [range]: render upcoming reviews chart", "muted");
   appendLine(" - plot reviews [range]: render review history chart", "muted");
   appendLine(
+    " - plot reviews deck [range]: render review history chart broken down by deck",
+    "muted",
+  );
+  appendLine(
     " - plot reviews time [range]: render review time history chart",
+    "muted",
+  );
+  appendLine(
+    " - plot reviews time deck [range]: render review time by deck chart",
     "muted",
   );
   appendLine(" - plot retention [range]: render retention rate chart", "muted");
