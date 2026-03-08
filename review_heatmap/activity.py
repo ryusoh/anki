@@ -484,24 +484,35 @@ GROUP BY day ORDER BY day""".format(
 
         lims = []
         if start is not None:
-            lims.append("day >= {}".format(start))
+            lims.append("revlog.id >= {}".format(start * 1000))
 
         if self._ignore_rescheduled_entries:
-            lims.append("ease >= 1")
+            lims.append("revlog.ease >= 1")
 
-        deck_limit = self._revlog_limit(current_deck_only)
-        if deck_limit:
-            lims.append(deck_limit)
+        join_cards = ""
+        if current_deck_only:
+            dids = self.__get_active_deck_ids()
+            lims.append("cards.did IN %s" % ids2str(dids))
+            join_cards = "JOIN cards ON revlog.cid = cards.id"
+        else:
+            excluded_dids = self._config["synced"]["limdecks"]
+            ignore_deleted = self._config["synced"]["limcdel"]
+            if excluded_dids:
+                dids = self._valid_decks(excluded_dids)
+                lims.append("cards.did IN %s" % ids2str(dids))
+                join_cards = "JOIN cards ON revlog.cid = cards.id"
+            elif ignore_deleted:
+                lims.append("revlog.cid IN (SELECT id FROM cards)")
 
         lim = "WHERE " + " AND ".join(lims) if lims else ""
 
         cmd = """\
-SELECT CAST(STRFTIME('%s', id / 1000 - {}, 'unixepoch',
+SELECT CAST(STRFTIME('%s', revlog.id / 1000 - {}, 'unixepoch',
                      'localtime', 'start of day') AS int)
 AS day, COUNT()
-FROM revlog {}
+FROM revlog {} {}
 GROUP BY day ORDER BY day""".format(
-            offset, lim
+            offset, join_cards, lim
         )
 
         res = self._db.all(cmd)

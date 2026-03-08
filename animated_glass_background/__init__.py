@@ -22,6 +22,20 @@ def on_webview_will_set_content(web_content: WebContent, context):
 
 webview_will_set_content.append(on_webview_will_set_content)
 
+_glass_effect_js = None
+
+def get_glass_effect_js():
+    global _glass_effect_js
+    if _glass_effect_js is None:
+        js_path = os.path.join(addon_path, "web", "glass_effect.js")
+        try:
+            with open(js_path, "r", encoding="utf-8") as f:
+                _glass_effect_js = f.read()
+        except Exception as e:
+            print(f"Glass Effect Addon Error reading JS: {e}")
+            _glass_effect_js = ""
+    return _glass_effect_js
+
 def on_webview_did_inject_style_into_page(web):
     # This hook is for Svelte-based pages like the "congrats" screen
     try:
@@ -33,14 +47,10 @@ def on_webview_did_inject_style_into_page(web):
     target_svelte_pages = ["congrats.html", "overview.html", "deckbrowser.html", "reviewer.html", "toolbar.html", "bottom.html"]
     
     if page in target_svelte_pages or "congrats" in page or "overview" in page:
-        # Read the JS file directly and evaluate it to bypass potential CSP script-src blocking on Svelte pages
-        js_path = os.path.join(addon_path, "web", "glass_effect.js")
-        try:
-            with open(js_path, "r", encoding="utf-8") as f:
-                script_code = f.read()
+        # Evaluate the cached JS file content
+        script_code = get_glass_effect_js()
+        if script_code:
             web.eval(script_code)
-        except Exception as e:
-            print(f"Glass Effect Addon Error: {e}")
 
 webview_did_inject_style_into_page.append(on_webview_did_inject_style_into_page)
 
