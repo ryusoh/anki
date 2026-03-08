@@ -5,28 +5,33 @@
     constructor() {
       this.container = document.body;
 
+      // Use injected config or defaults
+      const config = window.glassEffectConfig || {};
+      
       this.options = {
-        enabled: true,
+        enabled: config.enabled !== undefined ? config.enabled : true,
         excludeHeader: false,
         rowHoverEffect: { enabled: false },
         threeD: {
           ambientGlow: {
-            innerColor: "rgba(118, 183, 229, 0.4)",
-            innerOpacity: 0.8,
+            innerColor: config.ambientGlowColor || "rgba(118, 183, 229, 0.4)",
+            innerOpacity: config.ambientGlowOpacity !== undefined ? config.ambientGlowOpacity : 0.8,
           },
           electric: {
             enabled: false,
             particlesEnabled: false,
           },
           reflection: {
-            speed: 0.03,
-            intensity: 0.4,
-            width: 0.3,
-            color: "rgba(255,255,255,0.8)",
+            speed: config.reflectionSpeed !== undefined ? config.reflectionSpeed : 0.03,
+            intensity: config.reflectionIntensity !== undefined ? config.reflectionIntensity : 0.4,
+            width: config.reflectionWidth !== undefined ? config.reflectionWidth : 0.3,
+            color: config.reflectionColor || "rgba(255, 255, 255, 0.8)",
             fadeZone: 0.15,
           },
         },
       };
+
+      if (!this.options.enabled) return;
 
       this.canvas = document.createElement("canvas");
       this.ctx = this.canvas.getContext("2d");
