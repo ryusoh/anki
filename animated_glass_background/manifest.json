@@ -1,0 +1,6 @@
+{
+  "name": "Animated Glass Background",
+  "package": "animated_glass_background",
+  "version": "1.0.0",
+  "description": "Applies an animated glass effect background to the Anki interface without blocking clicks."
+}
