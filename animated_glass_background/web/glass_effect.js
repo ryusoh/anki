@@ -1,392 +1,99 @@
-(function () {
-  if (window.glassEffectInstance) return; // Prevent double injection
+(function() {
+  if (document.getElementById('glass-effect-style')) return;
 
-  class GlassEffectBackground {
-    constructor() {
-      this.canvas = document.createElement("canvas");
-      this.ctx = this.canvas.getContext("2d");
-      this.state = {
-        phase: 0,
-        continuousPhase: 0,
-        ambientPhase: 0,
-        lastTime: 0,
-        energyParticles: [],
-        pointer: { x: 0, y: 0 },
-        pointerSmoothed: { x: 0, y: 0 },
-      };
-
-      this.options = {
-        threeD: {
-          ambientGlow: {
-            innerColor: "rgba(118, 183, 229, 0.6)",
-            innerOpacity: 0.8,
-          },
-          electric: {
-            enabled: true,
-            arcCount: 4,
-            arcThickness: 1.5,
-            streakSpeedMultiplier: 1,
-            width: 0.15,
-            colors: {
-              primary: "rgba(118, 183, 229, 0.8)",
-              secondary: "rgba(180, 220, 255, 0.5)",
-              tertiary: "rgba(255, 255, 255, 0.3)",
-            },
-          },
-          reflection: {
-            speed: 0.03,
-            intensity: 0.3,
-            width: 0.3,
-            color: "rgba(255,255,255,0.8)",
-          },
-        },
-      };
-
-      this.init();
-    }
-
-    init() {
-      this.canvas.id = "glass-effect-bg";
-      this.canvas.style.position = "fixed";
-      this.canvas.style.top = "0";
-      this.canvas.style.left = "0";
-      this.canvas.style.width = "100vw";
-      this.canvas.style.height = "100vh";
-      // EXTREMELY IMPORTANT: Let clicks pass through to Anki UI!
-      this.canvas.style.pointerEvents = "none";
-      // Render above the background box but below elevated content
-      this.canvas.style.zIndex = "0";
-
-      // Elevate specific Anki elements and common add-ons (like Heatmap) above the canvas
-      const style = document.createElement("style");
-      style.textContent = `
-              html { 
-                  background-color: var(--canvas, var(--window-bg, #ffffff)) !important; 
-              }
-              html.nightMode, body.nightMode {
-                  background-color: var(--canvas, var(--window-bg, #2d2d2d)) !important;
-              }
-              body { 
-                  background-color: transparent !important; 
-                  background-image: none !important;
-              }
-              
-              /* Strip backgrounds and borders from toolbars so the glass effect shows through seamlessly */
-              #header, header, .toolbar, .nav, nav, 
-              #bottom, .bottom, #bottom-bar,
-              #toolbar, #bottombar, .top-toolbar, .bottom-toolbar {
-                  background-color: transparent !important;
-                  background-image: none !important;
-                  border: none !important;
-                  box-shadow: none !important;
-              }
-              
-              /* Remove border on main DeckBrowser / Reviewer containers if any */
-              #main, #qa {
-                  border: none !important;
-              }
-              
-              /* Elevate Anki's main content and common add-ons above the glass effect */
-              table, #deck-table, #tree, 
-              #header, header, .nav, nav, 
-              #bottom, .bottom,
-              #heatmap, .heatmap, svg.heatmap, .heatmap-container,
-              #qa, .card, .reviewer,
-              button, input, select, textarea, a {
-                  position: relative !important;
-                  z-index: 10 !important;
-              }
-          `;
-      document.head.appendChild(style);
-
-      document.body.appendChild(this.canvas);
-
-      this.initParticles();
-
-      window.addEventListener("resize", () => this.resize());
-      this.resize();
-
-      document.addEventListener("mousemove", (e) => this.handleMouseMove(e));
-      document.addEventListener("mouseleave", () => this.handleMouseLeave());
-
-      this.startLoop();
-    }
-
-    initParticles() {
-      const electric = this.options.threeD.electric;
-      const count = Math.max(12, (electric.arcCount || 3) * 8);
-      this.state.energyParticles = Array.from({ length: count }, () => ({
-        progress: Math.random(),
-        speed: 0.2 + Math.random() * 0.5,
-        size: 1.2 + Math.random() * 1.6,
-        flickerOffset: Math.random() * Math.PI * 2,
-        offset: (Math.random() - 0.5) * 10,
-      }));
-    }
-
-    resize() {
-      this.width = window.innerWidth;
-      this.height = window.innerHeight;
-      const dpr = window.devicePixelRatio || 1;
-      this.canvas.width = this.width * dpr;
-      this.canvas.height = this.height * dpr;
-      this.ctx.scale(dpr, dpr);
-
-      // Determine the role of this pane
-      const isBottom =
-        window.location.href.includes("bottom") ||
-        document.getElementById("bottom");
-      const isTop = window.location.href.includes("toolbar") && !isBottom;
-      this.paneRole = isBottom ? "bottom" : isTop ? "top" : "middle";
-
-      // Share our height with the other panes so we can all calculate the total window height
-      localStorage.setItem(`anki_glass_h_${this.paneRole}`, this.height);
-      localStorage.setItem(`anki_glass_w_${this.paneRole}`, this.width);
-    }
-
-    getSyncedLayout() {
-      const hTop = parseInt(localStorage.getItem("anki_glass_h_top") || 40);
-      const hMid = parseInt(localStorage.getItem("anki_glass_h_middle") || 800);
-      const hBot = parseInt(localStorage.getItem("anki_glass_h_bottom") || 40);
-
-      const totalWidth = Math.max(
-        parseInt(localStorage.getItem("anki_glass_w_top") || 0),
-        parseInt(localStorage.getItem("anki_glass_w_middle") || this.width),
-        parseInt(localStorage.getItem("anki_glass_w_bottom") || 0),
-      );
-
-      const totalHeight = hTop + hMid + hBot;
-
-      let offsetY = 0;
-      if (this.paneRole === "bottom") offsetY = hTop + hMid;
-      else if (this.paneRole === "middle") offsetY = hTop;
-      else offsetY = 0; // top
-
-      return { totalWidth, totalHeight, offsetY };
-    }
-
-    handleMouseMove(e) {
-      const x = e.clientX / this.width - 0.5;
-      const y = e.clientY / this.height - 0.5;
-      this.state.pointer.x = x * 2;
-      this.state.pointer.y = y * 2;
-    }
-
-    handleMouseLeave() {
-      this.state.pointer.x = 0;
-      this.state.pointer.y = 0;
-    }
-
-    startLoop() {
-      const loop = (time) => {
-        this.update(time);
-        this.draw();
-        this.animationFrame = requestAnimationFrame(loop);
-      };
-      this.animationFrame = requestAnimationFrame(loop);
-    }
-
-    update(time) {
-      // Use a global timer (Date.now()) so all separate webviews are perfectly synchronized in time
-      const globalTime = Date.now();
-
-      if (!this.state.lastTime) this.state.lastTime = globalTime;
-      const delta = (globalTime - this.state.lastTime) / 1000;
-      this.state.lastTime = globalTime;
-
-      const speed = this.options.threeD.reflection.speed || 0.05;
-      // Force phase based absolutely on time rather than accumulating delta to avoid drift across webviews
-      this.state.phase = ((globalTime / 1000) * speed) % 1;
-      this.state.continuousPhase += delta * speed;
-      this.state.ambientPhase = ((globalTime / 1000) * 0.5) % 1;
-
-      const damping = 0.1;
-      this.state.pointerSmoothed.x +=
-        (this.state.pointer.x - this.state.pointerSmoothed.x) * damping;
-      this.state.pointerSmoothed.y +=
-        (this.state.pointer.y - this.state.pointerSmoothed.y) * damping;
-
-      this.state.energyParticles.forEach((p) => {
-        p.progress = (p.progress + delta * p.speed * 0.5) % 1;
-      });
-    }
-
-    draw() {
-      this.ctx.clearRect(0, 0, this.width, this.height);
-      const radius = 0; // Full bleed background, no rounded corners needed
-
-      const layout = this.getSyncedLayout();
-
-      this.drawAmbientGlow(radius, layout);
-      this.drawReflection(radius, layout);
-    }
-
-    getPointAtProgress(progress, radius) {
-      progress = progress % 1;
-      if (progress < 0) progress += 1;
-
-      const w = this.width;
-      const h = this.height;
-
-      const perimeter = 2 * w + 2 * h;
-      const dist = progress * perimeter;
-      if (dist <= w) return { x: dist, y: 0 };
-      if (dist <= w + h) return { x: w, y: dist - w };
-      if (dist <= 2 * w + h) return { x: w - (dist - (w + h)), y: h };
-      return { x: 0, y: h - (dist - (2 * w + h)) };
-    }
-
-    drawPath(ctx, radius) {
-      ctx.beginPath();
-      ctx.rect(0, 0, this.width, this.height);
-      ctx.closePath();
-    }
-
-    drawAmbientGlow(radius, layout) {
-      const glow = this.options.threeD.ambientGlow;
-      const pulse = 0.5 + 0.5 * Math.sin(this.state.ambientPhase * Math.PI * 2);
-
-      this.ctx.save();
-      this.drawPath(this.ctx, radius);
-      this.ctx.clip();
-
-      // A purely horizontal gradient is visually seamless across vertically stacked WebViews
-      // because the reflection sweep acts like a vertical beam of light moving left to right.
-      const gradient = this.ctx.createLinearGradient(
-        0,
-        0,
-        layout.totalWidth,
-        0,
-      );
-      gradient.addColorStop(0, glow.innerColor || "rgba(118, 183, 229, 0.6)");
-      gradient.addColorStop(1, "rgba(0,0,0,0)");
-
-      this.ctx.globalAlpha = (glow.innerOpacity || 0.8) * (0.8 + pulse * 0.2);
-      this.ctx.fillStyle = gradient;
-      this.ctx.fill();
-      this.ctx.restore();
-    }
-
-    drawElectricTrails(radius) {
-      const electric = this.options.threeD.electric;
-      const palette = [
-        electric.colors.primary,
-        electric.colors.secondary,
-        electric.colors.tertiary,
-      ].filter(Boolean);
-
-      this.ctx.save();
-      this.ctx.globalCompositeOperation = "screen";
-      this.ctx.lineCap = "round";
-      this.ctx.lineWidth = electric.arcThickness || 1.5;
-
-      const trailWidth = electric.width || 0.1;
-      const segments = 30;
-
-      palette.forEach((color, i) => {
-        const offset =
-          i / palette.length +
-          this.state.continuousPhase * (electric.streakSpeedMultiplier || 1);
-        const headProgress = offset % 1;
-
-        this.ctx.shadowColor = color;
-        this.ctx.shadowBlur = 5;
-
-        for (let j = 0; j < segments; j++) {
-          const segmentProgress = j / segments;
-          const p1 = headProgress - segmentProgress * trailWidth;
-          const p2 = headProgress - ((j + 1) / segments) * trailWidth;
-
-          const point1 = this.getPointAtProgress(p1, radius);
-          const point2 = this.getPointAtProgress(p2, radius);
-
-          const opacity = Math.pow(1 - segmentProgress, 2);
-
-          this.ctx.globalAlpha = opacity;
-          this.ctx.strokeStyle = color;
-
-          this.ctx.beginPath();
-          this.ctx.moveTo(point1.x, point1.y);
-          this.ctx.lineTo(point2.x, point2.y);
-          this.ctx.stroke();
-        }
-      });
-
-      this.ctx.restore();
-    }
-
-    drawParticles(radius) {
-      const electric = this.options.threeD.electric;
-
-      this.ctx.save();
-      this.ctx.globalCompositeOperation = "screen";
-
-      this.state.energyParticles.forEach((p) => {
-        const pos = this.getPointAtProgress(p.progress, radius);
-        const flicker =
-          0.5 + 0.5 * Math.sin(this.state.phase * 10 + p.flickerOffset);
-
-        this.ctx.fillStyle = electric.colors.primary;
-        this.ctx.shadowColor = this.ctx.fillStyle;
-        this.ctx.shadowBlur = 3 * flicker;
-
-        this.ctx.beginPath();
-        this.ctx.arc(pos.x, pos.y, p.size * flicker, 0, Math.PI * 2);
-        this.ctx.fill();
-      });
-
-      this.ctx.restore();
-    }
-
-    drawReflection(radius, layout) {
-      const reflection = this.options.threeD.reflection;
-      const intensity = reflection.intensity || 0.5;
-      const color = reflection.color || "rgba(255,255,255,1)";
-      const width = reflection.width || 0.2;
-      const fadeZone = 0.15;
-
-      this.ctx.save();
-      this.ctx.globalCompositeOperation = "overlay";
-
-      // A purely horizontal gradient is visually seamless across vertically stacked WebViews
-      // because the reflection sweep acts like a vertical beam of light moving left to right.
-      const gradient = this.ctx.createLinearGradient(
-        0,
-        0,
-        layout.totalWidth,
-        0,
-      );
-      const phase = this.state.phase;
-      const start = phase - width;
-      const end = phase + width;
-
-      let fadeMultiplier = 1.0;
-      if (phase > 1 - fadeZone) {
-        fadeMultiplier = (1.0 - phase) / fadeZone;
-      } else if (phase < fadeZone) {
-        fadeMultiplier = phase / fadeZone;
+  const style = document.createElement("style");
+  style.id = "glass-effect-style";
+  
+  // We use pure CSS with background-attachment: fixed. 
+  // This perfectly syncs the reflection sweep across all separate Anki WebViews natively!
+  style.textContent = `
+      /* Keyframe for the horizontal glass reflection sweep */
+      @keyframes glassSweep {
+          0% { background-position: -150vw 0, 0 0; }
+          100% { background-position: 150vw 0, 0 0; }
       }
 
-      this.ctx.globalAlpha = intensity * fadeMultiplier;
+      html { 
+          background-color: var(--canvas, var(--window-bg, #2d2d2d)) !important; 
+          background-image: 
+              /* 1. The sweeping glass reflection (horizontal bar) */
+              linear-gradient(90deg, 
+                  rgba(255,255,255,0) 0%, 
+                  rgba(255,255,255,0) 45%, 
+                  rgba(255,255,255,0.15) 48%, 
+                  rgba(255,255,255,0.4) 50%, 
+                  rgba(255,255,255,0.15) 52%, 
+                  rgba(255,255,255,0) 55%,
+                  rgba(255,255,255,0) 100%
+              ),
+              /* 2. The ambient blue glow from the top left */
+              radial-gradient(circle at 0% 0%, rgba(118, 183, 229, 0.4) 0%, rgba(0,0,0,0) 70%) !important;
+          
+          /* The sweep size is stretched so it moves smoothly across the screen */
+          background-size: 200vw 100vh, 100vw 100vh !important;
+          
+          /* Fixed attachment anchors the background to the Qt Window instead of the local WebView */
+          background-attachment: fixed, fixed !important;
+          background-repeat: no-repeat, no-repeat !important;
+          
+          /* 6 second continuous sweep */
+          animation: glassSweep 6s infinite linear !important;
+      }
+      
+      /* Light mode fallback tweaks */
+      html:not(.nightMode) {
+          background-color: var(--canvas, var(--window-bg, #f5f5f5)) !important;
+          background-image: 
+              linear-gradient(90deg, 
+                  rgba(255,255,255,0) 0%, 
+                  rgba(255,255,255,0) 45%, 
+                  rgba(255,255,255,0.4) 48%, 
+                  rgba(255,255,255,0.8) 50%, 
+                  rgba(255,255,255,0.4) 52%, 
+                  rgba(255,255,255,0) 55%,
+                  rgba(255,255,255,0) 100%
+              ),
+              radial-gradient(circle at 0% 0%, rgba(118, 183, 229, 0.3) 0%, rgba(0,0,0,0) 70%) !important;
+      }
 
-      gradient.addColorStop(Math.max(0, start), "rgba(255,255,255,0)");
-      gradient.addColorStop(Math.max(0, Math.min(1, phase)), color);
-      gradient.addColorStop(Math.min(1, end), "rgba(255,255,255,0)");
+      /* Make sure all body layers are fully transparent so the html background shines through */
+      body, #app, main, .svelte-container, .deck-finished, .congrats { 
+          background-color: transparent !important; 
+          background-image: none !important;
+      }
+      
+      /* Strip solid backgrounds from the toolbars so they look like one continuous window */
+      #header, header, .toolbar, .nav, nav, 
+      #bottom, .bottom, #bottom-bar,
+      #toolbar, #bottombar, .top-toolbar, .bottom-toolbar {
+          background-color: transparent !important;
+          background-image: none !important;
+          border: none !important;
+          box-shadow: none !important;
+      }
+      
+      /* Remove border on main DeckBrowser / Reviewer containers */
+      #main, #qa {
+          border: none !important;
+          background-color: transparent !important;
+      }
+  `;
+  document.head.appendChild(style);
 
-      this.ctx.fillStyle = gradient;
-      this.drawPath(this.ctx, radius);
-      this.ctx.fill();
+  // Svelte pages aggressively wipe the body on load, but they rarely wipe the head.
+  // We periodically ensure our style block survives any deep SPA re-renders.
+  setInterval(() => {
+      if (!document.getElementById('glass-effect-style')) {
+          document.head.appendChild(style);
+      }
+      // Force Svelte body layers transparent via inline styles just in case CSS-in-JS overrides us
+      const roots = document.querySelectorAll('body, body > *:not(script):not(style)');
+      roots.forEach(el => {
+          if (el.style) {
+              el.style.setProperty('background-color', 'transparent', 'important');
+              el.style.setProperty('background-image', 'none', 'important');
+          }
+      });
+  }, 250);
 
-      this.ctx.restore();
-    }
-  }
-
-  // Initialize once the DOM is ready
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => {
-      window.glassEffectInstance = new GlassEffectBackground();
-    });
-  } else {
-    window.glassEffectInstance = new GlassEffectBackground();
-  }
 })();
