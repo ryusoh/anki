@@ -1,4 +1,5 @@
 import os
+import json
 from aqt import mw
 from aqt.gui_hooks import webview_will_set_content, webview_did_inject_style_into_page
 from aqt.webview import WebContent
@@ -9,13 +10,24 @@ addon_dir_name = os.path.basename(addon_path)
 # Register the 'web' folder so Anki can serve the JS file
 mw.addonManager.setWebExports(__name__, r"web/.*")
 
+def get_addon_config():
+    return mw.addonManager.getConfig(__name__) or {}
+
 def on_webview_will_set_content(web_content: WebContent, context):
     if not context:
+        return
+    
+    config = get_addon_config()
+    if not config.get("enabled", True):
         return
         
     # Check if the webview is loading one of the main UI components
     css_str = str(web_content.css)
     if any(target in css_str for target in ["deckbrowser.css", "overview.css", "reviewer.css", "toolbar.css", "toolbar-bottom.css", "reviewer-bottom.css"]):
+        # Inject config as a script tag in the head
+        config_json = json.dumps(config)
+        web_content.head += f"<script>window.glassEffectConfig = {config_json};</script>"
+        
         addon_url = f"/_addons/{addon_dir_name}/web/glass_effect.js"
         if addon_url not in web_content.js:
             web_content.js.append(addon_url)
@@ -43,6 +55,10 @@ def on_webview_did_inject_style_into_page(web):
     except Exception:
         return
         
+    config = get_addon_config()
+    if not config.get("enabled", True):
+        return
+        
     # We want to inject the glass effect into all main Svelte pages (overview, deckbrowser, congrats, etc.)
     target_svelte_pages = ["congrats.html", "overview.html", "deckbrowser.html", "reviewer.html", "toolbar.html", "bottom.html"]
     
@@ -50,6 +66,9 @@ def on_webview_did_inject_style_into_page(web):
         # Evaluate the cached JS file content
         script_code = get_glass_effect_js()
         if script_code:
+            # Pass config as a global variable before executing the script
+            config_json = json.dumps(config)
+            web.eval(f"window.glassEffectConfig = {config_json};")
             web.eval(script_code)
 
 webview_did_inject_style_into_page.append(on_webview_did_inject_style_into_page)
