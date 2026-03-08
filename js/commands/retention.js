@@ -3,7 +3,7 @@
  * Displays daily retention rates as a line chart
  */
 
-import { bindLegendToggle } from "@js/commands/legendToggle.js";
+import { bindLegendToggle, isLabelHidden } from "@js/commands/legendToggle.js";
 import { getReviewStatsData } from "@js/commands/reviews.js";
 import { parseRange, DEFAULT_RANGE } from "@js/utils/timeRange.js";
 
@@ -68,6 +68,7 @@ export function renderRetentionChart(data) {
         datasets: [
           {
             label: "Retention %",
+            hidden: isLabelHidden("Retention %"),
             data: retentions,
             borderColor: "rgba(240, 185, 11, 0.9)",
             backgroundColor: "rgba(240, 185, 11, 0.1)",

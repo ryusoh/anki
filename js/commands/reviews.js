@@ -3,7 +3,7 @@
  * Displays past review counts as a stacked bar chart
  */
 
-import { bindLegendToggle } from "@js/commands/legendToggle.js";
+import { bindLegendToggle, isLabelHidden } from "@js/commands/legendToggle.js";
 import { parseRange, DEFAULT_RANGE } from "@js/utils/timeRange.js";
 
 const Chart = window.Chart;
@@ -272,6 +272,7 @@ export function renderReviewsChart(data, showTime = false, byDeck = false) {
 
       datasets.push({
         label: deckName,
+        hidden: isLabelHidden(deckName),
         data: deckData,
         backgroundColor: color,
         borderRadius: radius,
@@ -331,6 +332,7 @@ export function renderReviewsChart(data, showTime = false, byDeck = false) {
     datasets = [
       {
         label: "Mature",
+        hidden: isLabelHidden("Mature"),
         data: matureData,
         backgroundColor: "rgba(72, 199, 142, 0.85)",
         borderRadius: radius,
@@ -340,6 +342,7 @@ export function renderReviewsChart(data, showTime = false, byDeck = false) {
       },
       {
         label: "Young",
+        hidden: isLabelHidden("Young"),
         data: youngData,
         backgroundColor: "rgba(73, 168, 236, 0.85)",
         borderRadius: radius,
@@ -349,6 +352,7 @@ export function renderReviewsChart(data, showTime = false, byDeck = false) {
       },
       {
         label: "Relearn",
+        hidden: isLabelHidden("Relearn"),
         data: relearnData,
         backgroundColor: "rgba(234, 67, 53, 0.85)",
         borderRadius: radius,
@@ -358,6 +362,7 @@ export function renderReviewsChart(data, showTime = false, byDeck = false) {
       },
       {
         label: "Learn",
+        hidden: isLabelHidden("Learn"),
         data: learnData,
         backgroundColor: "rgba(240, 185, 11, 0.85)",
         borderRadius: radius,
