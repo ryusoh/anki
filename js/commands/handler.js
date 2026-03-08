@@ -147,9 +147,13 @@ export function handleCommand(input, appendLine) {
       const message = showRetention(normalized);
       appendLine(message, "success");
       return { handled: true, command: "retention", range: normalized };
+    } else if (currentChart === "due-deck") {
+      const message = showDue(normalized, true);
+      appendLine(message, "success");
+      return { handled: true, command: "due-deck", range: normalized };
     } else {
       // Default to due chart
-      const message = showDue(normalized);
+      const message = showDue(normalized, false);
       appendLine(message, "success");
       currentChart = "due";
       return { handled: true, command: "due", range: normalized };
@@ -243,10 +247,17 @@ export function handleCommand(input, appendLine) {
   }
   if (normalized === "d") {
     clearCurrentChart();
-    const message = showDue(activeTimeRange);
+    const message = showDue(activeTimeRange, false);
     appendLine(message, "success");
     currentChart = "due";
     return { handled: true, command: "due", range: activeTimeRange };
+  }
+  if (normalized === "dd") {
+    clearCurrentChart();
+    const message = showDue(activeTimeRange, true);
+    appendLine(message, "success");
+    currentChart = "due-deck";
+    return { handled: true, command: "due-deck", range: activeTimeRange };
   }
   if (normalized === "r") {
     clearCurrentChart();
@@ -329,6 +340,18 @@ export function handleCommand(input, appendLine) {
       appendLine(message, "success");
       currentChart = "reviews-time";
       return { handled: true, command: "reviews-time", range: activeTimeRange };
+    } else if (currentChart === "due") {
+      clearCurrentChart();
+      const message = showDue(activeTimeRange, true);
+      appendLine(message, "success");
+      currentChart = "due-deck";
+      return { handled: true, command: "due-deck", range: activeTimeRange };
+    } else if (currentChart === "due-deck") {
+      clearCurrentChart();
+      const message = showDue(activeTimeRange, false);
+      appendLine(message, "success");
+      currentChart = "due";
+      return { handled: true, command: "due", range: activeTimeRange };
     } else {
       clearCurrentChart();
       const message = showReviews(activeTimeRange, false, true);
@@ -351,7 +374,7 @@ export function handleCommand(input, appendLine) {
 
   // Handle "plot due [range]" command (new umbrella syntax)
   const plotMatch = normalized.match(
-    /^plot\s+(due|reviews\s+time\s+deck|reviews\s+deck\s+time|reviews\s+deck|reviews\s+time|reviews|retention)\s*(.*)$/,
+    /^plot\s+(due\s+deck|due|reviews\s+time\s+deck|reviews\s+deck\s+time|reviews\s+deck|reviews\s+time|reviews|retention)\s*(.*)$/,
   );
   if (plotMatch) {
     const [, chartType, rangeStr] = plotMatch;
@@ -366,10 +389,15 @@ export function handleCommand(input, appendLine) {
     clearCurrentChart();
     activeTimeRange = range;
     if (chartType === "due") {
-      const message = showDue(range);
+      const message = showDue(range, false);
       appendLine(message, "success");
       currentChart = "due";
       return { handled: true, command: "plot-due", range };
+    } else if (chartType === "due deck") {
+      const message = showDue(range, true);
+      appendLine(message, "success");
+      currentChart = "due-deck";
+      return { handled: true, command: "plot-due-deck", range };
     } else if (chartType === "reviews time") {
       const message = showReviews(range, true, false);
       appendLine(message, "success");
@@ -401,10 +429,19 @@ export function handleCommand(input, appendLine) {
     }
   }
 
+  // Handle "due deck" command
+  if (normalized === "due deck") {
+    clearCurrentChart();
+    const message = showDue(activeTimeRange, true);
+    appendLine(message, "success");
+    currentChart = "due-deck";
+    return { handled: true, command: "due-deck", range: activeTimeRange };
+  }
+
   // Handle "due" command
   if (normalized === "due" || normalized === "future") {
     clearCurrentChart();
-    const message = showDue(activeTimeRange);
+    const message = showDue(activeTimeRange, false);
     appendLine(message, "success");
     currentChart = "due";
     return { handled: true, command: "due", range: activeTimeRange };
@@ -462,14 +499,32 @@ export function handleCommand(input, appendLine) {
     return { handled: true, command: "retention", range: activeTimeRange };
   }
 
-  // Handle "due [range]" command
-  const dueMatch = normalized.match(/^(due|future)\s+(.+)$/);
-  if (dueMatch) {
-    const [, range] = dueMatch;
+  // Handle "due deck [range]" command
+  const dueDeckMatch = normalized.match(/^due\s+deck\s+(.+)$/);
+  if (dueDeckMatch) {
+    const [, range] = dueDeckMatch;
     if (isValidRange(range)) {
       clearCurrentChart();
       activeTimeRange = range;
-      const message = showDue(range);
+      const message = showDue(range, true);
+      appendLine(message, "success");
+      currentChart = "due-deck";
+      return { handled: true, command: "due-deck", range };
+    } else {
+      appendLine(`Unknown range: ${range}`, "warn");
+      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      return { handled: true, command: "due-deck", error: "invalid range" };
+    }
+  }
+
+  // Handle "due [range]" command
+  const dueMatch = normalized.match(/^(due|future)\s+(.+)$/);
+  if (dueMatch && !normalized.startsWith("due deck")) {
+    const [, , range] = dueMatch;
+    if (isValidRange(range)) {
+      clearCurrentChart();
+      activeTimeRange = range;
+      const message = showDue(range, false);
       appendLine(message, "success");
       currentChart = "due";
       return { handled: true, command: "due", range };

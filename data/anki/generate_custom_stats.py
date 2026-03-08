@@ -55,7 +55,7 @@ def get_anki_today():
         return (today - anki_epoch).days
 
 
-def calculate_future_due(cards_data, max_days=None):
+def calculate_future_due(cards_data, cid_to_deck, max_days=None):
     """
     Calculate future due cards.
     
@@ -65,9 +65,10 @@ def calculate_future_due(cards_data, max_days=None):
     
     Args:
         cards_data: List of card dicts
+        cid_to_deck: Mapping of card IDs to deck names
         max_days: Limit range (None for all cards)
     
-    Returns list of {day, mature, young} dicts.
+    Returns tuple of (global_stats, by_deck_stats).
     """
     anki_today = get_anki_today()
     
@@ -78,11 +79,13 @@ def calculate_future_due(cards_data, max_days=None):
     
     # Use day buckets
     day_buckets = {}
+    deck_day_buckets = {}
     
     for card in cards_data:
         due = card.get("due", 0)
         ivl = card.get("ivl", 0)
         queue = card.get("queue", 0)
+        cid = card.get("id")
         
         # Only count review cards (queue=2)
         if queue != 2:
@@ -98,35 +101,60 @@ def calculate_future_due(cards_data, max_days=None):
         # Skip if beyond max_days
         if days_from_now >= max_days:
             continue
-        
+
+        deck_name = cid_to_deck.get(cid, "Unknown") if cid else "Unknown"
+
         # Initialize bucket if needed
         if days_from_now not in day_buckets:
             day_buckets[days_from_now] = {"mature": 0, "young": 0}
+
+        if deck_name not in deck_day_buckets:
+            deck_day_buckets[deck_name] = {}
+        if days_from_now not in deck_day_buckets[deck_name]:
+            deck_day_buckets[deck_name][days_from_now] = {"mature": 0, "young": 0}
         
         # Determine if mature or young
-        if ivl >= 21:
+        is_mature = ivl >= 21
+        
+        if is_mature:
             day_buckets[days_from_now]["mature"] += 1
+            deck_day_buckets[deck_name][days_from_now]["mature"] += 1
         else:
             day_buckets[days_from_now]["young"] += 1
+            deck_day_buckets[deck_name][days_from_now]["young"] += 1
     
     # Convert to list format
-    result = []
+    # Global
+    result_global = []
     for day in range(max_days):
         if day in day_buckets:
-            result.append({
+            result_global.append({
                 "day": day,
                 "mature": day_buckets[day]["mature"],
                 "young": day_buckets[day]["young"]
             })
         else:
-            # No cards due on this day
-            result.append({
+            result_global.append({
                 "day": day,
                 "mature": 0,
                 "young": 0
             })
-    
-    return result
+
+    # By Deck (we don't need zero-fill for days a deck has no reviews, to save space, 
+    # but the frontend chart logic natively handles missing days if we just provide existing ones).
+    # To match frontend expectations, we can just output the existing days per deck.
+    result_by_deck = {}
+    for deck_name, dt_buckets in deck_day_buckets.items():
+        deck_list = []
+        for d in sorted(dt_buckets.keys()):
+            deck_list.append({
+                "day": d,
+                "mature": dt_buckets[d]["mature"],
+                "young": dt_buckets[d]["young"]
+            })
+        result_by_deck[deck_name] = deck_list
+
+    return result_global, result_by_deck
 
 
 def _read_existing_total(path):
@@ -183,9 +211,25 @@ def main():
 
     print(f"   Loaded {len(cards_data):,} cards")
 
+    # Load cid -> deck_name mapping
+    cid_to_deck = {}
+    if CARDS_FILE.exists():
+        try:
+            with gzip.open(CARDS_FILE, "rt", encoding="utf-8") as f:
+                cards = json.load(f)
+                for card in cards:
+                    if "id" in card and "deck_name" in card:
+                        # deck_name often contains the full path like Language\x1fEnglish
+                        cid_to_deck[card["id"]] = card["deck_name"].replace('\x1f', '::')
+        except Exception as e:
+            print(f"Warning: Failed to load cards mapping: {e}")
+
     # Generate stats for web terminal and stats_page_customizer add-on
-    web_stats = calculate_future_due(cards_data, max_days=None)
-    web_output = {"futureDue": web_stats}
+    web_stats, web_by_deck = calculate_future_due(cards_data, cid_to_deck, max_days=None)
+    web_output = {
+        "futureDue": web_stats,
+        "futureDueByDeck": web_by_deck
+    }
 
     # Fail-open: only overwrite if new data looks valid
     if _should_write(web_stats, OUTPUT_FILE, label=f"{OUTPUT_FILE.name}: "):
@@ -198,8 +242,11 @@ def main():
         print(f"   ✗ {OUTPUT_FILE.name} skipped (fail-open: old data preserved)")
 
     # Generate full forecast for analytics (all cards, compressed)
-    full_stats = calculate_future_due(cards_data, max_days=None)
-    full_output = {"futureDue": full_stats}
+    full_stats, full_by_deck = calculate_future_due(cards_data, cid_to_deck, max_days=None)
+    full_output = {
+        "futureDue": full_stats,
+        "futureDueByDeck": full_by_deck
+    }
     full_file = SCRIPT_DIR / "full_forecast.json.gz"
 
     # Only write if content changed
