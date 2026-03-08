@@ -7,7 +7,7 @@
 
       // Use injected config or defaults
       const config = window.glassEffectConfig || {};
-      
+
       this.options = {
         enabled: config.enabled !== undefined ? config.enabled : true,
         excludeHeader: false,
@@ -15,16 +15,28 @@
         threeD: {
           ambientGlow: {
             innerColor: config.ambientGlowColor || "rgba(118, 183, 229, 0.4)",
-            innerOpacity: config.ambientGlowOpacity !== undefined ? config.ambientGlowOpacity : 0.8,
+            innerOpacity:
+              config.ambientGlowOpacity !== undefined
+                ? config.ambientGlowOpacity
+                : 0.8,
           },
           electric: {
             enabled: false,
             particlesEnabled: false,
           },
           reflection: {
-            speed: config.reflectionSpeed !== undefined ? config.reflectionSpeed : 0.03,
-            intensity: config.reflectionIntensity !== undefined ? config.reflectionIntensity : 0.4,
-            width: config.reflectionWidth !== undefined ? config.reflectionWidth : 0.3,
+            speed:
+              config.reflectionSpeed !== undefined
+                ? config.reflectionSpeed
+                : 0.03,
+            intensity:
+              config.reflectionIntensity !== undefined
+                ? config.reflectionIntensity
+                : 0.4,
+            width:
+              config.reflectionWidth !== undefined
+                ? config.reflectionWidth
+                : 0.3,
             color: config.reflectionColor || "rgba(255, 255, 255, 0.8)",
             fadeZone: 0.15,
           },
