@@ -34,13 +34,9 @@ Finder extensions
 """
 
 import re
-from typing import List, Optional
+from typing import List
 
 from aqt import mw
-
-
-# FIXME: No longer works in combination with other search specifiers
-# e.g. deck:current, which we actually add in the overview view
 
 
 def _find_cards_reviewed_between(start_date: int, end_date: int) -> List[int]:
@@ -54,35 +50,22 @@ def _find_cards_reviewed_between(start_date: int, end_date: int) -> List[int]:
     )
 
 
-_re_rid = re.compile(r"^rid:([0-9]+):([0-9]+)$")
-
-
-def find_rid(search: str) -> Optional[List[int]]:
-    match = _re_rid.match(search)
-
-    if not match:
-        return None
-
-    start_date = int(match[1])
-    end_date = int(match[2])
-
-    return _find_cards_reviewed_between(start_date, end_date)
+_re_rid = re.compile(r"rid:([0-9]+):([0-9]+)")
 
 
 def on_browser_will_search(search_context):
-    search = search_context.search
-    if search.startswith("rid"):
-        found_ids = find_rid(search)
-    else:
-        return
+    def replace_match(match):
+        start_date = int(match.group(1))
+        end_date = int(match.group(2))
+        found_ids = _find_cards_reviewed_between(start_date, end_date)
 
-    if found_ids is None:
-        return
+        if not found_ids:
+            return "cid:0"
 
-    if hasattr(search_context, "card_ids"):
-        search_context.card_ids = found_ids  # type: ignore[attr-defined]
-    else:
-        search_context.ids = found_ids  # type: ignore[assignment]
+        return "cid:" + ",".join(str(i) for i in found_ids)
+
+    if "rid:" in search_context.search:
+        search_context.search = _re_rid.sub(replace_match, search_context.search)
 
 
 # HOOKS
