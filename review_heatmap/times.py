@@ -33,6 +33,8 @@
 Shared datetime/timezone handling
 """
 
+from __future__ import annotations
+
 from typing import Union, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -40,7 +42,7 @@ if TYPE_CHECKING:
 
 
 def daystart_epoch(
-    db: "DBProxy",
+    db: DBProxy,
     time_specifier: Union[str, int],
     is_timestamp: bool = True,
     offset: int = 0,
