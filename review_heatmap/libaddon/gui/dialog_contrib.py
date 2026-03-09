@@ -38,7 +38,7 @@ ADDON.NAME, ADDON.AUTHOR_MAIL, ADDON.LINKS
 """
 
 from __future__ import (absolute_import, division,
-                        print_function, unicode_literals)
+                        unicode_literals)
 
 from aqt.utils import openLink
 
