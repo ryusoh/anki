@@ -1,0 +1,9 @@
+{
+  "enabled": true,
+  "ambientGlowColor": "rgba(118, 183, 229, 0.4)",
+  "ambientGlowOpacity": 0.8,
+  "reflectionSpeed": 0.03,
+  "reflectionIntensity": 0.2,
+  "reflectionWidth": 0.3,
+  "reflectionColor": "rgba(255, 255, 255, 0.4)"
+}

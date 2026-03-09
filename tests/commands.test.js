@@ -52,10 +52,17 @@ function parseCommand(
     state.isZoomed = false; // Auto-unzoom
     state.activeRange = normalized;
     if (state.currentChart === "reviews") {
-      state.currentChart = "reviews";
       return { handled: true, command: "reviews", range: normalized };
+    } else if (state.currentChart === "reviews-deck") {
+      return { handled: true, command: "reviews-deck", range: normalized };
+    } else if (state.currentChart === "reviews-time") {
+      return { handled: true, command: "reviews-time", range: normalized };
+    } else if (state.currentChart === "reviews-time-deck") {
+      return { handled: true, command: "reviews-time-deck", range: normalized };
     } else if (state.currentChart === "retention") {
       return { handled: true, command: "retention", range: normalized };
+    } else if (state.currentChart === "due-deck") {
+      return { handled: true, command: "due-deck", range: normalized };
     } else {
       state.currentChart = "due";
       return { handled: true, command: "due", range: normalized };
@@ -79,6 +86,15 @@ function parseCommand(
     state.currentChart = "reviews";
     return { handled: true, command: "plot-reviews", range: state.activeRange };
   }
+  if (normalized === "prt") {
+    state.isZoomed = false; // Auto-unzoom
+    state.currentChart = "reviews-time";
+    return {
+      handled: true,
+      command: "plot-reviews-time",
+      range: state.activeRange,
+    };
+  }
   if (normalized === "d") {
     state.isZoomed = false; // Auto-unzoom
     state.currentChart = "due";
@@ -89,17 +105,132 @@ function parseCommand(
     state.currentChart = "reviews";
     return { handled: true, command: "reviews", range: state.activeRange };
   }
+  if (normalized === "rt" || normalized === "time" || normalized === "t") {
+    state.isZoomed = false; // Auto-unzoom
+    if (state.currentChart === "reviews") {
+      state.currentChart = "reviews-time";
+      return {
+        handled: true,
+        command: "reviews-time",
+        range: state.activeRange,
+      };
+    } else if (state.currentChart === "reviews-time") {
+      state.currentChart = "reviews";
+      return { handled: true, command: "reviews", range: state.activeRange };
+    } else if (state.currentChart === "reviews-deck") {
+      state.currentChart = "reviews-time-deck";
+      return {
+        handled: true,
+        command: "reviews-time-deck",
+        range: state.activeRange,
+      };
+    } else if (state.currentChart === "reviews-time-deck") {
+      state.currentChart = "reviews-deck";
+      return {
+        handled: true,
+        command: "reviews-deck",
+        range: state.activeRange,
+      };
+    } else {
+      state.currentChart = "reviews-time";
+      return {
+        handled: true,
+        command: "reviews-time",
+        range: state.activeRange,
+      };
+    }
+  }
 
-  // Handle "plot due/reviews/retention [range]" command
-  const plotMatch = normalized.match(/^plot\s+(due|reviews|retention)\s*(.*)$/);
+  if (normalized === "dd") {
+    state.isZoomed = false; // Auto-unzoom
+    state.currentChart = "due-deck";
+    return {
+      handled: true,
+      command: "due-deck",
+      range: state.activeRange,
+    };
+  }
+
+  if (normalized === "pdd") {
+    state.isZoomed = false; // Auto-unzoom
+    state.currentChart = "due-deck";
+    return {
+      handled: true,
+      command: "plot-due-deck",
+      range: state.activeRange,
+    };
+  }
+
+  if (normalized === "deck" || normalized === "dk") {
+    state.isZoomed = false; // Auto-unzoom
+    if (state.currentChart === "reviews") {
+      state.currentChart = "reviews-deck";
+      return {
+        handled: true,
+        command: "reviews-deck",
+        range: state.activeRange,
+      };
+    } else if (state.currentChart === "reviews-deck") {
+      state.currentChart = "reviews";
+      return { handled: true, command: "reviews", range: state.activeRange };
+    } else if (state.currentChart === "reviews-time") {
+      state.currentChart = "reviews-time-deck";
+      return {
+        handled: true,
+        command: "reviews-time-deck",
+        range: state.activeRange,
+      };
+    } else if (state.currentChart === "reviews-time-deck") {
+      state.currentChart = "reviews-time";
+      return {
+        handled: true,
+        command: "reviews-time",
+        range: state.activeRange,
+      };
+    } else if (state.currentChart === "due") {
+      state.currentChart = "due-deck";
+      return {
+        handled: true,
+        command: "due-deck",
+        range: state.activeRange,
+      };
+    } else if (state.currentChart === "due-deck") {
+      state.currentChart = "due";
+      return {
+        handled: true,
+        command: "due",
+        range: state.activeRange,
+      };
+    } else {
+      state.currentChart = "reviews-deck";
+      return {
+        handled: true,
+        command: "reviews-deck",
+        range: state.activeRange,
+      };
+    }
+  }
+
+  // Handle "plot due/reviews/reviews time/retention [range]" command
+  const plotMatch = normalized.match(
+    /^plot\s+(due\s+deck|due|reviews\s+time\s+deck|reviews\s+deck\s+time|reviews\s+deck|reviews\s+time|reviews|retention)\s*(.*)$/,
+  );
   if (plotMatch) {
     const [, chartType, rangeStr] = plotMatch;
     const range = rangeStr.trim() || state.activeRange;
     if (range in TIME_RANGES) {
       state.isZoomed = false; // Auto-unzoom
-      state.currentChart = chartType;
+      let formattedChartType = chartType.replace(/\s+/g, "-");
+      if (formattedChartType === "reviews-deck-time") {
+        formattedChartType = "reviews-time-deck";
+      }
+      state.currentChart = formattedChartType;
       state.activeRange = range;
-      return { handled: true, command: `plot-${chartType}`, range };
+      return {
+        handled: true,
+        command: `plot-${formattedChartType.replace(/-/g, " ")}`,
+        range,
+      };
     }
     return { handled: true, command: "plot", error: "invalid range" };
   }
@@ -661,6 +792,20 @@ function runTests() {
     );
     assert.strictEqual(result4.range, "1y", "Should have 1y range");
 
+    // plot reviews time 6m
+    const result5 = parseCommand("plot reviews time 6m", state);
+    assert.strictEqual(
+      result5.handled,
+      true,
+      "Should handle 'plot reviews time 6m'",
+    );
+    assert.strictEqual(
+      result5.command,
+      "plot-reviews time",
+      "Should be plot-reviews time command",
+    );
+    assert.strictEqual(result5.range, "6m", "Should have 6m range");
+
     console.log("   ✓ 'plot' umbrella command works");
     passed++;
   } catch (e) {
@@ -756,21 +901,99 @@ function runTests() {
       "Shortcut should stay on retention",
     );
 
-    // Can switch to other charts and back
-    parseCommand("due", state);
-    assert.strictEqual(state.currentChart, "due", "Should switch to due");
-
-    parseCommand("retention", state);
-    assert.strictEqual(
-      state.currentChart,
-      "retention",
-      "Should switch back to retention",
-    );
-
     console.log("   ✓ Range shortcuts work on retention chart");
     passed++;
   } catch (e) {
-    console.log(`   ✗ Retention range shortcuts: ${e.message}`);
+    console.log(`   ✗ Range shortcuts on retention: ${e.message}`);
+    failed++;
+  }
+
+  // Test 17: Deck and Time toggles
+  console.log("\n📋 Test 17: Deck and Time toggles");
+  try {
+    const state = {};
+
+    // time toggles reviews -> reviews-time
+    parseCommand("reviews", state);
+    parseCommand("time", state);
+    assert.strictEqual(
+      state.currentChart,
+      "reviews-time",
+      "Should toggle to reviews-time",
+    );
+
+    // time toggles reviews-time -> reviews (reverse direction)
+    parseCommand("time", state);
+    assert.strictEqual(
+      state.currentChart,
+      "reviews",
+      "Should toggle back to reviews",
+    );
+
+    // deck toggles reviews -> reviews-deck
+    parseCommand("deck", state);
+    assert.strictEqual(
+      state.currentChart,
+      "reviews-deck",
+      "Should toggle to reviews-deck",
+    );
+
+    // deck toggles reviews-deck -> reviews
+    parseCommand("deck", state);
+    assert.strictEqual(
+      state.currentChart,
+      "reviews",
+      "Should toggle back to reviews",
+    );
+
+    // starting from reviews-time, deck -> reviews-time-deck
+    parseCommand("rt", state);
+    parseCommand("deck", state);
+    assert.strictEqual(
+      state.currentChart,
+      "reviews-time-deck",
+      "Should toggle to reviews-time-deck",
+    );
+
+    // deck toggles due -> due-deck
+    parseCommand("due", state);
+    parseCommand("deck", state);
+    assert.strictEqual(
+      state.currentChart,
+      "due-deck",
+      "Should toggle to due-deck",
+    );
+
+    // deck toggles due-deck -> due
+    parseCommand("deck", state);
+    assert.strictEqual(state.currentChart, "due", "Should toggle back to due");
+
+    console.log("   ✓ Deck and time toggles work correctly");
+    passed++;
+  } catch (e) {
+    console.log(`   ✗ Deck and Time toggles: ${e.message}`);
+    failed++;
+  }
+
+  // Test 18: Due Deck specific aliases
+  console.log("\n📋 Test 18: Due Deck aliases");
+  try {
+    const state = {};
+
+    parseCommand("pdd", state);
+    assert.strictEqual(state.currentChart, "due-deck");
+
+    parseCommand("dd", state);
+    assert.strictEqual(state.currentChart, "due-deck");
+
+    parseCommand("plot due deck 6m", state);
+    assert.strictEqual(state.currentChart, "due-deck");
+    assert.strictEqual(state.activeRange, "6m");
+
+    console.log("   ✓ Due Deck aliases route correctly");
+    passed++;
+  } catch (e) {
+    console.log(`   ✗ Due Deck aliases: ${e.message}`);
     failed++;
   }
 
@@ -825,6 +1048,38 @@ function runTests() {
       state.currentChart,
       "reviews",
       "Should switch from retention to reviews",
+    );
+
+    // Switch to reviews time from reviews
+    parseCommand("plot reviews time", state);
+    assert.strictEqual(
+      state.currentChart,
+      "reviews-time",
+      "Should switch from reviews to reviews time",
+    );
+
+    // Switch from reviews time back to reviews via "time" toggle
+    parseCommand("time", state);
+    assert.strictEqual(
+      state.currentChart,
+      "reviews",
+      "Should toggle off reviews-time to reviews with time shortcut",
+    );
+
+    // Switch back to due via shortcut
+    parseCommand("due", state);
+    assert.strictEqual(
+      state.currentChart,
+      "due",
+      "Should switch from reviews-time to due",
+    );
+
+    // Switch to reviews time directly via "t" shortcut
+    parseCommand("t", state);
+    assert.strictEqual(
+      state.currentChart,
+      "reviews-time",
+      "Should switch from due to reviews-time via t shortcut",
     );
 
     console.log("   ✓ Chart switching works between all chart types");
@@ -930,6 +1185,26 @@ function runTests() {
     passed++;
   } catch (e) {
     console.log(`   ✗ Chart switching persists time range: ${e.message}`);
+    failed++;
+  }
+
+  // Test 20: Time range persistence on due-deck
+  console.log("\n📋 Test 20: Time range persistence on due-deck");
+  try {
+    const state = { currentChart: "due-deck", activeRange: "1m" };
+
+    parseCommand("3m", state);
+    assert.strictEqual(
+      state.currentChart,
+      "due-deck",
+      "Should stay on due-deck after time range update",
+    );
+    assert.strictEqual(state.activeRange, "3m");
+
+    console.log("   ✓ Time range correctly persists chart type");
+    passed++;
+  } catch (e) {
+    console.log(`   ✗ Time range persistence: ${e.message}`);
     failed++;
   }
 

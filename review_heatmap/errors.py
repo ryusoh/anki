@@ -38,3 +38,6 @@ class ReviewHeatmapError(Exception):
 
 class CollectionError(ReviewHeatmapError):
     pass
+
+class CommandError(ReviewHeatmapError):
+    pass

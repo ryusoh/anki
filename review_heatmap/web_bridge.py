@@ -43,9 +43,11 @@ from aqt.qt import QWidget
 from aqt.stats import DeckStats
 
 from .config import heatmap_colors, heatmap_modes
+from .errors import CommandError
 from .gui.contrib import invoke_contributions_dialog
 from .gui.extra import invoke_snanki
 from .gui.options import invoke_options_dialog
+from .libaddon.debug import logger
 
 if TYPE_CHECKING:
     from .libaddon.anki.configmanager import ConfigManager
@@ -144,9 +146,9 @@ class _CommandHandler:
     ) -> Any:
         handler = _command_handler_registry.get(command)
 
-        # TODO: handle no handler more expressively
         if not handler:
-            return None
+            logger.warning("No handler found for command: %s", command)
+            raise CommandError(f"No handler found for command: {command}")
 
         return handler(self, payload, context)  # type: ignore
 

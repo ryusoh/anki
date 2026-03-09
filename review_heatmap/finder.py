@@ -34,12 +34,9 @@ Finder extensions
 """
 
 import re
-from typing import TYPE_CHECKING, List, Optional
+from typing import List, Optional
 
 from aqt import mw
-
-if TYPE_CHECKING:
-    from aqt.browser.table import SearchContext
 
 
 # FIXME: No longer works in combination with other search specifiers
@@ -72,7 +69,7 @@ def find_rid(search: str) -> Optional[List[int]]:
     return _find_cards_reviewed_between(start_date, end_date)
 
 
-def on_browser_will_search(search_context: "SearchContext"):
+def on_browser_will_search(search_context):
     search = search_context.search
     if search.startswith("rid"):
         found_ids = find_rid(search)
