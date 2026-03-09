@@ -822,8 +822,7 @@ class Forvo(Service):
 
             # run request
             headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0'}
-            # forvo's http server / WAF / frontend setup is weird, so we have to disable SSL verification
-            response = requests.get(url, headers=headers, verify=False)
+            response = requests.get(url, headers=headers)
             self._logger.debug(f'response.content: {response.content}')
 
             if response.status_code == 200:
@@ -843,7 +842,7 @@ class Forvo(Service):
                         audio_url = item['pathmp3']
                         break
 
-                response = requests.get(audio_url, verify=False)
+                response = requests.get(audio_url)
                 response.raise_for_status()
 
                 with open(path, 'wb') as audio:

@@ -1,9 +1,9 @@
 ---
 name: Idea / Backlog
 about: Log an idea for future implementation (low-effort template for quick notes)
-title: 'idea: '
+title: "idea: "
 labels: idea
-assignees: ''
+assignees: ""
 ---
 
 ## Quick Description

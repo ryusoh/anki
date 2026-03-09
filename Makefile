@@ -34,7 +34,7 @@ fetch:
 # Tests
 # -----------------------------------------------------------------------------
 
-check: check-data check-ranges check-commands check-legend check-trie check-timerange
+check: check-data check-ranges check-commands check-legend check-trie check-timerange check-reviews
 
 check-data:
 	@node tests/data_files.test.js
@@ -53,6 +53,9 @@ check-trie:
 
 check-timerange:
 	@node tests/timeRange.test.js
+
+check-reviews:
+	@node tests/reviews.test.js
 
 # -----------------------------------------------------------------------------
 # Pre-commit Checks

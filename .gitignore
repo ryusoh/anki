@@ -31,3 +31,5 @@ awesome_tts/user_files/*
 !awesome_tts/user_files/README.txt
 awesome_tts/user_files/cache/
 awesome_tts/user_files/*.sqlite
+
+node_modules
