@@ -55,7 +55,7 @@ def get_anki_today():
         return (today - anki_epoch).days
 
 
-def calculate_future_due(cards_data, max_days=None):
+def calculate_future_due(cards_data, max_days=None, anki_today=None):
     """
     Calculate future due cards.
     
@@ -66,15 +66,21 @@ def calculate_future_due(cards_data, max_days=None):
     Args:
         cards_data: List of card dicts
         max_days: Limit range (None for all cards)
+        anki_today: Anki day number for today (defaults to get_anki_today())
     
     Returns list of {day, mature, young} dicts.
     """
-    anki_today = get_anki_today()
+    if anki_today is None:
+        anki_today = get_anki_today()
     
     if max_days is None:
         # Find the maximum due date to determine range
-        max_due = max(c.get("due", 0) for c in cards_data if c.get("queue") == 2)
-        max_days = max_due - anki_today + 1  # Include today
+        review_cards_due = [c.get("due", 0) for c in cards_data if c.get("queue") == 2]
+        if not review_cards_due:
+            max_days = 0
+        else:
+            max_due = max(review_cards_due)
+            max_days = max(0, max_due - anki_today + 1)  # Include today
     
     # Use day buckets
     day_buckets = {}
