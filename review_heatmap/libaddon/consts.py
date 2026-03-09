@@ -34,7 +34,7 @@ Package-wide constants
 """
 
 from __future__ import (division,
-                        print_function, unicode_literals)
+                        unicode_literals)
 
 
 def setAddonProperties(addon):
