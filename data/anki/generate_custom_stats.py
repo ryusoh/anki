@@ -55,7 +55,7 @@ def get_anki_today():
         return (today - anki_epoch).days
 
 
-def calculate_future_due(cards_data, max_days=None, anki_today=None):
+def calculate_future_due(cards_data, cid_to_deck=None, max_days=None, anki_today=None):
     """
     Calculate future due cards.
     
@@ -65,6 +65,7 @@ def calculate_future_due(cards_data, max_days=None, anki_today=None):
     
     Args:
         cards_data: List of card dicts
+        cid_to_deck: Dictionary mapping card ID to deck name
         max_days: Limit range (None for all cards)
         anki_today: Anki day number for today (defaults to get_anki_today())
     
