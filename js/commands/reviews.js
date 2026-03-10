@@ -321,9 +321,11 @@ export function renderReviewsChart(
     labels = data.dates;
     isDense = labels.length > 100;
     const radius = isDense ? 0 : 4;
-    // Convert global time to hours
+    // Convert global time to hours if cumulative, else minutes
     totalTimes = data.global.map((g) =>
-      Number(((g.time || 0) / 3600).toFixed(1)),
+      isCumulative
+        ? Number(((g.time || 0) / 3600).toFixed(1))
+        : Math.round((g.time || 0) / 60),
     );
 
     if (isCumulative) {
@@ -352,11 +354,15 @@ export function renderReviewsChart(
           : { count: 0, time: 0 };
 
       if (showTime) {
-        // Time in hours
+        // Time in hours if cumulative, else minutes
         deckData = deckEntries.map((e) =>
-          Number(((e.time || 0) / 3600).toFixed(1)),
+          isCumulative
+            ? Number(((e.time || 0) / 3600).toFixed(1))
+            : Math.round((e.time || 0) / 60),
         );
-        preSum = Number((deckPreSums.time / 3600).toFixed(1));
+        preSum = isCumulative
+          ? Number((deckPreSums.time / 3600).toFixed(1))
+          : Math.round(deckPreSums.time / 60);
       } else {
         deckData = deckEntries.map((e) => e.count || 0);
         preSum = deckPreSums.count;
@@ -381,19 +387,19 @@ export function renderReviewsChart(
 
       const datasetParams = isCumulative
         ? {
-          type: "line",
-          fill: true,
-          stepped: true,
-          tension: 0,
-          pointRadius: 0,
-          pointHoverRadius: 4,
-        }
+            type: "line",
+            fill: true,
+            stepped: true,
+            tension: 0,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+          }
         : {
-          type: "bar",
-          borderRadius: radius,
-          barPercentage: isDense ? 1.0 : 0.9,
-          categoryPercentage: isDense ? 1.0 : 0.8,
-        };
+            type: "bar",
+            borderRadius: radius,
+            barPercentage: isDense ? 1.0 : 0.9,
+            categoryPercentage: isDense ? 1.0 : 0.8,
+          };
 
       datasets.push({
         label: deckName,
@@ -446,7 +452,11 @@ export function renderReviewsChart(
       time_learn: 0,
       time_relearn: 0,
     };
-    totalTimes = data.map((entry) => Number((entry.time / 3600).toFixed(1)));
+    totalTimes = data.map((entry) =>
+      isCumulative
+        ? Number((entry.time / 3600).toFixed(1))
+        : Math.round(entry.time / 60),
+    );
 
     if (isCumulative) {
       let runSum = Number((preSumObj.time / 3600).toFixed(1));
@@ -456,16 +466,24 @@ export function renderReviewsChart(
     let matureData, youngData, learnData, relearnData;
     if (showTime) {
       matureData = data.map((entry) =>
-        Number(((entry.time_mature || 0) / 3600).toFixed(1)),
+        isCumulative
+          ? Number(((entry.time_mature || 0) / 3600).toFixed(1))
+          : Math.round((entry.time_mature || 0) / 60),
       );
       youngData = data.map((entry) =>
-        Number(((entry.time_young || 0) / 3600).toFixed(1)),
+        isCumulative
+          ? Number(((entry.time_young || 0) / 3600).toFixed(1))
+          : Math.round((entry.time_young || 0) / 60),
       );
       learnData = data.map((entry) =>
-        Number(((entry.time_learn || 0) / 3600).toFixed(1)),
+        isCumulative
+          ? Number(((entry.time_learn || 0) / 3600).toFixed(1))
+          : Math.round((entry.time_learn || 0) / 60),
       );
       relearnData = data.map((entry) =>
-        Number(((entry.time_relearn || 0) / 3600).toFixed(1)),
+        isCumulative
+          ? Number(((entry.time_relearn || 0) / 3600).toFixed(1))
+          : Math.round((entry.time_relearn || 0) / 60),
       );
     } else {
       matureData = data.map((entry) => entry.mature || 0);
@@ -495,21 +513,21 @@ export function renderReviewsChart(
 
     const baselineParams = isCumulative
       ? {
-        type: "line",
-        fill: true,
-        stepped: true,
-        tension: 0,
-        pointRadius: 0,
-        pointHoverRadius: 4,
-        borderWidth: 1,
-      }
+          type: "line",
+          fill: true,
+          stepped: true,
+          tension: 0,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          borderWidth: 1,
+        }
       : {
-        type: "bar",
-        borderRadius: radius,
-        barPercentage: isDense ? 1.0 : 0.9,
-        categoryPercentage: isDense ? 1.0 : 0.8,
-        borderWidth: 0,
-      };
+          type: "bar",
+          borderRadius: radius,
+          barPercentage: isDense ? 1.0 : 0.9,
+          categoryPercentage: isDense ? 1.0 : 0.8,
+          borderWidth: 0,
+        };
 
     datasets = [
       {
@@ -587,7 +605,7 @@ export function renderReviewsChart(
               text: showTime
                 ? isCumulative
                   ? "Cumulative Time (hours)"
-                  : "Time (hours)"
+                  : "Time (minutes)"
                 : isCumulative
                   ? "Cumulative Reviews"
                   : "Reviews",
@@ -605,11 +623,12 @@ export function renderReviewsChart(
             callbacks: {
               title: (items) => items.map((item) => item.label).join("\n"),
               label: (ctx) => {
+                const unit = isCumulative ? "h" : "min";
                 if (showTime) {
-                  return `${ctx.dataset.label}: ${ctx.raw} h`;
+                  return `${ctx.dataset.label}: ${ctx.raw} ${unit}`;
                 } else {
                   const time = totalTimes[ctx.dataIndex];
-                  return `${ctx.dataset.label}: ${ctx.raw} (${time} h total)`;
+                  return `${ctx.dataset.label}: ${ctx.raw} (${time} ${unit} total)`;
                 }
               },
             },
