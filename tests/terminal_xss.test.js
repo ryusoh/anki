@@ -26,11 +26,18 @@ async function runTests() {
   const utilsSource = fs.readFileSync(utilsPath, "utf8");
 
   // A crude but effective way to test a specific exported function from an ES module in a CJS test runner
-  const escapeHtmlMatch = utilsSource.match(/export function escapeHtml\([^)]*\)\s*{([^}]*)}/m);
+  const escapeHtmlMatch = utilsSource.match(
+    /export function escapeHtml\([^)]*\)\s*{([^}]*)}/m,
+  );
   if (!escapeHtmlMatch) {
-     // fallback if regex fails
-     const escapeHtmlLines = utilsSource.split('\n').filter(line => line.includes('replace'));
-     assert.ok(escapeHtmlLines.length > 0, "escapeHtml should be defined and have replace calls");
+    // fallback if regex fails
+    const escapeHtmlLines = utilsSource
+      .split("\n")
+      .filter((line) => line.includes("replace"));
+    assert.ok(
+      escapeHtmlLines.length > 0,
+      "escapeHtml should be defined and have replace calls",
+    );
   }
 
   // We can test `escapeHtml` specifically
@@ -52,10 +59,19 @@ async function runTests() {
   const escapeHtmlFunc = eval(evalEscape);
 
   const testCases = [
-    { input: '<script>alert(1)</script>', expected: '&lt;script&gt;alert(1)&lt;/script&gt;' },
-    { input: '"><img src=x onerror=alert(1)>', expected: '&quot;&gt;&lt;img src=x onerror=alert(1)&gt;' },
-    { input: "javascript:alert('XSS')", expected: 'javascript:alert(&#039;XSS&#039;)' },
-    { input: 'normal command', expected: 'normal command' },
+    {
+      input: "<script>alert(1)</script>",
+      expected: "&lt;script&gt;alert(1)&lt;/script&gt;",
+    },
+    {
+      input: '"><img src=x onerror=alert(1)>',
+      expected: "&quot;&gt;&lt;img src=x onerror=alert(1)&gt;",
+    },
+    {
+      input: "javascript:alert('XSS')",
+      expected: "javascript:alert(&#039;XSS&#039;)",
+    },
+    { input: "normal command", expected: "normal command" },
     { input: 123, expected: 123 }, // testing non-string input fallback
   ];
 
@@ -67,7 +83,7 @@ async function runTests() {
   console.log("✅ XSS utility tests passed!");
 }
 
-runTests().catch(err => {
+runTests().catch((err) => {
   console.error(err);
   process.exit(1);
 });

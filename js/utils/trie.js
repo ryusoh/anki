@@ -208,6 +208,16 @@ export function createCommandTrie() {
     "prtd", // plot reviews time deck abbreviation
     "plot reviews deck time",
     "prdt", // plot reviews deck time abbreviation
+    "plot reviews cumulative",
+    "prc",
+    "plot reviews deck cumulative",
+    "prdc",
+    "plot reviews time cumulative",
+    "prtc",
+    "plot reviews time deck cumulative",
+    "prtdc",
+    "plot reviews deck time cumulative",
+    "prdtc",
     "plot due deck",
     "pdd", // plot due deck abbreviation
     "plot retention", // retention rate chart
@@ -225,6 +235,18 @@ export function createCommandTrie() {
     "rtd", // reviews time deck shortcut
     "reviews deck time",
     "rdt", // reviews deck time shortcut
+    "reviews cumulative",
+    "rc",
+    "reviews deck cumulative",
+    "rdc",
+    "reviews time cumulative",
+    "rtc",
+    "reviews time deck cumulative",
+    "rtdc",
+    "reviews deck time cumulative",
+    "rdtc",
+    "cumulative",
+    "c",
     "due deck",
     "dd", // due deck shortcut
     "time",
@@ -259,6 +281,11 @@ export function createCommandTrie() {
     trie.insert(`plot reviews time ${range}`);
     trie.insert(`plot reviews time deck ${range}`);
     trie.insert(`plot reviews deck time ${range}`);
+    trie.insert(`plot reviews cumulative ${range}`);
+    trie.insert(`plot reviews deck cumulative ${range}`);
+    trie.insert(`plot reviews time cumulative ${range}`);
+    trie.insert(`plot reviews time deck cumulative ${range}`);
+    trie.insert(`plot reviews deck time cumulative ${range}`);
     trie.insert(`plot retention ${range}`);
     trie.insert(`show due ${range}`);
     trie.insert(`show reviews ${range}`);
