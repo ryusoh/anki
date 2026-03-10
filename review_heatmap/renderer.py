@@ -33,6 +33,8 @@
 Heatmap and stats elements generation
 """
 
+from __future__ import annotations
+
 import json
 from enum import Enum
 from typing import TYPE_CHECKING, Dict, List, NamedTuple, Optional, Tuple
@@ -127,9 +129,9 @@ class HeatmapRenderer:
         4.0,
     )
 
-    def __init__(self, mw: AnkiQt, reporter: ActivityReporter, config: "ConfigManager"):
+    def __init__(self, mw: AnkiQt, reporter: ActivityReporter, config: ConfigManager):
         self._mw: AnkiQt = mw
-        self._config: "ConfigManager" = config
+        self._config: ConfigManager = config
         self._reporter: ActivityReporter = reporter
         self._render_cache: Optional[_RenderCache] = None
 
