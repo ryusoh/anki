@@ -589,16 +589,13 @@ class BrowserGenerator(ServiceDialog):
 
         source, dest, append, behavior = self._get_field_values()
 
-        # TODO: could be rewritten with {**, **} syntax
-        return dict(
-            list(super(BrowserGenerator, self)._get_all().items()) +
-            [
-                ('last_mass_append', append),
-                ('last_mass_behavior', behavior),
-                ('last_mass_dest', dest),
-                ('last_mass_source', source),
-            ]
-        )
+        return {
+            **super(BrowserGenerator, self)._get_all(),
+            'last_mass_append': append,
+            'last_mass_behavior': behavior,
+            'last_mass_dest': dest,
+            'last_mass_source': source,
+        }
 
     def _get_field_values(self):
         """
@@ -746,9 +743,9 @@ class EditorGenerator(ServiceDialog):
             return from_unknown(app.clipboard().text(subtype)[0])
 
         def get_current_field_text():
-            if editor.currentField != None:
+            if editor.currentField is not None:
                 # there is currently a selected field
-                if editor.note != None:
+                if editor.note is not None:
                     field_value = editor.note.values()[editor.currentField]
                     return field_value
             return False
@@ -789,9 +786,9 @@ class EditorGenerator(ServiceDialog):
             super(EditorGenerator, self).accept()
 
             current_field_index = self.currentlySelectedFieldIndex
-            if current_field_index != None:
+            if current_field_index is not None:
                 # there is currently a selected field
-                if self._editor.note != None:
+                if self._editor.note is not None:
                     # add to end of field                    
                     field_value = self._editor.note.fields[current_field_index]
                     audio_tag = self._editor._addMedia(path)                    
