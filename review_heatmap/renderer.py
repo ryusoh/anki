@@ -156,7 +156,6 @@ class HeatmapRenderer:
             return HTML_MAIN_ELEMENT.format(content=HTML_INFO_NODATA, classes="")
 
         dynamic_legend = self._dynamic_legend(report.stats.activity_daily_avg.value)
-        stats_legend = self._stats_legend(dynamic_legend)
         heatmap_legend = self._heatmap_legend(dynamic_legend)
 
         classes = self._get_css_classes(view)
@@ -170,7 +169,6 @@ class HeatmapRenderer:
             classes.append(CSS_DISABLE_HEATMAP)
 
         if prefs["display"][view.name] or prefs["statsvis"]:
-			#stats = self._generate_stats_elm(report, stats_legend)
             stats = ""
             #classes.append(CSS_DISABLE_STATS)
         else:
