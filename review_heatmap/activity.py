@@ -152,10 +152,6 @@ class ActivityReporter:
         return activity_report
 
     def set_collection(self, col: "Collection"):
-        # NOTE: Binding the collection is dangerous if we ever persist ActivityReporter
-        # across profile reloads, so allow outside callers to update the collection
-        # if necessary
-
         if not col or not col.db:
             raise CollectionError("Anki collection and/or database is not ready")
 
