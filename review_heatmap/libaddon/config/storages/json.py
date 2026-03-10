@@ -67,7 +67,12 @@ class JSONConfigStorage(ConfigStorage):
             return True
         self._ready = True
         self.load()
-        return super().initialize()
+        res = super().initialize()
+        from anki.hooks import addHook, remHook
+
+        remHook("unloadProfile", self.unload)
+        addHook("unloadProfile", self._on_profile_unload)
+        return res
 
     def load(self) -> bool:
         if not self._ready:
@@ -125,11 +130,7 @@ class JSONConfigStorage(ConfigStorage):
         path = self._safePath(self._path)
         path.unlink()
     
-    def unload(self) -> None:
-        # FIXME: overwrites ConfigStorage.unload to prevent
-        # unloading on profile switch. not necessary for JSONConfigStorage
-        # since config shared across profiles. Instead we just perform a
-        # (more safe) save on config unload
+    def _on_profile_unload(self) -> None:
         if not self._loaded:
             return
         try:
@@ -137,6 +138,12 @@ class JSONConfigStorage(ConfigStorage):
         except (FileNotFoundError, ConfigError) as e:
             # Corner case: Closing Anki after add-on uninstall
             print(e)
+
+    def unload(self) -> None:
+        from anki.hooks import remHook
+
+        remHook("unloadProfile", self._on_profile_unload)
+        super().unload()
 
 
 class UserFilesConfigStorage(JSONConfigStorage):
