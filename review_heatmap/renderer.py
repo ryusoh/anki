@@ -33,6 +33,8 @@
 Heatmap and stats elements generation
 """
 
+from __future__ import annotations
+
 import json
 from enum import Enum
 from typing import TYPE_CHECKING, Dict, List, NamedTuple, Optional, Tuple
@@ -79,7 +81,7 @@ class _RenderCache(NamedTuple):
     html: str
     arguments: Tuple[HeatmapView, Optional[int], Optional[int], bool]
     deck: int
-    col_mod: int
+    col_state: int
 
 
 class HeatmapRenderer:
@@ -127,9 +129,9 @@ class HeatmapRenderer:
         4.0,
     )
 
-    def __init__(self, mw: AnkiQt, reporter: ActivityReporter, config: "ConfigManager"):
+    def __init__(self, mw: AnkiQt, reporter: ActivityReporter, config: ConfigManager):
         self._mw: AnkiQt = mw
-        self._config: "ConfigManager" = config
+        self._config: ConfigManager = config
         self._reporter: ActivityReporter = reporter
         self._render_cache: Optional[_RenderCache] = None
 
@@ -156,7 +158,6 @@ class HeatmapRenderer:
             return HTML_MAIN_ELEMENT.format(content=HTML_INFO_NODATA, classes="")
 
         dynamic_legend = self._dynamic_legend(report.stats.activity_daily_avg.value)
-        stats_legend = self._stats_legend(dynamic_legend)
         heatmap_legend = self._heatmap_legend(dynamic_legend)
 
         classes = self._get_css_classes(view)
@@ -170,7 +171,7 @@ class HeatmapRenderer:
             classes.append(CSS_DISABLE_HEATMAP)
 
         if prefs["display"][view.name] or prefs["statsvis"]:
-			#stats = self._generate_stats_elm(report, stats_legend)
+            #stats = self._generate_stats_elm(report, self._stats_legend(dynamic_legend))
             stats = ""
             #classes.append(CSS_DISABLE_STATS)
         else:
@@ -188,7 +189,7 @@ class HeatmapRenderer:
             html=render,
             arguments=(view, limhist, limfcst, current_deck_only),
             deck=self._mw.col.decks.current(),
-            col_mod=self._mw.col.mod,
+            col_state=self._get_col_state(),
         )
 
         return render
@@ -199,12 +200,16 @@ class HeatmapRenderer:
     def invalidate_cache(self):
         self._render_cache = None
 
+    def _get_col_state(self) -> int:
+        if hasattr(self._mw.col, "undo_status"):
+            return self._mw.col.undo_status().last_step
+        return self._mw.col.mod
+
     def _cache_still_valid(self, view, limhist, limfcst, current_deck_only) -> bool:
-        # FIXME: for 2.1.28+
         cache = self._render_cache
         if not cache:
             return False
-        col_unchanged = self._mw.col.mod == cache.col_mod  # type: ignore
+        col_unchanged = self._get_col_state() == cache.col_state
         return (
             col_unchanged
             and (view, limhist, limfcst, current_deck_only) == cache.arguments  # type: ignore

@@ -32,6 +32,8 @@
 from typing import TYPE_CHECKING
 
 
+__all__ = ["DeckId"]
+
 if TYPE_CHECKING:
     from anki.decks import DeckId
 else:

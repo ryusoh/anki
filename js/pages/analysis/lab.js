@@ -1051,7 +1051,12 @@ async function init() {
     // eslint-disable-next-line no-console
     console.error(err);
     if (summaryStatsEl) {
-      summaryStatsEl.innerHTML = `<div style="color:red; padding:10px;">Error: ${err.message}</div>`;
+      summaryStatsEl.innerHTML = "";
+      const errorDiv = document.createElement("div");
+      errorDiv.style.color = "red";
+      errorDiv.style.padding = "10px";
+      errorDiv.textContent = `Error: ${err.message}`;
+      summaryStatsEl.appendChild(errorDiv);
     }
 
     // eslint-disable-next-line no-undef
