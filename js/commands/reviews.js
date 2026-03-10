@@ -98,6 +98,7 @@ export function getReviewStatsData(rangeKey = DEFAULT_RANGE, byDeck = false) {
       global: globalSlice,
       preSliceSumsByDeck,
       preSliceGlobalTime,
+      allTimeByDeck: byDeckData,
     };
   }
 
@@ -335,11 +336,13 @@ export function renderReviewsChart(
     let datasetIndex = 0;
     const legendHTML = [];
 
-    const groupedDecks = groupAndSortDecks(data.byDeck, showTime);
+    const groupedDecks = groupAndSortDecks(data.allTimeByDeck, showTime);
 
     for (const deckInfo of groupedDecks) {
       const deckName = deckInfo.deckName;
+      // Fetch padded slice data
       const deckEntries = data.byDeck[deckName];
+      if (!deckEntries) continue;
 
       let deckData;
       let preSum = 0;
@@ -366,6 +369,9 @@ export function renderReviewsChart(
         );
       }
 
+      // Hide decks entirely empty within this slice
+      if (deckData.every((val) => val === 0)) continue;
+
       // Assign a related color dynamically based on group category
       const color = getGroupedDeckColor(
         deckInfo.groupIndex,
@@ -375,19 +381,19 @@ export function renderReviewsChart(
 
       const datasetParams = isCumulative
         ? {
-            type: "line",
-            fill: true,
-            stepped: true,
-            tension: 0,
-            pointRadius: 0,
-            pointHoverRadius: 4,
-          }
+          type: "line",
+          fill: true,
+          stepped: true,
+          tension: 0,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+        }
         : {
-            type: "bar",
-            borderRadius: radius,
-            barPercentage: isDense ? 1.0 : 0.9,
-            categoryPercentage: isDense ? 1.0 : 0.8,
-          };
+          type: "bar",
+          borderRadius: radius,
+          barPercentage: isDense ? 1.0 : 0.9,
+          categoryPercentage: isDense ? 1.0 : 0.8,
+        };
 
       datasets.push({
         label: deckName,
@@ -489,21 +495,21 @@ export function renderReviewsChart(
 
     const baselineParams = isCumulative
       ? {
-          type: "line",
-          fill: true,
-          stepped: true,
-          tension: 0,
-          pointRadius: 0,
-          pointHoverRadius: 4,
-          borderWidth: 1,
-        }
+        type: "line",
+        fill: true,
+        stepped: true,
+        tension: 0,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        borderWidth: 1,
+      }
       : {
-          type: "bar",
-          borderRadius: radius,
-          barPercentage: isDense ? 1.0 : 0.9,
-          categoryPercentage: isDense ? 1.0 : 0.8,
-          borderWidth: 0,
-        };
+        type: "bar",
+        borderRadius: radius,
+        barPercentage: isDense ? 1.0 : 0.9,
+        categoryPercentage: isDense ? 1.0 : 0.8,
+        borderWidth: 0,
+      };
 
     datasets = [
       {
