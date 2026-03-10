@@ -265,7 +265,7 @@ class Snanki(QDialog):
         if self.foodPlaced is False:
             self.foodX = randrange(24) * 12
             self.foodY = randrange(2, 24) * 12
-            if not [self.foodX, self.foodY] in self.snakeArray:
+            if [self.foodX, self.foodY] not in self.snakeArray:
                 self.foodPlaced = True
         painter.setBrush(QColor("#ffdd55"))
         painter.drawRect(self.foodX, self.foodY, 12, 12)
@@ -285,16 +285,6 @@ class Snanki(QDialog):
         else:
             QFrame.timerEvent(self, event)
 
-    def _onClose(self):
-        pass
-
-    def accept(self):
-        self._onClose()
-        super().accept()
-
-    def reject(self):
-        self._onClose()
-        super().reject()
 
 
 defaults: Dict[str, Dict] = {
