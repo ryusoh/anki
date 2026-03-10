@@ -47,6 +47,7 @@ import {
   formatCurrency as formatValueWithCurrency,
   convertBetweenCurrencies,
   convertValueToCurrency,
+  escapeHtml,
 } from "./utils.js";
 import { getHoldingAssetClass } from "@js/config.js";
 import { toggleZoom, getZoomState } from "./zoom.js";
@@ -1072,7 +1073,8 @@ export function initTerminal({
     if (!outputContainer) {
       return;
     }
-    const prompt = `<div><span class="prompt-user">lz@fund:~$</span> ${command}</div>`;
+    const safeCommand = escapeHtml(command);
+    const prompt = `<div><span class="prompt-user">lz@fund:~$</span> ${safeCommand}</div>`;
     outputContainer.innerHTML += prompt;
     requestFadeUpdate();
 
