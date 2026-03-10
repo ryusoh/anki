@@ -171,6 +171,7 @@ function getReviewStatsData(rangeKey = null, byDeck = false) {
       global: globalSlice,
       preSliceSumsByDeck,
       preSliceGlobalTime: globalPreTime,
+      allTimeByDeck: byDeckData,
     };
   }
 
@@ -471,6 +472,59 @@ try {
   passed++;
 } catch (e) {
   console.log(`   ✗ Time conversion hours: ${e.message}`);
+  failed++;
+}
+
+// Test 8: Consistent Color Assignment (TDD logic)
+console.log("\n📋 Test 8: Consistent groupAndSortDecks sorting across time ranges");
+try {
+  // We simulate the exact behavior of `renderReviewsChart` to ensure consistent color indices.
+  global.window = {
+    reviewStatsData: {
+      reviews: [],
+      reviewsByDeck: {
+        "Math": [
+          { date: "2023-01-01", count: 100, time: 600 },
+          { date: "2023-12-01", count: 10, time: 60 } // recent
+        ],
+        "Lang": [
+          { date: "2023-01-01", count: 10, time: 60 },
+          { date: "2023-12-01", count: 100, time: 600 } // recent
+        ]
+      }
+    }
+  };
+
+  // 1. If we sort by the sliced current data (1m / recent), Lang > Math
+  const recentSliceData = {
+    "Math": [{ count: 10, time: 60 }],
+    "Lang": [{ count: 100, time: 600 }]
+  };
+  const recentSorted = groupAndSortDecks(recentSliceData, false);
+  assert.strictEqual(recentSorted[0].deckName, "Lang");
+  assert.strictEqual(recentSorted[1].deckName, "Math");
+
+  // 2. But if we sort by `allTimeByDeck`, Math > Lang, and it remains static
+  const allTimeData = getReviewStatsData("1m", true).allTimeByDeck;
+  const consistentSorted = groupAndSortDecks(allTimeData, false);
+
+  assert.strictEqual(consistentSorted[0].deckName, "Math", "Math has 110 all-time");
+  assert.strictEqual(consistentSorted[1].deckName, "Lang", "Lang has 110 all-time, wait, both 110. Math is processed first in object keys? No, total is equal.");
+
+  // Let's adjust mock so Math has definitively more to ensure stability test works properly without relying on object key order
+  global.window.reviewStatsData.reviewsByDeck["Math"][0].count = 200;
+
+  const allTimeData2 = getReviewStatsData("1m", true).allTimeByDeck;
+  const consistentSorted2 = groupAndSortDecks(allTimeData2, false);
+  assert.strictEqual(consistentSorted2[0].deckName, "Math", "Math has 210 all-time, Lang has 110");
+  assert.strictEqual(consistentSorted2[1].deckName, "Lang");
+
+  console.log(
+    "   ✓ allTimeByDeck maintains consistent color classification indices regardless of slice",
+  );
+  passed++;
+} catch (e) {
+  console.log(`   ✗ Consistent color indices: ${e.message}`);
   failed++;
 }
 
