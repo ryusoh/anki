@@ -51,7 +51,7 @@ from .renderer import HeatmapView
 
 if TYPE_CHECKING:
     from aqt.deckbrowser import DeckBrowserContent
-    from aqt.overview import OverviewContent
+    from aqt.overview import OverviewContent  # noqa: F401
 
 
 class HeatmapInjector(ABC):
