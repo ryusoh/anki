@@ -34,7 +34,7 @@ Custom color-chooser
 """
 
 from __future__ import (absolute_import, division,
-                        print_function, unicode_literals)
+                        unicode_literals)
 
 from aqt.qt import QPushButton, QColorDialog, QPixmap, QColor, QIcon, QSize
 

@@ -36,7 +36,7 @@ NOTE: obsolete on PyQt5
 """
 
 from __future__ import (absolute_import, division,
-                        print_function, unicode_literals)
+                        unicode_literals)
 
 from ....platform import PLATFORM
 

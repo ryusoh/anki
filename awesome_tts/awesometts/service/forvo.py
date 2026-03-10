@@ -822,8 +822,17 @@ class Forvo(Service):
 
             # run request
             headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0'}
-            response = requests.get(url, headers=headers)
-            self._logger.debug(f'response.content: {response.content}')
+            try:
+                response = requests.get(url, headers=headers)
+                self._logger.debug(f'response.content: {response.content}')
+            except requests.exceptions.SSLError as e:
+                message = f"SSL Certificate verification failed when contacting Forvo API. This is usually due to Forvo's servers having an invalid or expired certificate. Details: {e}"
+                self._logger.error(message)
+                raise IOError(message)
+            except requests.exceptions.RequestException as e:
+                message = f"A network error occurred while communicating with the Forvo API: {e}"
+                self._logger.error(message)
+                raise IOError(message)
 
             if response.status_code == 200:
                 # success
@@ -842,8 +851,17 @@ class Forvo(Service):
                         audio_url = item['pathmp3']
                         break
 
-                response = requests.get(audio_url)
-                response.raise_for_status()
+                try:
+                    response = requests.get(audio_url)
+                    response.raise_for_status()
+                except requests.exceptions.SSLError as e:
+                    message = f"SSL Certificate verification failed when downloading audio from Forvo. Details: {e}"
+                    self._logger.error(message)
+                    raise IOError(message)
+                except requests.exceptions.RequestException as e:
+                    message = f"A network error occurred while downloading audio from Forvo: {e}"
+                    self._logger.error(message)
+                    raise IOError(message)
 
                 with open(path, 'wb') as audio:
                     audio.write(response.content)
