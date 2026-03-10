@@ -51,8 +51,7 @@ from anki.utils import ids2str
 from anki.errors import NotFoundError
 
 if TYPE_CHECKING:
-    import anki
-    from anki.dbproxy import DBProxy
+    from anki.collection import Collection
 
 from .errors import CollectionError
 from .libaddon.anki.configmanager import ConfigManager
@@ -111,9 +110,8 @@ class ActivityReport(NamedTuple):
 
 
 class ActivityReporter:
-    def __init__(self, col: "anki.collection.Collection", config: ConfigManager):
-        self._col: "anki.collection.Collection"
-        self._db: "DBProxy"
+    def __init__(self, col: "Collection", config: ConfigManager):
+        self._col: "Collection"
 
         self._config: ConfigManager = config
         self.set_collection(col)
@@ -153,7 +151,7 @@ class ActivityReporter:
 
         return activity_report
 
-    def set_collection(self, col: "anki.collection.Collection"):
+    def set_collection(self, col: "Collection"):
         # NOTE: Binding the collection is dangerous if we ever persist ActivityReporter
         # across profile reloads, so allow outside callers to update the collection
         # if necessary

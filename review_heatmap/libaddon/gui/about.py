@@ -34,7 +34,7 @@ Generate 'about' info, including credits, copyright, etc.
 """
 
 from __future__ import (absolute_import, division,
-                        print_function, unicode_literals)
+                        unicode_literals)
 
 from ..consts import ADDON
 from ..platform import ANKI20
