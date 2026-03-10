@@ -27,16 +27,34 @@ export function getReviewStatsData(rangeKey = DEFAULT_RANGE, byDeck = false) {
     // Extract dates from global to ensure all dates are present
     const globalData = Array.isArray(payload.reviews) ? payload.reviews : [];
     let globalSlice = globalData;
+    let sliceIndex = 0;
     if (days !== null && days !== undefined) {
-      globalSlice = globalData.slice(-Math.min(days, globalData.length));
+      sliceIndex = Math.max(0, globalData.length - days);
+      globalSlice = globalData.slice(sliceIndex);
     }
     const targetDates = globalSlice.map((d) => d.date);
+    const firstTargetDate = targetDates.length > 0 ? targetDates[0] : null;
+
+    let preSliceGlobalTime = 0;
 
     // For each deck, construct an array matching targetDates
     const processedByDeck = {};
+    const preSliceSumsByDeck = {};
     for (const [deckName, deckEntries] of Object.entries(byDeckData)) {
       const entryMap = new Map();
-      deckEntries.forEach((entry) => entryMap.set(entry.date, entry));
+      let preSliceCount = 0;
+      let preSliceTime = 0;
+      deckEntries.forEach((entry) => {
+        if (firstTargetDate && entry.date < firstTargetDate) {
+          preSliceCount += entry.count || 0;
+          preSliceTime += entry.time || 0;
+        }
+        entryMap.set(entry.date, entry);
+      });
+      preSliceSumsByDeck[deckName] = {
+        count: preSliceCount,
+        time: preSliceTime,
+      };
 
       const paddedEntries = targetDates.map((date) => {
         if (entryMap.has(date)) {
@@ -67,14 +85,67 @@ export function getReviewStatsData(rangeKey = DEFAULT_RANGE, byDeck = false) {
       });
       processedByDeck[deckName] = paddedEntries;
     }
-    return { dates: targetDates, byDeck: processedByDeck, global: globalSlice };
+
+    // compute global pre-slice global
+    let globalPreTime = 0;
+    for (let i = 0; i < sliceIndex; i++) {
+      globalPreTime += globalData[i].time || 0;
+    }
+
+    return {
+      dates: targetDates,
+      byDeck: processedByDeck,
+      global: globalSlice,
+      preSliceSumsByDeck,
+      preSliceGlobalTime,
+      allTimeByDeck: byDeckData,
+    };
   }
 
   const allData = Array.isArray(payload.reviews) ? payload.reviews : [];
   if (days === null || days === undefined) {
-    return allData;
+    const arr = [...allData];
+    arr.preSliceSum = {
+      mature: 0,
+      young: 0,
+      learn: 0,
+      relearn: 0,
+      time_mature: 0,
+      time_young: 0,
+      time_learn: 0,
+      time_relearn: 0,
+      time: 0,
+    };
+    return arr;
   }
-  return allData.slice(-Math.min(days, allData.length));
+
+  const sliceIndex = Math.max(0, allData.length - days);
+  const slice = allData.slice(sliceIndex);
+
+  const preSliceSum = {
+    mature: 0,
+    young: 0,
+    learn: 0,
+    relearn: 0,
+    time_mature: 0,
+    time_young: 0,
+    time_learn: 0,
+    time_relearn: 0,
+    time: 0,
+  };
+  for (let i = 0; i < sliceIndex; i++) {
+    preSliceSum.mature += allData[i].mature || 0;
+    preSliceSum.young += allData[i].young || 0;
+    preSliceSum.learn += allData[i].learn || 0;
+    preSliceSum.relearn += allData[i].relearn || 0;
+    preSliceSum.time_mature += allData[i].time_mature || 0;
+    preSliceSum.time_young += allData[i].time_young || 0;
+    preSliceSum.time_learn += allData[i].time_learn || 0;
+    preSliceSum.time_relearn += allData[i].time_relearn || 0;
+    preSliceSum.time += allData[i].time || 0;
+  }
+  slice.preSliceSum = preSliceSum;
+  return slice;
 }
 
 const DECK_COLORS = [
@@ -197,7 +268,12 @@ export function getGroupedDeckColor(groupIndex, subIndex, totalInGroup) {
   return `hsla(${Math.round(h)}, ${Math.round(newS)}%, ${Math.round(l)}%, ${a})`;
 }
 
-export function renderReviewsChart(data, showTime = false, byDeck = false) {
+export function renderReviewsChart(
+  data,
+  showTime = false,
+  byDeck = false,
+  isCumulative = false,
+) {
   const canvas = document.getElementById("runningAmountCanvas");
   const section = document.getElementById("runningAmountSection");
   const legend = document.getElementById("chartLegend");
@@ -245,23 +321,62 @@ export function renderReviewsChart(data, showTime = false, byDeck = false) {
     labels = data.dates;
     isDense = labels.length > 100;
     const radius = isDense ? 0 : 4;
-    totalTimes = data.global.map((g) => Math.round((g.time || 0) / 60));
+    // Convert global time to hours if cumulative, else minutes
+    totalTimes = data.global.map((g) =>
+      isCumulative
+        ? Number(((g.time || 0) / 3600).toFixed(1))
+        : Math.round((g.time || 0) / 60),
+    );
+
+    if (isCumulative) {
+      let runSum = data.preSliceGlobalTime
+        ? Number((data.preSliceGlobalTime / 3600).toFixed(1))
+        : 0;
+      totalTimes = totalTimes.map((t) => Number((runSum += t).toFixed(1)));
+    }
 
     let datasetIndex = 0;
     const legendHTML = [];
 
-    const groupedDecks = groupAndSortDecks(data.byDeck, showTime);
+    const groupedDecks = groupAndSortDecks(data.allTimeByDeck, showTime);
 
     for (const deckInfo of groupedDecks) {
       const deckName = deckInfo.deckName;
+      // Fetch padded slice data
       const deckEntries = data.byDeck[deckName];
+      if (!deckEntries) continue;
 
       let deckData;
+      let preSum = 0;
+      const deckPreSums =
+        data.preSliceSumsByDeck && data.preSliceSumsByDeck[deckName]
+          ? data.preSliceSumsByDeck[deckName]
+          : { count: 0, time: 0 };
+
       if (showTime) {
-        deckData = deckEntries.map((e) => Math.round((e.time || 0) / 60));
+        // Time in hours if cumulative, else minutes
+        deckData = deckEntries.map((e) =>
+          isCumulative
+            ? Number(((e.time || 0) / 3600).toFixed(1))
+            : Math.round((e.time || 0) / 60),
+        );
+        preSum = isCumulative
+          ? Number((deckPreSums.time / 3600).toFixed(1))
+          : Math.round(deckPreSums.time / 60);
       } else {
         deckData = deckEntries.map((e) => e.count || 0);
+        preSum = deckPreSums.count;
       }
+
+      if (isCumulative) {
+        let runningSum = preSum;
+        deckData = deckData.map((val) =>
+          Number((runningSum += val).toFixed(1)),
+        );
+      }
+
+      // Hide decks entirely empty within this slice
+      if (deckData.every((val) => val === 0)) continue;
 
       // Assign a related color dynamically based on group category
       const color = getGroupedDeckColor(
@@ -270,15 +385,31 @@ export function renderReviewsChart(data, showTime = false, byDeck = false) {
         deckInfo.totalInGroup,
       );
 
+      const datasetParams = isCumulative
+        ? {
+            type: "line",
+            fill: true,
+            stepped: true,
+            tension: 0,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+          }
+        : {
+            type: "bar",
+            borderRadius: radius,
+            barPercentage: isDense ? 1.0 : 0.9,
+            categoryPercentage: isDense ? 1.0 : 0.8,
+          };
+
       datasets.push({
         label: deckName,
         hidden: isLabelHidden(deckName),
         data: deckData,
         backgroundColor: color,
-        borderRadius: radius,
-        barPercentage: isDense ? 1.0 : 0.9,
-        categoryPercentage: isDense ? 1.0 : 0.8,
+        borderColor: isCumulative ? color : "transparent",
+        borderWidth: isCumulative ? 1 : 0,
         stack: "reviews",
+        ...datasetParams,
       });
 
       legendHTML.push(
@@ -310,17 +441,49 @@ export function renderReviewsChart(data, showTime = false, byDeck = false) {
     labels = data.map((entry) => entry.date);
     isDense = labels.length > 100;
     const radius = isDense ? 0 : 4;
-    totalTimes = data.map((entry) => Math.round(entry.time / 60));
+    const preSumObj = data.preSliceSum || {
+      time: 0,
+      mature: 0,
+      young: 0,
+      learn: 0,
+      relearn: 0,
+      time_mature: 0,
+      time_young: 0,
+      time_learn: 0,
+      time_relearn: 0,
+    };
+    totalTimes = data.map((entry) =>
+      isCumulative
+        ? Number((entry.time / 3600).toFixed(1))
+        : Math.round(entry.time / 60),
+    );
+
+    if (isCumulative) {
+      let runSum = Number((preSumObj.time / 3600).toFixed(1));
+      totalTimes = totalTimes.map((t) => Number((runSum += t).toFixed(1)));
+    }
 
     let matureData, youngData, learnData, relearnData;
     if (showTime) {
       matureData = data.map((entry) =>
-        Math.round((entry.time_mature || 0) / 60),
+        isCumulative
+          ? Number(((entry.time_mature || 0) / 3600).toFixed(1))
+          : Math.round((entry.time_mature || 0) / 60),
       );
-      youngData = data.map((entry) => Math.round((entry.time_young || 0) / 60));
-      learnData = data.map((entry) => Math.round((entry.time_learn || 0) / 60));
+      youngData = data.map((entry) =>
+        isCumulative
+          ? Number(((entry.time_young || 0) / 3600).toFixed(1))
+          : Math.round((entry.time_young || 0) / 60),
+      );
+      learnData = data.map((entry) =>
+        isCumulative
+          ? Number(((entry.time_learn || 0) / 3600).toFixed(1))
+          : Math.round((entry.time_learn || 0) / 60),
+      );
       relearnData = data.map((entry) =>
-        Math.round((entry.time_relearn || 0) / 60),
+        isCumulative
+          ? Number(((entry.time_relearn || 0) / 3600).toFixed(1))
+          : Math.round((entry.time_relearn || 0) / 60),
       );
     } else {
       matureData = data.map((entry) => entry.mature || 0);
@@ -329,53 +492,85 @@ export function renderReviewsChart(data, showTime = false, byDeck = false) {
       relearnData = data.map((entry) => entry.relearn || 0);
     }
 
+    if (isCumulative) {
+      let mSum = showTime
+        ? Number((preSumObj.time_mature / 3600).toFixed(1))
+        : preSumObj.mature;
+      let ySum = showTime
+        ? Number((preSumObj.time_young / 3600).toFixed(1))
+        : preSumObj.young;
+      let lSum = showTime
+        ? Number((preSumObj.time_learn / 3600).toFixed(1))
+        : preSumObj.learn;
+      let rSum = showTime
+        ? Number((preSumObj.time_relearn / 3600).toFixed(1))
+        : preSumObj.relearn;
+      matureData = matureData.map((val) => Number((mSum += val).toFixed(1)));
+      youngData = youngData.map((val) => Number((ySum += val).toFixed(1)));
+      learnData = learnData.map((val) => Number((lSum += val).toFixed(1)));
+      relearnData = relearnData.map((val) => Number((rSum += val).toFixed(1)));
+    }
+
+    const baselineParams = isCumulative
+      ? {
+          type: "line",
+          fill: true,
+          stepped: true,
+          tension: 0,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          borderWidth: 1,
+        }
+      : {
+          type: "bar",
+          borderRadius: radius,
+          barPercentage: isDense ? 1.0 : 0.9,
+          categoryPercentage: isDense ? 1.0 : 0.8,
+          borderWidth: 0,
+        };
+
     datasets = [
       {
         label: "Mature",
         hidden: isLabelHidden("Mature"),
         data: matureData,
         backgroundColor: "rgba(72, 199, 142, 0.85)",
-        borderRadius: radius,
-        barPercentage: isDense ? 1.0 : 0.9,
-        categoryPercentage: isDense ? 1.0 : 0.8,
+        borderColor: isCumulative ? "rgba(72, 199, 142, 1)" : "transparent",
         stack: "reviews",
+        ...baselineParams,
       },
       {
         label: "Young",
         hidden: isLabelHidden("Young"),
         data: youngData,
         backgroundColor: "rgba(73, 168, 236, 0.85)",
-        borderRadius: radius,
-        barPercentage: isDense ? 1.0 : 0.9,
-        categoryPercentage: isDense ? 1.0 : 0.8,
+        borderColor: isCumulative ? "rgba(73, 168, 236, 1)" : "transparent",
         stack: "reviews",
+        ...baselineParams,
       },
       {
         label: "Relearn",
         hidden: isLabelHidden("Relearn"),
         data: relearnData,
         backgroundColor: "rgba(234, 67, 53, 0.85)",
-        borderRadius: radius,
-        barPercentage: isDense ? 1.0 : 0.9,
-        categoryPercentage: isDense ? 1.0 : 0.8,
+        borderColor: isCumulative ? "rgba(234, 67, 53, 1)" : "transparent",
         stack: "reviews",
+        ...baselineParams,
       },
       {
         label: "Learn",
         hidden: isLabelHidden("Learn"),
         data: learnData,
         backgroundColor: "rgba(240, 185, 11, 0.85)",
-        borderRadius: radius,
-        barPercentage: isDense ? 1.0 : 0.9,
-        categoryPercentage: isDense ? 1.0 : 0.8,
+        borderColor: isCumulative ? "rgba(240, 185, 11, 1)" : "transparent",
         stack: "reviews",
+        ...baselineParams,
       },
     ];
   }
 
   try {
     reviewsChart = new Chart(ctx, {
-      type: "bar",
       data: {
         labels,
         datasets,
@@ -407,7 +602,13 @@ export function renderReviewsChart(data, showTime = false, byDeck = false) {
             grid: { color: "rgba(255,255,255,0.1)" },
             title: {
               display: true,
-              text: showTime ? "Time (minutes)" : "Reviews",
+              text: showTime
+                ? isCumulative
+                  ? "Cumulative Time (hours)"
+                  : "Time (minutes)"
+                : isCumulative
+                  ? "Cumulative Reviews"
+                  : "Reviews",
               color: "#a9b4d0",
               font: { family: "JetBrains Mono, monospace", size: 10 },
             },
@@ -422,12 +623,12 @@ export function renderReviewsChart(data, showTime = false, byDeck = false) {
             callbacks: {
               title: (items) => items.map((item) => item.label).join("\n"),
               label: (ctx) => {
+                const unit = isCumulative ? "h" : "min";
                 if (showTime) {
-                  const hours = (ctx.raw / 60).toFixed(1);
-                  return `${ctx.dataset.label}: ${ctx.raw} min (${hours} h)`;
+                  return `${ctx.dataset.label}: ${ctx.raw} ${unit}`;
                 } else {
                   const time = totalTimes[ctx.dataIndex];
-                  return `${ctx.dataset.label}: ${ctx.raw} (${time} min total)`;
+                  return `${ctx.dataset.label}: ${ctx.raw} (${time} ${unit} total)`;
                 }
               },
             },
@@ -460,6 +661,7 @@ export function showReviews(
   rangeKey = DEFAULT_RANGE,
   showTime = false,
   byDeck = false,
+  isCumulative = false,
 ) {
   // Check if data is loaded
   if (
@@ -474,10 +676,11 @@ export function showReviews(
   const days = parseRange(rangeLabel);
   const rangeText = days === null ? "all time" : `${days} days`;
 
-  const result = renderReviewsChart(data, showTime, byDeck);
+  const result = renderReviewsChart(data, showTime, byDeck, isCumulative);
   if (result.success) {
     let modeText = showTime ? "time " : "";
     if (byDeck) modeText += "by deck ";
+    if (isCumulative) modeText = "cumulative " + modeText;
     return `Rendered review ${modeText}history chart (${rangeText}).`;
   }
   return result.error;
@@ -491,12 +694,16 @@ export function getReviewsHelp() {
     "reviews time deck [range] - Render review time history broken down by deck",
     "retention [range]         - Render retention rate chart (line chart)",
     "",
+    "Modifiers:",
+    "  cumulative (c)          - Toggle cumulative view for any review chart",
+    "",
     "Ranges: 1m, 2m, 3m, 6m, 1y, 2y, 3y, 5y, 10y, all",
     "",
     "Examples:",
     "  reviews                 - Default: 1 month",
     "  reviews deck 6m         - 6 months, broken down by deck",
     "  reviews time 1y         - 1 year of time history",
+    "  reviews time cumulative - Cumulative review time history",
     "  reviews all             - Full history",
     "  retention               - Default: 1 month",
     "  retention 1y            - 1 year retention trend",
@@ -513,6 +720,7 @@ export function getReviewsHelp() {
     "  plot reviews time [range]      - Review time track by maturity",
     "  plot reviews deck [range]      - Review history by deck",
     "  plot reviews time deck [range] - Review time track by deck",
+    "  plot \u003Cchart\u003E cumulative [range] - Cumulative version of review charts",
     "  plot retention [range]         - Retention rate",
   ];
 }

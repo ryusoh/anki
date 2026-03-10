@@ -33,6 +33,8 @@
 Heatmap and stats elements generation
 """
 
+from __future__ import annotations
+
 import json
 from enum import Enum
 from typing import TYPE_CHECKING, Dict, List, NamedTuple, Optional, Tuple
@@ -79,7 +81,7 @@ class _RenderCache(NamedTuple):
     html: str
     arguments: Tuple[HeatmapView, Optional[int], Optional[int], bool]
     deck: int
-    col_mod: int
+    col_state: int
 
 
 class HeatmapRenderer:
@@ -127,9 +129,9 @@ class HeatmapRenderer:
         4.0,
     )
 
-    def __init__(self, mw: AnkiQt, reporter: ActivityReporter, config: "ConfigManager"):
+    def __init__(self, mw: AnkiQt, reporter: ActivityReporter, config: ConfigManager):
         self._mw: AnkiQt = mw
-        self._config: "ConfigManager" = config
+        self._config: ConfigManager = config
         self._reporter: ActivityReporter = reporter
         self._render_cache: Optional[_RenderCache] = None
 
@@ -186,7 +188,7 @@ class HeatmapRenderer:
             html=render,
             arguments=(view, limhist, limfcst, current_deck_only),
             deck=self._mw.col.decks.current(),
-            col_mod=self._mw.col.mod,
+            col_state=self._get_col_state(),
         )
 
         return render
@@ -197,12 +199,16 @@ class HeatmapRenderer:
     def invalidate_cache(self):
         self._render_cache = None
 
+    def _get_col_state(self) -> int:
+        if hasattr(self._mw.col, "undo_status"):
+            return self._mw.col.undo_status().last_step
+        return self._mw.col.mod
+
     def _cache_still_valid(self, view, limhist, limfcst, current_deck_only) -> bool:
-        # FIXME: for 2.1.28+
         cache = self._render_cache
         if not cache:
             return False
-        col_unchanged = self._mw.col.mod == cache.col_mod  # type: ignore
+        col_unchanged = self._get_col_state() == cache.col_state
         return (
             col_unchanged
             and (view, limhist, limfcst, current_deck_only) == cache.arguments  # type: ignore

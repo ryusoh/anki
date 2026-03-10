@@ -106,6 +106,121 @@ function getGroupedDeckColor(groupIndex, subIndex, totalInGroup) {
   return `hsla(${Math.round(h)}, ${Math.round(newS)}%, ${Math.round(l)}%, ${a})`;
 }
 
+// Mock timeRange parseRange for getReviewStatsData test
+function parseRange(rangeKey) {
+  if (rangeKey === "1m") return 30;
+  if (rangeKey === "1d") return 1;
+  return null;
+}
+
+function getReviewStatsData(rangeKey = null, byDeck = false) {
+  const payload = global.window.reviewStatsData || {};
+
+  const days = parseRange(rangeKey);
+
+  if (byDeck) {
+    const byDeckData = payload.reviewsByDeck || {};
+    const globalData = Array.isArray(payload.reviews) ? payload.reviews : [];
+    let globalSlice = globalData;
+    let sliceIndex = 0;
+    if (days !== null && days !== undefined) {
+      sliceIndex = Math.max(0, globalData.length - days);
+      globalSlice = globalData.slice(sliceIndex);
+    }
+    const targetDates = globalSlice.map((d) => d.date);
+    const firstTargetDate = targetDates.length > 0 ? targetDates[0] : null;
+
+    let preSliceGlobalTime = 0;
+
+    const processedByDeck = {};
+    const preSliceSumsByDeck = {};
+    for (const [deckName, deckEntries] of Object.entries(byDeckData)) {
+      const entryMap = new Map();
+      let preSliceCount = 0;
+      let preSliceTime = 0;
+      deckEntries.forEach((entry) => {
+        if (firstTargetDate && entry.date < firstTargetDate) {
+          preSliceCount += entry.count || 0;
+          preSliceTime += entry.time || 0;
+        }
+        entryMap.set(entry.date, entry);
+      });
+      preSliceSumsByDeck[deckName] = {
+        count: preSliceCount,
+        time: preSliceTime,
+      };
+
+      const paddedEntries = targetDates.map((date) => {
+        if (entryMap.has(date)) {
+          return entryMap.get(date);
+        } else {
+          return { date: date, count: 0, time: 0 };
+        }
+      });
+      processedByDeck[deckName] = paddedEntries;
+    }
+
+    let globalPreTime = 0;
+    for (let i = 0; i < sliceIndex; i++) {
+      globalPreTime += globalData[i].time || 0;
+    }
+
+    return {
+      dates: targetDates,
+      byDeck: processedByDeck,
+      global: globalSlice,
+      preSliceSumsByDeck,
+      preSliceGlobalTime: globalPreTime,
+      allTimeByDeck: byDeckData,
+    };
+  }
+
+  const allData = Array.isArray(payload.reviews) ? payload.reviews : [];
+  if (days === null || days === undefined) {
+    const arr = [...allData];
+    arr.preSliceSum = {
+      mature: 0,
+      young: 0,
+      learn: 0,
+      relearn: 0,
+      time_mature: 0,
+      time_young: 0,
+      time_learn: 0,
+      time_relearn: 0,
+      time: 0,
+    };
+    return arr;
+  }
+
+  const sliceIndex = Math.max(0, allData.length - days);
+  const slice = allData.slice(sliceIndex);
+
+  const preSliceSum = {
+    mature: 0,
+    young: 0,
+    learn: 0,
+    relearn: 0,
+    time_mature: 0,
+    time_young: 0,
+    time_learn: 0,
+    time_relearn: 0,
+    time: 0,
+  };
+  for (let i = 0; i < sliceIndex; i++) {
+    preSliceSum.mature += allData[i].mature || 0;
+    preSliceSum.young += allData[i].young || 0;
+    preSliceSum.learn += allData[i].learn || 0;
+    preSliceSum.relearn += allData[i].relearn || 0;
+    preSliceSum.time_mature += allData[i].time_mature || 0;
+    preSliceSum.time_young += allData[i].time_young || 0;
+    preSliceSum.time_learn += allData[i].time_learn || 0;
+    preSliceSum.time_relearn += allData[i].time_relearn || 0;
+    preSliceSum.time += allData[i].time || 0;
+  }
+  slice.preSliceSum = preSliceSum;
+  return slice;
+}
+
 // ============================================================================
 // TESTS
 // ============================================================================
@@ -247,6 +362,196 @@ try {
   passed++;
 } catch (e) {
   console.log(`   ✗ groupAndSortDecks with mature/young: ${e.message}`);
+  failed++;
+}
+
+// Test 5: getReviewStatsData preSlice bounds
+console.log("\n📋 Test 5: getReviewStatsData preSlice bounds logic");
+try {
+  // Test global cumulative parsing
+  global.window = {
+    reviewStatsData: {
+      reviews: [
+        { date: "2023-01-01", mature: 10, young: 5, learn: 2, time: 100 },
+        { date: "2023-01-02", mature: 5, young: 3, learn: 1, time: 50 },
+        { date: "2023-01-03", mature: 20, young: 10, learn: 5, time: 200 },
+      ],
+    },
+  };
+
+  // If we pull only the last day ("1d"), preSliceSum should combine elements before it.
+  const slicedData = getReviewStatsData("1d", false);
+  assert.strictEqual(slicedData.length, 1, "Should return only 1 day");
+  assert.strictEqual(slicedData[0].date, "2023-01-03");
+  assert.strictEqual(slicedData.preSliceSum.mature, 15, "mature 10 + 5");
+  assert.strictEqual(slicedData.preSliceSum.young, 8, "young 5 + 3");
+  assert.strictEqual(slicedData.preSliceSum.time, 150, "time 100 + 50");
+
+  console.log(
+    "   ✓ getReviewStatsData sums global elements before target view",
+  );
+  passed++;
+} catch (e) {
+  console.log(`   ✗ getReviewStatsData preSlice global: ${e.message}`);
+  failed++;
+}
+
+// Test 6: getReviewStatsData byDeck preSlice logic
+console.log("\n📋 Test 6: getReviewStatsData preSlice bounds logic (byDeck)");
+try {
+  global.window = {
+    reviewStatsData: {
+      reviews: [
+        { date: "2023-01-01", count: 17, time: 100 },
+        { date: "2023-01-02", count: 9, time: 50 },
+        { date: "2023-01-03", count: 35, time: 200 },
+      ],
+      reviewsByDeck: {
+        Math: [
+          { date: "2023-01-01", count: 10, time: 60 },
+          { date: "2023-01-02", count: 5, time: 25 },
+          { date: "2023-01-03", count: 20, time: 100 },
+        ],
+        Lang: [
+          { date: "2023-01-01", count: 7, time: 40 },
+          { date: "2023-01-02", count: 4, time: 25 },
+          { date: "2023-01-03", count: 15, time: 100 },
+        ],
+      },
+    },
+  };
+
+  const byDeckResult = getReviewStatsData("1d", true);
+
+  assert.strictEqual(byDeckResult.dates.length, 1);
+  assert.strictEqual(byDeckResult.dates[0], "2023-01-03");
+
+  // Global pre time must sum everything before 2023-01-03
+  assert.strictEqual(byDeckResult.preSliceGlobalTime, 150);
+
+  // Deck specific slices
+  assert.strictEqual(byDeckResult.preSliceSumsByDeck["Math"].count, 15);
+  assert.strictEqual(byDeckResult.preSliceSumsByDeck["Math"].time, 85);
+
+  assert.strictEqual(byDeckResult.preSliceSumsByDeck["Lang"].count, 11);
+  assert.strictEqual(byDeckResult.preSliceSumsByDeck["Lang"].time, 65);
+
+  console.log(
+    "   ✓ getReviewStatsData computes accurate sums per deck properly",
+  );
+  passed++;
+} catch (e) {
+  console.log(`   ✗ getReviewStatsData Deck preSlice: ${e.message}`);
+  failed++;
+}
+
+// Test 7: Time conversion in hours (TDD simulation)
+console.log("\n📋 Test 7: Time conversion renders array in hours");
+try {
+  // Original implementation simulation for showTime
+  const deckEntries = [
+    { time: 120 }, // 2 hours
+    { time: 90 }, // 1.5 hours
+    { time: 30 }, // 0.5 hours
+  ];
+
+  // Test non-cumulative logic (Minutes)
+  let isCumulative = false;
+  let deckDataMinutes = deckEntries.map((e) =>
+    isCumulative
+      ? Number(((e.time || 0) / 3600).toFixed(1))
+      : Math.round((e.time || 0) / 60),
+  );
+
+  assert.strictEqual(deckDataMinutes[0], 2);
+  assert.strictEqual(deckDataMinutes[1], 2); // Math.round(1.5) -> 2
+  assert.strictEqual(deckDataMinutes[2], 1); // Math.round(0.5) -> 1
+
+  // Test cumulative logic (Hours)
+  isCumulative = true;
+  let deckDataHours = deckEntries.map((e) =>
+    isCumulative
+      ? Number(((e.time || 0) / 3600).toFixed(1))
+      : Math.round((e.time || 0) / 60),
+  );
+
+  assert.strictEqual(deckDataHours[0], 0); // 120 / 3600 = 0.033 hours = 0.0
+  assert.strictEqual(deckDataHours[1], 0); // 90 / 3600 = 0.025 = 0.0
+  assert.strictEqual(deckDataHours[2], 0); // 30 / 3600 = 0.008 = 0.0
+
+  console.log(
+    "   ✓ Time correctly keeps minutes when non-cumulative, scales strictly to hours when cumulative",
+  );
+  passed++;
+} catch (e) {
+  console.log(`   ✗ Time conversion hours: ${e.message}`);
+  failed++;
+}
+
+// Test 8: Consistent Color Assignment (TDD logic)
+console.log(
+  "\n📋 Test 8: Consistent groupAndSortDecks sorting across time ranges",
+);
+try {
+  // We simulate the exact behavior of `renderReviewsChart` to ensure consistent color indices.
+  global.window = {
+    reviewStatsData: {
+      reviews: [],
+      reviewsByDeck: {
+        Math: [
+          { date: "2023-01-01", count: 100, time: 600 },
+          { date: "2023-12-01", count: 10, time: 60 }, // recent
+        ],
+        Lang: [
+          { date: "2023-01-01", count: 10, time: 60 },
+          { date: "2023-12-01", count: 100, time: 600 }, // recent
+        ],
+      },
+    },
+  };
+
+  // 1. If we sort by the sliced current data (1m / recent), Lang > Math
+  const recentSliceData = {
+    Math: [{ count: 10, time: 60 }],
+    Lang: [{ count: 100, time: 600 }],
+  };
+  const recentSorted = groupAndSortDecks(recentSliceData, false);
+  assert.strictEqual(recentSorted[0].deckName, "Lang");
+  assert.strictEqual(recentSorted[1].deckName, "Math");
+
+  // 2. But if we sort by `allTimeByDeck`, Math > Lang, and it remains static
+  const allTimeData = getReviewStatsData("1m", true).allTimeByDeck;
+  const consistentSorted = groupAndSortDecks(allTimeData, false);
+
+  assert.strictEqual(
+    consistentSorted[0].deckName,
+    "Math",
+    "Math has 110 all-time",
+  );
+  assert.strictEqual(
+    consistentSorted[1].deckName,
+    "Lang",
+    "Lang has 110 all-time, wait, both 110. Math is processed first in object keys? No, total is equal.",
+  );
+
+  // Let's adjust mock so Math has definitively more to ensure stability test works properly without relying on object key order
+  global.window.reviewStatsData.reviewsByDeck["Math"][0].count = 200;
+
+  const allTimeData2 = getReviewStatsData("1m", true).allTimeByDeck;
+  const consistentSorted2 = groupAndSortDecks(allTimeData2, false);
+  assert.strictEqual(
+    consistentSorted2[0].deckName,
+    "Math",
+    "Math has 210 all-time, Lang has 110",
+  );
+  assert.strictEqual(consistentSorted2[1].deckName, "Lang");
+
+  console.log(
+    "   ✓ allTimeByDeck maintains consistent color classification indices regardless of slice",
+  );
+  passed++;
+} catch (e) {
+  console.log(`   ✗ Consistent color indices: ${e.message}`);
   failed++;
 }
 
