@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+
+"""
+Anki Add-on: Remove Deck Highlighting
+Removes both the 'current' selection highlight and the hover highlight in the deck browser.
+"""
+
 from aqt import mw, gui_hooks
 
 def on_webview_will_set_content(web_content, context):
@@ -5,18 +12,17 @@ def on_webview_will_set_content(web_content, context):
     if not isinstance(context, type(mw.deckBrowser)):
         return
 
-    # Remove the .current deck highlighting and all possible nested highlights/filters
+    # 1. Remove .current (selected) highlighting
+    # 2. Remove :hover highlighting
     web_content.head += """
     <style>
-        /* Force absolute transparency and strip all visual effects from the current row and its descendants */
+        /* Force absolute transparency for selected and hovered rows */
         tr.deck.current, 
-        tr.deck.current td, 
-        tr.deck.current a, 
-        tr.deck.current img, 
-        tr.deck.current svg,
-        tr.deck.current div,
-        tr.deck.current span,
-        .current, .current * {
+        tr.deck.current td,
+        tr.deck:hover,
+        tr.deck:hover td,
+        .current, .current *,
+        tr:hover, tr:hover td {
             background-color: transparent !important;
             background: none !important;
             border: none !important;
@@ -26,8 +32,8 @@ def on_webview_will_set_content(web_content, context):
             outline: none !important;
         }
         
-        /* Targeted fix for the gear/options icon area */
-        .opts, .opts a, .gears, .gear, [class*="opt"], .opts *, .gears * {
+        /* Ensure the options/gear icons also stay transparent on hover */
+        .opts, .opts a, .gears, .gear, [class*="opt"], .opts *:hover, .gears *:hover {
             background-color: transparent !important;
             background: none !important;
             filter: none !important;

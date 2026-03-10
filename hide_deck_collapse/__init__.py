@@ -20,11 +20,7 @@ def on_webview_will_set_content(web_content, context):
         pointer-events: none !important;
     }
 
-    /* 2. Restore Original Table Size and Quantitative Centering:
-       Based on standard Anki layouts, we restore the fixed-width feel 
-       without letting it expand to the full window. 
-       We use a fixed max-width to keep it 'original' sized. */
-    
+    /* 2. Restore Original Table Size and Quantitative Centering */
     #recont {
         width: 100% !important;
         display: flex !important;
@@ -36,19 +32,15 @@ def on_webview_will_set_content(web_content, context):
     }
 
     table {
-        /* This is the typical 'original' width for the deck pane */
         width: 550px !important; 
         margin: 0 auto !important;
         border-collapse: collapse !important;
         border: none !important;
     }
 
-    /* 3. Refined Internal Spacing for Symmetry:
-       We use fixed pixel padding to ensure quantitative symmetry 
-       regardless of window resizing. */
-    
+    /* 3. Refined Internal Spacing for Symmetry */
     .decktd {
-        padding-left: 15px !important; /* Space from left edge */
+        padding-left: 15px !important;
         padding-right: 20px !important;
         text-align: left !important;
         border: none !important;
@@ -62,11 +54,18 @@ def on_webview_will_set_content(web_content, context):
         border: none !important;
     }
     
-    /* Balance the right-most Cog icon with the left-most deck padding */
-    .optstds {
-        padding-left: 10px !important;
-        padding-right: 15px !important; /* Symmetrical space from right edge */
-        border: none !important;
+    /* 4. Gear Icon Positioning:
+       Targeting '.opts' class used by Enhance Main Window.
+       Pulls the gear closer to the count columns. */
+    .opts {
+        padding-left: 5px !important;
+        padding-right: 5px !important;
+        text-align: left !important; /* Change from center to left to move it closer */
+        width: 20px !important;
+    }
+    
+    .gears {
+        margin-left: -10px !important; /* Pull icon specifically to the left */
     }
 
     /* Remove all structural box lines */

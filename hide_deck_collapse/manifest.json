@@ -1,8 +1,8 @@
 {
-    "name": "Hide Deck Browser Expand/Collapse Icons",
-    "package": "hide_deck_collapse",
-    "version": "1.0",
-    "author": "Gemini CLI",
-    "description": "Hides the +/- symbols on the left side of deck names in the deck browser.",
-    "homepage": ""
+  "name": "Hide Deck Browser Expand/Collapse Icons",
+  "package": "hide_deck_collapse",
+  "version": "1.0",
+  "author": "Gemini CLI",
+  "description": "Hides the +/- symbols on the left side of deck names in the deck browser.",
+  "homepage": ""
 }
