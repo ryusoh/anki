@@ -455,19 +455,32 @@ try {
     { time: 30 }, // 0.5 hours
   ];
 
-  // Convert to hours instead of minutes (min / 60)
-  // We should keep 1 decimal place using Number(val.toFixed(1))
-  // Otherwise `1.5000000001` floats could appear.
-  const deckDataHours = deckEntries.map((e) =>
-    Number(((e.time || 0) / 60).toFixed(1)),
+  // Test non-cumulative logic (Minutes)
+  let isCumulative = false;
+  let deckDataMinutes = deckEntries.map((e) =>
+    isCumulative
+      ? Number(((e.time || 0) / 3600).toFixed(1))
+      : Math.round((e.time || 0) / 60),
   );
 
-  assert.strictEqual(deckDataHours[0], 2);
-  assert.strictEqual(deckDataHours[1], 1.5);
-  assert.strictEqual(deckDataHours[2], 0.5);
+  assert.strictEqual(deckDataMinutes[0], 2);
+  assert.strictEqual(deckDataMinutes[1], 2); // Math.round(1.5) -> 2
+  assert.strictEqual(deckDataMinutes[2], 1); // Math.round(0.5) -> 1
+
+  // Test cumulative logic (Hours)
+  isCumulative = true;
+  let deckDataHours = deckEntries.map((e) =>
+    isCumulative
+      ? Number(((e.time || 0) / 3600).toFixed(1))
+      : Math.round((e.time || 0) / 60),
+  );
+
+  assert.strictEqual(deckDataHours[0], 0); // 120 / 3600 = 0.033 hours = 0.0
+  assert.strictEqual(deckDataHours[1], 0); // 90 / 3600 = 0.025 = 0.0
+  assert.strictEqual(deckDataHours[2], 0); // 30 / 3600 = 0.008 = 0.0
 
   console.log(
-    "   ✓ Time correctly converts from minutes to hours with 1 decimal place",
+    "   ✓ Time correctly keeps minutes when non-cumulative, scales strictly to hours when cumulative",
   );
   passed++;
 } catch (e) {
@@ -476,29 +489,31 @@ try {
 }
 
 // Test 8: Consistent Color Assignment (TDD logic)
-console.log("\n📋 Test 8: Consistent groupAndSortDecks sorting across time ranges");
+console.log(
+  "\n📋 Test 8: Consistent groupAndSortDecks sorting across time ranges",
+);
 try {
   // We simulate the exact behavior of `renderReviewsChart` to ensure consistent color indices.
   global.window = {
     reviewStatsData: {
       reviews: [],
       reviewsByDeck: {
-        "Math": [
+        Math: [
           { date: "2023-01-01", count: 100, time: 600 },
-          { date: "2023-12-01", count: 10, time: 60 } // recent
+          { date: "2023-12-01", count: 10, time: 60 }, // recent
         ],
-        "Lang": [
+        Lang: [
           { date: "2023-01-01", count: 10, time: 60 },
-          { date: "2023-12-01", count: 100, time: 600 } // recent
-        ]
-      }
-    }
+          { date: "2023-12-01", count: 100, time: 600 }, // recent
+        ],
+      },
+    },
   };
 
   // 1. If we sort by the sliced current data (1m / recent), Lang > Math
   const recentSliceData = {
-    "Math": [{ count: 10, time: 60 }],
-    "Lang": [{ count: 100, time: 600 }]
+    Math: [{ count: 10, time: 60 }],
+    Lang: [{ count: 100, time: 600 }],
   };
   const recentSorted = groupAndSortDecks(recentSliceData, false);
   assert.strictEqual(recentSorted[0].deckName, "Lang");
@@ -508,15 +523,27 @@ try {
   const allTimeData = getReviewStatsData("1m", true).allTimeByDeck;
   const consistentSorted = groupAndSortDecks(allTimeData, false);
 
-  assert.strictEqual(consistentSorted[0].deckName, "Math", "Math has 110 all-time");
-  assert.strictEqual(consistentSorted[1].deckName, "Lang", "Lang has 110 all-time, wait, both 110. Math is processed first in object keys? No, total is equal.");
+  assert.strictEqual(
+    consistentSorted[0].deckName,
+    "Math",
+    "Math has 110 all-time",
+  );
+  assert.strictEqual(
+    consistentSorted[1].deckName,
+    "Lang",
+    "Lang has 110 all-time, wait, both 110. Math is processed first in object keys? No, total is equal.",
+  );
 
   // Let's adjust mock so Math has definitively more to ensure stability test works properly without relying on object key order
   global.window.reviewStatsData.reviewsByDeck["Math"][0].count = 200;
 
   const allTimeData2 = getReviewStatsData("1m", true).allTimeByDeck;
   const consistentSorted2 = groupAndSortDecks(allTimeData2, false);
-  assert.strictEqual(consistentSorted2[0].deckName, "Math", "Math has 210 all-time, Lang has 110");
+  assert.strictEqual(
+    consistentSorted2[0].deckName,
+    "Math",
+    "Math has 210 all-time, Lang has 110",
+  );
   assert.strictEqual(consistentSorted2[1].deckName, "Lang");
 
   console.log(
