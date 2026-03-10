@@ -33,6 +33,8 @@
 Integration with Anki views
 """
 
+from __future__ import annotations
+
 import json
 from abc import ABC
 from typing import TYPE_CHECKING, Callable, Optional
@@ -49,7 +51,7 @@ from .renderer import HeatmapView
 
 if TYPE_CHECKING:
     from aqt.deckbrowser import DeckBrowserContent
-    from aqt.overview import OverviewContent
+    from aqt.overview import OverviewContent  # noqa: F401
 
 
 class HeatmapInjector(ABC):
@@ -77,7 +79,7 @@ class DeckBrowserInjector(HeatmapInjector):
         deck_browser_will_render_content.append(self.on_deckbrowser_will_render_content)
 
     def on_deckbrowser_will_render_content(
-        self, deck_browser: DeckBrowser, content: "DeckBrowserContent"
+        self, deck_browser: DeckBrowser, content: DeckBrowserContent
     ):
         heatmap_html = self._controller.render_for_view(self._view)
         content.stats += heatmap_html
@@ -109,7 +111,7 @@ class OverviewInjector(HeatmapInjector):
         overview_did_refresh.append(self.overview_did_refresh)
 
     def overview_will_render_content(
-        self, overview: Overview, content: "OverviewContent"
+        self, overview: Overview, content: OverviewContent
     ):
         if overview.mw.col and overview.mw.col.sched._is_finished():
             return

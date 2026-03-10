@@ -105,11 +105,14 @@ class HeatmapBridge:
         payload: Optional[str]
 
         try:
-            # TODO: handle no command
             command, payload = command_and_payload.split(self._payload_splitter, 1)
         except ValueError:
             command = command_and_payload
             payload = None
+
+        if not command:
+            logger.warning("Empty command received in Web Bridge message: '%s'", message)
+            return None
 
         # TODO: decode payload JSON
 

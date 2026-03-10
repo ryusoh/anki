@@ -53,12 +53,36 @@ function parseCommand(
     state.activeRange = normalized;
     if (state.currentChart === "reviews") {
       return { handled: true, command: "reviews", range: normalized };
+    } else if (state.currentChart === "reviews-cumulative") {
+      return {
+        handled: true,
+        command: "reviews-cumulative",
+        range: normalized,
+      };
     } else if (state.currentChart === "reviews-deck") {
       return { handled: true, command: "reviews-deck", range: normalized };
+    } else if (state.currentChart === "reviews-deck-cumulative") {
+      return {
+        handled: true,
+        command: "reviews-deck-cumulative",
+        range: normalized,
+      };
     } else if (state.currentChart === "reviews-time") {
       return { handled: true, command: "reviews-time", range: normalized };
+    } else if (state.currentChart === "reviews-time-cumulative") {
+      return {
+        handled: true,
+        command: "reviews-time-cumulative",
+        range: normalized,
+      };
     } else if (state.currentChart === "reviews-time-deck") {
       return { handled: true, command: "reviews-time-deck", range: normalized };
+    } else if (state.currentChart === "reviews-time-deck-cumulative") {
+      return {
+        handled: true,
+        command: "reviews-time-deck-cumulative",
+        range: normalized,
+      };
     } else if (state.currentChart === "retention") {
       return { handled: true, command: "retention", range: normalized };
     } else if (state.currentChart === "due-deck") {
@@ -105,32 +129,80 @@ function parseCommand(
     state.currentChart = "reviews";
     return { handled: true, command: "reviews", range: state.activeRange };
   }
+  if (normalized === "rc") {
+    state.isZoomed = false; // Auto-unzoom
+    state.currentChart = "reviews-cumulative";
+    return {
+      handled: true,
+      command: "reviews-cumulative",
+      range: state.activeRange,
+    };
+  }
+  if (normalized === "rdc") {
+    state.isZoomed = false; // Auto-unzoom
+    state.currentChart = "reviews-deck-cumulative";
+    return {
+      handled: true,
+      command: "reviews-deck-cumulative",
+      range: state.activeRange,
+    };
+  }
+  if (normalized === "rtc") {
+    state.isZoomed = false; // Auto-unzoom
+    state.currentChart = "reviews-time-cumulative";
+    return {
+      handled: true,
+      command: "reviews-time-cumulative",
+      range: state.activeRange,
+    };
+  }
+  if (normalized === "rtdc" || normalized === "rdtc") {
+    state.isZoomed = false; // Auto-unzoom
+    state.currentChart = "reviews-time-deck-cumulative";
+    return {
+      handled: true,
+      command: "reviews-time-deck-cumulative",
+      range: state.activeRange,
+    };
+  }
+  if (normalized === "c" || normalized === "cumulative") {
+    state.isZoomed = false;
+    if (state.currentChart && state.currentChart.startsWith("reviews")) {
+      const isCumulative = !state.currentChart.endsWith("-cumulative");
+      const isTime = state.currentChart.includes("time");
+      const isDeck = state.currentChart.includes("deck");
+
+      let newChart = "reviews";
+      if (isTime) newChart += "-time";
+      if (isDeck) newChart += "-deck";
+      if (isCumulative) newChart += "-cumulative";
+
+      state.currentChart = newChart;
+      return { handled: true, command: newChart, range: state.activeRange };
+    } else {
+      state.currentChart = "reviews-cumulative";
+      return {
+        handled: true,
+        command: "reviews-cumulative",
+        range: state.activeRange,
+      };
+    }
+  }
+
   if (normalized === "rt" || normalized === "time" || normalized === "t") {
     state.isZoomed = false; // Auto-unzoom
-    if (state.currentChart === "reviews") {
-      state.currentChart = "reviews-time";
-      return {
-        handled: true,
-        command: "reviews-time",
-        range: state.activeRange,
-      };
-    } else if (state.currentChart === "reviews-time") {
-      state.currentChart = "reviews";
-      return { handled: true, command: "reviews", range: state.activeRange };
-    } else if (state.currentChart === "reviews-deck") {
-      state.currentChart = "reviews-time-deck";
-      return {
-        handled: true,
-        command: "reviews-time-deck",
-        range: state.activeRange,
-      };
-    } else if (state.currentChart === "reviews-time-deck") {
-      state.currentChart = "reviews-deck";
-      return {
-        handled: true,
-        command: "reviews-deck",
-        range: state.activeRange,
-      };
+    if (state.currentChart && state.currentChart.startsWith("reviews")) {
+      const isCumulative = state.currentChart.endsWith("-cumulative");
+      const isTime = !state.currentChart.includes("time");
+      const isDeck = state.currentChart.includes("deck");
+
+      let newChart = "reviews";
+      if (isTime) newChart += "-time";
+      if (isDeck) newChart += "-deck";
+      if (isCumulative) newChart += "-cumulative";
+
+      state.currentChart = newChart;
+      return { handled: true, command: newChart, range: state.activeRange };
     } else {
       state.currentChart = "reviews-time";
       return {
@@ -163,30 +235,18 @@ function parseCommand(
 
   if (normalized === "deck" || normalized === "dk") {
     state.isZoomed = false; // Auto-unzoom
-    if (state.currentChart === "reviews") {
-      state.currentChart = "reviews-deck";
-      return {
-        handled: true,
-        command: "reviews-deck",
-        range: state.activeRange,
-      };
-    } else if (state.currentChart === "reviews-deck") {
-      state.currentChart = "reviews";
-      return { handled: true, command: "reviews", range: state.activeRange };
-    } else if (state.currentChart === "reviews-time") {
-      state.currentChart = "reviews-time-deck";
-      return {
-        handled: true,
-        command: "reviews-time-deck",
-        range: state.activeRange,
-      };
-    } else if (state.currentChart === "reviews-time-deck") {
-      state.currentChart = "reviews-time";
-      return {
-        handled: true,
-        command: "reviews-time",
-        range: state.activeRange,
-      };
+    if (state.currentChart && state.currentChart.startsWith("reviews")) {
+      const isCumulative = state.currentChart.endsWith("-cumulative");
+      const isTime = state.currentChart.includes("time");
+      const isDeck = !state.currentChart.includes("deck");
+
+      let newChart = "reviews";
+      if (isTime) newChart += "-time";
+      if (isDeck) newChart += "-deck";
+      if (isCumulative) newChart += "-cumulative";
+
+      state.currentChart = newChart;
+      return { handled: true, command: newChart, range: state.activeRange };
     } else if (state.currentChart === "due") {
       state.currentChart = "due-deck";
       return {
@@ -213,7 +273,7 @@ function parseCommand(
 
   // Handle "plot due/reviews/reviews time/retention [range]" command
   const plotMatch = normalized.match(
-    /^plot\s+(due\s+deck|due|reviews\s+time\s+deck|reviews\s+deck\s+time|reviews\s+deck|reviews\s+time|reviews|retention)\s*(.*)$/,
+    /^plot\s+(due\s+deck|due|reviews\s+time\s+deck\s+cumulative|reviews\s+deck\s+time\s+cumulative|reviews\s+deck\s+cumulative|reviews\s+time\s+cumulative|reviews\s+cumulative|reviews\s+time\s+deck|reviews\s+deck\s+time|reviews\s+deck|reviews\s+time|reviews|retention)\s*(.*)$/,
   );
   if (plotMatch) {
     const [, chartType, rangeStr] = plotMatch;
@@ -223,16 +283,18 @@ function parseCommand(
       let formattedChartType = chartType.replace(/\s+/g, "-");
       if (formattedChartType === "reviews-deck-time") {
         formattedChartType = "reviews-time-deck";
+      } else if (formattedChartType === "reviews-deck-time-cumulative") {
+        formattedChartType = "reviews-time-deck-cumulative";
       }
       state.currentChart = formattedChartType;
       state.activeRange = range;
-      return {
-        handled: true,
-        command: `plot-${formattedChartType.replace(/-/g, " ")}`,
-        range,
-      };
+      return { handled: true, command: `plot-${formattedChartType}`, range };
     }
-    return { handled: true, command: "plot", error: "invalid range" };
+    return {
+      handled: true,
+      command: `plot-${chartType.replace(/\s+/g, "-")}`,
+      error: "invalid range",
+    };
   }
 
   // Handle "due" command
@@ -271,7 +333,12 @@ function parseCommand(
 
   // Handle "reviews [range]" command
   const reviewsMatch = normalized.match(/^reviews\s+(.+)$/);
-  if (reviewsMatch) {
+  if (
+    reviewsMatch &&
+    !normalized.startsWith("reviews time") &&
+    !normalized.startsWith("reviews deck") &&
+    !normalized.includes("cumulative")
+  ) {
     const [, range] = reviewsMatch;
     if (range in TIME_RANGES) {
       state.isZoomed = false; // Auto-unzoom
@@ -801,20 +868,96 @@ function runTests() {
     );
     assert.strictEqual(
       result5.command,
-      "plot-reviews time",
-      "Should be plot-reviews time command",
+      "plot-reviews-time",
+      "Should be plot-reviews-time command",
     );
     assert.strictEqual(result5.range, "6m", "Should have 6m range");
 
-    console.log("   ✓ 'plot' umbrella command works");
+    // plot reviews cumulative all
+    const result6 = parseCommand("plot reviews cumulative all", state);
+    assert.strictEqual(
+      result6.handled,
+      true,
+      "Should handle 'plot reviews cumulative all'",
+    );
+    assert.strictEqual(
+      result6.command,
+      "plot-reviews-cumulative",
+      "Should be plot-reviews-cumulative command",
+    );
+    assert.strictEqual(result6.range, "all", "Should have all range");
+
+    console.log("   ✓ 'plot' umbrella command variations work");
     passed++;
   } catch (e) {
-    console.log(`   ✗ 'plot' command: ${e.message}`);
+    console.log(`   ✗ 'plot' umbrella: ${e.message}`);
     failed++;
   }
 
-  // Test 14: Retention command
-  console.log("\n📋 Test 14: 'retention' command");
+  // Test 14: Cumulative context toggling
+  console.log("\n📋 Test 14: Cumulative context toggling");
+  try {
+    const state = {};
+
+    // Base reviews
+    parseCommand("reviews", state);
+    assert.strictEqual(state.currentChart, "reviews");
+
+    // Toggle cumulative
+    parseCommand("cumulative", state);
+    assert.strictEqual(state.currentChart, "reviews-cumulative");
+
+    // Toggle deck on cumulative
+    parseCommand("deck", state);
+    assert.strictEqual(state.currentChart, "reviews-deck-cumulative");
+
+    // Toggle time on cumulative deck
+    parseCommand("time", state);
+    assert.strictEqual(state.currentChart, "reviews-time-deck-cumulative");
+
+    // Toggle cumulative off
+    parseCommand("c", state);
+    assert.strictEqual(state.currentChart, "reviews-time-deck");
+
+    // Toggle deck off
+    parseCommand("deck", state);
+    assert.strictEqual(state.currentChart, "reviews-time");
+
+    console.log("   ✓ Cumulative toggles with time/deck properly");
+    passed++;
+  } catch (e) {
+    console.log(`   ✗ Cumulative toggles: ${e.message}`);
+    failed++;
+  }
+
+  // Test 15: Cumulative abbreviations
+  console.log("\n📋 Test 15: Cumulative specific abbreviations");
+  try {
+    const state = {};
+
+    const checks = [
+      { cmd: "rc", chart: "reviews-cumulative" },
+      { cmd: "rtc", chart: "reviews-time-cumulative" },
+      { cmd: "rdc", chart: "reviews-deck-cumulative" },
+      { cmd: "rtdc", chart: "reviews-time-deck-cumulative" },
+    ];
+
+    checks.forEach(({ cmd, chart }) => {
+      parseCommand(cmd, state);
+      assert.strictEqual(state.currentChart, chart, `Shortcut ${cmd} failed`);
+    });
+
+    console.log("   ✓ Cumulative abbreviation shortcuts work");
+    passed++;
+  } catch (e) {
+    console.log(`   ✗ Cumulative shortcuts: ${e.message}`);
+    failed++;
+  }
+
+  console.log("\n" + "=".repeat(60));
+
+  // Test 16: Retention command
+  console.log("\n📋 Test 16: 'retention' command");
   try {
     const state = {};
 
