@@ -74,6 +74,9 @@ def calculate_future_due(cards_data, cid_to_deck=None, max_days=None, anki_today
     if anki_today is None:
         anki_today = get_anki_today()
     
+    if cid_to_deck is None:
+        cid_to_deck = {}
+
     if max_days is None:
         # Find the maximum due date to determine range
         review_cards_due = [c.get("due", 0) for c in cards_data if c.get("queue") == 2]
