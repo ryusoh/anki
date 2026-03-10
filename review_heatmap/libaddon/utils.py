@@ -33,7 +33,7 @@
 Miscellaneuos utilities used around libaddon
 """
 
-from __future__ import (division, print_function, unicode_literals)
+from __future__ import (unicode_literals)
 
 import os
 

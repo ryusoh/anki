@@ -52,7 +52,6 @@ from anki.errors import NotFoundError
 
 if TYPE_CHECKING:
     from anki.collection import Collection
-    from anki.dbproxy import DBProxy
 
 from .errors import CollectionError
 from .libaddon.anki.configmanager import ConfigManager
@@ -113,7 +112,6 @@ class ActivityReport(NamedTuple):
 class ActivityReporter:
     def __init__(self, col: "Collection", config: ConfigManager):
         self._col: "Collection"
-        self._db: "DBProxy"
 
         self._config: ConfigManager = config
         self.set_collection(col)
@@ -154,10 +152,6 @@ class ActivityReporter:
         return activity_report
 
     def set_collection(self, col: "Collection"):
-        # NOTE: Binding the collection is dangerous if we ever persist ActivityReporter
-        # across profile reloads, so allow outside callers to update the collection
-        # if necessary
-
         if not col or not col.db:
             raise CollectionError("Anki collection and/or database is not ready")
 
