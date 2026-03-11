@@ -124,7 +124,10 @@ export function renderFutureDueChart(data, byDeck = false, rangeDays = null) {
     import("@js/commands/reviews.js").then((reviewsModule) => {
       const { groupAndSortDecks, getGroupedDeckColor } = reviewsModule;
 
-      const layout = groupAndSortDecks(data, false);
+      const layout = groupAndSortDecks(
+        window.customStatsData.futureDueByDeck,
+        false,
+      );
 
       let datasetIdx = 0;
       let legendHtml = "";
@@ -259,6 +262,7 @@ function finishRenderDue(canvas, labels, datasets, legend, section, byDeck) {
         },
         plugins: {
           legend: { display: false },
+          colors: false,
           tooltip: {
             backgroundColor: "rgba(2, 6, 20, 0.9)",
             titleFont: { family: "JetBrains Mono, monospace", size: 12 },

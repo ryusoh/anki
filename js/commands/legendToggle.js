@@ -75,7 +75,7 @@ export function bindLegendToggle(chart, legendEl) {
         if (dataset.label) hiddenLabels.delete(dataset.label);
       }
 
-      chart.update("active"); // animated transition
+      chart.update(); // animated transition
     });
   });
 }
