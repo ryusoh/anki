@@ -72,6 +72,8 @@ export function renderRetentionChart(data) {
             data: retentions,
             borderColor: "rgba(240, 185, 11, 0.9)",
             backgroundColor: "rgba(240, 185, 11, 0.1)",
+            hoverBackgroundColor: "rgba(240, 185, 11, 0.1)",
+            hoverBorderColor: "rgba(240, 185, 11, 0.9)",
             borderWidth: borderWidth,
             pointRadius: pointRadius,
             pointHoverRadius: 4,
@@ -115,6 +117,7 @@ export function renderRetentionChart(data) {
         },
         plugins: {
           legend: { display: false },
+          colors: false,
           tooltip: {
             backgroundColor: "rgba(2, 6, 20, 0.9)",
             titleFont: { family: "JetBrains Mono, monospace", size: 12 },

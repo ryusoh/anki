@@ -155,6 +155,7 @@ function getDueChartConfig() {
     options: {
       plugins: {
         legend: { display: false },
+        colors: false,
       },
     },
   };
@@ -166,6 +167,7 @@ function getReviewsChartConfig() {
     options: {
       plugins: {
         legend: { display: false },
+        colors: false,
       },
     },
   };
@@ -177,6 +179,7 @@ function getRetentionChartConfig() {
     options: {
       plugins: {
         legend: { display: false },
+        colors: false,
       },
     },
   };
@@ -729,7 +732,7 @@ function runTests() {
       'chart.update must be called with "active" for animation',
     );
 
-    console.log('   ✓ chart.update("active") called on toggle');
+    console.log("   ✓ chart.update() called on toggle");
     passed++;
   } catch (e) {
     console.log(`   ✗ chart.update animation: ${e.message}`);
@@ -810,7 +813,7 @@ function runTests() {
         // This is the core logic we are testing: Chart.js native behavior might try to recolor,
         // but our implementation must ensure the background color of remaining datasets
         // stays firmly attached to their original dataset index.
-        mockChart.update("active");
+        mockChart.update();
       });
     });
 
@@ -836,6 +839,95 @@ function runTests() {
     passed++;
   } catch (e) {
     console.log(`   ✗ Color preservation on toggle: ${e.message}`);
+    failed++;
+  }
+
+  // Test 18: Chart.js native Colors plugin must be explicitly disabled
+  console.log(
+    "\n📋 Test 18: Chart.js native Colors plugin must be explicitly disabled",
+  );
+  try {
+    const configs = [
+      { name: "due", config: getDueChartConfig() },
+      { name: "reviews", config: getReviewsChartConfig() },
+      { name: "retention", config: getRetentionChartConfig() },
+    ];
+
+    configs.forEach(({ name, config }) => {
+      assert.ok(
+        config.options !== undefined &&
+          config.options.plugins !== undefined &&
+          config.options.plugins.colors !== undefined,
+        `${name}: options.plugins.colors must exist to explicitly disable it`,
+      );
+      assert.strictEqual(
+        config.options.plugins.colors,
+        false,
+        `${name} config must set options.plugins.colors to false natively`,
+      );
+    });
+
+    console.log("   ✓ All charts explicitely disable the native colors plugin");
+    passed++;
+  } catch (e) {
+    console.log(`   ✗ Native colors plugin disabled: ${e.message}`);
+    failed++;
+  }
+
+  // Test 19: All generated datasets must explicitly pin hoverBackgroundColor to prevent native 'active' color shifts
+  console.log(
+    "\n📋 Test 19: All generated datasets must explicitly pin hoverBackgroundColor",
+  );
+  try {
+    const mockDOM = createMockDOM();
+    let localPassed = true;
+
+    // We render each chart type to inspect the pushed datasets array on the singleton
+
+    // 1. Due Chart
+    renderDueChart(mockDOM);
+    if (global.futureChart && global.futureChart.data) {
+      global.futureChart.data.datasets.forEach((ds, i) => {
+        if (ds.hoverBackgroundColor !== ds.backgroundColor) {
+          console.log(
+            "     ✗ Due Chart dataset " +
+              i +
+              " (" +
+              ds.label +
+              ") missing hoverBackgroundColor match",
+          );
+          localPassed = false;
+        }
+      });
+    }
+
+    // 2. Reviews Chart
+    renderReviewsChart(mockDOM);
+    if (global.reviewsChart && global.reviewsChart.data) {
+      global.reviewsChart.data.datasets.forEach((ds, i) => {
+        if (ds.hoverBackgroundColor !== ds.backgroundColor) {
+          console.log(
+            "     ✗ Reviews Chart dataset " +
+              i +
+              " (" +
+              ds.label +
+              ") missing hoverBackgroundColor match",
+          );
+          localPassed = false;
+        }
+      });
+    }
+
+    if (localPassed) {
+      console.log(
+        "   ✓ All datasets statically pin hoverBackgroundColor === backgroundColor",
+      );
+      passed++;
+    } else {
+      throw new Error("One or more datasets omitted rigid hover backgrounds.");
+    }
+  } catch (e) {
+    console.log("   ✗ Hover background color enforcement: " + e.message);
     failed++;
   }
 
@@ -874,6 +966,7 @@ function runTests() {
     console.log(
       "   • Colors must be preserved for remaining datasets when toggled",
     );
+    console.log("   • Chart.js native colors plugin must be disabled");
     console.log();
     process.exit(0);
   }

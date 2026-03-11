@@ -185,7 +185,6 @@ export function groupAndSortDecks(byDeckData, showTime) {
           : (e.count || 0) + (e.mature || 0) + (e.young || 0)),
       0,
     );
-    if (total === 0) continue;
 
     const topLevelName = deckName.split("::")[0];
     if (!groups[topLevelName]) {
@@ -398,13 +397,18 @@ export function renderReviewsChart(
             categoryPercentage: isDense ? 1.0 : 0.8,
           };
 
+      const resolvedBorderColor = isCumulative
+        ? color.replace(/[\d.]+\)$/, "1)")
+        : "transparent";
+
       datasets.push({
         label: deckName,
         hidden: isLabelHidden(deckName),
         data: deckData,
         backgroundColor: color,
-        borderColor: isCumulative ? color : "transparent",
-        borderWidth: isCumulative ? 1 : 0,
+        borderColor: resolvedBorderColor,
+        hoverBackgroundColor: color,
+        hoverBorderColor: resolvedBorderColor,
         stack: "reviews",
         ...datasetParams,
       });
@@ -533,6 +537,10 @@ export function renderReviewsChart(
         data: matureData,
         backgroundColor: "rgba(72, 199, 142, 0.85)",
         borderColor: isCumulative ? "rgba(72, 199, 142, 1)" : "transparent",
+        hoverBackgroundColor: "rgba(72, 199, 142, 0.85)",
+        hoverBorderColor: isCumulative
+          ? "rgba(72, 199, 142, 1)"
+          : "transparent",
         stack: "reviews",
         ...baselineParams,
       },
@@ -542,6 +550,10 @@ export function renderReviewsChart(
         data: youngData,
         backgroundColor: "rgba(73, 168, 236, 0.85)",
         borderColor: isCumulative ? "rgba(73, 168, 236, 1)" : "transparent",
+        hoverBackgroundColor: "rgba(73, 168, 236, 0.85)",
+        hoverBorderColor: isCumulative
+          ? "rgba(73, 168, 236, 1)"
+          : "transparent",
         stack: "reviews",
         ...baselineParams,
       },
@@ -551,6 +563,8 @@ export function renderReviewsChart(
         data: relearnData,
         backgroundColor: "rgba(234, 67, 53, 0.85)",
         borderColor: isCumulative ? "rgba(234, 67, 53, 1)" : "transparent",
+        hoverBackgroundColor: "rgba(234, 67, 53, 0.85)",
+        hoverBorderColor: isCumulative ? "rgba(234, 67, 53, 1)" : "transparent",
         stack: "reviews",
         ...baselineParams,
       },
@@ -560,6 +574,10 @@ export function renderReviewsChart(
         data: learnData,
         backgroundColor: "rgba(240, 185, 11, 0.85)",
         borderColor: isCumulative ? "rgba(240, 185, 11, 1)" : "transparent",
+        hoverBackgroundColor: "rgba(240, 185, 11, 0.85)",
+        hoverBorderColor: isCumulative
+          ? "rgba(240, 185, 11, 1)"
+          : "transparent",
         stack: "reviews",
         ...baselineParams,
       },
@@ -613,6 +631,7 @@ export function renderReviewsChart(
         },
         plugins: {
           legend: { display: false },
+          colors: false,
           tooltip: {
             backgroundColor: "rgba(2, 6, 20, 0.9)",
             titleFont: { family: "JetBrains Mono, monospace", size: 12 },

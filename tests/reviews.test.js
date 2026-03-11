@@ -19,7 +19,6 @@ function groupAndSortDecks(byDeckData, showTime) {
           : (e.count || 0) + (e.mature || 0) + (e.young || 0)),
       0,
     );
-    if (total === 0) continue;
 
     const topLevelName = deckName.split("::")[0];
     if (!groups[topLevelName]) {
@@ -552,6 +551,41 @@ try {
   passed++;
 } catch (e) {
   console.log(`   ✗ Consistent color indices: ${e.message}`);
+  failed++;
+}
+
+// Test 9: Gradient Stable when a deck is empty
+console.log(
+  "\n📋 Test 9: groupAndSortDecks retains gradient structure regardless of empty decks",
+);
+try {
+  const allData = {
+    "English::Vocab": [{ count: 100 }],
+    "English::Grammar": [{ count: 50 }],
+    "English::Reading": [{ count: 20 }],
+  };
+
+  const missingData = {
+    "English::Vocab": [{ count: 100 }],
+    "English::Grammar": [{ count: 0 }], // Empty!
+    "English::Reading": [{ count: 20 }],
+  };
+
+  const fullGroup = groupAndSortDecks(allData, false);
+  const missingGroup = groupAndSortDecks(missingData, false);
+
+  assert.strictEqual(
+    missingGroup.find((d) => d.deckName === "English::Vocab").totalInGroup,
+    fullGroup.find((d) => d.deckName === "English::Vocab").totalInGroup,
+    "totalInGroup must remain static so gradient divisions don't shift when a deck falls to 0",
+  );
+
+  console.log(
+    "   ✓ groupAndSortDecks retains gradient structure regardless of empty decks",
+  );
+  passed++;
+} catch (e) {
+  console.log(`   ✗ Empty deck gradient stability: ${e.message}`);
   failed++;
 }
 
