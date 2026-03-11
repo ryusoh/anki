@@ -1351,6 +1351,36 @@ function runTests() {
     failed++;
   }
 
+  // Test 21: 'plot' command preserves current state
+  console.log("\n📋 Test 21: 'plot' command preserves current state");
+  try {
+    const state = { currentChart: "reviews-time", activeRange: "6m" };
+
+    const result = parseCommand("plot", state);
+    assert.strictEqual(result.handled, true, "Should handle 'plot'");
+    assert.strictEqual(result.command, "plot", "Should be plot command");
+    assert.strictEqual(
+      state.currentChart,
+      "reviews-time",
+      "Should preserve currentChart",
+    );
+    assert.strictEqual(state.activeRange, "6m", "Should preserve activeRange");
+
+    const result2 = parseCommand("p", state);
+    assert.strictEqual(result2.handled, true, "Should handle 'p'");
+    assert.strictEqual(
+      state.currentChart,
+      "reviews-time",
+      "Should preserve currentChart with 'p'",
+    );
+
+    console.log("   ✓ 'plot' command correctly preserves current chart state");
+    passed++;
+  } catch (e) {
+    console.log(`   ✗ 'plot' command state preservation: ${e.message}`);
+    failed++;
+  }
+
   // Summary
   console.log("\n" + "=".repeat(60));
   console.log(`\n📊 Results: ${passed} passed, ${failed} failed\n`);
@@ -1364,6 +1394,7 @@ function runTests() {
     console.log(
       "   • Charts must be destroyed before switching (prevent canvas reuse error)",
     );
+    console.log("   • 'plot' preserves current chart state");
     console.log();
     process.exit(1);
   } else {
@@ -1381,6 +1412,7 @@ function runTests() {
     console.log("   • 'plot' shows subcommand help");
     console.log("   • Range shortcuts work on retention chart");
     console.log("   • Chart switching works between all chart types");
+    console.log("   • 'plot' command correctly preserves current chart state");
     console.log();
     process.exit(0);
   }
