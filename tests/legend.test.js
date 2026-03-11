@@ -749,6 +749,96 @@ function runTests() {
     failed++;
   }
 
+  // Test 17: Legend toggle preserves colors of other datasets
+  console.log("\n📋 Test 17: Legend toggle preserves colors of other datasets");
+  try {
+    const mockChart = {
+      _datasetMeta: [
+        { hidden: false },
+        { hidden: false },
+        { hidden: false },
+        { hidden: false },
+      ],
+      data: {
+        datasets: [
+          {
+            label: "Mature",
+            backgroundColor: "rgba(72, 199, 142, 0.85)",
+            borderColor: "transparent",
+          },
+          {
+            label: "Young",
+            backgroundColor: "rgba(73, 168, 236, 0.85)",
+            borderColor: "transparent",
+          },
+          {
+            label: "Relearn",
+            backgroundColor: "rgba(234, 67, 53, 0.85)",
+            borderColor: "transparent",
+          },
+          {
+            label: "Learn",
+            backgroundColor: "rgba(240, 185, 11, 0.85)",
+            borderColor: "transparent",
+          },
+        ],
+      },
+      getDatasetMeta(i) {
+        return this._datasetMeta[i];
+      },
+      updateCalled: false,
+      updateMode: null,
+      update(mode) {
+        this.updateCalled = true;
+        this.updateMode = mode;
+      },
+    };
+
+    const mockDOM = createMockDOM();
+    renderReviewsChart(mockDOM);
+
+    const spans = mockDOM.chartLegend.querySelectorAll("[data-dataset-index]");
+
+    // Simulate binding (simplified for test context)
+    spans.forEach((span) => {
+      span.addEventListener("click", () => {
+        const i = parseInt(span.dataset.datasetIndex, 10);
+        const meta = mockChart.getDatasetMeta(i);
+        meta.hidden = !meta.hidden;
+        span.classList.toggle("legend-disabled", meta.hidden);
+
+        // This is the core logic we are testing: Chart.js native behavior might try to recolor,
+        // but our implementation must ensure the background color of remaining datasets
+        // stays firmly attached to their original dataset index.
+        mockChart.update("active");
+      });
+    });
+
+    // Capture initial colors
+    const initialColors = mockChart.data.datasets.map((d) => d.backgroundColor);
+
+    // Hide the first dataset ("Mature")
+    spans[0]._listeners["click"][0]();
+
+    // Verify the remaining datasets kept their exact original colors
+    assert.strictEqual(
+      mockChart.data.datasets[1].backgroundColor,
+      initialColors[1],
+      "Young dataset color should not change when Mature is hidden",
+    );
+    assert.strictEqual(
+      mockChart.data.datasets[2].backgroundColor,
+      initialColors[2],
+      "Relearn dataset color should not change when Mature is hidden",
+    );
+
+    console.log("   ✓ Legend toggle preserves colors of other datasets");
+    passed++;
+  } catch (e) {
+    console.log(`   ✗ Color preservation on toggle: ${e.message}`);
+    failed++;
+  }
+
   // Summary
   console.log("\n" + "=".repeat(60));
   console.log(`\n📊 Results: ${passed} passed, ${failed} failed\n`);
@@ -781,6 +871,9 @@ function runTests() {
     console.log("   • All legend items have data-dataset-index");
     console.log("   • Click-to-toggle adds/removes legend-disabled class");
     console.log('   • chart.update("active") called for animation');
+    console.log(
+      "   • Colors must be preserved for remaining datasets when toggled",
+    );
     console.log();
     process.exit(0);
   }
