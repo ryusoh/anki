@@ -7,7 +7,7 @@ import {
   setCompositionAssetClassFilter,
 } from "./state.js";
 import { computeRunningTotals } from "./calculations.js";
-import { formatDate, formatCurrency, convertValueToCurrency } from "./utils.js";
+import { formatDate, formatCurrency, convertValueToCurrency, escapeHtml } from "./utils.js";
 import { normalizeDateOnly } from "@utils/date.js";
 import { adjustMobilePanels } from "./layout.js";
 import { getHoldingAssetClass } from "@js/config.js";
@@ -156,7 +156,7 @@ function displayTransactions(transactions) {
 
   transactions.forEach((transaction) => {
     const row = document.createElement("tr");
-    const orderTypeClass = transaction.orderType.toLowerCase();
+    const orderTypeClass = escapeHtml(transaction.orderType.toLowerCase());
     const runningTotals = runningTotalsMap.get(transaction.transactionId) || {};
     const tradeDate = transaction.tradeDate;
     const convertedPrice = convertValueToCurrency(
@@ -184,8 +184,8 @@ function displayTransactions(transactions) {
 
     row.innerHTML = `
             <td class="date">${formatDate(transaction.tradeDate)}</td>
-            <td class="${orderTypeClass}">${transaction.orderType}</td>
-            <td>${transaction.security}</td>
+            <td class="${orderTypeClass}">${escapeHtml(transaction.orderType)}</td>
+            <td>${escapeHtml(transaction.security)}</td>
             <td>${parseFloat(transaction.quantity).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
             <td>${formatCurrency(convertedPrice)}</td>
             <td class="amount">${formattedNetAmount}</td>
