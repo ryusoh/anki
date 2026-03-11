@@ -184,13 +184,12 @@ function setupAutocomplete(input, historyState) {
       event.preventDefault();
       clearTerminal();
     } else if (event.key === "Enter") {
-      // Reset autocomplete and destroy charts on enter
+      // Reset autocomplete on enter
       autocompleteState = {
         suggestions: [],
         currentIndex: 0,
         originalInput: "",
       };
-      destroyCharts();
 
       const value = input.value;
       input.value = "";
