@@ -375,9 +375,6 @@ export function renderReviewsChart(
         );
       }
 
-      // Hide decks entirely empty within this slice
-      if (deckData.every((val) => val === 0)) continue;
-
       // Assign a related color dynamically based on group category
       const color = getGroupedDeckColor(
         deckInfo.groupIndex,
