@@ -2,7 +2,30 @@ import sys
 import os
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from utils import fetch_wiktionary_html, parse_wiktionary_html
+from utils import fetch_wiktionary_html, parse_wiktionary_html, get_wiktionary_candidates, format_candidates_html
+
+def test_get_wiktionary_candidates():
+    # 'applz' should return some suggestions like 'apple', 'apply'
+    candidates = get_wiktionary_candidates("applz", "en")
+    assert isinstance(candidates, list)
+    assert len(candidates) > 0
+    assert "apple" in candidates or "apply" in candidates
+
+    # Nonsense word should return empty list
+    empty_candidates = get_wiktionary_candidates("ajsfkldsjafkljsdaf", "en")
+    assert isinstance(empty_candidates, list)
+    assert len(empty_candidates) == 0
+
+def test_format_candidates_html():
+    candidates = ["apple", "apply", "application"]
+    html = format_candidates_html("applz", candidates)
+    assert "Did you mean" in html
+    assert "<ul>" in html
+    assert "<li>apple</li>" in html
+    assert "<li>application</li>" in html
+
+    empty_html = format_candidates_html("ajsfkldsjafkljsdaf", [])
+    assert empty_html == ""
 
 def test_fetch_wiktionary_not_found():
     res = fetch_wiktionary_html("ajsfkldsjafkljsdaf", "en")

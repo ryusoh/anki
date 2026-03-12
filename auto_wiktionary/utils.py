@@ -2,6 +2,7 @@ import re
 import urllib.request
 import urllib.parse
 from urllib.error import URLError, HTTPError
+import json
 from bs4 import BeautifulSoup
 
 def clean_html_text(html_text):
@@ -208,3 +209,41 @@ def merge_definition(current_content, parsed_definition):
     if overlapped:
         return f"{parsed_definition}{current_content}"
     return f"{parsed_definition}<br>{current_content}"
+
+def get_wiktionary_candidates(word, lang="en"):
+    """
+    Fetches a list of up to 5 suggested words from Wiktionary's opensearch API.
+    """
+    if not word:
+        return []
+
+    encoded_word = urllib.parse.quote(word)
+    url = f"https://{lang}.wiktionary.org/w/api.php?action=opensearch&search={encoded_word}&limit=5&format=json"
+
+    req = urllib.request.Request(
+        url,
+        headers={"User-Agent": "AnkiAutoWiktionary/1.0 (https://github.com/lyeutsaon/anki-addons)"}
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=5) as response:
+            data = json.loads(response.read().decode('utf-8'))
+            if len(data) > 1 and isinstance(data[1], list):
+                return data[1]
+    except Exception:
+        pass
+    
+    return []
+
+def format_candidates_html(word, candidates):
+    """
+    Formats a list of candidate words into a simple HTML unordered list.
+    """
+    if not candidates:
+        return ""
+        
+    html = f"<p>Word '{word}' not found. Did you mean:</p>\n<ul>\n"
+    for cand in candidates:
+        html += f"<li>{cand}</li>\n"
+    html += "</ul>"
+    return html
