@@ -187,4 +187,20 @@ def merge_definition(current_content, parsed_definition):
     """
     if not current_content or not current_content.strip():
         return parsed_definition
+        
+    soup_parsed = BeautifulSoup(parsed_definition, 'html.parser')
+    p_tag = soup_parsed.find('p')
+    overlapped = False
+    if p_tag:
+        pronunciation = p_tag.get_text(strip=True)
+        if pronunciation:
+            pronunciation_escaped = re.escape(pronunciation)
+            pattern = r'^\s*(?:<[^>]+>\s*)*' + pronunciation_escaped + r'\s*(?:</[^>]+>|<br\s*/?>)?\s*'
+            new_content = re.sub(pattern, '', current_content, count=1)
+            if new_content != current_content:
+                current_content = new_content
+                overlapped = True
+            
+    if overlapped:
+        return f"{parsed_definition}{current_content}"
     return f"{parsed_definition}<br>{current_content}"
