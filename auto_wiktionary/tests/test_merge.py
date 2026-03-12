@@ -7,6 +7,10 @@ from utils import merge_definition
 def test_merge_definition_empty():
     assert merge_definition("", "<ul><li>def</li></ul>") == "<ul><li>def</li></ul>"
     assert merge_definition("   ", "<ul><li>def</li></ul>") == "<ul><li>def</li></ul>"
+    assert merge_definition("<br>", "<ul><li>def</li></ul>") == "<ul><li>def</li></ul>"
+    assert merge_definition("<br/>", "<ul><li>def</li></ul>") == "<ul><li>def</li></ul>"
+    assert merge_definition("<br />", "<ul><li>def</li></ul>") == "<ul><li>def</li></ul>"
+    assert merge_definition("<div><br></div>", "<ul><li>def</li></ul>") == "<ul><li>def</li></ul>"
 
 def test_merge_definition_existing():
     assert merge_definition("existing content", "<ul><li>def</li></ul>") == "<ul><li>def</li></ul><br>existing content"

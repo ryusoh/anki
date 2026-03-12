@@ -185,7 +185,11 @@ def merge_definition(current_content, parsed_definition):
     Merges the fetched definition with the existing content.
     If there is existing content, prepends the definition to it.
     """
-    if not current_content or not current_content.strip():
+    if not current_content:
+        return parsed_definition
+        
+    clean_content = current_content.strip()
+    if clean_content in ('', '<br>', '<br/>', '<br />', '<div><br></div>'):
         return parsed_definition
         
     soup_parsed = BeautifulSoup(parsed_definition, 'html.parser')
