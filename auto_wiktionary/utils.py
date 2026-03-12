@@ -1,0 +1,120 @@
+import re
+import urllib.request
+import urllib.parse
+from urllib.error import URLError, HTTPError
+from bs4 import BeautifulSoup
+
+def clean_html_text(html_text):
+    """
+    Cleans HTML tags and entities to extract the raw text for searching.
+    """
+    if not html_text:
+        return ""
+
+    # Replace common HTML breaks/spaces with a space
+    text = re.sub(r'<br\s*/?>', ' ', html_text)
+    text = text.replace('&nbsp;', ' ')
+
+    # Remove any remaining HTML tags
+    text = re.sub(r'<[^>]+>', '', text)
+
+    # Strip extra whitespace
+    text = ' '.join(text.split())
+
+    return text
+
+def detect_language(text):
+    """
+    Detects if the text contains Japanese characters (Hiragana, Katakana, Kanji).
+    Returns 'ja' if so, otherwise 'en'.
+    """
+    if not text:
+        return "en"
+
+    jp_regex = re.compile(
+        '[\u3040-\u309F' # Hiragana
+        '\u30A0-\u30FF' # Katakana
+        '\u4E00-\u9FAF' # CJK Unified Ideographs
+        '\u3400-\u4DBF' # CJK Unified Ideographs Extension A
+        '\u3000-\u303F]' # CJK Symbols and Punctuation
+    )
+
+    if jp_regex.search(text):
+        return "ja"
+    return "en"
+
+
+def fetch_wiktionary_html(word, lang):
+    """
+    Fetches the HTML definition of the word from Wiktionary API.
+    """
+    if not word:
+        return ""
+
+    encoded_word = urllib.parse.quote(word)
+    url = f"https://{lang}.wiktionary.org/api/rest_v1/page/html/{encoded_word}"
+
+    req = urllib.request.Request(
+        url,
+        headers={"User-Agent": "AnkiAutoWiktionary/1.0 (https://github.com/lyeutsaon/anki-addons)"}
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=5) as response:
+            return response.read().decode('utf-8')
+    except HTTPError as e:
+        if e.code == 404:
+            return "" # Word not found
+        return f"Error: {e.code}"
+    except URLError:
+        return "Error: Network connection failed."
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+def parse_wiktionary_html(html_text):
+    """
+    Parses the raw HTML from Wiktionary into a cleaner <ul><li> format suitable for Anki.
+    """
+    if not html_text or html_text.startswith("Error:"):
+        return html_text
+
+    soup = BeautifulSoup(html_text, 'html.parser')
+
+    # Remove empty elements and references
+    for tag in soup.find_all(class_=["mw-empty-elt", "reference", "mw-editsection", "ext-phonos"]):
+        tag.decompose()
+
+    # Remove styles
+    for style in soup.find_all("style"):
+        style.decompose()
+
+    # Remove non-definition sections like Translations or Synonyms if they are separate
+    for section in soup.find_all('section'):
+        h_tag = section.find(['h2', 'h3', 'h4', 'h5'])
+        if h_tag:
+            header_text = h_tag.get_text().lower()
+            skip_keywords = ['translation', 'synonym', 'antonym', '翻訳', '類義語', '関連語', '対義語', 'anagram']
+            if any(kw in header_text for kw in skip_keywords):
+                section.decompose()
+
+    ols = soup.find_all('ol')
+
+    results = []
+    for ol in ols:
+        for li in ol.find_all('li', recursive=False):
+            # Unwrap links (remove <a> but keep inner text)
+            for a in li.find_all('a'):
+                a.unwrap()
+
+            # Clean all attributes from remaining tags
+            for tag in li.find_all(True):
+                # We can keep some basic tags
+                tag.attrs = {}
+
+            li.attrs = {}
+            results.append(str(li))
+
+    if not results:
+        return ""
+
+    return "<ul>" + "".join(results) + "</ul>"
