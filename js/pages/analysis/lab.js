@@ -1,4 +1,5 @@
 /* global Worker */
+import { escapeHtml } from "../../transactions/utils.js";
 import { compactNumber } from "../../utils/formatting.js";
 import { BayesianEngine } from "./bayes.js";
 
@@ -492,7 +493,7 @@ function renderSummary(config) {
   ].forEach((stat) => {
     const card = document.createElement("div");
     card.className = "stat-card";
-    card.innerHTML = `<h3>${stat.label}</h3><p>${stat.value}</p>`;
+    card.innerHTML = `<h3>${escapeHtml(stat.label)}</h3><p>${escapeHtml(String(stat.value))}</p>`;
     summaryStatsEl.appendChild(card);
   });
 }
@@ -516,7 +517,7 @@ function renderScenarioCards(config) {
     const card = document.createElement("div");
     card.className = "result-card";
     card.innerHTML = `
-            <h4>${outcome.name}</h4>
+            <h4>${escapeHtml(outcome.name)}</h4>
             <p>Prob: ${(outcome.prob * 100).toFixed(1)}%</p>
             <p>Multiple: ${outcome.multiple.toFixed(2)}x</p>
             <p>Price CAGR: ${formatPercent(outcome.priceCagr)}</p>
@@ -640,7 +641,7 @@ function renderBayesOutput() {
     .map(
       (p) => `
         <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--ink); padding: 4px 0;">
-            <span>${p.name}</span>
+            <span>${escapeHtml(p.name)}</span>
             <strong>${(p.prob * 100).toFixed(1)}%</strong>
         </div>
     `,
