@@ -100,9 +100,9 @@ def parse_wiktionary_html(html_text, lang="en"):
     for tag in soup.find_all(class_=["mw-empty-elt", "reference", "mw-editsection", "ext-phonos"]):
         tag.decompose()
 
-    # Remove styles
-    for style in soup.find_all("style"):
-        style.decompose()
+    # Remove styles and links (used for categories)
+    for tag in soup.find_all(["style", "link"]):
+        tag.decompose()
 
     # Remove non-definition sections like Translations or Synonyms if they are separate
     for section in soup.find_all('section'):
@@ -122,10 +122,8 @@ def parse_wiktionary_html(html_text, lang="en"):
         if p_tag and id(p_tag) not in processed_ps:
             processed_ps.add(id(p_tag))
             
-            headword_tag = p_tag.find(['strong', 'b'])
-            if headword_tag:
-                headword_tag.decompose()
-                
+            for span in p_tag.find_all('span'):
+                span.unwrap()
             for a in p_tag.find_all('a'):
                 a.unwrap()
                 
@@ -133,8 +131,36 @@ def parse_wiktionary_html(html_text, lang="en"):
                 tag.attrs = {}
             p_tag.attrs = {}
             
-            if p_tag.get_text(strip=True):
-                results.append(str(p_tag))
+            hit_parenthesis = False
+            for child in list(p_tag.contents):
+                if child.name is None: # Text node
+                    text_val = str(child)
+                    if not hit_parenthesis and ('(' in text_val or '（' in text_val):
+                        hit_parenthesis = True
+                        idx = -1
+                        if '(' in text_val and '（' in text_val:
+                            idx = min(text_val.find('('), text_val.find('（'))
+                        elif '(' in text_val:
+                            idx = text_val.find('(')
+                        elif '（' in text_val:
+                            idx = text_val.find('（')
+                        
+                        if idx != -1:
+                            child.replace_with(text_val[idx:])
+                        continue
+                
+                if not hit_parenthesis:
+                    child.extract()
+            
+            inner_html = "".join(str(c) for c in p_tag.contents).strip(" \t\n\r\xa0")
+            if inner_html.startswith("(") or inner_html.startswith("（"):
+                inner_html = inner_html[1:]
+            if inner_html.endswith(")") or inner_html.endswith("）"):
+                inner_html = inner_html[:-1]
+            inner_html = inner_html.strip(" \t\n\r\xa0")
+            
+            if inner_html:
+                results.append(f"<p>{inner_html}</p>")
 
         for li in ol.find_all('li', recursive=False):
             # Unwrap links (remove <a> but keep inner text)
@@ -153,3 +179,12 @@ def parse_wiktionary_html(html_text, lang="en"):
         return ""
 
     return "<ul>" + "".join(results) + "</ul>"
+
+def merge_definition(current_content, parsed_definition):
+    """
+    Merges the fetched definition with the existing content.
+    If there is existing content, prepends the definition to it.
+    """
+    if not current_content or not current_content.strip():
+        return parsed_definition
+    return f"{parsed_definition}<br>{current_content}"
