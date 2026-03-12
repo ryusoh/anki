@@ -31,3 +31,14 @@ def test_merge_definition_existing_overlap():
     # With trailing spaces
     existing3 = "じゅうしょ <br>existing"
     assert merge_definition(existing3, parsed) == "<ul><p>じゅうしょ</p><li>definition</li></ul>existing"
+
+def test_merge_definition_replace_did_you_mean():
+    parsed = "<ul><li>definition of apple</li></ul>"
+    
+    # Existing content starts with "Did you mean:"
+    existing = "<p>Word 'applz' not found. Did you mean:</p>\n<ul>\n<li>apple</li>\n</ul>"
+    assert merge_definition(existing, parsed) == parsed
+    
+    # Even with other things after it, just to be safe, replace the whole field.
+    existing2 = "<p>Word 'applz' not found. Did you mean:</p>\n<ul><li>apple</li></ul><br>some old note"
+    assert merge_definition(existing2, parsed) == parsed

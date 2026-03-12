@@ -20,9 +20,10 @@ def test_format_candidates_html():
     candidates = ["apple", "apply", "application"]
     html = format_candidates_html("applz", candidates)
     assert "Did you mean" in html
-    assert "<ul>" in html
-    assert "<li>apple</li>" in html
-    assert "<li>application</li>" in html
+    assert "<ul>" not in html
+    assert "<li>" not in html
+    assert "apple<br>" in html
+    assert "application<br>" in html or html.endswith("application")
 
     empty_html = format_candidates_html("ajsfkldsjafkljsdaf", [])
     assert empty_html == ""

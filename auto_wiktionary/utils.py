@@ -192,6 +192,11 @@ def merge_definition(current_content, parsed_definition):
     clean_content = current_content.strip()
     if clean_content in ('', '<br>', '<br/>', '<br />', '<div><br></div>'):
         return parsed_definition
+
+    if "not found. Did you mean:</p>" in clean_content:
+        # Check if it starts with the "Did you mean" template
+        if clean_content.startswith("<p>Word '") or clean_content.startswith("<div><p>Word '") or clean_content.startswith("Word '"):
+            return parsed_definition
         
     soup_parsed = BeautifulSoup(parsed_definition, 'html.parser')
     p_tag = soup_parsed.find('p')
@@ -237,13 +242,11 @@ def get_wiktionary_candidates(word, lang="en"):
 
 def format_candidates_html(word, candidates):
     """
-    Formats a list of candidate words into a simple HTML unordered list.
+    Formats a list of candidate words as plain text separated by line breaks.
     """
     if not candidates:
         return ""
         
-    html = f"<p>Word '{word}' not found. Did you mean:</p>\n<ul>\n"
-    for cand in candidates:
-        html += f"<li>{cand}</li>\n"
-    html += "</ul>"
+    html = f"<p>Word '{word}' not found. Did you mean:</p>\n"
+    html += "<br>\n".join(candidates)
     return html
