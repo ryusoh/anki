@@ -1,4 +1,5 @@
 import { UI_BREAKPOINTS, CALENDAR_SELECTORS } from "@js/config.js";
+import { debounce } from "../utils/debounce.js";
 
 export function checkAndToggleVerticalScroll() {
   const isMobile = window.innerWidth <= UI_BREAKPOINTS.MOBILE;
@@ -42,10 +43,12 @@ export function alignToggleWithChartMobile() {
 }
 
 export function setupResizeListener() {
-  window.addEventListener("resize", () => {
+  const handleResize = debounce(() => {
     checkAndToggleVerticalScroll();
     alignToggleWithChartMobile();
-  });
+  }, 100);
+
+  window.addEventListener("resize", handleResize);
 }
 
 export function initCalendarResponsiveHandlers() {
@@ -161,22 +164,28 @@ export function initCalendarResponsiveHandlers() {
 
   alignToggle();
 
-  let alignRafId = null;
-  const scheduleAlign = () => {
-    if (alignRafId !== null) {
-      return;
-    }
-    alignRafId = window.requestAnimationFrame(() => {
-      alignRafId = null;
+  const scheduleAlignResize = debounce(() => {
+    window.requestAnimationFrame(() => {
       alignToggle();
     });
+  }, 100);
+
+  let ticking = false;
+  const scheduleAlignScroll = () => {
+    if (!ticking) {
+      window.requestAnimationFrame(() => {
+        alignToggle();
+        ticking = false;
+      });
+      ticking = true;
+    }
   };
 
-  window.addEventListener("resize", scheduleAlign);
-  window.addEventListener("scroll", scheduleAlign, { passive: true });
-  window.addEventListener("calendar-zoom-end", scheduleAlign);
+  window.addEventListener("resize", scheduleAlignResize);
+  window.addEventListener("scroll", scheduleAlignScroll, { passive: true });
+  window.addEventListener("calendar-zoom-end", scheduleAlignResize);
   if (typeof window !== "undefined" && window.ResizeObserver) {
-    const observer = new window.ResizeObserver(scheduleAlign);
+    const observer = new window.ResizeObserver(scheduleAlignResize);
     const toggleContainer = document.querySelector(
       CALENDAR_SELECTORS.currencyToggle,
     );
