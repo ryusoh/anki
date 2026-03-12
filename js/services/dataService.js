@@ -1,5 +1,6 @@
 import { getNyDate, isTradingDay } from "@utils/date.js";
 import { formatCurrency } from "@utils/formatting.js";
+import { escapeHtml } from "../transactions/utils.js";
 import { getBlueColorForSlice, hexToRgba } from "@utils/colors.js";
 import { updatePieChart } from "@charts/allocationChartManager.js";
 import { checkAndToggleVerticalScroll } from "@ui/responsive.js";
@@ -239,7 +240,7 @@ function createHoldingRow(
   );
 
   row.innerHTML = `
-        <td>${holding.name}</td>
+        <td>${escapeHtml(holding.name)}</td>
         <td class="allocation">${allocationPercentage.toFixed(2)}%</td>
         <td class="price">${formatCurrency(holding.currentPrice, currentCurrency, exchangeRates, currencySymbols)}</td>
         <td class="per">${perDisplayValue}</td>
