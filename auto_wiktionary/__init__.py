@@ -28,7 +28,7 @@ def _apply_wiktionary(editor, text_to_search):
         tooltip(f"Wiktionary API {html_res}")
         return
 
-    parsed_definition = parse_wiktionary_html(html_res)
+    parsed_definition = parse_wiktionary_html(html_res, lang)
 
     if not parsed_definition:
         tooltip(f"Could not parse definition for '{text}'.")
