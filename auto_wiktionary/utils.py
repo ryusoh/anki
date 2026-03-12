@@ -71,7 +71,7 @@ def fetch_wiktionary_html(word, lang):
     except Exception as e:
         return f"Error: {str(e)}"
 
-def parse_wiktionary_html(html_text):
+def parse_wiktionary_html(html_text, lang="en"):
     """
     Parses the raw HTML from Wiktionary into a cleaner <ul><li> format suitable for Anki.
     """
@@ -79,6 +79,22 @@ def parse_wiktionary_html(html_text):
         return html_text
 
     soup = BeautifulSoup(html_text, 'html.parser')
+
+    # Keep only the target language section if there are language headers
+    target_headers = {
+        "en": ["english"],
+        "ja": ["japanese", "日本語"]
+    }
+    
+    # Check if there are any top-level language sections
+    # On Wiktionary, languages are usually in h2 tags
+    for section in soup.find_all('section'):
+        h2 = section.find('h2')
+        if h2:
+            header_text = h2.get_text().strip().lower()
+            allowed_headers = target_headers.get(lang, [])
+            if allowed_headers and not any(h == header_text for h in allowed_headers):
+                section.decompose()
 
     # Remove empty elements and references
     for tag in soup.find_all(class_=["mw-empty-elt", "reference", "mw-editsection", "ext-phonos"]):
@@ -100,7 +116,26 @@ def parse_wiktionary_html(html_text):
     ols = soup.find_all('ol')
 
     results = []
+    processed_ps = set()
     for ol in ols:
+        p_tag = ol.find_previous_sibling('p')
+        if p_tag and id(p_tag) not in processed_ps:
+            processed_ps.add(id(p_tag))
+            
+            headword_tag = p_tag.find(['strong', 'b'])
+            if headword_tag:
+                headword_tag.decompose()
+                
+            for a in p_tag.find_all('a'):
+                a.unwrap()
+                
+            for tag in p_tag.find_all(True):
+                tag.attrs = {}
+            p_tag.attrs = {}
+            
+            if p_tag.get_text(strip=True):
+                results.append(str(p_tag))
+
         for li in ol.find_all('li', recursive=False):
             # Unwrap links (remove <a> but keep inner text)
             for a in li.find_all('a'):
