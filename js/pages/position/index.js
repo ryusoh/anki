@@ -33,6 +33,7 @@ import { logger } from "@utils/logger.js";
 import { mountPerlinPlaneBackground } from "../../vendor/perlin-plane.js";
 import { PERLIN_BACKGROUND_SETTINGS, TABLE_GLASS_EFFECT } from "@js/config.js";
 import { TableGlassEffect } from "@ui/tableGlassEffect.js";
+import { debounce } from "../../utils/debounce.js";
 
 let currentSelectedCurrency = "USD"; // Default currency
 let exchangeRates = { USD: 1.0 }; // Default rates, will be updated
@@ -207,11 +208,13 @@ if (document.readyState === "loading") {
 }
 
 // Handle responsive adjustments
-window.addEventListener("resize", () => {
+const handleResize = debounce(() => {
   applyResponsiveGlassOpacity();
   checkAndToggleVerticalScroll(); // Handles general scroll state on resize
   alignToggleWithChartMobile(); // Re-align on resize
-});
+}, 100);
+
+window.addEventListener("resize", handleResize);
 
 // Keyboard shortcuts
 // - ArrowDown/ArrowUp: toggle same behavior as clicking the pie center

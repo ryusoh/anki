@@ -32,6 +32,7 @@ import {
   initBackgroundSweepEffect,
   stopBackgroundSweepEffect as stopReusableBackgroundSweepEffect,
 } from "@ui/backgroundSweep.js";
+import { debounce } from "../../utils/debounce.js";
 
 // --- STATE ---
 let calendarInstance = null; // Store calendar instance for resize handling
@@ -50,17 +51,9 @@ const appState = {
   isCalendarTransition: false,
 };
 
-let viewportUpdateTimer = null;
-
-function scheduleViewportUpdate(delay = 100) {
-  if (viewportUpdateTimer) {
-    clearTimeout(viewportUpdateTimer);
-  }
-  viewportUpdateTimer = setTimeout(() => {
-    viewportUpdateTimer = null;
-    handleViewportChange();
-  }, delay);
-}
+const scheduleViewportUpdate = debounce(() => {
+  handleViewportChange();
+}, 100);
 
 function getLatestMonthlyKey(monthlyPnl) {
   if (!(monthlyPnl instanceof Map) || monthlyPnl.size === 0) {
@@ -678,18 +671,18 @@ function setupEventListeners(cal, byDate, state, currencySymbols) {
   // Responsive calendar handling - update range on viewport changes
   window.addEventListener("resize", () => {
     logger.log("Window resize detected, scheduling viewport check");
-    scheduleViewportUpdate(150); // Debounce resize events
+    scheduleViewportUpdate();
   });
 
   // Handle zoom state changes
   window.addEventListener("calendar-zoom-start", () => {
     // Small delay to ensure zoom class is applied
-    scheduleViewportUpdate(120);
+    scheduleViewportUpdate();
   });
 
   window.addEventListener("calendar-zoom-end", () => {
     // Small delay to ensure zoom class is removed
-    scheduleViewportUpdate(120);
+    scheduleViewportUpdate();
   });
 
   // Touch swipe navigation for mobile devices
