@@ -94,9 +94,21 @@ export class TableGlassEffect {
     this.startLoop();
 
     // Mouse movement for parallax/interaction
-    this.container.addEventListener("mousemove", (e) =>
-      this.handleMouseMove(e),
-    );
+    // ⚡ Bolt Performance Optimization:
+    // Throttled mousemove event using requestAnimationFrame and a ticking lock.
+    // Why: Prevent high-frequency events from triggering expensive DOM operations
+    // (like document.elementFromPoint, .closest, and .findIndex) continuously.
+    // Impact: Smooths out layout thrashing and hover jank on large tables, improving frame rates.
+    let ticking = false;
+    this.container.addEventListener("mousemove", (e) => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          this.handleMouseMove(e);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    });
     this.container.addEventListener("mouseleave", () =>
       this.handleMouseLeave(),
     );
