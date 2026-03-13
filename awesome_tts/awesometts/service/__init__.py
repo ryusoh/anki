@@ -34,6 +34,7 @@ from .elevenlabs import ElevenLabs
 from .espeak import ESpeak
 from .festival import Festival
 from .fptai import FptAi
+from .freedictionary import FreeDictionary
 from .google import Google
 from .googletts import GoogleTTS
 from .ispeech import ISpeech
@@ -70,6 +71,7 @@ __all__ = [
     'ESpeak',
     'Festival',
     'FPT.AI',
+    'FreeDictionary',
     'Google',
     'GoogleTTS',
     'ISpeech',
