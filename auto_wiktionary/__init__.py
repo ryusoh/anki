@@ -3,7 +3,7 @@ from aqt import gui_hooks
 from aqt.editor import Editor
 from aqt.utils import tooltip
 
-from .utils import clean_html_text, detect_language, fetch_wiktionary_html, parse_wiktionary_html
+from .utils import clean_html_text, detect_language, fetch_wiktionary_html, parse_wiktionary_html, merge_definition, get_wiktionary_candidates, format_candidates_html
 
 ADDON_DIR = os.path.dirname(__file__)
 ICON_PATH = os.path.join(ADDON_DIR, "icon.png")
@@ -22,17 +22,21 @@ def _apply_wiktionary(editor, text_to_search):
     # Try fetching definition
     html_res = fetch_wiktionary_html(text, lang)
     if not html_res:
-        tooltip(f"Word '{text}' not found in {lang}.wiktionary.")
-        return
+        candidates = get_wiktionary_candidates(text, lang)
+        if candidates:
+            parsed_definition = format_candidates_html(text, candidates)
+            tooltip(f"Word '{text}' not found. Added suggestions.")
+        else:
+            tooltip(f"Word '{text}' not found in {lang}.wiktionary and no suggestions found.")
+            return
     elif html_res.startswith("Error:"):
         tooltip(f"Wiktionary API {html_res}")
         return
-
-    parsed_definition = parse_wiktionary_html(html_res)
-
-    if not parsed_definition:
-        tooltip(f"Could not parse definition for '{text}'.")
-        return
+    else:
+        parsed_definition = parse_wiktionary_html(html_res, lang)
+        if not parsed_definition:
+            tooltip(f"Could not parse definition for '{text}'.")
+            return
 
     # Append to Back field
     if editor.note is None:
@@ -51,11 +55,8 @@ def _apply_wiktionary(editor, text_to_search):
 
     current_back = editor.note.fields[back_idx]
 
-    # Append with newlines
-    if current_back.strip():
-        new_back = current_back + "<br><br>" + parsed_definition
-    else:
-        new_back = parsed_definition
+    # Prepend with newlines
+    new_back = merge_definition(current_back, parsed_definition)
 
     editor.note.fields[back_idx] = new_back
 

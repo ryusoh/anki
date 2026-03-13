@@ -7,7 +7,12 @@ import {
   setCompositionAssetClassFilter,
 } from "./state.js";
 import { computeRunningTotals } from "./calculations.js";
-import { formatDate, formatCurrency, convertValueToCurrency, escapeHtml } from "./utils.js";
+import {
+  formatDate,
+  formatCurrency,
+  convertValueToCurrency,
+  escapeHtml,
+} from "./utils.js";
 import { normalizeDateOnly } from "@utils/date.js";
 import { adjustMobilePanels } from "./layout.js";
 import { getHoldingAssetClass } from "@js/config.js";

@@ -1,4 +1,5 @@
 import { UI_BREAKPOINTS } from "@js/config.js";
+import { debounce } from "../utils/debounce.js";
 
 export function initFooterToggle() {
   const totalValueElement = document.getElementById(
@@ -75,5 +76,6 @@ export function initFooterToggle() {
 
   // Initialize and listen for resizes to switch behavior
   updateMode();
-  window.addEventListener("resize", updateMode);
+  // ⚡ Bolt: Debounce the resize event to prevent excessive layout recalculations on rapid window resizing
+  window.addEventListener("resize", debounce(updateMode, 100));
 }

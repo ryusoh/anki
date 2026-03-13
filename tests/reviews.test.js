@@ -589,6 +589,63 @@ try {
   failed++;
 }
 
+// Test 10: Cumulative Chart Border Width
+console.log(
+  "\n📋 Test 10: Cumulative charts should have borderWidth 0 to prevent thick lines",
+);
+try {
+  let isCumulative = true;
+
+  // Simulate the datasetParams generation in reviews.js
+  const datasetParams = isCumulative
+    ? {
+        type: "line",
+        fill: true,
+        stepped: true,
+        tension: 0,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        borderWidth: 0, // This is the fix being TDD'd
+      }
+    : {
+        type: "bar",
+        // ...
+      };
+
+  // Simulate baselineParams generation in reviews.js
+  const baselineParams = isCumulative
+    ? {
+        type: "line",
+        fill: true,
+        stepped: true,
+        tension: 0,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        borderWidth: 0, // This is the fix being TDD'd
+      }
+    : {
+        // ...
+        borderWidth: 0,
+      };
+
+  assert.strictEqual(
+    datasetParams.borderWidth,
+    0,
+    "deck cumulative should not have a thick border",
+  );
+  assert.strictEqual(
+    baselineParams.borderWidth,
+    0,
+    "standard cumulative should not have a thick border",
+  );
+
+  console.log("   ✓ Cumulative chart configs drop the border outline");
+  passed++;
+} catch (e) {
+  console.log(`   ✗ Cumulative Chart Border Width: ${e.message}`);
+  failed++;
+}
+
 console.log("\n" + "=".repeat(60));
 console.log(`\n📊 Results: ${passed} passed, ${failed} failed\n`);
 

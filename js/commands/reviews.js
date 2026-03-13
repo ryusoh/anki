@@ -389,6 +389,7 @@ export function renderReviewsChart(
             tension: 0,
             pointRadius: 0,
             pointHoverRadius: 4,
+            borderWidth: 0,
           }
         : {
             type: "bar",
@@ -520,7 +521,7 @@ export function renderReviewsChart(
           tension: 0,
           pointRadius: 0,
           pointHoverRadius: 4,
-          borderWidth: 1,
+          borderWidth: 0,
         }
       : {
           type: "bar",

@@ -1,16 +1,31 @@
 (function () {
   let lastScrollTop = 0;
 
-  window.addEventListener("scroll", function () {
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+  let ticking = false;
 
-    // If scrolling up and at the very top of the page
-    if (scrollTop < lastScrollTop && scrollTop === 0) {
-      // Prevent default scroll behavior
-      window.scrollTo(0, 0);
-    }
-    lastScrollTop = scrollTop;
-  });
+  // ⚡ Bolt: Use requestAnimationFrame to throttle scroll events, matching the display refresh rate
+  // and preventing main thread blocking. Added passive: true for smoother scrolling.
+  window.addEventListener(
+    "scroll",
+    function () {
+      if (!ticking) {
+        window.requestAnimationFrame(function () {
+          const scrollTop =
+            window.pageYOffset || document.documentElement.scrollTop;
+
+          // If scrolling up and at the very top of the page
+          if (scrollTop < lastScrollTop && scrollTop === 0) {
+            // Prevent default scroll behavior
+            window.scrollTo(0, 0);
+          }
+          lastScrollTop = scrollTop;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    },
+    { passive: true },
+  );
 
   // For touch devices, to prevent overscroll bounce when scrolling up from the top
   // This might interfere with native pull-to-refresh if not handled carefully.
