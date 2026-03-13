@@ -191,3 +191,25 @@ def test_calculate_future_due_missing_keys():
     # "A" and "C" should not be present because those cards were skipped
     assert "A" not in result_by_deck
     assert "C" not in result_by_deck
+
+
+def test_calculate_future_due_all_overdue_auto_max_days(monkeypatch):
+    """Test when max_days=None and all review cards are overdue."""
+    monkeypatch.setattr("generate_custom_stats.get_anki_today", lambda: 100)
+    cards_data = [
+        {"id": 1, "due": 95, "ivl": 21, "queue": 2}, # Overdue
+        {"id": 2, "due": 98, "ivl": 10, "queue": 2}, # Overdue
+    ]
+    result, result_by_deck = calculate_future_due(cards_data, max_days=None)
+    assert result == []
+    assert result_by_deck == {}
+
+def test_calculate_future_due_negative_max_days(monkeypatch):
+    """Test explicitly passing a negative max_days."""
+    monkeypatch.setattr("generate_custom_stats.get_anki_today", lambda: 100)
+    cards_data = [
+        {"id": 1, "due": 105, "ivl": 21, "queue": 2},
+    ]
+    result, result_by_deck = calculate_future_due(cards_data, max_days=-5)
+    assert result == []
+    assert result_by_deck == {}
