@@ -1,0 +1,11 @@
+{
+    "name": "Prioritize Front Field Search",
+    "package": "prioritize_front_field_search",
+    "version": "0.1.0",
+    "ankiweb_id_link": "",
+    "author": "Jules",
+    "homepage": "",
+    "description": "Two-tiered search: prioritize Front field matches, then other fields.",
+    "conflicts": [],
+    "modifies_gui": true
+}
