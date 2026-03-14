@@ -1,0 +1,27 @@
+name: CodeQL Config
+
+paths-ignore:
+  # Third-party/vendor code (not our responsibility)
+  - '**/vendor/**'
+  - '**/node_modules/**'
+  - '**/libaddon/**'
+  - '**/_vendor/**'
+  - 'js/vendor/**'
+  - 'review_heatmap/libaddon/**'
+  
+  # Minified files
+  - '**/*.min.js'
+  - '**/*.min.css'
+  
+  # Generated files
+  - '**/__pycache__/**'
+  - '**/*.pyc'
+  
+  # Test files
+  - '**/test/**'
+  - '**/tests/**'
+  - '**/*_test.py'
+  - '**/test_*.py'
+
+queries:
+  - uses: security-extended
