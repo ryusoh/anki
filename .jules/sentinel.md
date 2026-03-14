@@ -9,3 +9,7 @@
 **Vulnerability:** Found `error.message` being directly interpolated into `innerHTML` (`element.innerHTML = \`<p>\${error.message}</p>\``) in the calendar page (`js/pages/calendar/index.js`), creating a DOM-based XSS risk if the error message is attacker-controlled.
 **Learning:** Even internal error objects should be treated as potentially unsafe input. Assigning variables to `innerHTML`without sanitization is a recurrent pattern in vanilla JS development that bypasses modern framework protections.
 **Prevention:** When dynamically rendering text content inside an element, use safe DOM methods like`document.createElement()`and`element.textContent = value`instead of template strings assigned to`innerHTML`. If `innerHTML`must be used, always run the input through a sanitization function like`escapeHtml`.
+## 2024-03-14 - Prevent DOM-based XSS when interpolating Anki Deck Names
+**Vulnerability:** Dynamic strings like `deckName` derived from Anki's stats endpoint were being injected directly into the DOM using `innerHTML` to build custom Chart.js legends.
+**Learning:** Even though the data is generated internally by the add-on/Anki backend, user-supplied names (like Anki deck names) can contain HTML or script tags. When rendered in the webview via `innerHTML` without sanitization, this exposes the application to DOM-based Cross-Site Scripting (XSS).
+**Prevention:** Always wrap dynamically injected text values derived from Anki properties with an HTML escaping utility (like `escapeHtml`) before concatenating them into `innerHTML` strings.
