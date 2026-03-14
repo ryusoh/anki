@@ -87,3 +87,43 @@ body.nightMode .hm-btn:active,
   height: 10px;
   width: 10px;
 }
+
+/* Circular cell shape option */
+/* ################################################################### */
+
+.rh-shape-circle .cal-heatmap-container .graph-rect,
+.rh-shape-circle .cal-heatmap-container .graph-subdomain-group rect {
+  rx: 50%;
+  ry: 50%;
+  shape-rendering: geometricPrecision;
+  stroke: rgba(0, 0, 0, 0.1);
+  stroke-width: 0.5px;
+}
+
+.rh-shape-circle .cal-heatmap-container .graph-rect:hover,
+.rh-shape-circle .cal-heatmap-container .graph-subdomain-group rect:hover {
+  stroke: #000;
+  stroke-width: 1px;
+}
+
+/* Night mode adjustments for circle borders */
+body.nightMode .rh-shape-circle .cal-heatmap-container .graph-rect,
+.night_mode .rh-shape-circle .cal-heatmap-container .graph-rect,
+body.nightMode
+  .rh-shape-circle
+  .cal-heatmap-container
+  .graph-subdomain-group
+  rect,
+.night_mode
+  .rh-shape-circle
+  .cal-heatmap-container
+  .graph-subdomain-group
+  rect {
+  stroke: rgba(255, 255, 255, 0.1);
+}
+
+/* Improve circle rendering with better anti-aliasing */
+.rh-shape-circle .cal-heatmap-container .graph,
+.rh-shape-circle .cal-heatmap-container .graph-legend rect {
+  shape-rendering: geometricPrecision;
+}

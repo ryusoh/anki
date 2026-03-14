@@ -41,6 +41,7 @@ CSS_PLATFORM_PREFIX = "rh-platform"
 CSS_MODE_PREFIX = "rh-mode"
 CSS_THEME_PREFIX = "rh-theme"
 CSS_VIEW_PREFIX = "rh-view"
+CSS_SHAPE_PREFIX = "rh-shape"
 
 WEB_BASE = f"/_addons/{MODULE_ADDON}/web"
 

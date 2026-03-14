@@ -546,7 +546,7 @@ class ConfigManager(object):
         conf_key = self._conf_key
         default_dict = self._storages["synced"]["default"]
         config = self.mw.col.get_config(conf_key, default_dict)
-        
+
         # Handle version upgrade if necessary
         dict_version = str(config.get("version", "0.0.0"))
         default_version = str(default_dict["version"])
@@ -555,8 +555,16 @@ class ConfigManager(object):
             config = deepMergeDicts(default_dict, config, new=True)
             config["version"] = default_version
             self.mw.col.set_config(conf_key, config)
-            self.mw.col.setMod()
-        
+        else:
+            # Always ensure missing keys are filled with defaults
+            # This handles cases where new config options are added without version bump
+            from ..utils import deepMergeDicts
+            merged = deepMergeDicts(default_dict, config, new=True)
+            # Only save if there were actually missing keys
+            if merged != config:
+                self.mw.col.set_config(conf_key, merged)
+            config = merged
+
         return dict(config)
 
     def _saveSynced(self, config: dict):
@@ -567,7 +575,6 @@ class ConfigManager(object):
             dict -- Dictionary of synced config values
         """
         self.mw.col.set_config(self._conf_key, dict(config))
-        self.mw.col.setMod()
 
     # Profile storage
     ######################################################################
@@ -589,7 +596,6 @@ class ConfigManager(object):
             dict -- Dictionary of profile config values
         """
         self._getStorageObj("profile")[self._conf_key] = dict(config)
-        self.mw.col.setMod()
 
     # Helper methods for synced & profile storage
     ######################################################################
@@ -643,7 +649,6 @@ class ConfigManager(object):
             storage_obj[conf_key] = deepMergeDicts(
                 default_dict, storage_dict, new=True)
             storage_obj[conf_key]["version"] = default_version
-            self.mw.col.setMod()
 
         return storage_obj
 

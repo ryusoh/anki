@@ -2929,13 +2929,20 @@ document.head.appendChild(__vite_style__);
         }
       }
       let heatmap = new CalHeatMap();
+      let cellShape = this.options.cell_shape;
+      let isCircle = cellShape === "circle";
+      let cellRadius = isCircle ? 5 : 0;
+      let cellPadding = isCircle ? 1 : 2;
+      let cellSize = isCircle ? 9.5 : 10;
       heatmap.init({
         domain: this.options.domain,
         subDomain: this.options.subdomain,
         range: this.options.range,
         minDate: calMinDate,
         maxDate: calMaxDate,
-        cellSize: 10,
+        cellSize: cellSize,
+        cellPadding: cellPadding,
+        cellRadius: cellRadius,
         verticalOrientation: false,
         dayLabel: true,
         domainMargin: [1, 1, 1, 1],

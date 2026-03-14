@@ -71,11 +71,17 @@ heatmap_modes: Dict[str, Dict] = {
     },
 }
 
+heatmap_cell_shapes: Dict[str, Dict[str, str]] = {
+    "rectangle": {"label": "Rectangles"},
+    "circle": {"label": "Circles"},
+}
+
 
 config_defaults: Dict[str, Dict] = {
     "synced": {
         "colors": "lime",
         "mode": "year",
+        "cell_shape": "rectangle",
         "limdate": 0,
         "limhist": 0,
         "limfcst": 0,
