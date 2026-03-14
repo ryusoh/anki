@@ -21,6 +21,36 @@
   display: none !important;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.sr-only.skip-to-content:focus {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  width: auto;
+  height: auto;
+  padding: 10px 15px;
+  margin: 0;
+  clip: auto;
+  white-space: normal;
+  background-color: var(--primary-color, #00ff00);
+  color: #000;
+  z-index: 9999;
+  border-radius: 4px;
+  font-weight: bold;
+  text-decoration: none;
+}
+
 @font-face {
   font-family: "JetBrains Mono";
   src: url("../../assets/fonts/webfonts/JetBrainsMono-Regular.woff2")
