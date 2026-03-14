@@ -1,3 +1,4 @@
 ## 2024-03-14 - Flaky async test prevention
+
 **Learning:** Raw NodeJS setTimeout based debounce testing requires sufficiently wide timer cushions since the NodeJS event loop might fire closely timed actions out of order due to GC pauses or generic CPU context switches in CI environments.
 **Action:** Always buffer small async wait test times (e.g. going from 10ms wait / 15ms assert to 50ms wait / 100ms assert).

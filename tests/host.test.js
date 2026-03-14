@@ -46,13 +46,25 @@ function runTests() {
     // 172.16.x.x to 172.31.x.x
     assert.strictEqual(isLocalhost("172.16.0.1"), true);
     assert.strictEqual(isLocalhost("172.31.255.255"), true);
-    assert.strictEqual(isLocalhost("172.15.0.1"), false, "Outside private range");
-    assert.strictEqual(isLocalhost("172.32.0.1"), false, "Outside private range");
+    assert.strictEqual(
+      isLocalhost("172.15.0.1"),
+      false,
+      "Outside private range",
+    );
+    assert.strictEqual(
+      isLocalhost("172.32.0.1"),
+      false,
+      "Outside private range",
+    );
 
     // 192.168.x.x
     assert.strictEqual(isLocalhost("192.168.0.1"), true);
     assert.strictEqual(isLocalhost("192.168.255.255"), true);
-    assert.strictEqual(isLocalhost("192.169.0.1"), false, "Outside private range");
+    assert.strictEqual(
+      isLocalhost("192.169.0.1"),
+      false,
+      "Outside private range",
+    );
   });
 
   runTest("Returns false for public hostnames", () => {

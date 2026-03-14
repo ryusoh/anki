@@ -5,7 +5,7 @@ import {
   parseYearFromDate,
   parseQuarterToken,
   resolveQuarterRange,
-  normalizeDateOnly
+  normalizeDateOnly,
 } from "../js/utils/date.js";
 
 function runTests() {
@@ -28,14 +28,31 @@ function runTests() {
   };
 
   runTest("toIsoDate formats correctly", () => {
-    assert.strictEqual(toIsoDate(new Date(Date.UTC(2023, 0, 15))), "2023-01-15");
-    assert.strictEqual(toIsoDate(new Date(Date.UTC(2023, 11, 31))), "2023-12-31");
-    assert.strictEqual(toIsoDate("invalid"), "", "Should return empty string for non-dates");
-    assert.strictEqual(toIsoDate(new Date("invalid date string")), "", "Should return empty string for invalid dates");
+    assert.strictEqual(
+      toIsoDate(new Date(Date.UTC(2023, 0, 15))),
+      "2023-01-15",
+    );
+    assert.strictEqual(
+      toIsoDate(new Date(Date.UTC(2023, 11, 31))),
+      "2023-12-31",
+    );
+    assert.strictEqual(
+      toIsoDate("invalid"),
+      "",
+      "Should return empty string for non-dates",
+    );
+    assert.strictEqual(
+      toIsoDate(new Date("invalid date string")),
+      "",
+      "Should return empty string for invalid dates",
+    );
   });
 
   runTest("parseYearFromDate handles dates and strings", () => {
-    assert.strictEqual(parseYearFromDate(new Date(Date.UTC(2023, 0, 15))), 2023);
+    assert.strictEqual(
+      parseYearFromDate(new Date(Date.UTC(2023, 0, 15))),
+      2023,
+    );
     assert.strictEqual(parseYearFromDate("2024-05-10"), 2024);
     assert.strictEqual(parseYearFromDate("  2025/01/01"), 2025);
     assert.strictEqual(parseYearFromDate(null), null);
@@ -43,10 +60,22 @@ function runTests() {
   });
 
   runTest("parseQuarterToken parses valid quarters", () => {
-    assert.deepStrictEqual(parseQuarterToken("2023q1"), { year: 2023, quarter: 1 });
-    assert.deepStrictEqual(parseQuarterToken("  2024Q4  "), { year: 2024, quarter: 4 });
-    assert.deepStrictEqual(parseQuarterToken("q2", 2023), { year: 2023, quarter: 2 });
-    assert.deepStrictEqual(parseQuarterToken("Q3", 2025), { year: 2025, quarter: 3 });
+    assert.deepStrictEqual(parseQuarterToken("2023q1"), {
+      year: 2023,
+      quarter: 1,
+    });
+    assert.deepStrictEqual(parseQuarterToken("  2024Q4  "), {
+      year: 2024,
+      quarter: 4,
+    });
+    assert.deepStrictEqual(parseQuarterToken("q2", 2023), {
+      year: 2023,
+      quarter: 2,
+    });
+    assert.deepStrictEqual(parseQuarterToken("Q3", 2025), {
+      year: 2025,
+      quarter: 3,
+    });
     assert.strictEqual(parseQuarterToken("invalid"), null);
     assert.strictEqual(parseQuarterToken("q5", 2023), null);
     assert.strictEqual(parseQuarterToken(null), null);
@@ -54,17 +83,35 @@ function runTests() {
 
   runTest("resolveQuarterRange returns correct date ranges", () => {
     // Q1
-    assert.deepStrictEqual(resolveQuarterRange(2023, 1), { from: "2023-01-01", to: "2023-03-31" });
+    assert.deepStrictEqual(resolveQuarterRange(2023, 1), {
+      from: "2023-01-01",
+      to: "2023-03-31",
+    });
     // Q4
-    assert.deepStrictEqual(resolveQuarterRange(2023, 4), { from: "2023-10-01", to: "2023-12-31" });
+    assert.deepStrictEqual(resolveQuarterRange(2023, 4), {
+      from: "2023-10-01",
+      to: "2023-12-31",
+    });
 
     // Modes
-    assert.deepStrictEqual(resolveQuarterRange(2023, 1, "start"), { from: "2023-01-01", to: null });
-    assert.deepStrictEqual(resolveQuarterRange(2023, 1, "end"), { from: null, to: "2023-03-31" });
+    assert.deepStrictEqual(resolveQuarterRange(2023, 1, "start"), {
+      from: "2023-01-01",
+      to: null,
+    });
+    assert.deepStrictEqual(resolveQuarterRange(2023, 1, "end"), {
+      from: null,
+      to: "2023-03-31",
+    });
 
     // Invalid inputs
-    assert.deepStrictEqual(resolveQuarterRange(null, 1), { from: null, to: null });
-    assert.deepStrictEqual(resolveQuarterRange(2023, null), { from: null, to: null });
+    assert.deepStrictEqual(resolveQuarterRange(null, 1), {
+      from: null,
+      to: null,
+    });
+    assert.deepStrictEqual(resolveQuarterRange(2023, null), {
+      from: null,
+      to: null,
+    });
   });
 
   runTest("normalizeDateOnly strips time", () => {
