@@ -1,3 +1,5 @@
+# Accessibility Learnings
+
 ## 2024-03-01 - Terminal Input Accessibility
 
 **Learning:** Terminal emulator inputs often lack proper `<label>` associations because the visual prompt (like `user@host:~$`) isn't conventionally treated as a label in HTML. This makes it difficult for screen reader users to understand the input's context.
