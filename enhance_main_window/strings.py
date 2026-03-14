@@ -1,7 +1,10 @@
-from anki.lang import _
+import gettext
 from anki.stats import *
 
 from .config import getUserOption
+
+# Use Python's gettext directly instead of deprecated anki.lang._
+_ = gettext.gettext
 
 # Associate each column to its title
 defaultHeader = {**{

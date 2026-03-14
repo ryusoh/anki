@@ -543,7 +543,21 @@ class ConfigManager(object):
         Returns:
             dict -- Dictionary of synced config values
         """
-        return dict(self._getStorageObj("synced")[self._conf_key])
+        conf_key = self._conf_key
+        default_dict = self._storages["synced"]["default"]
+        config = self.mw.col.get_config(conf_key, default_dict)
+        
+        # Handle version upgrade if necessary
+        dict_version = str(config.get("version", "0.0.0"))
+        default_version = str(default_dict["version"])
+        if version.parse(dict_version) < version.parse(default_version):
+            from ..utils import deepMergeDicts
+            config = deepMergeDicts(default_dict, config, new=True)
+            config["version"] = default_version
+            self.mw.col.set_config(conf_key, config)
+            self.mw.col.setMod()
+        
+        return dict(config)
 
     def _saveSynced(self, config: dict):
         """
@@ -552,7 +566,7 @@ class ConfigManager(object):
         Arguments:
             dict -- Dictionary of synced config values
         """
-        self._getStorageObj("synced")[self._conf_key] = dict(config)
+        self.mw.col.set_config(self._conf_key, dict(config))
         self.mw.col.setMod()
 
     # Profile storage
@@ -586,7 +600,7 @@ class ConfigManager(object):
         (e.g. mw.col.conf["review_heatmap"])
 
         Storage objects:
-            - synced: mw.col.conf
+            - synced: mw.col.conf (deprecated, use get_config/set_config)
             - profile: mw.pm.profile
 
         Arguments:
@@ -603,6 +617,8 @@ class ConfigManager(object):
         conf_key = self._conf_key
         try:
             if name == "synced":
+                # For backwards compatibility, but synced storage should use
+                # get_config/set_config directly instead
                 storage_obj = self.mw.col.conf
             elif name == "profile":
                 storage_obj = self.mw.pm.profile
@@ -617,7 +633,7 @@ class ConfigManager(object):
         # Initialize config
         if conf_key not in storage_obj or storage_obj[conf_key] is None:
             storage_obj[conf_key] = default_dict
-        
+
         storage_dict = storage_obj[conf_key]
         dict_version = str(storage_dict.get("version", "0.0.0"))
         default_version = str(default_dict["version"])

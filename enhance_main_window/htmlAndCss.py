@@ -1,8 +1,10 @@
+import gettext
 import os
 
-from anki.lang import _
-
 from .config import getUserOption
+
+# Use Python's gettext directly instead of deprecated anki.lang._
+_ = gettext.gettext
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))

@@ -2,7 +2,7 @@ import copy
 import sys
 import time
 
-from anki.utils import ids2str, intTime
+from anki.utils import ids2str, int_time
 from aqt import mw
 from aqt.qt import *
 from aqt.utils import downArrow
@@ -127,7 +127,7 @@ class DeckNode:
     def setConfParameters(self):
         """ Find the configuration and its name """
         if "conf" in self.deck:  # a classical deck
-            conf = mw.col.decks.confForDid(self.deck["id"])
+            conf = mw.col.decks.config_dict_for_deck_id(self.deck["id"])
             self.isFiltered = False
             self.confName = conf['name']
         else:
@@ -414,7 +414,7 @@ class DeckNode:
                 """{self.name}[{kind}]=={learningNow}. Time due is {self.timeDue[kind]}.""")
             for absoluteOrPercent in self.count:
                 if ((not learningNow)) and (self.timeDue[kind] != 0):
-                    remainingSeconds = self.timeDue[kind] - intTime()
+                    remainingSeconds = self.timeDue[kind] - int_time()
                     if remainingSeconds >= 60:
                         self.addCount(absoluteOrPercent, kind, True, "learning now", "[%dm]" % (
                             remainingSeconds // 60))
