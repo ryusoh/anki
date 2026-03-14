@@ -17,14 +17,16 @@ jobs:
     runs-on: ubuntu-latest
     if: github.actor == 'dependabot[bot]'
     steps:
-      - name: Auto-approve Dependabot PRs
-        run: gh pr review --approve "$PR_URL"
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Enable auto-merge for Dependabot PRs
-        run: gh pr merge --auto --squash "$PR_URL"
+      - name: Auto-approve and merge Dependabot PRs
+        run: |
+          echo "Approving PR..."
+          gh pr review --approve "$PR_URL"
+          echo "Attempting auto-merge (requires branch protection)..."
+          gh pr merge --squash --auto --delete-branch "$PR_URL" 2>/dev/null || {
+            echo "Auto-merge not available (branch protection not enabled)."
+            echo "To enable: Settings → Branches → Add rule → 'Allow auto-merge'"
+            exit 1
+          }
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
