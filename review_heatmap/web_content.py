@@ -67,13 +67,13 @@ HTML_HEATMAP: str = f"""
             <span>&nbsp;</span>
         </div>
         <div class="aligncenter">
-            <div title="Go back\n(Shift-click for first year)" onclick="reviewHeatmap.onHmNavigate(event, this, 'prev');" class="hm-btn">
+            <div title="Go back\n(Shift-click or double-click for first page)" onclick="reviewHeatmap.onHmNavigate(event, this, 'prev');" ondblclick="reviewHeatmap.onHmNavigate(event, this, 'prev');" class="hm-btn">
                 <img height="10px" src="{WEB_BASE}/assets/left.svg" />
             </div>
             <div title="Today" onclick="reviewHeatmap.onHmHome(event, this);" class="hm-btn">
                 <img height="10px" src="{WEB_BASE}/assets/circle.svg" />
             </div>
-            <div title="Go forward\n(Shift-click for last year)" onclick="reviewHeatmap.onHmNavigate(event, this, 'next');" class="hm-btn">
+            <div title="Go forward\n(Shift-click or double-click for last page)" onclick="reviewHeatmap.onHmNavigate(event, this, 'next');" ondblclick="reviewHeatmap.onHmNavigate(event, this, 'next');" class="hm-btn">
                 <img height="10px" src="{WEB_BASE}/assets/right.svg" />
             </div>
         </div>
