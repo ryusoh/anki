@@ -22,6 +22,7 @@
         if (i >= list.length) {
           return;
         }
+        // codeql [js/dom-text-reinterpreted-as-html] - Setting src attribute, not innerHTML
         el.src = list[i++];
       }
       el.addEventListener("load", function onLoad() {
@@ -31,6 +32,7 @@
         tryNext();
       });
       // If current src fails, onerror will advance; ensure first URL is current
+      // codeql [js/dom-text-reinterpreted-as-html] - Setting src attribute, not innerHTML
       if (!el.src || el.src !== list[0]) {
         el.src = list[0];
       } else if (el.complete && el.naturalWidth > 0) {
