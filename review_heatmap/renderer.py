@@ -49,6 +49,7 @@ from .web_content import (
     CSS_DISABLE_STATS,
     CSS_MODE_PREFIX,
     CSS_PLATFORM_PREFIX,
+    CSS_SHAPE_PREFIX,
     CSS_THEME_PREFIX,
     CSS_VIEW_PREFIX,
     HTML_HEATMAP,
@@ -221,6 +222,7 @@ class HeatmapRenderer:
             f"{CSS_PLATFORM_PREFIX}-{PLATFORM}",
             f"{CSS_THEME_PREFIX}-{conf['colors']}",
             f"{CSS_MODE_PREFIX}-{conf['mode']}",
+            f"{CSS_SHAPE_PREFIX}-{conf.get('cell_shape', 'rectangle')}",
             f"{CSS_VIEW_PREFIX}-{view.name}",
         ]
         return classes
@@ -229,6 +231,7 @@ class HeatmapRenderer:
         self, report: ActivityReport, dynamic_legend, current_deck_only: bool
     ) -> str:
         mode = heatmap_modes[self._config["synced"]["mode"]]
+        cell_shape = self._config["synced"].get("cell_shape", "rectangle")
 
         # TODO: pass on "whole" to govern browser link "deck:current" addition
         options = {
@@ -242,6 +245,7 @@ class HeatmapRenderer:
             "offset": report.offset,
             "legend": dynamic_legend,
             "whole": not current_deck_only,
+            "cell_shape": cell_shape,
         }
 
         return HTML_HEATMAP.format(

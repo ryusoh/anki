@@ -42,7 +42,7 @@ from anki.lang import _
 from aqt import mw
 from aqt.studydeck import StudyDeck
 
-from ..config import config, heatmap_colors, heatmap_modes
+from ..config import config, heatmap_cell_shapes, heatmap_colors, heatmap_modes
 from ..libaddon.gui.dialog_options import OptionsDialog
 from ..libaddon.platform import PLATFORM
 from ..times import daystart_epoch
@@ -69,6 +69,13 @@ class RevHmOptions(OptionsDialog):
             (
                 ("items", {"setter": "_setSelHmCalModeItems"}),
                 ("value", {"dataPath": "synced/mode"}),
+            ),
+        ),
+        (
+            "form.selHmCellShape",
+            (
+                ("items", {"setter": "_setSelHmCellShapeItems"}),
+                ("value", {"dataPath": "synced/cell_shape"}),
             ),
         ),
         ("form.cbHmMain", (("value", {"dataPath": "profile/display/deckbrowser"}),)),
@@ -186,6 +193,9 @@ class RevHmOptions(OptionsDialog):
     def _setSelHmCalModeItems(self, data_val):
         return self._getComboItems(heatmap_modes)
 
+    def _setSelHmCellShapeItems(self, data_val):
+        return self._getComboItems(heatmap_cell_shapes)
+
     def _setListDecksValue(self, dids):
         item_tuples = []
         for did in dids:
@@ -218,6 +228,6 @@ def invoke_options_dialog(parent: Optional[QWidget] = None) -> int:
 def initialize_options():
     config.setConfigAction(invoke_options_dialog)
     # Set up menu entry:
-    options_action = QAction("Review &Heatmap Options...", mw)
+    options_action = QAction("Review &Heatmap Options", mw)
     options_action.triggered.connect(lambda _: invoke_options_dialog())
     mw.form.menuTools.addAction(options_action)
