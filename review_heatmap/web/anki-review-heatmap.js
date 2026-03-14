@@ -3013,14 +3013,18 @@ document.head.appendChild(__vite_style__);
       }
     }
     onHmNavigate(event, button, direction) {
+      // Prevent double-click from triggering two single-clicks
+      if (event.detail === 2) {
+        event.preventDefault();
+      }
       if (direction === "next") {
-        if (event.shiftKey) {
+        if (event.type === "dblclick" || event.shiftKey) {
           this.heatmap.jumpTo(this.heatmap.options.maxDate, false);
         } else {
           this.heatmap.next(this.heatmap.options.range);
         }
       } else {
-        if (event.shiftKey) {
+        if (event.type === "dblclick" || event.shiftKey) {
           this.heatmap.jumpTo(this.heatmap.options.minDate, false);
         } else {
           this.heatmap.previous(this.heatmap.options.range);
