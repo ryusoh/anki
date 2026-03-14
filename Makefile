@@ -34,7 +34,16 @@ fetch:
 # Tests
 # -----------------------------------------------------------------------------
 
-check: check-data check-ranges check-commands check-legend check-trie check-timerange check-reviews
+check: check-data check-ranges check-commands check-legend check-trie check-timerange check-reviews check-debounce check-host check-date
+
+check-debounce:
+	@node tests/debounce.test.js
+
+check-host:
+	@node tests/host.test.js
+
+check-date:
+	@node tests/date.test.js
 
 check-data:
 	@node tests/data_files.test.js
