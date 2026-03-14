@@ -4944,8 +4944,10 @@ function renderCompositionChartWithMode(ctx, chartManager, data, options = {}) {
     ctx.strokeStyle = "rgba(128, 128, 128, 0.5)";
     ctx.lineWidth = 1;
 
+    // Performance optimization: We reuse the pre-computed `dateTimes` array instead of creating
+    // a new Date object for every ticker and every date point within this render loop.
     dates.forEach((dateStr, index) => {
-      const x = xScale(new Date(dateStr).getTime());
+      const x = xScale(dateTimes[index]);
       const y = yScale(cumulativeValues[index] + values[index]);
       if (index === 0) {
         ctx.moveTo(x, y);
@@ -4955,7 +4957,7 @@ function renderCompositionChartWithMode(ctx, chartManager, data, options = {}) {
     });
 
     for (let i = dates.length - 1; i >= 0; i -= 1) {
-      const x = xScale(new Date(dates[i]).getTime());
+      const x = xScale(dateTimes[i]);
       const y = yScale(cumulativeValues[i]);
       ctx.lineTo(x, y);
     }
