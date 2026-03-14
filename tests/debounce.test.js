@@ -17,10 +17,18 @@ async function runTests() {
     }, 50);
 
     fn();
-    assert.strictEqual(callCount, 0, "Function should not be called immediately");
+    assert.strictEqual(
+      callCount,
+      0,
+      "Function should not be called immediately",
+    );
 
-    await new Promise(resolve => setTimeout(resolve, 100));
-    assert.strictEqual(callCount, 1, "Function should be called after wait time");
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    assert.strictEqual(
+      callCount,
+      1,
+      "Function should be called after wait time",
+    );
 
     console.log("   ✓ Function is called after wait time");
     passed++;
@@ -40,10 +48,18 @@ async function runTests() {
     fn();
     fn();
     fn();
-    assert.strictEqual(callCount, 0, "Function should not be called immediately");
+    assert.strictEqual(
+      callCount,
+      0,
+      "Function should not be called immediately",
+    );
 
-    await new Promise(resolve => setTimeout(resolve, 100));
-    assert.strictEqual(callCount, 1, "Function should only be called once after multiple rapid calls");
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    assert.strictEqual(
+      callCount,
+      1,
+      "Function should only be called once after multiple rapid calls",
+    );
 
     console.log("   ✓ Multiple calls within wait time only trigger once");
     passed++;
@@ -62,8 +78,12 @@ async function runTests() {
 
     fn(1, "test", true);
 
-    await new Promise(resolve => setTimeout(resolve, 100));
-    assert.deepStrictEqual(argsReceived, [1, "test", true], "Arguments should be passed to the debounced function");
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    assert.deepStrictEqual(
+      argsReceived,
+      [1, "test", true],
+      "Arguments should be passed to the debounced function",
+    );
 
     console.log("   ✓ Arguments are passed correctly");
     passed++;
@@ -77,14 +97,14 @@ async function runTests() {
   try {
     const obj = {
       val: 42,
-      fn: debounce(function() {
+      fn: debounce(function () {
         this.called = true;
-      }, 50)
+      }, 50),
     };
 
     obj.fn();
 
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
     assert.strictEqual(obj.called, true, "`this` context should be preserved");
 
     console.log("   ✓ `this` context is preserved");
