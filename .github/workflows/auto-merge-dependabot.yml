@@ -8,6 +8,10 @@ permissions:
   pull-requests: write
   contents: write
 
+# Force JavaScript actions to use Node.js 24
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   dependabot:
     runs-on: ubuntu-latest
@@ -15,7 +19,7 @@ jobs:
     steps:
       - name: Dependabot metadata
         id: metadata
-        uses: dependabot/fetch-metadata@v2
+        uses: dependabot/fetch-metadata@v3
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
