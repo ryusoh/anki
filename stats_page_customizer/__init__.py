@@ -262,48 +262,9 @@ def _clear_custom_stats_dialog() -> None:
 
 
 def _show_custom_stats_dialog() -> None:
-    """Open the stats website in a dialog backed by index.html."""
-
-    global _custom_stats_dialog
-    if (
-        not mw
-        or QDialog is None
-        or QVBoxLayout is None
-        or AnkiWebView is None
-    ):
-        _log("Qt dependencies missing; cannot show custom stats dialog.")
-        return
-
-    html = _render_custom_stats_html()
-    if html is None:
-        if showInfo:
-            showInfo(
-                f"index.html が見つかりません。\n{CUSTOM_STATS_HTML}",
-                title="Custom Stats",
-            )
-        return
-
-    dialog = QDialog(mw)
-    dialog.setWindowTitle("Custom Stats Website")
-    layout = QVBoxLayout(dialog)
-    layout.setContentsMargins(0, 0, 0, 0)
-    layout.setSpacing(0)
-
-    web = AnkiWebView(dialog)
-    layout.addWidget(web)
-
-    if QUrl is not None:
-        web.setHtml(html, QUrl.fromLocalFile(str(CUSTOM_STATS_HTML)))
-    else:
-        web.setHtml(html)
-
-    dialog.resize(780, 620)
-    dialog.show()
-    _custom_stats_dialog = dialog
-
-    destroyed = getattr(dialog, "destroyed", None)
-    if destroyed and qconnect:
-        qconnect(destroyed, lambda *_args: _clear_custom_stats_dialog())
+    """Open anki.lyeutsaon.com in the default browser."""
+    import webbrowser
+    webbrowser.open("https://anki.lyeutsaon.com")
 
 
 def _on_main_window_did_init(mw_obj: Any | None = None) -> None:
