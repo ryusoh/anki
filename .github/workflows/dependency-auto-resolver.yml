@@ -1,0 +1,53 @@
+name: Dependency Auto-Resolver
+
+on:
+  schedule:
+    - cron: "0 10 * * 1" # Every Monday at 10 AM UTC (after security fix)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  resolve-conflicts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Force resolve undici/jsdom conflict
+        run: |
+          # Try to install the specific versions that Dependabot is struggling with.
+          # npm install will attempt to find a common denominator.
+          # If 7.24.2 is not yet in the registry, it will fail gracefully.
+          npm install undici@latest jsdom@latest --save-exact || npm install undici@latest jsdom@latest
+          
+          # Clean up any lockfile mess
+          npm install
+          
+      - name: Create PR if resolution changed
+        uses: peter-evans/create-pull-request@v8
+        with:
+          commit-message: "chore: auto-resolve dependency conflicts (undici/jsdom)"
+          title: "chore: auto-resolve dependency conflicts"
+          body: |
+            Automated dependency resolution PR.
+            
+            This PR attempts to force a valid dependency graph for conflicting packages (like `undici` and `jsdom`) where Dependabot might get stuck.
+            
+            Ran: `npm install undici@latest jsdom@latest`
+          branch: "automation/dep-resolution"
+          base: "main"
+          labels: |
+            dependencies
+            automated
+          delete-branch: true
