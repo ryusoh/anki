@@ -1,6 +1,6 @@
 {
-  "name": "Fund",
-  "short_name": "Fund",
+  "name": "Anki",
+  "short_name": "Anki",
   "start_url": "../index.html",
   "scope": "../",
   "display": "standalone",
