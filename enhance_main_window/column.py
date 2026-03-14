@@ -1,9 +1,12 @@
-from anki.lang import _
+import gettext
 from aqt.deckbrowser import DeckBrowser
 from aqt.qt import *
 from aqt.utils import askUser
 
 from .config import getUserOption, writeConfig
+
+# Use Python's gettext directly instead of deprecated anki.lang._
+_ = gettext.gettext
 
 lastHandler = DeckBrowser._linkHandler
 
