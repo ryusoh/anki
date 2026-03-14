@@ -6,6 +6,7 @@
 /* eslint-env worker */
 /* global self */
 
+// codeql [js/missing-origin-verification] - Web Workers are same-origin by design, no origin check needed
 self.onmessage = function (e) {
   const { type, payload } = e.data;
 

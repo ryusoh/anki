@@ -50,7 +50,9 @@ def extract_terms(query: str) -> list[str]:
 
     terms = []
     # Split query string keeping quoted strings as single units
-    for match in re.finditer(r'(?:[^\s"]|"(?:\\.|[^"])*")+', query):
+    # Using possessive-like pattern to avoid catastrophic backtracking
+    # Pattern matches: field:"quoted value" OR "quoted" OR unquoted-terms
+    for match in re.finditer(r'[a-zA-Z0-9_-]+:"(?:[^"\\]|\\.)*"|[^"\s]+|"(?:[^"\\]|\\.)*"', query):
         part = match.group(0)
         if part.upper() == "OR":
             continue
@@ -94,7 +96,9 @@ def build_tier1_query(query: str) -> str:
 
     parts = []
     # Split query string keeping quoted strings as single units
-    for match in re.finditer(r'(?:[^\s"]|"(?:\\.|[^"])*")+', query):
+    # Using possessive-like pattern to avoid catastrophic backtracking
+    # Pattern matches: field:"quoted value" OR "quoted" OR unquoted-terms
+    for match in re.finditer(r'[a-zA-Z0-9_-]+:"(?:[^"\\]|\\.)*"|[^"\s]+|"(?:[^"\\]|\\.)*"', query):
         parts.append(match.group(0))
 
     tier_1_parts = []
