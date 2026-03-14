@@ -13,5 +13,6 @@
   "background opacity review": "1",
   "background-position": "center",
   "background scale": "1",
-  "background-size": "cover"
+  "background-size": "cover",
+  "hide_anking_menu": true
 }
