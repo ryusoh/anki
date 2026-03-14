@@ -863,8 +863,8 @@ class Forvo(Service):
                     self._logger.error(message)
                     raise IOError(message)
 
+                # codeql[py/clear-text-storage-sensitive-data] Writing downloaded audio file, not sensitive credentials
                 with open(path, 'wb') as audio:
-                    # codeql [py/clear-text-storage-sensitive-data] - Writing downloaded audio file, not sensitive credentials
                     audio.write(response.content)
 
             else:

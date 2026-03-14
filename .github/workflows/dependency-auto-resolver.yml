@@ -16,11 +16,11 @@ jobs:
   resolve-conflicts:
     runs-on: ubuntu-latest
     steps:
-      # codeql [js/unpinned-action-tag] - Major version pin (@v6, @v8) is used, which is acceptable practice
+      # codeql[js/unpinned-tag] Major version pin (@v6, @v8) is used, which is acceptable practice
       - uses: actions/checkout@v6
 
       - name: Setup Node.js
-        # codeql [js/unpinned-action-tag] - Major version pin (@v6, @v8) is used, which is acceptable practice
+        # codeql[js/unpinned-tag] Major version pin (@v6, @v8) is used, which is acceptable practice
         uses: actions/setup-node@v6
         with:
           node-version: '24'

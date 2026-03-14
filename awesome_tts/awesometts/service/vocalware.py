@@ -94,8 +94,8 @@ class VocalWare(Service):
 
             # checksum calculation
             # CS = md5 (EID + LID + VID + TXT + EXT + FX_TYPE + FX_LEVEL + ACC + API+ SESSION + HTTP_ERR + SECRET PHRASE)
-            # codeql [py/weak-cryptographic-hash] - MD5 required by Vocalware API for auth signature, not for security
             checksum_input = f"""{voice_key['engine_id']}{voice_key['language_id']}{voice_key['voice_id']}{text}{account_id}{api_id}{secret_phrase}"""
+            # codeql[py/weak-cryptographic-hash] MD5 required by Vocalware API for auth signature, not for security
             checksum = hashlib.md5(checksum_input.encode('utf-8')).hexdigest()
 
             url_parameters = f"""EID={voice_key['engine_id']}&LID={voice_key['language_id']}&VID={voice_key['voice_id']}&TXT={urlencoded_text}&ACC={account_id}&API={api_id}&CS={checksum}"""

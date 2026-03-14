@@ -2858,11 +2858,11 @@ document.head.appendChild(__vite_style__);
     index.unshift("");
     return (index.join(" r") + (withCssClass ? index.join(" q") : "")).trim();
   };
-  // codeql [js/prototype-pollution] - Third-party library function, not exposed to user input
+  // codeql[js/prototype-pollution] Third-party library function, not exposed to user input
   function mergeRecursive(obj1, obj2) {
     for (var p in obj2) {
       try {
-        // codeql [js/prototype-pollution] - Third-party library function, not exposed to user input
+        // codeql[js/prototype-pollution] Third-party library function, not exposed to user input
         if (obj2[p].constructor === Object) {
           obj1[p] = mergeRecursive(obj1[p], obj2[p]);
         } else {
