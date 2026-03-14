@@ -3004,6 +3004,7 @@ document.head.appendChild(__vite_style__);
         data,
       });
       this.heatmap = heatmap;
+      this.setupKeyboardNavigation();
     }
     onHmHome(event, button) {
       if (event.shiftKey) {
@@ -3044,6 +3045,25 @@ document.head.appendChild(__vite_style__);
       } else {
         bridgeCommand("revhm_contrib");
       }
+    }
+    setupKeyboardNavigation() {
+      // Add keyboard arrow key navigation for heatmap
+      document.addEventListener("keydown", (event) => {
+        // Only handle arrow keys if heatmap is visible and focused
+        const heatmapElm = document.querySelector("#cal-heatmap");
+        if (!heatmapElm || heatmapElm.offsetParent === null) {
+          return; // Heatmap not visible
+        }
+
+        // Handle left/right arrow keys
+        if (event.key === "ArrowLeft") {
+          event.preventDefault();
+          this.heatmap.previous(this.heatmap.options.range);
+        } else if (event.key === "ArrowRight") {
+          event.preventDefault();
+          this.heatmap.next(this.heatmap.options.range);
+        }
+      });
     }
   }
   function applyDateOffset(date) {
