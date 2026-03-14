@@ -5,6 +5,7 @@
 
 import { bindLegendToggle, isLabelHidden } from "@js/commands/legendToggle.js";
 import { parseRange, DEFAULT_RANGE } from "@js/utils/timeRange.js";
+import { escapeHtml } from "@js/transactions/utils.js";
 
 const Chart = window.Chart;
 
@@ -415,7 +416,7 @@ export function renderReviewsChart(
       });
 
       legendHTML.push(
-        `<span data-dataset-index="${datasetIndex}"><i class="legend-color" style="background:${color}"></i> ${deckName}</span>`,
+        `<span data-dataset-index="${datasetIndex}"><i class="legend-color" style="background:${color}"></i> ${escapeHtml(deckName)}</span>`,
       );
       datasetIndex++;
     }

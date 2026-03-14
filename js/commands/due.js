@@ -5,6 +5,7 @@
 
 import { bindLegendToggle, isLabelHidden } from "@js/commands/legendToggle.js";
 import { parseRange, DEFAULT_RANGE } from "@js/utils/timeRange.js";
+import { escapeHtml } from "@js/transactions/utils.js";
 
 const Chart = window.Chart;
 
@@ -163,7 +164,7 @@ export function renderFutureDueChart(data, byDeck = false, rangeDays = null) {
           stack: "future",
         });
 
-        legendHtml += `<span data-dataset-index="${datasetIdx}"><i class="legend-color" style="background:${color};"></i> ${deckName}</span>`;
+        legendHtml += `<span data-dataset-index="${datasetIdx}"><i class="legend-color" style="background:${color};"></i> ${escapeHtml(deckName)}</span>`;
         datasetIdx++;
       }
 
