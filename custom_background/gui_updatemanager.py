@@ -428,6 +428,9 @@ def get_anking_menu() -> QMenu:
 
 
 def setupMenu():
+    # Check if user wants to hide the AnKing menu (macOS menu bar)
+    if conf.get("hide_anking_menu", False):
+        return
     menu = get_anking_menu()
     a = QAction("Custom Background and Gear Icon", mw)
     a.triggered.connect(SettingsDialogExecute)
