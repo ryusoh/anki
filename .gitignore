@@ -161,3 +161,6 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
+
+# Graph data (contains card content)
+graph/graph_data.json
