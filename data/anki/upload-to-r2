@@ -1,0 +1,390 @@
+#!/usr/bin/env python3
+"""
+upload-to-r2 - Upload full private Anki data to Cloudflare R2
+
+Uploads everything NOT suitable for GitHub:
+- Notes: flds (field content), tags, data
+- Cards: data field (custom card data)
+- Notetypes: templates, CSS, field configurations
+- Decks: configuration options
+- Media: file list and references (not actual media files)
+
+Usage:
+    upload-to-r2 [options]
+
+Options:
+    -h, --help      Show this help message
+    -v, --verbose   Show detailed output
+    -d, --dry-run   Show what would be uploaded without uploading
+    -f, --force     Re-upload everything (skip unchanged check)
+"""
+
+import sqlite3
+import json
+import gzip
+import sys
+import argparse
+import hashlib
+from pathlib import Path
+from datetime import datetime
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError
+import os
+
+
+def load_credentials():
+    """Load R2 credentials from environment or file."""
+    creds = {
+        'account_id': os.environ.get('R2_ACCOUNT_ID'),
+        'access_key': os.environ.get('R2_ACCESS_KEY_ID'),
+        'secret_key': os.environ.get('R2_SECRET_ACCESS_KEY'),
+        'bucket': os.environ.get('R2_BUCKET', 'anki-content'),
+    }
+    
+    # Fallback to file if env vars not set
+    if not creds['account_id']:
+        cred_file = Path.home() / '.anki-r2' / 'credentials'
+        if cred_file.exists():
+            for line in cred_file.read_text().strip().split('\n'):
+                if '=' in line:
+                    key, value = line.split('=', 1)
+                    key = key.strip().lower()
+                    if key == 'r2_account_id':
+                        creds['account_id'] = value.strip()
+                    elif key == 'r2_access_key_id':
+                        creds['access_key'] = value.strip()
+                    elif key == 'r2_secret_access_key':
+                        creds['secret_key'] = value.strip()
+                    elif key == 'r2_bucket':
+                        creds['bucket'] = value.strip()
+    
+    return creds
+
+
+def find_anki_db():
+    """Find Anki collection database."""
+    ankis = list(Path("/Users/lz/Library/Application Support/Anki2").glob("*/collection.anki2"))
+    if not ankis:
+        raise RuntimeError("No Anki collection found")
+    return ankis[0]
+
+
+def fetch_all_private_data(source_db):
+    """Fetch all private/sensitive data from Anki DB."""
+    conn = sqlite3.connect(source_db)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    
+    # 1. Notes with full content (flds, tags, data)
+    cur.execute("""
+        SELECT id, guid, mid, flds, tags, data
+        FROM notes
+    """)
+    notes = [dict(row) for row in cur.fetchall()]
+    
+    # 2. Cards with custom data field
+    cur.execute("""
+        SELECT id, nid, data
+        FROM cards
+        WHERE data != '' AND data IS NOT NULL
+    """)
+    cards_data = [dict(row) for row in cur.fetchall()]
+    
+    # 3. Notetypes (templates, CSS, fields - reveals content structure)
+    cur.execute("""
+        SELECT id, name, config
+        FROM notetypes
+    """)
+    notetypes = []
+    for row in cur.fetchall():
+        notetype = dict(row)
+        # Parse config JSON if present
+        if notetype['config']:
+            try:
+                notetype['config'] = json.loads(notetype['config'])
+            except:
+                pass
+        notetypes.append(notetype)
+    
+    # 4. Decks with full configuration
+    cur.execute("""
+        SELECT id, config
+        FROM decks
+    """)
+    decks_config = []
+    for row in cur.fetchall():
+        deck = dict(row)
+        if deck['config']:
+            try:
+                deck['config'] = json.loads(deck['config'])
+            except:
+                pass
+        decks_config.append(deck)
+    
+    # 5. Media registry (file references, not actual files)
+    cur.execute("""
+        SELECT config
+        FROM decks
+        WHERE id = 1
+    """)
+    row = cur.fetchone()
+    media_registry = {}
+    if row and row[0]:
+        try:
+            config = json.loads(row[0])
+            media_registry = config.get('media', {})
+        except:
+            pass
+    
+    # 6. Collection metadata
+    cur.execute("""
+        SELECT name, value
+        FROM colconf
+    """)
+    collection_config = {row[0]: row[1] for row in cur.fetchall()}
+    
+    conn.close()
+    
+    return {
+        'notes': notes,
+        'cards_data': cards_data,
+        'notetypes': notetypes,
+        'decks_config': decks_config,
+        'media_registry': media_registry,
+        'collection_config': collection_config,
+        'exported_at': datetime.utcnow().isoformat() + 'Z',
+    }
+
+
+def create_aws_signature(method, bucket, key, date, access_key, secret_key, content_hash):
+    """Create AWS SigV4 signature for R2 (S3-compatible)."""
+    import hmac
+    from hashlib import sha256
+    
+    service = 's3'
+    region = 'auto'
+    
+    canonical_uri = f'/{key}'
+    canonical_querystring = ''
+    canonical_headers = f'host:{access_key}.r2.cloudflarestorage.com\nx-amz-content-sha256:{content_hash}\nx-amz-date:{date}\n'
+    signed_headers = 'host;x-amz-content-sha256;x-amz-date'
+    
+    canonical_request = f'{method}\n{canonical_uri}\n{canonical_querystring}\n{canonical_headers}\n{signed_headers}\n{content_hash}'
+    
+    algorithm = 'AWS4-HMAC-SHA256'
+    date_stamp = date[:8]
+    credential_scope = f'{date_stamp}/{region}/{service}/aws4_request'
+    string_to_sign = f'{algorithm}\n{date}\n{credential_scope}\n{sha256(canonical_request.encode()).hexdigest()}'
+    
+    def sign(key, msg):
+        return hmac.new(key, msg.encode('utf-8'), sha256).digest()
+    
+    k_date = sign(('AWS4' + secret_key).encode(), date_stamp)
+    k_region = sign(k_date, region)
+    k_service = sign(k_region, service)
+    k_signing = sign(k_service, 'aws4_request')
+    signature = hmac.new(k_signing, string_to_sign.encode('utf-8'), sha256).hexdigest()
+    
+    return f'{algorithm} Credential={access_key}/{credential_scope}, SignedHeaders={signed_headers}, Signature={signature}'
+
+
+def upload_to_r2(bucket, key, data, creds, verbose=False):
+    """Upload data to R2 bucket."""
+    account_id = creds['account_id']
+    access_key = creds['access_key']
+    secret_key = creds['secret_key']
+    
+    endpoint = f'https://{account_id}.r2.cloudflarestorage.com/{bucket}/{key}'
+    
+    # Prepare data
+    if isinstance(data, (dict, list)):
+        content = json.dumps(data, ensure_ascii=False, default=str).encode('utf-8')
+    else:
+        content = data
+    
+    # Compress
+    content_gz = gzip.compress(content)
+    
+    # Hash
+    content_hash = hashlib.sha256(content_gz).hexdigest()
+    
+    # Date
+    amz_date = datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
+    
+    # Signature
+    authorization = create_aws_signature(
+        'PUT', bucket, key, amz_date, access_key, secret_key, content_hash
+    )
+    
+    # Request
+    req = Request(
+        endpoint,
+        data=content_gz,
+        method='PUT',
+        headers={
+            'Authorization': authorization,
+            'x-amz-content-sha256': content_hash,
+            'x-amz-date': amz_date,
+            'Content-Encoding': 'gzip',
+        }
+    )
+    
+    try:
+        response = urlopen(req, timeout=30)
+        if verbose:
+            print(f"  ✓ Uploaded {key} ({len(content_gz):,} bytes)")
+        return True, len(content_gz)
+    except HTTPError as e:
+        print(f"  ✗ Failed to upload {key}: {e.code} {e.reason}")
+        return False, 0
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog='upload-to-r2',
+        description='Upload full private Anki content to Cloudflare R2',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+R2 Directory Structure:
+  anki-content/
+  ├── collection/
+  │   ├── notes.json.gz           # All notes with flds, tags
+  │   ├── cards-data.json.gz      # Cards with custom data
+  │   ├── notetypes.json.gz       # Templates, CSS
+  │   ├── decks-config.json.gz    # Deck configurations
+  │   ├── media-registry.json     # Media references
+  │   └── collection-config.json  # Collection metadata
+  └── notes/
+      ├── {guid1}.json.gz         # Individual note lookup
+      ├── {guid2}.json.gz
+      └── ...
+        """
+    )
+    parser.add_argument('-v', '--verbose', action='store_true', help='Show detailed output')
+    parser.add_argument('-d', '--dry-run', action='store_true', help='Show what would be uploaded')
+    parser.add_argument('-f', '--force', action='store_true', help='Re-upload everything')
+    
+    args = parser.parse_args()
+    
+    # Load credentials
+    creds = load_credentials()
+    
+    if not creds['account_id'] or not creds['access_key'] or not creds['secret_key']:
+        print("❌ Error: R2 credentials not found", file=sys.stderr)
+        print("\nSet credentials via:", file=sys.stderr)
+        print("  1. Environment variables: R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY", file=sys.stderr)
+        print("  2. Or create ~/.anki-r2/credentials file", file=sys.stderr)
+        sys.exit(1)
+    
+    if args.verbose:
+        print(f"📦 R2 Bucket: {creds['bucket']}")
+        print(f"   Account: {creds['account_id'][:8]}...")
+    
+    # Find Anki DB
+    try:
+        source_db = find_anki_db()
+        if args.verbose:
+            print(f"   Source: {source_db}")
+    except RuntimeError as e:
+        print(f"❌ Error: {e}", file=sys.stderr)
+        sys.exit(1)
+    
+    # Fetch all private data
+    if not args.quiet:
+        print("📊 Fetching private data from Anki...")
+    
+    data = fetch_all_private_data(source_db)
+    
+    if args.verbose:
+        print(f"   Notes: {len(data['notes']):,}")
+        print(f"   Cards with data: {len(data['cards_data']):,}")
+        print(f"   Notetypes: {len(data['notetypes']):,}")
+        print(f"   Decks: {len(data['decks_config']):,}")
+        print(f"   Media entries: {len(data['media_registry']):,}")
+    
+    # Files to upload (organized by directory)
+    uploads = [
+        # Collection data
+        ('collection/notes.json.gz', data['notes']),
+        ('collection/cards-data.json.gz', data['cards_data']),
+        ('collection/notetypes.json.gz', data['notetypes']),
+        ('collection/decks-config.json.gz', data['decks_config']),
+        ('collection/media-registry.json', data['media_registry']),
+        ('collection/collection-config.json', data['collection_config']),
+    ]
+    
+    # Dry run
+    if args.dry_run:
+        print("\n🔍 Dry run - would upload:")
+        for key, content in uploads:
+            if isinstance(content, list):
+                print(f"   {key} ({len(content):,} items)")
+            elif isinstance(content, dict):
+                print(f"   {key} ({len(content):,} keys)")
+        
+        # Individual notes
+        print(f"   notes/{{guid}}.json.gz ({len(data['notes']):,} files)")
+        print()
+        
+        # Estimate sizes
+        total_uncompressed = 0
+        for key, content in uploads:
+            json_str = json.dumps(content, ensure_ascii=False, default=str)
+            total_uncompressed += len(json_str.encode('utf-8'))
+        
+        print(f"   Estimated uncompressed: {total_uncompressed/1024/1024:.1f} MB")
+        print(f"   Estimated compressed: ~{total_uncompressed/1024/1024*0.3:.1f} MB")
+        return
+    
+    # Upload collection files
+    print(f"\n📤 Uploading to R2...")
+    
+    uploaded_count = 0
+    failed_count = 0
+    total_bytes = 0
+    
+    for key, content in uploads:
+        if not content:
+            if args.verbose:
+                print(f"   ⊘ Skipped {key} (empty)")
+            continue
+        
+        success, size = upload_to_r2(creds['bucket'], key, content, creds, args.verbose)
+        if success:
+            uploaded_count += 1
+            total_bytes += size
+        else:
+            failed_count += 1
+    
+    # Upload individual notes (for guid-based lookup)
+    if args.verbose:
+        print(f"\n   Uploading individual notes by GUID...")
+    
+    for i, note in enumerate(data['notes']):
+        key = f"notes/{note['guid']}.json.gz"
+        note_data = {
+            'guid': note['guid'],
+            'mid': note['mid'],
+            'flds': note['flds'],
+            'tags': note['tags'],
+            'data': note['data'],
+        }
+        success, size = upload_to_r2(creds['bucket'], key, note_data, creds, args.verbose)
+        if success:
+            uploaded_count += 1
+            total_bytes += size
+        else:
+            failed_count += 1
+        
+        # Progress indicator
+        if (i + 1) % 5000 == 0:
+            print(f"   Progress: {i + 1:,}/{len(data['notes']):,} notes")
+    
+    print()
+    print(f"✅ Done! {uploaded_count:,} files uploaded ({total_bytes/1024/1024:.1f} MB)")
+    if failed_count > 0:
+        print(f"   ⚠️  {failed_count} failed")
+
+
+if __name__ == "__main__":
+    main()
