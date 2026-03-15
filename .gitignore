@@ -38,6 +38,10 @@ node_modules
 ~/.anki-r2/credentials
 .anki-r2/
 
+# Cloudflare R2 staging directory (never GitHub)
+# Contains private content before upload to R2
+data/cloudflare/
+
 # Anki data - R2 private content only (never GitHub)
 # These contain full card content, templates, CSS, configs
 # Organized under collection/ in R2 bucket
@@ -46,4 +50,3 @@ data/anki/notetypes.json.gz
 data/anki/decks-config.json.gz
 data/anki/media-registry.json
 data/anki/collection-config.json
-data/anki/collection/
