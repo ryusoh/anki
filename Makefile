@@ -4,17 +4,21 @@ PYTHON := python3
 NPM := npm
 
 # File patterns for formatters/linters (exclude vendor, data, and node_modules directories)
-JS_FILES := $(shell git ls-files --cached --others --exclude-standard '*.js' 2>/dev/null | grep -v '^js/vendor/' | grep -v '^data/' | grep -v 'node_modules')
-CSS_FILES := $(shell git ls-files --cached --others --exclude-standard '*.css' 2>/dev/null)
+JS_FILES := $(shell git ls-files --cached --others --exclude-standard '*.js' 2>/dev/null | grep -v '^js/vendor/' | grep -v '^assets/vendor/' | grep -v '^data/' | grep -v 'node_modules')
+CSS_FILES := $(shell git ls-files --cached --others --exclude-standard '*.css' 2>/dev/null | grep -v '^assets/vendor/')
 MD_FILES := $(shell git ls-files --cached --others --exclude-standard '*.md' 2>/dev/null)
 HTML_FILES := $(shell git ls-files --cached --others --exclude-standard '*.html' 2>/dev/null)
-JSON_FILES := $(shell git ls-files --cached --others --exclude-standard '*.json' 2>/dev/null | grep -v '^data/' | grep -v 'package-lock.json' | grep -v 'custom_stats_data.json' | grep -v 'review_stats_data.json')
+JSON_FILES := $(shell git ls-files --cached --others --exclude-standard '*.json' 2>/dev/null | grep -v '^data/' | grep -v '^graph/' | grep -v 'package-lock.json' | grep -v 'custom_stats_data.json' | grep -v 'review_stats_data.json')
 PRETTIER_FILES := $(JS_FILES) $(CSS_FILES) $(MD_FILES) $(HTML_FILES) $(JSON_FILES)
 
 help:
 	@echo "Targets:"
+	@echo "  install        Install Python dependencies"
 	@echo "  fetch          Fetch Anki stats to Git-friendly format"
 	@echo "  fetch-r2       Upload private Anki content to Cloudflare R2"
+	@echo "  graph-analyze  Analyze all decks with PageRank"
+	@echo "  graph-deck     Analyze specific deck (DECK='name')"
+	@echo "  graph-export   Export graphs to graph_output/"
 	@echo "  check          Run all tests"
 	@echo "  precommit      Run all pre-commit checks (no fixes)"
 	@echo "  precommit-fix  Auto-fix issues and run pre-commit checks"
@@ -25,6 +29,15 @@ help:
 	@echo "  hooks          Install git pre-commit hook"
 
 # -----------------------------------------------------------------------------
+# Setup
+# -----------------------------------------------------------------------------
+
+install:
+	@echo "📦 Installing Python dependencies..."
+	@pip3 install -r requirements.txt
+	@echo "✅ Dependencies installed"
+
+# -----------------------------------------------------------------------------
 # Data Fetching
 # -----------------------------------------------------------------------------
 
@@ -33,7 +46,7 @@ fetch:
 
 fetch-and-stage-r2:
 	@echo "📦 Fetching Anki data (GitHub + R2 staging)..."
-	@python3 data/anki/fetch --stage-r2
+	@python3 data/anki/fetch --stage-r2 --verbose
 	@echo "✅ GitHub data exported + R2 files staged"
 
 fetch-r2-skip-fetch:
@@ -43,6 +56,40 @@ fetch-r2-skip-fetch:
 fetch-r2:
 	@echo "📤 Uploading private Anki content to Cloudflare R2..."
 	@python3 data/anki/upload-to-r2 --sync --verbose
+
+# -----------------------------------------------------------------------------
+# Graph Analysis
+# -----------------------------------------------------------------------------
+
+graph-analyze:
+	@python3 graph/analyze.py --all-decks --top 10 --compare
+
+graph-deck:
+	@if [ -z "$(DECK)" ]; then \
+		echo "Usage: make graph-deck DECK='Deck Name'"; \
+		echo ""; \
+		echo "Deck aliases:"; \
+		echo "  J, 1  - 言語日語 (Japanese)"; \
+		echo "  C, 2  - 言語粵語 (Cantonese)"; \
+		echo "  E, 3  - 言語英語 (English)"; \
+		echo "  S, 4  - 言語呉語 (Wu/Shanghai)"; \
+		echo "  T, 5  - 言語台語 (Taiwanese)"; \
+		echo "  F, 67 - 金融 (Finance - both decks)"; \
+	else \
+		python3 graph/analyze.py --deck "$(DECK)" --top 10 --hubs --isolated; \
+	fi
+
+graph-export:
+	@mkdir -p graph_output
+	@python3 graph/analyze.py --all-decks --export graph_output --format json
+
+graph-viz:
+	@mkdir -p graph_output
+	@python3 graph/export_viz.py --format html --output graph_output
+	@echo ""
+	@echo "✅ HTML visualizations created in graph_output/"
+	@echo "📁 Open in browser:"
+	@ls -1 graph_output/*.html 2>/dev/null | head -5
 
 # -----------------------------------------------------------------------------
 # Tests
@@ -129,7 +176,7 @@ fetch-prompt-fix:
 fmt:
 	@if command -v npx >/dev/null 2>&1 && [ -n "$(strip $(PRETTIER_FILES))" ]; then \
 		echo "Formatting files with Prettier..."; \
-		npx prettier --write --log-level warn --ignore-path .gitignore $(PRETTIER_FILES); \
+		NODE_OPTIONS="--max-old-space-size=4096" npx prettier --write --log-level warn --ignore-path .gitignore $(PRETTIER_FILES); \
 	else \
 		echo "No Prettier or no files to format"; \
 	fi
@@ -137,7 +184,7 @@ fmt:
 fmt-check:
 	@if command -v npx >/dev/null 2>&1 && [ -n "$(strip $(PRETTIER_FILES))" ]; then \
 		echo "Checking formatting..."; \
-		npx prettier --check --log-level warn --ignore-path .gitignore $(PRETTIER_FILES); \
+		NODE_OPTIONS="--max-old-space-size=4096" npx prettier --check --log-level warn --ignore-path .gitignore $(PRETTIER_FILES); \
 	else \
 		echo "No Prettier or no files to check"; \
 	fi

@@ -1,0 +1,389 @@
+<!doctype html>
+<html>
+
+<head>
+  <title>Graph</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      overflow: hidden;
+      background: #000;
+      font-family:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    #node-info {
+      position: fixed;
+      bottom: 30px;
+      left: 30px;
+      color: #fff;
+      background: rgba(20, 20, 30, 0.95);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid rgba(102, 126, 234, 0.3);
+      z-index: 1000;
+      max-width: 350px;
+      display: none;
+    }
+
+    #node-info h2 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #667eea;
+    }
+
+    .stat {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 13px;
+    }
+
+    .label {
+      color: #888;
+    }
+
+    .value {
+      color: #fff;
+      font-weight: 500;
+    }
+
+    #close {
+      position: absolute;
+      top: 12px;
+      right: 15px;
+      cursor: pointer;
+      font-size: 20px;
+      color: #666;
+      transition: color 0.3s;
+    }
+
+    #close:hover {
+      color: #fff;
+    }
+
+    #loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #fff;
+      text-align: center;
+      z-index: 2000;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(102, 126, 234, 0.3);
+      border-top-color: #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="loading">
+    <div class="spinner"></div>
+  </div>
+
+  <div id="node-info">
+    <span id="close">&times;</span>
+    <h2 id="ni-title">Node</h2>
+    <div class="stat">
+      <span class="label">Deck</span><span class="value" id="ni-deck"></span>
+    </div>
+    <div class="stat">
+      <span class="label">PageRank</span><span class="value" id="ni-pr"></span>
+    </div>
+  </div>
+
+  <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
+          "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/"
+        }
+      }
+    </script>
+  <script type="module">
+    import * as THREE from "three";
+    import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+
+    const info = document.getElementById("info");
+    const loading = document.getElementById("loading");
+    const nodeInfo = document.getElementById("node-info");
+
+    // Load data
+    const response = await fetch("/graph/graph_data.json");
+    const data = await response.json();
+
+    // Scene with subtle fog
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x050510);
+    scene.fog = new THREE.FogExp2(0x050510, 0.002);
+
+    // Camera
+    const camera = new THREE.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      5000,
+    );
+    camera.position.set(0, 0, 1000);
+
+    // Renderer with better quality
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      powerPreference: "high-performance",
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    document.body.appendChild(renderer.domElement);
+
+    // Controls
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.minDistance = 100;
+    controls.maxDistance = 2000;
+
+    // Lights for depth
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    scene.add(ambientLight);
+
+    const pointLight = new THREE.PointLight(0x667eea, 1, 1000);
+    pointLight.position.set(200, 200, 200);
+    scene.add(pointLight);
+
+    // Generate beautiful deck colors AND assign cluster positions
+    const deckColors = {};
+    const deckAngles = {}; // Angle for cluster positioning
+    const colorPalette = [
+      "#667eea",
+      "#764ba2",
+      "#f093fb",
+      "#f5576c",
+      "#4facfe",
+      "#00f2fe",
+      "#43e97b",
+      "#38f9d7",
+      "#fa709a",
+      "#fee140",
+      "#30cfd0",
+      "#330867",
+    ];
+
+    let colorIndex = 0;
+    let deckIndex = 0;
+
+    // First pass: assign angles to decks (spread them in circle)
+    const uniqueDecks = [...new Set(data.nodes.map((n) => n.deck))];
+    uniqueDecks.forEach((deck) => {
+      deckAngles[deck] = (deckIndex / uniqueDecks.length) * Math.PI * 2;
+      deckColors[deck] = colorPalette[colorIndex % colorPalette.length];
+      colorIndex++;
+      deckIndex++;
+    });
+
+    const clusterRadius = 400; // Distance from center for each cluster (was 250)
+    const clusterSpread = 250; // Randomness within cluster (was 150)
+    const nodeRadius = 8; // Node size (was 15)
+
+    // Create nodes with glow effect
+    const nodes = [];
+    const nodeGroup = new THREE.Group();
+    const baseScales = []; // Store original scales
+
+    data.nodes.forEach((node) => {
+      // Assign color from palette
+      if (!deckColors[node.deck]) {
+        deckColors[node.deck] =
+          colorPalette[colorIndex % colorPalette.length];
+        colorIndex++;
+      }
+
+      // Create sphere with gradient-like material
+      const geometry = new THREE.SphereGeometry(nodeRadius, 16, 16);
+      const material = new THREE.MeshPhongMaterial({
+        color: deckColors[node.deck],
+        emissive: deckColors[node.deck],
+        emissiveIntensity: 0.3,
+        shininess: 100,
+        specular: 0x444444,
+      });
+
+      const sphere = new THREE.Mesh(geometry, material);
+
+      // Position nodes in their deck's cluster
+      const deckAngle = deckAngles[node.deck] || 0;
+
+      // Add randomness within cluster
+      const clusterX =
+        Math.cos(deckAngle) * clusterRadius +
+        (Math.random() - 0.5) * clusterSpread;
+      const clusterY =
+        Math.sin(deckAngle) * clusterRadius +
+        (Math.random() - 0.5) * clusterSpread;
+      const clusterZ = (Math.random() - 0.5) * 150; // Some depth variation
+
+      sphere.position.set(
+        node.x || clusterX,
+        node.y || clusterY,
+        node.z || clusterZ,
+      );
+
+      // Scale by PageRank - make differences VERY visible
+      const baseScale = 0.3 + node.pagerank * 200; // Much larger multiplier
+      sphere.scale.setScalar(Math.max(0.3, Math.min(3, baseScale)));
+      baseScales.push(Math.max(0.3, Math.min(3, baseScale))); // Store for animation
+
+      sphere.userData = node;
+      nodeGroup.add(sphere);
+      nodes.push(sphere);
+    });
+
+    scene.add(nodeGroup);
+
+    // Create THICKER, VISIBLE edges with glow effect
+    const edgeGeometry = new THREE.BufferGeometry();
+    const edgePositions = [];
+    const edgeColors = [];
+
+    data.links.forEach((link) => {
+      const sourceNode = data.nodes.find((n) => n.id === link.source);
+      const targetNode = data.nodes.find((n) => n.id === link.target);
+
+      if (sourceNode && targetNode && deckColors[sourceNode.deck]) {
+        // Find the sphere meshes
+        const sourceSphere = nodes.find((n) => n.userData.id === link.source);
+        const targetSphere = nodes.find((n) => n.userData.id === link.target);
+
+        if (sourceSphere && targetSphere) {
+          // Add lines for thickness effect (reduced from 3 to 2 for less clutter)
+          for (let i = 0; i < 2; i++) {
+            const offset = (i - 0.5) * 1.5;
+            edgePositions.push(
+              sourceSphere.position.x + offset,
+              sourceSphere.position.y + offset,
+              sourceSphere.position.z + offset,
+              targetSphere.position.x + offset,
+              targetSphere.position.y + offset,
+              targetSphere.position.z + offset,
+            );
+
+            const color = new THREE.Color(deckColors[sourceNode.deck]);
+            edgeColors.push(color.r, color.g, color.b, 0.4);
+            edgeColors.push(color.r, color.g, color.b, 0.4);
+          }
+        }
+      }
+    });
+
+    edgeGeometry.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute(edgePositions, 3),
+    );
+    edgeGeometry.setAttribute(
+      "color",
+      new THREE.Float32BufferAttribute(edgeColors, 4),
+    );
+
+    const edgeMaterial = new THREE.LineBasicMaterial({
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.6,
+      blending: THREE.AdditiveBlending,
+      linewidth: 3,
+    });
+
+    const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
+    scene.add(edges);
+
+    loading.style.display = "none";
+
+    // Click handler with smooth highlight
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let hoveredNode = null;
+
+    window.addEventListener("click", (event) => {
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(nodes);
+
+      if (intersects.length > 0) {
+        const node = intersects[0].object.userData;
+
+        document.getElementById("ni-title").textContent =
+          node.label.substring(0, 50) + (node.label.length > 50 ? "..." : "");
+        document.getElementById("ni-deck").textContent = node.deck;
+        document.getElementById("ni-pr").textContent = (
+          node.pagerank * 1000
+        ).toFixed(3);
+
+        nodeInfo.style.display = "block";
+
+        // Highlight selected node
+        if (hoveredNode) hoveredNode.material.emissiveIntensity = 0.3;
+        hoveredNode = intersects[0].object;
+        hoveredNode.material.emissiveIntensity = 0.8;
+      }
+    });
+
+    document.getElementById("close").onclick = () => {
+      nodeInfo.style.display = "none";
+      if (hoveredNode) hoveredNode.material.emissiveIntensity = 0.3;
+      hoveredNode = null;
+    };
+
+    // Animation with gentle rotation
+    let time = 0;
+    function animate() {
+      requestAnimationFrame(animate);
+      time += 0.001;
+
+      // Gentle group rotation
+      nodeGroup.rotation.y = Math.sin(time) * 0.05;
+
+      // Subtle pulse effect (don't accumulate, just oscillate around base scale)
+      nodes.forEach((node, i) => {
+        const pulse = 1 + Math.sin(time * 3 + i * 0.1) * 0.03; // Only ±3% pulse
+        node.scale.setScalar(baseScales[i] * pulse);
+      });
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // Resize handler
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+
+</html>

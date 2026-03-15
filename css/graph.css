@@ -1,0 +1,106 @@
+/**
+ * Graph Visualization Styles
+ * 3D Anki Knowledge Graph
+ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  overflow: hidden;
+  background: #000;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+#canvas {
+  width: 100vw;
+  height: 100vh;
+  display: block;
+}
+
+#info {
+  position: absolute;
+  bottom: 30px;
+  left: 30px;
+  background: rgba(0, 0, 0, 0.9);
+  padding: 25px;
+  border-radius: 16px;
+  max-width: 450px;
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  display: none;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+}
+
+#close {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  cursor: pointer;
+  font-size: 28px;
+  color: #666;
+  transition: color 0.3s ease;
+}
+
+#close:hover {
+  color: #00ff88;
+}
+
+#info h3 {
+  color: #00ff88;
+  margin-bottom: 15px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.stat {
+  margin: 8px 0;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.label {
+  color: #888;
+  font-weight: 400;
+}
+
+.value {
+  color: #fff;
+  font-weight: 600;
+  text-align: right;
+}
+
+/* Loading state */
+#loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #00ff88;
+  font-size: 24px;
+  z-index: 1000;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  #info {
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    max-width: none;
+    padding: 20px;
+  }
+
+  #info h3 {
+    font-size: 16px;
+  }
+
+  .stat {
+    font-size: 13px;
+  }
+}

@@ -1,0 +1,170 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Three.js Debug Test</title>
+    <style>
+      body {
+        margin: 0;
+        background: #000;
+      }
+      canvas {
+        display: block;
+      }
+      #info {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        color: #0f0;
+        font-family: monospace;
+        font-size: 14px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 20px;
+        border-radius: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="info">Three.js Debug Test<br />Check console for details...</div>
+    <script type="module">
+      import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js";
+      import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/controls/OrbitControls.js";
+
+      console.log("🧪 Three.js Debug Test Starting...");
+
+      // Scene
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x000000);
+      console.log("✅ Scene created");
+
+      // Camera
+      const camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        3000,
+      );
+      camera.position.set(0, 0, 800);
+      camera.lookAt(0, 0, 0);
+      console.log("✅ Camera created at", camera.position);
+
+      // Renderer
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      document.body.appendChild(renderer.domElement);
+      console.log("✅ Renderer created", renderer.domElement);
+
+      // Controls
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      console.log("✅ Controls added");
+
+      // TEST 1: Create a single visible sphere
+      console.log("📍 TEST 1: Creating single test sphere...");
+      const testGeometry = new THREE.SphereGeometry(50, 16, 16);
+      const testMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+      const testSphere = new THREE.Mesh(testGeometry, testMaterial);
+      testSphere.position.set(0, 0, 0);
+      scene.add(testSphere);
+      console.log("✅ Test sphere added to scene");
+      console.log("   Scene children:", scene.children.length);
+      console.log("   Sphere position:", testSphere.position);
+      console.log("   Sphere material:", testMaterial.color);
+
+      // TEST 2: Create instanced mesh (like our real code)
+      console.log("📍 TEST 2: Creating instanced mesh...");
+      const instancedGeometry = new THREE.SphereGeometry(10, 8, 8);
+      const instancedMaterial = new THREE.MeshBasicMaterial({
+        color: 0xff0000,
+      });
+      const instancedMesh = new THREE.InstancedMesh(
+        instancedGeometry,
+        instancedMaterial,
+        10,
+      );
+
+      for (let i = 0; i < 10; i++) {
+        const position = new THREE.Vector3(
+          (Math.random() - 0.5) * 200,
+          (Math.random() - 0.5) * 200,
+          (Math.random() - 0.5) * 200,
+        );
+        const scale = new THREE.Vector3(1, 1, 1);
+        const matrix = new THREE.Matrix4().compose(
+          position,
+          new THREE.Quaternion(),
+          scale,
+        );
+        instancedMesh.setMatrixAt(i, matrix);
+        instancedMesh.setColorAt(i, new THREE.Color(0xff0000));
+      }
+
+      instancedMesh.instanceMatrix.needsUpdate = true;
+      instancedMesh.instanceColor.needsUpdate = true;
+      scene.add(instancedMesh);
+      console.log("✅ Instanced mesh added with 10 instances");
+      console.log("   Scene children:", scene.children.length);
+
+      // TEST 3: Check if renderer can see scene
+      console.log("📍 TEST 3: Checking visibility...");
+      const frustum = new THREE.Frustum();
+      const projMatrix = new THREE.Matrix4();
+      projMatrix.multiplyMatrices(
+        camera.projectionMatrix,
+        camera.matrixWorldInverse,
+      );
+      frustum.setFromProjectionMatrix(projMatrix);
+
+      const testSphereVisible = frustum.containsPoint(testSphere.position);
+      console.log("   Test sphere in frustum:", testSphereVisible);
+      console.log(
+        "   Test sphere distance from camera:",
+        Math.sqrt(
+          Math.pow(testSphere.position.x - camera.position.x, 2) +
+            Math.pow(testSphere.position.y - camera.position.y, 2) +
+            Math.pow(testSphere.position.z - camera.position.z, 2),
+        ),
+      );
+
+      // Animation loop
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+      }
+
+      animate();
+      console.log("🎬 Animation loop started");
+
+      // Update info div
+      document.getElementById("info").innerHTML = `
+      Three.js Debug Test<br>
+      <br>
+      Scene children: ${scene.children.length}<br>
+      Camera position: (${camera.position.x}, ${camera.position.y}, ${camera.position.z})<br>
+      Test sphere: ${testSphereVisible ? "✅ VISIBLE" : "❌ NOT VISIBLE"}<br>
+      Instanced mesh: 10 instances<br>
+      <br>
+      <b>You should see:</b><br>
+      - Green sphere (center)<br>
+      - 10 red spheres (random)<br>
+      <br>
+      If nothing shows:<br>
+      - Check WebGL errors in console<br>
+      - Try zooming (scroll)<br>
+      - Check if canvas has size
+    `;
+
+      // Check canvas size after delay
+      setTimeout(() => {
+        console.log(
+          "📏 Canvas size:",
+          renderer.domElement.clientWidth,
+          "x",
+          renderer.domElement.clientHeight,
+        );
+        console.log("📏 Renderer size:", renderer.getSize(new THREE.Vector2()));
+      }, 1000);
+    </script>
+  </body>
+</html>

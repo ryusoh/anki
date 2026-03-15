@@ -1,0 +1,17 @@
+# Graph Analysis
+# For knowledge graph building and PageRank analysis
+networkx>=3.0
+scipy>=1.10
+
+# Cloudflare R2 Upload
+# For private content backup to R2
+boto3>=1.28
+
+# Testing
+# For running TDD test suite
+pytest>=8.0
+pytest-cov>=4.0
+pytest-mock>=3.0
+
+# Optional: Better progress bars
+# tqdm>=4.65
