@@ -33,3 +33,17 @@ awesome_tts/user_files/cache/
 awesome_tts/user_files/*.sqlite
 
 node_modules
+
+# R2 credentials (never commit!)
+~/.anki-r2/credentials
+.anki-r2/
+
+# Anki data - R2 private content only (never GitHub)
+# These contain full card content, templates, CSS, configs
+# Organized under collection/ in R2 bucket
+data/anki/cards-data.json.gz
+data/anki/notetypes.json.gz
+data/anki/decks-config.json.gz
+data/anki/media-registry.json
+data/anki/collection-config.json
+data/anki/collection/
