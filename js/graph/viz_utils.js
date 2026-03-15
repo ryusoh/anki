@@ -15,12 +15,16 @@ export function stripHtml(text) {
   let previous;
 
   // Run replacements until the string stops changing to prevent bypasses via nested tags
+  // We avoid DOMParser here because it decodes HTML entities which could lead to mutation XSS
+  // if later injected, and it also deletes legitimate text containing unclosed angle brackets.
   do {
     previous = clean;
-    // Remove HTML tags using a more robust regex to prevent bypasses
-    clean = clean.replace(/<[^>]*?(?:on\w*|style|script|iframe)[^>]*?>/gi, ""); // Remove dangerous tags/attrs first
-    // codeql[js/incomplete-sanitization] mitigated by loop and preceding regex; intended for display only
-    clean = clean.replace(/<[^>]+>/g, ""); // Remove remaining tags
+    // Remove dangerous tags/attrs first
+    clean = clean.replace(/<[^>]*?(?:on\w*|style|script|iframe)[^>]*?>/gi, "");
+
+    // Remove remaining tags (CodeQL warning mitigated by this loop)
+    // codeql[js/incomplete-sanitization] mitigated by loop; intended for display only
+    clean = clean.replace(/<[^>]+>/g, "");
   } while (clean !== previous);
 
   // Remove Anki field separators
