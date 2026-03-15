@@ -10,9 +10,9 @@ If you enjoy Review Heatmap, please consider **supporting my work on Patreon**:
 
 ---
 
-## Public Service Announcement (2022-05-18):
+## Public Service Announcement (2022-05-18)
 
-### You can now download Review Heatmap [directly off of AnkiWeb](https://ankiweb.net/shared/info/1771074083)! Please use this installation method if you can as it's much simpler to follow and will allow you to automatically receive updates in the future.
+### You can now download Review Heatmap [directly off of AnkiWeb](https://ankiweb.net/shared/info/1771074083)! Please use this installation method if you can as it's much simpler to follow and will allow you to automatically receive updates in the future
 
 **IMPORTANT**: Releases of the add-on past v1.0.0 have only been extensively tested on Anki 2.1.49 and up. The AnkiWeb upload is therefore limited to Anki 2.1.49+ for the time being (but might be expanded to earlier releases in the future).
 

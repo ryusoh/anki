@@ -84,7 +84,7 @@ Example:
 ## What Gets Uploaded
 
 | Category     | Size        | Contains                |
-|--------------|-------------|-------------------------|
+| ------------ | ----------- | ----------------------- |
 | Notes (flds) | ~108 MB     | Card questions, answers |
 | Notes (tags) | <1 MB       | User tags               |
 | Cards (data) | <1 MB       | Custom card data        |
@@ -94,19 +94,19 @@ Example:
 
 ## What Stays Local (NOT Uploaded)
 
-| Category | Size | Location |
-|----------|------|----------|
+| Category    | Size   | Location            |
+| ----------- | ------ | ------------------- |
 | Media files | 5.2 GB | `collection.media/` |
-| Anki DB     | 276 MB | `collection.anki2`   |
+| Anki DB     | 276 MB | `collection.anki2`  |
 
 ## Cost Estimate
 
-| Item              | Monthly Cost      |
-|-------------------|-------------------|
-| Storage (0.11 GB) | $0.0017           |
-| Writes (1x/month) | negligible        |
-| Reads             | negligible        |
-| 
+| Item              | Monthly Cost |
+| ----------------- | ------------ |
+| Storage (0.11 GB) | $0.0017      |
+| Writes (1x/month) | negligible   |
+| Reads             | negligible   |
+
 ## Security
 
 - ✅ R2 bucket is private by default
@@ -117,8 +117,8 @@ Example:
 
 ## GitHub vs R2
 
-| Platform   | Data Type                            | Access            |
-|------------|--------------------------------------|-------------------|
+| Platform   | Data Type                             | Access            |
+| ---------- | ------------------------------------- | ----------------- |
 | **GitHub** | Anonymized metadata (guid, mid, csum) | Public/Private    |
 | **R2**     | Full content (flds, tags, templates)  | Private (API key) |
 | **Local**  | Media files, original DB              | You only          |

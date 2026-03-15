@@ -67,7 +67,7 @@ This system builds a **knowledge relationship graph** from Anki cards while keep
 ### GitHub (Public - Anonymized)
 
 | File                | Content                           | Size   | Purpose           |
-|---------------------|-----------------------------------|--------|-------------------|
+| ------------------- | --------------------------------- | ------ | ----------------- |
 | `notes.json.gz`     | Note metadata **without content** | ~7 MB  | Graph nodes       |
 | `cards.json.gz`     | Card scheduling data              | ~3 MB  | Learning stats    |
 | `decks.json`        | Deck hierarchy                    | <1 KB  | Organization      |
@@ -115,7 +115,7 @@ anki-content/
 ```
 
 | Path                                | Content                               | Size (est.) |
-|-------------------------------------|---------------------------------------|-------------|
+| ----------------------------------- | ------------------------------------- | ----------- |
 | `collection/notes.json.gz`          | All notes with `flds`, `tags`, `data` | ~108 MB     |
 | `collection/cards-data.json.gz`     | Cards with custom data field          | ~1 MB       |
 | `collection/notetypes.json.gz`      | Note type templates, CSS, fields      | ~0.5 MB     |
@@ -171,7 +171,7 @@ anki-content/
 The `guid` field is the **only link** between GitHub and R2:
 
 | Property       | Value                              |
-|----------------|------------------------------------|
+| -------------- | ---------------------------------- |
 | **Format**     | 9-character base64-like string     |
 | **Stability**  | Never changes (even across syncs)  |
 | **Uniqueness** | Unique per note                    |
@@ -228,7 +228,7 @@ git push
 ### Edges (Relationships)
 
 | Type              | From | To   | Weight |
-|-------------------|------|------|--------|
+| ----------------- | ---- | ---- | ------ |
 | `shared_deck`     | note | note | 1.0    |
 | `shared_notetype` | note | note | 1.0    |
 | `same_note`       | card | card | 1.0    |
@@ -237,7 +237,7 @@ git push
 ## Security Model
 
 | Component             | Visibility      | Access Control         |
-|-----------------------|-----------------|------------------------|
+| --------------------- | --------------- | ---------------------- |
 | GitHub repo           | Public/Private  | GitHub auth            |
 | R2 bucket             | Private         | API credentials        |
 | `guid`                | Public          | Meaningless without R2 |
@@ -247,7 +247,7 @@ git push
 ## Storage Costs (Cloudflare R2)
 
 | Item                     | Size        | Cost/Month  |
-|--------------------------|-------------|-------------|
+| ------------------------ | ----------- | ----------- |
 | Full notes (108 MB text) | ~108 MB     | $0.0015     |
 | Media files (optional)   | 5.2 GB      | $0.078      |
 | **Total (text only)**    | **~0.1 GB** | **~$0.002** |
@@ -255,7 +255,7 @@ git push
 ## Files
 
 | File                     | Purpose                                  |
-|--------------------------|------------------------------------------|
+| ------------------------ | ---------------------------------------- |
 | `data/anki/fetch`        | Fetches Anki DB, exports anonymized data |
 | `data/anki/upload-to-r2` | Uploads full content to R2 (TODO)        |
 | `data/anki/build-graph`  | Merges GitHub + R2 data locally (TODO)   |

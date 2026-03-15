@@ -108,16 +108,30 @@ lint:
 	@if command -v npx >/dev/null 2>&1 && [ -n "$(strip $(JS_FILES))" ]; then \
 		echo "Linting JavaScript files..."; \
 		npx eslint $(JS_FILES) 2>/dev/null || echo "ESLint not configured or no issues"; \
-	else \
-		echo "No ESLint or no JS files to lint"; \
 	fi
+	@$(MAKE) lint-md
 
 lint-fix:
 	@if command -v npx >/dev/null 2>&1 && [ -n "$(strip $(JS_FILES))" ]; then \
 		echo "Fixing lint issues..."; \
 		npx eslint --fix $(JS_FILES) 2>/dev/null || echo "ESLint not configured or no issues"; \
+	fi
+	@$(MAKE) lint-md-fix
+
+lint-md:
+	@if command -v npx >/dev/null 2>&1 && [ -n "$(strip $(MD_FILES))" ]; then \
+		echo "Linting Markdown files..."; \
+		npx markdownlint-cli $(MD_FILES) || echo "Markdownlint found issues"; \
 	else \
-		echo "No ESLint or no JS files to fix"; \
+		echo "No markdownlint or no MD files to lint"; \
+	fi
+
+lint-md-fix:
+	@if command -v npx >/dev/null 2>&1 && [ -n "$(strip $(MD_FILES))" ]; then \
+		echo "Fixing Markdown issues..."; \
+		npx markdownlint-cli --fix $(MD_FILES) || echo "Markdownlint could not fix all issues"; \
+	else \
+		echo "No markdownlint or no MD files to fix"; \
 	fi
 
 # -----------------------------------------------------------------------------
