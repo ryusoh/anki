@@ -33,7 +33,7 @@
   border-width: 0;
 }
 
-.sr-only.skip-to-content:focus {
+.sr-only.skip-to-content:focus-visible {
   position: fixed;
   top: 10px;
   left: 10px;
