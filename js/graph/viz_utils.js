@@ -11,10 +11,17 @@
 export function stripHtml(text) {
   if (!text) return "";
 
-  // Remove HTML tags using a more robust regex to prevent bypasses
-  let clean = text.replace(/<[^>]*?(?:on\w*|style|script|iframe)[^>]*?>/gi, ""); // Remove dangerous tags/attrs first
-  // codeql[js/incomplete-sanitization] mitigated by preceding regex and intended for display only
-  clean = clean.replace(/<[^>]+>/g, ""); // Remove remaining tags
+  let clean = text;
+  let previous;
+
+  // Run replacements until the string stops changing to prevent bypasses via nested tags
+  do {
+    previous = clean;
+    // Remove HTML tags using a more robust regex to prevent bypasses
+    clean = clean.replace(/<[^>]*?(?:on\w*|style|script|iframe)[^>]*?>/gi, ""); // Remove dangerous tags/attrs first
+    // codeql[js/incomplete-sanitization] mitigated by loop and preceding regex; intended for display only
+    clean = clean.replace(/<[^>]+>/g, ""); // Remove remaining tags
+  } while (clean !== previous);
 
   // Remove Anki field separators
   clean = clean.replace(/::/g, " ");
