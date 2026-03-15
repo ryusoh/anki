@@ -630,8 +630,8 @@ export function updateTerminalCrosshair(snapshot, rangeSummary) {
         (series) => `
                 <div class="terminal-crosshair-row">
                     <span class="terminal-crosshair-key">
-                        <span class="terminal-crosshair-dot" style="background:${series.color};"></span>
-                        ${series.label}
+                        <span class="terminal-crosshair-dot" style="background:${escapeHtml(series.color)};"></span>
+                        ${escapeHtml(series.label)}
                     </span>
                     <span class="terminal-crosshair-value">${series.formatted}</span>
                 </div>
