@@ -12,20 +12,16 @@ export function stripHtml(text) {
   if (!text) return "";
 
   let clean = text;
-  let previous;
 
-  // Run replacements until the string stops changing to prevent bypasses via nested tags
-  // We avoid DOMParser here because it decodes HTML entities which could lead to mutation XSS
-  // if later injected, and it also deletes legitimate text containing unclosed angle brackets.
-  do {
-    previous = clean;
-    // Remove dangerous tags/attrs first
-    clean = clean.replace(/<[^>]*?(?:on\w*|style|script|iframe)[^>]*?>/gi, "");
+  // Replace HTML tags with a space instead of an empty string to prevent
+  // nested tags (e.g., <<script>script>) from forming new valid tags after removal.
+  // This satisfies CodeQL's incomplete multi-character sanitization rule.
 
-    // Remove remaining tags (CodeQL warning mitigated by this loop)
-    // codeql[js/incomplete-sanitization] mitigated by loop; intended for display only
-    clean = clean.replace(/<[^>]+>/g, "");
-  } while (clean !== previous);
+  // Remove dangerous tags/attrs first
+  clean = clean.replace(/<[^>]*?(?:on\w*|style|script|iframe)[^>]*?>/gi, " ");
+
+  // Remove remaining tags
+  clean = clean.replace(/<[^>]+>/g, " ");
 
   // Remove Anki field separators
   clean = clean.replace(/::/g, " ");
