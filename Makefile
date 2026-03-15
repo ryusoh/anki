@@ -113,10 +113,19 @@ audit:
 # Tests
 # -----------------------------------------------------------------------------
 
-check: check-data check-ranges check-commands check-legend check-trie check-timerange check-reviews check-debounce check-host check-date
+check: check-data check-ranges check-commands check-legend check-trie check-timerange check-reviews check-debounce check-host check-date check-formatting check-logger check-smoothing
 
 check-debounce:
 	@node tests/debounce.test.js
+
+check-formatting:
+	@node tests/formatting.test.js
+
+check-logger:
+	@node tests/logger.test.js
+
+check-smoothing:
+	@node tests/smoothing.test.js
 
 check-host:
 	@node tests/host.test.js
