@@ -149,6 +149,7 @@ def main():
     
     if args.verbose:
         print(f"📥 Downloading from R2...")
+        # codeql[py/clear-text-logging-sensitive-info] Masked values used for display
         print(f"   Bucket: {mask_value(creds['bucket'])}")
         print(f"   Key: {key}")
     
