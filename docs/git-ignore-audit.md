@@ -61,7 +61,7 @@ These files are **intentionally tracked** and safe:
 
 ## Directory Structure
 
-```
+```text
 addons21/
 ├── .gitignore                    ← Comprehensive rules
 ├── data/

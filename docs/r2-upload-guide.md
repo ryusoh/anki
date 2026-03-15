@@ -69,6 +69,18 @@ chmod 600 ~/.anki-r2/credentials
 
 ## Usage
 
+### Via Makefile (Recommended)
+
+```bash
+# Stage and upload to R2
+make fetch-r2
+
+# Or skip R2 upload during precommit-fix
+make precommit-fix SKIP_R2=1
+```
+
+### Direct Script
+
 ### Stage Files (Prepare for Upload)
 
 ```bash

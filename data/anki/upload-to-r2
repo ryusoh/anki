@@ -27,9 +27,16 @@ import argparse
 import hashlib
 from pathlib import Path
 from datetime import datetime, timezone
-from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 import os
+
+# Try to use boto3 for better upload reliability
+try:
+    import boto3
+    from botocore.config import Config
+    HAS_BOTO3 = True
+except ImportError:
+    HAS_BOTO3 = False
 
 
 def load_credentials():
@@ -194,13 +201,11 @@ def create_aws_signature(method, bucket, key, date, access_key, secret_key, cont
     return f'{algorithm} Credential={access_key}/{credential_scope}, SignedHeaders={signed_headers}, Signature={signature}'
 
 
-def upload_to_r2(bucket, key, data, creds, verbose=False):
-    """Upload data to R2 bucket."""
+def upload_to_r2(bucket, key, data, creds, verbose=False, max_retries=3):
+    """Upload data to R2 bucket using boto3 (preferred) or urllib."""
     account_id = creds['account_id']
     access_key = creds['access_key']
     secret_key = creds['secret_key']
-    
-    endpoint = f'https://{account_id}.r2.cloudflarestorage.com/{bucket}/{key}'
     
     # Prepare data
     if isinstance(data, (dict, list)):
@@ -211,38 +216,212 @@ def upload_to_r2(bucket, key, data, creds, verbose=False):
     # Compress
     content_gz = gzip.compress(content)
     
-    # Hash
+    if HAS_BOTO3:
+        # Use boto3 for better reliability
+        try:
+            s3_client = boto3.client(
+                's3',
+                endpoint_url=f'https://{account_id}.r2.cloudflarestorage.com',
+                aws_access_key_id=access_key,
+                aws_secret_access_key=secret_key,
+                config=Config(
+                    signature_version='s3v4',
+                    retries={'max_attempts': 3, 'mode': 'standard'},
+                    connect_timeout=120,
+                    read_timeout=120
+                )
+            )
+            
+            s3_client.put_object(
+                Bucket=bucket,
+                Key=key,
+                Body=content_gz,
+                ContentEncoding='gzip'
+            )
+            
+            if verbose:
+                print(f"  ✓ Uploaded {key} ({len(content_gz):,} bytes)")
+            return True, len(content_gz)
+        except Exception as e:
+            if verbose:
+                print(f"  ⚠ boto3 failed for {key}: {e}, trying urllib...")
+            # Fall through to urllib method
+        # Don't return False here, let urllib try
+    
+    # Fallback to urllib
+    from urllib.request import Request, urlopen
+    endpoint = f'https://{account_id}.r2.cloudflarestorage.com/{bucket}/{key}'
     content_hash = hashlib.sha256(content_gz).hexdigest()
-    
-    # Date
     amz_date = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
-    
-    # Signature
     authorization = create_aws_signature(
         'PUT', bucket, key, amz_date, access_key, secret_key, content_hash
     )
     
-    # Request
-    req = Request(
-        endpoint,
-        data=content_gz,
-        method='PUT',
-        headers={
-            'Authorization': authorization,
-            'x-amz-content-sha256': content_hash,
-            'x-amz-date': amz_date,
-            'Content-Encoding': 'gzip',
-        }
-    )
+    for attempt in range(max_retries):
+        try:
+            req = Request(
+                endpoint,
+                data=content_gz,
+                method='PUT',
+                headers={
+                    'Authorization': authorization,
+                    'x-amz-content-sha256': content_hash,
+                    'x-amz-date': amz_date,
+                    'Content-Encoding': 'gzip',
+                }
+            )
+            
+            response = urlopen(req, timeout=120)
+            if verbose:
+                print(f"  ✓ Uploaded {key} ({len(content_gz):,} bytes)")
+            return True, len(content_gz)
+        except Exception as e:
+            if attempt < max_retries - 1:
+                if verbose:
+                    print(f"  ⚠ Retry {key} (attempt {attempt + 2}/{max_retries}): {e}")
+                import time
+                time.sleep(1)
+            else:
+                print(f"  ✗ Failed to upload {key} after {max_retries} attempts: {e}")
+                return False, 0
+    
+    return False, 0
+
+
+def upload_from_staging(staging_dir, creds, verbose, notes_count, sync=False):
+    """Upload already staged files to R2."""
+    uploaded_count = 0
+    failed_count = 0
+    total_bytes = 0
+    
+    # Collection files
+    collection_files = [
+        'collection/notes.json.gz',
+        'collection/cards-data.json.gz',
+        'collection/notetypes.json.gz',
+        'collection/decks-config.json.gz',
+        'collection/media-registry.json',
+        'collection/collection-config.json',
+    ]
+    
+    for key in collection_files:
+        local_path = staging_dir / key
+        if not local_path.exists():
+            if verbose:
+                print(f"   ⊘ Skipped {key} (not found)")
+            continue
+        
+        with open(local_path, 'rb') as f:
+            content = f.read()
+        
+        success, size = upload_to_r2(creds['bucket'], key, content, creds, verbose)
+        if success:
+            uploaded_count += 1
+            total_bytes += size
+        else:
+            failed_count += 1
+    
+    # Get list of local note files
+    notes_dir = staging_dir / "notes"
+    local_notes = {f.name for f in notes_dir.glob("*.json.gz")}
+    
+    # Sync: List R2 and delete orphaned notes
+    if sync and HAS_BOTO3:
+        print(f"\n🔄 Syncing R2 with local notes...")
+        deleted_count = sync_r2_notes(creds, local_notes, verbose)
+        if verbose and deleted_count > 0:
+            print(f"   🗑️  Deleted {deleted_count} orphaned notes from R2")
+    elif sync and not HAS_BOTO3:
+        print(f"\n⚠️  Sync requires boto3. Install with: pip install boto3")
+    
+    # Upload individual notes
+    if verbose:
+        print(f"\n   Uploading {notes_count:,} individual notes...")
+    
+    for i, note_file in enumerate(sorted(notes_dir.glob("*.json.gz"))):
+        key = f"notes/{note_file.name}"
+        
+        with open(note_file, 'rb') as f:
+            content = f.read()
+        
+        success, size = upload_to_r2(creds['bucket'], key, content, creds, verbose)
+        if success:
+            uploaded_count += 1
+            total_bytes += size
+        else:
+            failed_count += 1
+        
+        # Progress indicator
+        if (i + 1) % 5000 == 0:
+            print(f"   Progress: {i + 1:,}/{notes_count:,} notes")
+    
+    print()
+    print(f"✅ Done! {uploaded_count:,} files uploaded ({total_bytes/1024/1024:.1f} MB)")
+    if failed_count > 0:
+        print(f"   ⚠️  {failed_count} failed")
+    print(f"\n   Staged files kept in: {staging_dir}")
+    print("   (You can delete this folder after verifying upload)")
+
+
+def sync_r2_notes(creds, local_notes, verbose=False):
+    """Delete notes from R2 that don't exist locally."""
+    if not HAS_BOTO3:
+        return 0
+    
+    account_id = creds['account_id']
+    access_key = creds['access_key']
+    secret_key = creds['secret_key']
     
     try:
-        response = urlopen(req, timeout=30)
+        s3_client = boto3.client(
+            's3',
+            endpoint_url=f'https://{account_id}.r2.cloudflarestorage.com',
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            config=Config(
+                signature_version='s3v4',
+                retries={'max_attempts': 3, 'mode': 'standard'}
+            )
+        )
+        
+        # List all objects in notes/ prefix
+        paginator = s3_client.get_paginator('list_objects_v2')
+        pages = paginator.paginate(Bucket=creds['bucket'], Prefix='notes/')
+        
+        to_delete = []
+        for page in pages:
+            if 'Contents' not in page:
+                continue
+            for obj in page['Contents']:
+                key = obj['Key']
+                # Extract filename from key
+                filename = key.split('/')[-1]
+                if filename and filename not in local_notes:
+                    to_delete.append({'Key': key})
+        
+        if not to_delete:
+            if verbose:
+                print(f"   ✓ No orphaned notes to delete")
+            return 0
+        
+        # Delete in batches of 1000 (S3 API limit)
+        deleted_count = 0
+        for i in range(0, len(to_delete), 1000):
+            batch = to_delete[i:i+1000]
+            response = s3_client.delete_objects(
+                Bucket=creds['bucket'],
+                Delete={'Objects': batch}
+            )
+            deleted_count += len(batch)
+            if verbose:
+                print(f"   🗑️  Deleted {deleted_count}/{len(to_delete)} orphaned notes...")
+        
+        return deleted_count
+        
+    except Exception as e:
         if verbose:
-            print(f"  ✓ Uploaded {key} ({len(content_gz):,} bytes)")
-        return True, len(content_gz)
-    except HTTPError as e:
-        print(f"  ✗ Failed to upload {key}: {e.code} {e.reason}")
-        return False, 0
+            print(f"   ⚠️  Sync failed: {e}")
+        return 0
 
 
 def main():
@@ -270,12 +449,40 @@ R2 Directory Structure:
     parser.add_argument('-d', '--dry-run', action='store_true', help='Show what would be uploaded')
     parser.add_argument('-f', '--force', action='store_true', help='Re-upload everything')
     parser.add_argument('-q', '--quiet', action='store_true', help='Minimal output')
+    parser.add_argument('--upload-only', action='store_true', help='Upload already staged files (skip staging)')
+    parser.add_argument('--stage-only', action='store_true', help='Only stage files (skip upload prompt)')
+    parser.add_argument('--sync', action='store_true', help='Sync R2 with local (delete orphaned notes)')
     
     args = parser.parse_args()
 
     # Load credentials (not required for dry run)
     creds = load_credentials()
-    
+
+    # Handle --upload-only (skip staging, just upload)
+    if args.upload_only:
+        staging_dir = get_staging_dir()
+        if not (staging_dir / "collection" / "notes.json.gz").exists():
+            print("❌ Error: No staged files found in", staging_dir, file=sys.stderr)
+            print("   Run without --upload-only first to stage files.", file=sys.stderr)
+            sys.exit(1)
+        
+        if not creds['account_id'] or not creds['access_key'] or not creds['secret_key']:
+            print("❌ Error: R2 credentials not found", file=sys.stderr)
+            sys.exit(1)
+        
+        if args.verbose:
+            print(f"📦 R2 Bucket: {creds['bucket']}")
+            print(f"   Account: {creds['account_id'][:8]}...")
+            print(f"   Staging: {staging_dir}")
+        
+        # Count staged files
+        notes_count = len(list((staging_dir / "notes").glob("*.json.gz")))
+        
+        # Upload from staging
+        print(f"\n📤 Uploading staged files to R2...")
+        upload_from_staging(staging_dir, creds, args.verbose, notes_count, sync=args.sync)
+        return
+
     if not args.dry_run:
         if not creds['account_id'] or not creds['access_key'] or not creds['secret_key']:
             print("❌ Error: R2 credentials not found", file=sys.stderr)
@@ -383,7 +590,9 @@ R2 Directory Structure:
     notes_dir.mkdir(exist_ok=True)
 
     for i, note in enumerate(data['notes']):
-        local_path = notes_dir / f"{note['guid']}.json.gz"
+        # GUID may contain special chars, use hash for filename
+        guid_hash = hashlib.md5(note['guid'].encode()).hexdigest()[:16]
+        local_path = notes_dir / f"{guid_hash}.json.gz"
         note_data = {
             'guid': note['guid'],
             'mid': note['mid'],
@@ -402,6 +611,12 @@ R2 Directory Structure:
 
     print(f"\n   ✓ Staged {len(data['notes']):,} individual notes")
 
+    # If --stage-only, skip upload prompt
+    if args.stage_only:
+        print(f"\n✅ Files staged in: {staging_dir}")
+        print("   (Run 'upload-to-r2 --upload-only' to upload)")
+        return
+
     # Ask before uploading
     print()
     print("📤 Upload to R2?")
@@ -416,57 +631,9 @@ R2 Directory Structure:
         print(f"   ./upload-to-r2 --upload-only")
         return
 
-    # Upload all files from staging directory
+    # Upload from staging
     print(f"\n📤 Uploading from staging directory...")
-
-    uploaded_count = 0
-    failed_count = 0
-    total_bytes = 0
-
-    # Upload collection files
-    for key, _ in uploads:
-        local_path = staging_dir / key
-        if not local_path.exists():
-            continue
-
-        with open(local_path, 'rb') as f:
-            content = f.read()
-
-        success, size = upload_to_r2(creds['bucket'], key, content, creds, args.verbose)
-        if success:
-            uploaded_count += 1
-            total_bytes += size
-        else:
-            failed_count += 1
-
-    # Upload individual notes
-    if args.verbose:
-        print(f"\n   Uploading individual notes...")
-
-    for i, note in enumerate(data['notes']):
-        key = f"notes/{note['guid']}.json.gz"
-        local_path = notes_dir / f"{note['guid']}.json.gz"
-
-        with open(local_path, 'rb') as f:
-            content = f.read()
-
-        success, size = upload_to_r2(creds['bucket'], key, content, creds, args.verbose)
-        if success:
-            uploaded_count += 1
-            total_bytes += size
-        else:
-            failed_count += 1
-
-        # Progress indicator
-        if (i + 1) % 5000 == 0:
-            print(f"   Progress: {i + 1:,}/{len(data['notes']):,} notes")
-
-    print()
-    print(f"✅ Done! {uploaded_count:,} files uploaded ({total_bytes/1024/1024:.1f} MB)")
-    if failed_count > 0:
-        print(f"   ⚠️  {failed_count} failed")
-    print(f"\n   Staged files kept in: {staging_dir}")
-    print("   (You can delete this folder after verifying upload)")
+    upload_from_staging(staging_dir, creds, args.verbose, len(data['notes']), sync=args.sync)
 
 
 if __name__ == "__main__":
