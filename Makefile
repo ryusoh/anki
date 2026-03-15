@@ -102,6 +102,13 @@ security:
 	@echo ""
 	@python3 data/anki/security_check.py
 
+audit:
+	@echo ""
+	@echo "🔍 FULL SECURITY AUDIT"
+	@echo "   Scanning for credentials, private data, gitignore coverage..."
+	@echo ""
+	@python3 tools/security_audit.py
+
 # -----------------------------------------------------------------------------
 # Tests
 # -----------------------------------------------------------------------------
