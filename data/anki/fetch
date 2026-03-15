@@ -77,7 +77,7 @@ def fetch_and_anonymize(source_db):
     
     # Notes metadata (no content)
     cur.execute("""
-        SELECT id, mid, mod, usn, sfld, csum, flags
+        SELECT id, guid, mid, mod, usn, csum, flags
         FROM notes
     """)
     notes = [dict(row) for row in cur.fetchall()]
@@ -126,6 +126,15 @@ def export_for_git(data, output_dir, verbose=True):
         with gzip.open(cards_file, 'wt', encoding='utf-8') as f:
             json.dump(data['cards'], f, ensure_ascii=False)
         files_created.append(('cards.json.gz', cards_file.stat().st_size, len(data['cards'])))
+
+    # Export notes (current snapshot - check if changed)
+    notes_file = output_dir / "notes.json.gz"
+    if files_are_identical(data['notes'], notes_file):
+        files_unchanged.append('notes.json.gz')
+    else:
+        with gzip.open(notes_file, 'wt', encoding='utf-8') as f:
+            json.dump(data['notes'], f, ensure_ascii=False)
+        files_created.append(('notes.json.gz', notes_file.stat().st_size, len(data['notes'])))
 
     # Export decks (always update - small file)
     decks_file = output_dir / "decks.json"
