@@ -145,9 +145,6 @@ data/anki/collection-config.json
 # - data/anki/decks.json (names only)
 # - data/anki/reviews/*.json.gz (review history)
 
-# Graph data (contains potentially sensitive content)
-graph/graph_data.json
-
 # =============================================================================
 # Misc
 # =============================================================================
@@ -163,4 +160,3 @@ Thumbs.db
 .Trashes
 ehthumbs.db
 Desktop.ini
-graph/graph_data.json
