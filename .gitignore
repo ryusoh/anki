@@ -160,3 +160,7 @@ Thumbs.db
 .Trashes
 ehthumbs.db
 Desktop.ini
+
+# Anki data exports (may contain sensitive data)
+data/anki/notes.json.gz
+data/anki/reviews/
