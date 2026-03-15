@@ -11,8 +11,9 @@
 export function stripHtml(text) {
   if (!text) return "";
 
-  // Remove HTML tags
-  let clean = text.replace(/<[^>]+>/g, "");
+  // Remove HTML tags using a more robust regex to prevent bypasses
+  let clean = text.replace(/<[^>]*?(?:on\w*|style|script|iframe)[^>]*?>/gi, ""); // Remove dangerous tags/attrs first
+  clean = clean.replace(/<[^>]+>/g, ""); // Remove remaining tags
 
   // Remove Anki field separators
   clean = clean.replace(/::/g, " ");

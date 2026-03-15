@@ -39,6 +39,13 @@ except ImportError:
     HAS_BOTO3 = False
 
 
+def mask_value(value, visible_chars=8):
+    """Mask sensitive value showing only start and end."""
+    if not value or len(value) <= visible_chars * 2:
+        return "********"
+    return f"{value[:visible_chars]}...{value[-4:]}"
+
+
 def load_credentials():
     """Load R2 credentials from environment or file."""
     creds = {
@@ -497,8 +504,8 @@ R2 Directory Structure:
             sys.exit(1)
         
         if args.verbose:
-            print(f"📦 R2 Bucket: {creds['bucket']}")
-            print(f"   Account: {creds['account_id'][:8]}...")
+            print(f"📦 R2 Bucket: {mask_value(creds['bucket'])}")
+            print(f"   Account: {mask_value(creds['account_id'])}")
             print(f"   Staging: {staging_dir}")
         
         # Count staged files
@@ -518,8 +525,8 @@ R2 Directory Structure:
             sys.exit(1)
 
     if args.verbose and creds['account_id']:
-        print(f"📦 R2 Bucket: {creds['bucket']}")
-        print(f"   Account: {creds['account_id'][:8]}...")
+        print(f"📦 R2 Bucket: {mask_value(creds['bucket'])}")
+        print(f"   Account: {mask_value(creds['account_id'])}")
     
     # Find Anki DB
     try:
@@ -646,8 +653,8 @@ R2 Directory Structure:
     # Ask before uploading
     print()
     print("📤 Upload to R2?")
-    print(f"   Bucket: {creds['bucket']}")
-    print(f"   Account: {creds['account_id']}")
+    print(f"   Bucket: {mask_value(creds['bucket'])}")
+    print(f"   Account: {mask_value(creds['account_id'])}")
     print()
     response = input("   Type 'yes' to upload, or press Enter to skip: ")
     

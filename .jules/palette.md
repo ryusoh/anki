@@ -9,6 +9,8 @@
 
 **Learning:** It is common for elements to use `aria-labelledby` or `aria-describedby` referencing an ID that was forgotten or removed during refactoring, resulting in a broken accessibility experience where screen readers announce nothing.
 **Action:** Always verify that the ID referenced by `aria-labelledby` or `aria-describedby` actually exists in the DOM. If the visual design doesn't call for a visible title, inject a screen-reader-only (`sr-only`) element with that ID to satisfy the accessibility requirement without altering the visual layout.
+
 ## 2024-03-15 - Focus-Visible for Screen Reader Only Elements
+
 **Learning:** Using standard `:focus` on `.sr-only` elements like "skip-to-content" links can inadvertently trigger visual focus outlines when users click the element or its vicinity with a mouse, leading to a confusing mouse navigation experience.
 **Action:** Standardize on the `:focus-visible` pseudo-class for keyboard-specific accessibility elements to ensure focus styles are strictly applied during keyboard navigation, maintaining a clean UI for mouse users while preserving accessibility.
