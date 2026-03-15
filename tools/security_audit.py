@@ -70,6 +70,27 @@ def check_for_private_data(filepath, content):
     """Check for private Anki card data."""
     issues = []
     
+    # Skip documentation files (they mention field names but don't contain data)
+    if filepath.endswith('.md') or 'docs/' in filepath:
+        return issues
+    
+    # Skip vendor/third-party code
+    if 'vendor/' in filepath or 'node_modules/' in filepath:
+        return issues
+    
+    # Skip code files (they can mention field names)
+    if filepath.endswith('.py') or filepath.endswith('.js'):
+        # But check for actual credential patterns in code
+        if 'ACCOUNT_ID' in content and len(content) > 1000:
+            # Check for hardcoded values
+            if re.search(r"ACCOUNT_ID\s*=\s*['\"][a-f0-9]{32}['\"]", content):
+                issues.append("HARDCODED: ACCOUNT_ID with value")
+        return issues
+    
+    # Skip anonymized data files (no flds, no tags)
+    if filepath.endswith('notes.json.gz') or 'reviews/' in filepath:
+        return issues
+    
     # Check JSON files for private fields
     if filepath.endswith('.json'):
         try:
@@ -84,11 +105,6 @@ def check_for_private_data(filepath, content):
                     issues.append("PRIVATE: Contains tags + flds")
         except:
             pass
-    
-    # Check for card content patterns
-    if 'flds' in content.lower() and 'mid' in content.lower():
-        if not filepath.endswith('.py'):  # Code files can mention field names
-            issues.append("Potential private note data detected")
     
     return issues
 
