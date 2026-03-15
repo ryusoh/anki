@@ -9,32 +9,46 @@ from graph.parser import extract_fields, tokenize, get_front_field, group_by_dec
 from graph.references import find_references, find_references_for_deck_only
 
 
-def build_graph(notes, with_pagerank=False, alpha=0.85):
+def build_graph(notes, with_pagerank=False, with_anonymization=False, alpha=0.85):
     """
     Build a directed graph from notes.
     
     Args:
         notes: List of note dicts
         with_pagerank: Whether to compute PageRank (default: False)
+        with_anonymization: Whether to hash sensitive fields (default: False)
         alpha: Damping factor for PageRank (default: 0.85)
     
     Returns:
         networkx.DiGraph with nodes and weighted edges
     """
+    import hashlib
     G = nx.DiGraph()
     
     # Add all notes as nodes
     for note in notes:
         guid = note['guid']
         front = get_front_field(note)
+        tags = note.get('tags', '')
+        
+        if with_anonymization:
+            # Hash front and tags to prevent clear-text exposure
+            front_hash = hashlib.sha256(front.encode('utf-8')).hexdigest()[:12]
+            front = f"Note_{front_hash}"
+            
+            if tags:
+                tag_list = tags.split()
+                hashed_tags = [hashlib.sha256(t.encode('utf-8')).hexdigest()[:8] for t in tag_list]
+                tags = ' '.join(hashed_tags)
         
         G.add_node(
             guid,
             guid=guid,
+            label=front, # Use label for display in UI
             front=front,
             deck=note.get('deck'),
             deck_id=note.get('deck_id'),
-            tags=note.get('tags', ''),
+            tags=tags,
             mid=note.get('mid'),
             mod=note.get('mod'),
         )
@@ -43,12 +57,16 @@ def build_graph(notes, with_pagerank=False, alpha=0.85):
     edges = find_references(notes)
     
     for edge in edges:
+        word = edge['word']
+        if with_anonymization:
+            word = hashlib.sha256(word.encode('utf-8')).hexdigest()[:8]
+
         G.add_edge(
             edge['source'],
             edge['target'],
             weight=edge['weight'],
             type=edge['type'],
-            word=edge['word'],
+            word=word,
             deck=edge.get('deck'),
         )
     
@@ -101,13 +119,14 @@ def _compute_pagerank(G, alpha=0.85, max_iter=100, tol=1e-06):
     return pagerank
 
 
-def build_per_deck_graphs(notes, with_pagerank=False, alpha=0.85):
+def build_per_deck_graphs(notes, with_pagerank=False, with_anonymization=False, alpha=0.85):
     """
     Build separate graphs for each deck.
     
     Args:
         notes: List of note dicts
         with_pagerank: Whether to compute PageRank for each graph
+        with_anonymization: Whether to hash sensitive fields
         alpha: Damping factor for PageRank
     
     Returns:
@@ -117,7 +136,12 @@ def build_per_deck_graphs(notes, with_pagerank=False, alpha=0.85):
     graphs = {}
     
     for deck_name, deck_notes in grouped.items():
-        G = build_graph(deck_notes, with_pagerank=with_pagerank, alpha=alpha)
+        G = build_graph(
+            deck_notes,
+            with_pagerank=with_pagerank,
+            with_anonymization=with_anonymization,
+            alpha=alpha
+        )
         graphs[deck_name] = G
     
     return graphs

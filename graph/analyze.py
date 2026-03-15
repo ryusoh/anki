@@ -356,6 +356,7 @@ def main():
     parser.add_argument('--hubs', action='store_true', help='Show hub notes')
     parser.add_argument('--compare', action='store_true', help='Compare decks')
     parser.add_argument('--list-decks', action='store_true', help='List available decks')
+    parser.add_argument('--anonymize', action='store_true', help='Anonymize sensitive card content')
     
     args = parser.parse_args()
     
@@ -368,6 +369,9 @@ def main():
         sys.exit(1)
     
     print(f"✓ Loaded {len(notes):,} notes")
+
+    if args.anonymize:
+        print("🔒 Anonymization enabled: card content will be hashed")
     
     # List decks if requested
     if args.list_decks:
@@ -407,7 +411,7 @@ def main():
         print(f"\n📊 Analyzing deck: {actual_deck_name} ({len(deck_notes):,} notes)")
         
         # Build graph
-        graph = build_graph(deck_notes, with_pagerank=True)
+        graph = build_graph(deck_notes, with_pagerank=True, with_anonymization=args.anonymize)
         
         # Show top notes
         print_top_notes(graph, args.deck, args.top)
@@ -430,7 +434,7 @@ def main():
     if args.all_decks or args.compare:
         print(f"\n📊 Analyzing all {len(decks)} decks...")
         
-        graphs = build_per_deck_graphs(notes, with_pagerank=True)
+        graphs = build_per_deck_graphs(notes, with_pagerank=True, with_anonymization=args.anonymize)
         
         # Compare decks
         if args.compare:
