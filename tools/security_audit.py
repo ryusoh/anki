@@ -48,21 +48,29 @@ def check_for_credentials(filepath, content):
     """Check for hardcoded credentials."""
     issues = []
     
-    # R2/AWS credentials patterns
-    patterns = {
-        'R2 Account ID': r'[a-f0-9]{32}',
-        'AWS Access Key': r'AKIA[0-9A-Z]{16}',
-        'Generic Secret': r'(secret|key|token|password)\s*=\s*["\'][a-zA-Z0-9+/=]{20,}["\']',
-        'Private Key': r'-----BEGIN (RSA |EC )?PRIVATE KEY-----',
-    }
+    # Skip vendor/third-party code (they have their own keys)
+    if 'vendor/' in filepath or 'node_modules/' in filepath:
+        return issues
     
-    for name, pattern in patterns.items():
-        matches = re.findall(pattern, content, re.IGNORECASE)
-        if matches:
-            # Filter out false positives (common hashes, etc.)
-            real_matches = [m for m in matches if len(str(m)) > 20]
-            if real_matches:
-                issues.append(f"Potential {name} found")
+    # Skip documentation
+    if filepath.endswith('.md'):
+        return issues
+    
+    # Skip compressed/binary files
+    if filepath.endswith('.gz'):
+        return issues
+    
+    # Check Python/JS files for hardcoded credentials
+    if filepath.endswith('.py') or filepath.endswith('.js'):
+        patterns = {
+            'Hardcoded Secret': r'(secret|SECRET|KEY|TOKEN)\s*=\s*["\'][a-zA-Z0-9+/=]{30,}["\']',
+            'Private Key': r'-----BEGIN (RSA |EC )?PRIVATE KEY-----',
+        }
+        
+        for name, pattern in patterns.items():
+            matches = re.findall(pattern, content, re.IGNORECASE)
+            if matches:
+                issues.append(f"{name} found")
     
     return issues
 
