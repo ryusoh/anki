@@ -22,6 +22,13 @@ import hashlib
 from datetime import datetime
 
 
+def mask_value(value, visible_chars=8):
+    """Mask sensitive value showing only start and end."""
+    if not value or len(value) <= visible_chars * 2:
+        return "********"
+    return f"{value[:visible_chars]}...{value[-4:]}"
+
+
 def load_credentials():
     """Load R2 credentials from environment or file."""
     creds = {
@@ -142,7 +149,7 @@ def main():
     
     if args.verbose:
         print(f"📥 Downloading from R2...")
-        print(f"   Bucket: {creds['bucket']}")
+        print(f"   Bucket: {mask_value(creds['bucket'])}")
         print(f"   Key: {key}")
     
     data = download_from_r2(creds['bucket'], key, creds, args.verbose)

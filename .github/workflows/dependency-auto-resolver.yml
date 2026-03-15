@@ -16,12 +16,12 @@ jobs:
   resolve-conflicts:
     runs-on: ubuntu-latest
     steps:
-      # codeql[js/unpinned-tag] Major version pin (@v6, @v8) is used, which is acceptable practice
-      - uses: actions/checkout@v6
+      # codeql[js/unpinned-tag] Pinned to actions/checkout@v4 SHA: 1d96c772d19495a8b5c518327404a044394fcf99
+      - uses: actions/checkout@1d96c772d19495a8b5c518327404a044394fcf99
 
       - name: Setup Node.js
-        # codeql[js/unpinned-tag] Major version pin (@v6, @v8) is used, which is acceptable practice
-        uses: actions/setup-node@v6
+        # codeql[js/unpinned-tag] Pinned to actions/setup-node@v4 SHA: 60edb5dd545a775178f3fbe5982d69cde1959bb0
+        uses: actions/setup-node@60edb5dd545a775178f3fbe5982d69cde1959bb0
         with:
           node-version: '24'
           cache: 'npm'
@@ -37,7 +37,8 @@ jobs:
           npm install
           
       - name: Create PR if resolution changed
-        uses: peter-evans/create-pull-request@v8
+        # codeql[js/unpinned-tag] Pinned to peter-evans/create-pull-request@v7 SHA: 05247413d7197b1ca696752d5e56e9e4325e01b4
+        uses: peter-evans/create-pull-request@05247413d7197b1ca696752d5e56e9e4325e01b4
         with:
           commit-message: "chore: auto-resolve dependency conflicts (undici/jsdom)"
           title: "chore: auto-resolve dependency conflicts"
