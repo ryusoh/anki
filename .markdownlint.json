@@ -1,0 +1,16 @@
+{
+  "MD033": {
+    "allowed_elements": [
+      "center",
+      "div",
+      "a",
+      "img",
+      "br",
+      "b",
+      "span",
+      "hr"
+    ]
+  },
+  "MD013": false,
+  "MD041": false
+}

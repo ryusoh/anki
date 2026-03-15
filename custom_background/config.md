@@ -1,10 +1,10 @@
-<center><div style="vertical-align:middle;"><a href="https://www.ankingmed.com"><img src="../../addons21/1210908941/AnKing/AnKingSmall.png"></a><a href="https://www.ankingmed.com"><img src="../../addons21/1210908941/AnKing/TheAnKing.png"></a></div></center>
+<center><div style="vertical-align:middle;"><a href="https://www.ankingmed.com"><img src="../../addons21/1210908941/AnKing/AnKingSmall.png" alt="AnKing Small Logo"></a><a href="https://www.ankingmed.com"><img src="../../addons21/1210908941/AnKing/TheAnKing.png" alt="The AnKing Logo"></a></div></center>
 
-<center><a href="https://www.facebook.com/ankingmed"><img src="../../addons21/1210908941/AnKing/Facebook.jpg"></a>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="https://www.instagram.com/ankingmed"><img src="../../addons21/1210908941/AnKing/Instagram.jpg"></a>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="https://www.youtube.com/theanking"><img src="../../addons21/1210908941/AnKing/YouTube.jpg"></a></center>
+<center><a href="https://www.facebook.com/ankingmed"><img src="../../addons21/1210908941/AnKing/Facebook.jpg" alt="Facebook"></a>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="https://www.instagram.com/ankingmed"><img src="../../addons21/1210908941/AnKing/Instagram.jpg" alt="Instagram"></a>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="https://www.youtube.com/theanking"><img src="../../addons21/1210908941/AnKing/YouTube.jpg" alt="YouTube"></a></center>
 
-<center><a href="https://www.patreon.com/ankingmed"><img src="../../addons21/1210908941/AnKing/Patreon.jpg"></a></center>
+<center><a href="https://www.patreon.com/ankingmed"><img src="../../addons21/1210908941/AnKing/Patreon.jpg" alt="Patreon"></a></center>
 
 ---
 
@@ -21,10 +21,10 @@ _<div style="color:#A440C3;">You can add custom images to the folders "backgroun
 
 ---
 
-##Config:
+## Config
 
 - **Image name for background:** _(For no image use "". "Random" will shuffle through defaults)_ name of the background image file.
-  - _<span style="color:red;">preloaded images (all .png) include: AnKing, Beach, BeachAerial, Christ&Surgeon, ColorfulLights, Fire, Island, Milkyway, MoonMountains, NightSky, Ocean, SLCtemple, Sunset, SunsetMountain</div>_
+  - _<span style="color:red;">preloaded images (all .png) include: AnKing, Beach, BeachAerial, Christ&Surgeon, ColorfulLights, Fire, Island, Milkyway, MoonMountains, NightSky, Ocean, SLCtemple, Sunset, SunsetMountain</span>_
 - **Image name for gear:** _(Anki default is "gears.svg". "Random" will shuffle through defaults)_ name of the file to replace the gear icon. (preloaded images include AnKing.png, flame.svg)
   - _<span style="color:red;">preloaded images (all .png) include: AnKing, Bam, Bullseye, Cowboy, Diamond, Dragon, Fire, Flower, Nerd, Rose, Shield, Skull, Star, Sun</div>_
 - **Reviewer image:** _(true or false)_ show the background image in the reviewer screen
