@@ -163,6 +163,7 @@ export class TableGlassEffect {
 
     // Track rows for hover effect
     this.rows = [];
+    this.rowMap = new WeakMap();
     if (this.options.rowHoverEffect?.enabled) {
       const tbody = this.container.querySelector("tbody");
       if (tbody) {
@@ -184,6 +185,7 @@ export class TableGlassEffect {
             height: rowRect.height,
             element: row,
           });
+          this.rowMap.set(row, this.rows.length - 1);
         });
       }
     }
@@ -197,20 +199,12 @@ export class TableGlassEffect {
 
     // Determine hovered row by finding actual element under cursor
     if (this.options.rowHoverEffect?.enabled) {
-      // Find the actual row element under the mouse cursor
-      const elementUnderMouse = document.elementFromPoint(e.clientX, e.clientY);
-      if (elementUnderMouse) {
-        // Find the closest table row
-        const rowElement = elementUnderMouse.closest("tr");
+      // Find the closest table row to the event target
+      const rowElement = e.target?.closest?.("tr");
 
-        if (rowElement && this.container.contains(rowElement)) {
-          // Find the index of this row in our stored rows array
-          this.state.hoveredRowIndex = this.rows.findIndex(
-            (r) => r.element === rowElement,
-          );
-        } else {
-          this.state.hoveredRowIndex = -1;
-        }
+      if (rowElement && this.container.contains(rowElement)) {
+        // Find the index of this row in our stored rows array via O(1) WeakMap lookup
+        this.state.hoveredRowIndex = this.rowMap.get(rowElement) ?? -1;
       } else {
         this.state.hoveredRowIndex = -1;
       }
