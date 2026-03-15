@@ -43,22 +43,27 @@ def find_project_root():
     raise RuntimeError("Could not find data/anki directory")
 
 
-def fetch_and_anonymize(source_db):
-    """Load data from Anki DB, excluding content fields."""
+def fetch_and_anonymize(source_db, for_r2=False):
+    """Load data from Anki DB.
+    
+    Args:
+        source_db: Path to Anki collection DB
+        for_r2: If True, also fetch full content (flds, tags) for R2 staging
+    """
     conn = sqlite3.connect(source_db)
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
-    
+
     # Cards with deck info
     cur.execute("""
-        SELECT c.id, c.nid, c.did, c.ord, c.type, c.queue, c.due, 
+        SELECT c.id, c.nid, c.did, c.ord, c.type, c.queue, c.due,
                c.ivl, c.factor, c.reps, c.lapses, c.flags,
                d.name as deck_name
         FROM cards c
         LEFT JOIN decks d ON c.did = d.id
     """)
     cards = [dict(row) for row in cur.fetchall()]
-    
+
     # Reviews (full history)
     cur.execute("""
         SELECT id, cid, ease, ivl, lastIvl, factor, time, type
@@ -66,31 +71,111 @@ def fetch_and_anonymize(source_db):
         ORDER BY id
     """)
     reviews = [dict(row) for row in cur.fetchall()]
-    
+
     # Decks
     cur.execute("SELECT id, name FROM decks")
     decks = {row[0]: row[1] for row in cur.fetchall()}
-    
+
     # Note types
     cur.execute("SELECT id, name FROM notetypes")
     notetypes = {row[0]: row[1] for row in cur.fetchall()}
-    
-    # Notes metadata (no content)
-    cur.execute("""
-        SELECT id, guid, mid, mod, usn, csum, flags
-        FROM notes
-    """)
+
+    # Notes metadata
+    if for_r2:
+        # Full content for R2
+        cur.execute("""
+            SELECT id, guid, mid, mod, usn, flds, tags, data, csum, flags
+            FROM notes
+        """)
+    else:
+        # Anonymized for GitHub
+        cur.execute("""
+            SELECT id, guid, mid, mod, usn, csum, flags
+            FROM notes
+        """)
     notes = [dict(row) for row in cur.fetchall()]
-    
+
     conn.close()
-    
-    return {
+
+    result = {
         'cards': cards,
         'reviews': reviews,
         'decks': decks,
         'notetypes': notetypes,
         'notes': notes
     }
+    
+    if for_r2:
+        # Also fetch cards with data field
+        cur2 = sqlite3.connect(source_db)
+        cur2.row_factory = sqlite3.Row
+        cur2.execute("""
+            SELECT id, nid, data
+            FROM cards
+            WHERE data != '' AND data IS NOT NULL
+        """)
+        result['cards_data'] = [dict(row) for row in cur2.fetchall()]
+        cur2.close()
+
+    return result
+
+
+def stage_r2_content(data, output_dir, verbose=True):
+    """Stage R2 content from fetched data (already in memory)."""
+    import hashlib
+    
+    staging_dir = output_dir.parent / "cloudflare"
+    staging_dir.mkdir(exist_ok=True)
+    
+    # Collection files
+    collection_dir = staging_dir / "collection"
+    collection_dir.mkdir(exist_ok=True)
+    
+    # notes.json.gz (full content)
+    notes_file = collection_dir / "notes.json.gz"
+    with gzip.open(notes_file, 'wt', encoding='utf-8') as f:
+        json.dump(data['notes'], f, ensure_ascii=False)
+    if verbose:
+        print(f"   ✓ Staged collection/notes.json.gz ({notes_file.stat().st_size:,} bytes)")
+    
+    # cards-data.json.gz
+    cards_data = data.get('cards_data', [])
+    if cards_data:
+        cards_file = collection_dir / "cards-data.json.gz"
+        with gzip.open(cards_file, 'wt', encoding='utf-8') as f:
+            json.dump(cards_data, f, ensure_ascii=False)
+        if verbose:
+            print(f"   ✓ Staged collection/cards-data.json.gz ({cards_file.stat().st_size:,} bytes)")
+    
+    # notetypes.json.gz
+    if data.get('notetypes'):
+        notetypes_file = collection_dir / "notetypes.json.gz"
+        with gzip.open(notetypes_file, 'wt', encoding='utf-8') as f:
+            json.dump(data['notetypes'], f, ensure_ascii=False)
+        if verbose:
+            print(f"   ✓ Staged collection/notetypes.json.gz ({notetypes_file.stat().st_size:,} bytes)")
+    
+    # decks.json (full config would need additional fetch)
+    # For now, skip - can be added later
+    
+    # Individual notes
+    notes_dir = staging_dir / "notes"
+    notes_dir.mkdir(exist_ok=True)
+    
+    if verbose:
+        print(f"\n   Staging {len(data['notes']):,} individual notes...")
+    
+    for i, note in enumerate(data['notes']):
+        guid_hash = hashlib.md5(note['guid'].encode()).hexdigest()[:16]
+        note_file = notes_dir / f"{guid_hash}.json.gz"
+        with gzip.open(note_file, 'wt', encoding='utf-8') as f:
+            json.dump(note, f, ensure_ascii=False)
+        
+        if (i + 1) % 5000 == 0 and verbose:
+            print(f"   Progress: {i + 1:,}/{len(data['notes']):,} notes")
+    
+    if verbose:
+        print(f"\n   ✅ Staged {len(data['notes']):,} individual notes")
 
 
 def files_are_identical(new_data, existing_file):
@@ -186,7 +271,8 @@ Examples:
     )
     parser.add_argument('-v', '--verbose', action='store_true', help='Show detailed output')
     parser.add_argument('-q', '--quiet', action='store_true', help='Minimal output')
-    
+    parser.add_argument('--stage-r2', action='store_true', help='Also stage R2 private content')
+
     args = parser.parse_args()
     verbose = args.verbose and not args.quiet
     quiet = args.quiet
@@ -219,9 +305,15 @@ Examples:
     shutil.copy2(source_db, temp_db)
     
     try:
-        # Fetch and export
-        data = fetch_and_anonymize(temp_db)
+        # Fetch and export (with full content if staging for R2)
+        data = fetch_and_anonymize(temp_db, for_r2=args.stage_r2)
         files_created, files_unchanged = export_for_git(data, output_dir, verbose)
+
+        # Optionally stage R2 private content (uses data already in memory)
+        if args.stage_r2:
+            print()
+            print("📦 Staging R2 private content...")
+            stage_r2_content(data, output_dir, verbose)
 
         # Generate custom stats for terminal
         print()
