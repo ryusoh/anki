@@ -328,8 +328,11 @@
           const instanceId = intersects[0].instanceId;
           const node = data.nodes[instanceId];
 
-          document.getElementById("ni-title").textContent =
-            node.label.substring(0, 50) + (node.label.length > 50 ? "..." : "");
+          document.getElementById("ni-title").textContent = node.label.startsWith(
+            "Note_",
+          )
+            ? node.label
+            : "Node Info";
           document.getElementById("ni-deck").textContent = node.deck;
           document.getElementById("ni-pr").textContent = (
             node.pagerank * 1000
