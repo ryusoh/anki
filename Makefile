@@ -92,6 +92,17 @@ graph-viz:
 	@ls -1 graph_output/*.html 2>/dev/null | head -5
 
 # -----------------------------------------------------------------------------
+# Security
+# -----------------------------------------------------------------------------
+
+security:
+	@echo ""
+	@echo "🔒 EXTREMELY RIGOROUS SECURITY CHECK"
+	@echo "   Scanning ALL tracked files for private Anki data..."
+	@echo ""
+	@python3 data/anki/security_check.py
+
+# -----------------------------------------------------------------------------
 # Tests
 # -----------------------------------------------------------------------------
 
@@ -146,6 +157,10 @@ fetch-prompt:
 	fi
 
 precommit-fix: $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt-fix) fmt lint-fix check
+	@echo ""
+	@echo "🔒 Running EXTREMELY RIGOROUS security check..."
+	@echo "   Scanning ALL files for private Anki data..."
+	@python3 data/anki/security_check.py
 	@echo ""
 	@echo "✅ Pre-commit fix complete"
 	@echo "Review changes with: git diff"
