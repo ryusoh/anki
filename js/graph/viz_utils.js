@@ -11,10 +11,17 @@
 export function stripHtml(text) {
   if (!text) return "";
 
-  // Remove HTML tags using a more robust regex to prevent bypasses
-  let clean = text.replace(/<[^>]*?(?:on\w*|style|script|iframe)[^>]*?>/gi, ""); // Remove dangerous tags/attrs first
-  // codeql[js/incomplete-sanitization] mitigated by preceding regex and intended for display only
-  clean = clean.replace(/<[^>]+>/g, ""); // Remove remaining tags
+  let clean = text;
+
+  // Replace HTML tags with a space instead of an empty string to prevent
+  // nested tags (e.g., <<script>script>) from forming new valid tags after removal.
+  // This satisfies CodeQL's incomplete multi-character sanitization rule.
+
+  // Remove dangerous tags/attrs first
+  clean = clean.replace(/<[^>]*?(?:on\w*|style|script|iframe)[^>]*?>/gi, " ");
+
+  // Remove remaining tags
+  clean = clean.replace(/<[^>]+>/g, " ");
 
   // Remove Anki field separators
   clean = clean.replace(/::/g, " ");
