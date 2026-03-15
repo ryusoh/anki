@@ -201,7 +201,7 @@ def create_aws_signature(method, bucket, key, date, access_key, secret_key, cont
     return f'{algorithm} Credential={access_key}/{credential_scope}, SignedHeaders={signed_headers}, Signature={signature}'
 
 
-def upload_to_r2(bucket, key, data, creds, verbose=False, max_retries=3):
+def upload_to_r2(bucket, key, data, creds, verbose=False, max_retries=3, quiet=False):
     """Upload data to R2 bucket using boto3 (preferred) or urllib."""
     account_id = creds['account_id']
     access_key = creds['access_key']
@@ -239,11 +239,11 @@ def upload_to_r2(bucket, key, data, creds, verbose=False, max_retries=3):
                 ContentEncoding='gzip'
             )
             
-            if verbose:
+            if verbose and not quiet:
                 print(f"  ✓ Uploaded {key} ({len(content_gz):,} bytes)")
             return True, len(content_gz)
         except Exception as e:
-            if verbose:
+            if verbose and not quiet:
                 print(f"  ⚠ boto3 failed for {key}: {e}, trying urllib...")
             # Fall through to urllib method
         # Don't return False here, let urllib try
@@ -272,17 +272,18 @@ def upload_to_r2(bucket, key, data, creds, verbose=False, max_retries=3):
             )
             
             response = urlopen(req, timeout=120)
-            if verbose:
+            if verbose and not quiet:
                 print(f"  ✓ Uploaded {key} ({len(content_gz):,} bytes)")
             return True, len(content_gz)
         except Exception as e:
             if attempt < max_retries - 1:
-                if verbose:
+                if verbose and not quiet:
                     print(f"  ⚠ Retry {key} (attempt {attempt + 2}/{max_retries}): {e}")
                 import time
                 time.sleep(1)
             else:
-                print(f"  ✗ Failed to upload {key} after {max_retries} attempts: {e}")
+                if not quiet:
+                    print(f"  ✗ Failed to upload {key} after {max_retries} attempts: {e}")
                 return False, 0
     
     return False, 0
@@ -293,18 +294,28 @@ def upload_from_staging(staging_dir, creds, verbose, notes_count, sync=False):
     uploaded_count = 0
     failed_count = 0
     total_bytes = 0
+    total_files = 0
     
     # Collection files
     collection_files = [
         'collection/notes.json.gz',
-        'collection/cards-data.json.gz',
+        'collection/cards.json.gz',
+        'collection/reviews.json.gz',
         'collection/notetypes.json.gz',
-        'collection/decks-config.json.gz',
+        'collection/decks.json',
+        'collection/cards-data.json.gz',
         'collection/media-registry.json',
         'collection/collection-config.json',
     ]
     
-    for key in collection_files:
+    # Count total files first
+    total_files = len([f for f in collection_files if (staging_dir / f).exists()])
+    total_files += notes_count  # Individual notes
+    
+    print(f"\n📤 Uploading {total_files:,} files to R2...")
+    
+    # Upload collection files
+    for i, key in enumerate(collection_files, 1):
         local_path = staging_dir / key
         if not local_path.exists():
             if verbose:
@@ -320,43 +331,58 @@ def upload_from_staging(staging_dir, creds, verbose, notes_count, sync=False):
             total_bytes += size
         else:
             failed_count += 1
+        
+        # Progress for collection files
+        if verbose:
+            progress = (i / total_files) * 100 if total_files > 0 else 0
+            print(f"   Progress: {i:,}/{total_files:,} ({progress:.1f}%)")
     
     # Get list of local note files
     notes_dir = staging_dir / "notes"
-    local_notes = {f.name for f in notes_dir.glob("*.json.gz")}
     
     # Sync: List R2 and delete orphaned notes
     if sync and HAS_BOTO3:
         print(f"\n🔄 Syncing R2 with local notes...")
+        local_notes = {f.name for f in notes_dir.glob("*.json.gz")}
         deleted_count = sync_r2_notes(creds, local_notes, verbose)
         if verbose and deleted_count > 0:
             print(f"   🗑️  Deleted {deleted_count} orphaned notes from R2")
     elif sync and not HAS_BOTO3:
         print(f"\n⚠️  Sync requires boto3. Install with: pip install boto3")
     
-    # Upload individual notes
-    if verbose:
-        print(f"\n   Uploading {notes_count:,} individual notes...")
+    # Upload individual notes with progress bar
+    print(f"\n📤 Uploading {notes_count:,} individual notes...")
     
-    for i, note_file in enumerate(sorted(notes_dir.glob("*.json.gz"))):
+    note_files = sorted(notes_dir.glob("*.json.gz"))
+    
+    for i, note_file in enumerate(note_files, 1):
         key = f"notes/{note_file.name}"
         
         with open(note_file, 'rb') as f:
             content = f.read()
         
-        success, size = upload_to_r2(creds['bucket'], key, content, creds, verbose)
+        # Upload each file and show progress
+        success, size = upload_to_r2(creds['bucket'], key, content, creds, verbose=False, quiet=True)
         if success:
             uploaded_count += 1
             total_bytes += size
         else:
             failed_count += 1
         
-        # Progress indicator
-        if (i + 1) % 5000 == 0:
-            print(f"   Progress: {i + 1:,}/{notes_count:,} notes")
+        # Show progress every 100 files (fast enough to not slow down, frequent enough to see movement)
+        if i % 100 == 0 or i == notes_count:
+            progress = (i / notes_count) * 100 if notes_count > 0 else 0
+            bar_width = 40
+            filled = int(bar_width * i / notes_count) if notes_count > 0 else 0
+            bar = '█' * filled + '░' * (bar_width - filled)
+            # Use carriage return to update in place
+            print(f"\r   [{bar}] {i:,}/{notes_count:,} ({progress:.1f}%)", end='', flush=True)
+    
+    # Final newline
+    print()
     
     print()
-    print(f"✅ Done! {uploaded_count:,} files uploaded ({total_bytes/1024/1024:.1f} MB)")
+    print(f"✅ Done! {uploaded_count:,}/{total_files:,} files uploaded ({total_bytes/1024/1024:.1f} MB)")
     if failed_count > 0:
         print(f"   ⚠️  {failed_count} failed")
     print(f"\n   Staged files kept in: {staging_dir}")

@@ -122,6 +122,13 @@ review_heatmap/data/cache/
 # Staging directory (temporary before upload)
 data/cloudflare/
 
+# Graph output (contains merged private data)
+graph_output/
+
+# Hash map for incremental staging (SAFE for GitHub - just hashes)
+# But keep it local by default, user can commit if desired
+.hash_map.json
+
 # R2 private data files (full content, never GitHub)
 data/anki/cards-data.json.gz
 data/anki/notetypes.json.gz
