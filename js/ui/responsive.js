@@ -1,4 +1,4 @@
-import { UI_BREAKPOINTS, CALENDAR_SELECTORS } from "@js/config.js";
+import { UI_BREAKPOINTS, CALENDAR_SELECTORS } from "#js/config.js";
 import { debounce } from "../utils/debounce.js";
 
 export function checkAndToggleVerticalScroll() {

@@ -3,9 +3,9 @@
  * Displays upcoming reviews split by mature/young cards
  */
 
-import { bindLegendToggle, isLabelHidden } from "@js/commands/legendToggle.js";
-import { parseRange, DEFAULT_RANGE } from "@js/utils/timeRange.js";
-import { escapeHtml } from "@js/transactions/utils.js";
+import { bindLegendToggle, isLabelHidden } from "#js/commands/legendToggle.js";
+import { parseRange, DEFAULT_RANGE } from "#js/utils/timeRange.js";
+import { escapeHtml } from "#js/transactions/utils.js";
 
 const Chart = window.Chart;
 
@@ -122,7 +122,7 @@ export function renderFutureDueChart(data, byDeck = false, rangeDays = null) {
 
   if (byDeck) {
     // Dynamically import helpers so we don't duplicate logic
-    import("@js/commands/reviews.js").then((reviewsModule) => {
+    import("#js/commands/reviews.js").then((reviewsModule) => {
       const { groupAndSortDecks, getGroupedDeckColor } = reviewsModule;
 
       const layout = groupAndSortDecks(

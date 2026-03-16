@@ -1,4 +1,4 @@
-import { CALENDAR_BACKGROUND_EFFECT, CALENDAR_SELECTORS } from "@js/config.js";
+import { CALENDAR_BACKGROUND_EFFECT, CALENDAR_SELECTORS } from "#js/config.js";
 
 let sweepNextTimer = null;
 let sweepRemoveTimer = null;

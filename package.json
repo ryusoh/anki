@@ -1,4 +1,9 @@
 {
+  "type": "module",
+  "imports": {
+    "#js/*": "./js/*",
+    "#ui/*": "./js/ui/*"
+  },
   "dependencies": {
     "jsdom": "^28.1.0"
   },

@@ -1,4 +1,4 @@
-import { LOGO_SIZE, LOGO_SHADOW, LOGO_MARGIN_DEFAULT } from "@js/config.js";
+import { LOGO_SIZE, LOGO_SHADOW, LOGO_MARGIN_DEFAULT } from "#js/config.js";
 
 export function drawImage(ctx, arc, img, logoInfo) {
   // Skip very small slices to avoid clutter (about 10 degrees)

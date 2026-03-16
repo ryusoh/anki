@@ -4,8 +4,8 @@ import {
   CALENDAR_MONTH_LABEL_HIGHLIGHT,
   COLORS,
   UI_BREAKPOINTS,
-} from "@js/config.js";
-import { setThinkingHighlight } from "@ui/textHighlightManager.js";
+} from "#js/config.js";
+import { setThinkingHighlight } from "#ui/textHighlightManager.js";
 
 const FROSTED_FILTER_ID = "cal-domain-frosted";
 

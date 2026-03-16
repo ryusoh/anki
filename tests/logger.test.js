@@ -46,9 +46,15 @@ function runTests() {
     let warnCalled = false;
     let errorCalled = false;
 
-    console.log = () => { logCalled = true; };
-    console.warn = () => { warnCalled = true; };
-    console.error = () => { errorCalled = true; };
+    console.log = () => {
+      logCalled = true;
+    };
+    console.warn = () => {
+      warnCalled = true;
+    };
+    console.error = () => {
+      errorCalled = true;
+    };
 
     try {
       process.env.NODE_ENV = "development";

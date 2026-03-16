@@ -23,7 +23,7 @@ import {
   PERFORMANCE_SERIES_CURRENCY,
 } from "./chart.js";
 import { loadCompositionSnapshotData } from "./dataLoader.js";
-import { cycleCurrency } from "@ui/currencyToggleManager.js";
+import { cycleCurrency } from "#ui/currencyToggleManager.js";
 import {
   getStatsText,
   getHoldingsText,
@@ -49,7 +49,7 @@ import {
   convertValueToCurrency,
   escapeHtml,
 } from "./utils.js";
-import { getHoldingAssetClass } from "@js/config.js";
+import { getHoldingAssetClass } from "#js/config.js";
 import { toggleZoom, getZoomState } from "./zoom.js";
 import {
   initFade,
@@ -1920,7 +1920,7 @@ export function initTerminal({
         // Only cycle currency if the input is empty
         if (input.value.trim() === "") {
           e.preventDefault();
-          import("@ui/currencyToggleManager.js").then(({ cycleCurrency }) => {
+          import("#ui/currencyToggleManager.js").then(({ cycleCurrency }) => {
             cycleCurrency(-1); // Move left/cycle backward
           });
         }

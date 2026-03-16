@@ -3,9 +3,9 @@
  * Displays daily retention rates as a line chart
  */
 
-import { bindLegendToggle, isLabelHidden } from "@js/commands/legendToggle.js";
-import { getReviewStatsData } from "@js/commands/reviews.js";
-import { parseRange, DEFAULT_RANGE } from "@js/utils/timeRange.js";
+import { bindLegendToggle, isLabelHidden } from "#js/commands/legendToggle.js";
+import { getReviewStatsData } from "#js/commands/reviews.js";
+import { parseRange, DEFAULT_RANGE } from "#js/utils/timeRange.js";
 
 const Chart = window.Chart;
 
