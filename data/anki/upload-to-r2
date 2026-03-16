@@ -519,8 +519,10 @@ R2 Directory Structure:
             sys.exit(1)
 
         if args.verbose:
+            # codeql[py/clear-text-logging-sensitive-info] Masked values used for display
             print(f"📦 R2 Bucket: {mask_value(creds['bucket'])}")
-            print(f"   Account: {mask_value(creds['account_id'])}")  # codeql[py/clear-text-logging-sensitive-info] Masked values used for display
+            # codeql[py/clear-text-logging-sensitive-info] Masked values used for display
+            print(f"   Account: {mask_value(creds['account_id'])}")
             print(f"   Staging: {staging_dir}")
 
         # Load hash map to determine what needs upload
@@ -659,8 +661,10 @@ R2 Directory Structure:
             sys.exit(1)
 
     if args.verbose and creds['account_id']:
+        # codeql[py/clear-text-logging-sensitive-info] Masked values used for display
         print(f"📦 R2 Bucket: {mask_value(creds['bucket'])}")
-        print(f"   Account: {mask_value(creds['account_id'])}")  # codeql[py/clear-text-logging-sensitive-info] Masked values used for display
+        # codeql[py/clear-text-logging-sensitive-info] Masked values used for display
+        print(f"   Account: {mask_value(creds['account_id'])}")
     
     # Find Anki DB
     try:
@@ -866,8 +870,10 @@ R2 Directory Structure:
     # Ask before uploading
     print()
     print("📤 Upload to R2?")
+    # codeql[py/clear-text-logging-sensitive-info] Masked values used for display
     print(f"   Bucket: {mask_value(creds['bucket'])}")
-    print(f"   Account: {mask_value(creds['account_id'])}")  # codeql[py/clear-text-logging-sensitive-info] Masked values used for display
+    # codeql[py/clear-text-logging-sensitive-info] Masked values used for display
+    print(f"   Account: {mask_value(creds['account_id'])}")
     print()
     response = input("   Type 'yes' to upload, or press Enter to skip: ")
 
