@@ -21,9 +21,6 @@ Service implementation for Duden
 """
 
 from bs4 import BeautifulSoup
-from html.parser import HTMLParser
-from re import compile as re
-from unicodedata import normalize as unicode_normalize
 import urllib
 
 from .base import Service
@@ -151,7 +148,7 @@ class Duden(Service):
         # ========================================
 
         sound_element = soup.find('a', {'class':'pronunciation-guide__sound'})
-        if sound_element == None:
+        if sound_element is None:
             error_message = f"Couldn't find pronunciation for word [{text}] on page {definition_url}"
             raise IOError(error_message)
 
