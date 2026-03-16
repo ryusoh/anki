@@ -9,6 +9,8 @@ Uploads everything NOT suitable for GitHub:
 - Decks: configuration options
 - Media: file list and references (not actual media files)
 
+By default, uses incremental uploads (only new/changed notes).
+
 Usage:
     upload-to-r2 [options]
 
@@ -17,6 +19,7 @@ Options:
     -v, --verbose   Show detailed output
     -d, --dry-run   Show what would be uploaded without uploading
     -f, --force     Re-upload everything (skip unchanged check)
+    --full          Force full upload (ignore hash map)
 """
 
 import sqlite3
@@ -480,13 +483,25 @@ R2 Directory Structure:
     )
     parser.add_argument('-v', '--verbose', action='store_true', help='Show detailed output')
     parser.add_argument('-d', '--dry-run', action='store_true', help='Show what would be uploaded')
-    parser.add_argument('-f', '--force', action='store_true', help='Re-upload everything')
+    parser.add_argument('-f', '--force', action='store_true', help='Re-upload everything (deprecated, use --full)')
+    parser.add_argument('--full', action='store_true', help='Force full upload (ignore hash map)')
     parser.add_argument('-q', '--quiet', action='store_true', help='Minimal output')
     parser.add_argument('--upload-only', action='store_true', help='Upload already staged files (skip staging)')
     parser.add_argument('--stage-only', action='store_true', help='Only stage files (skip upload prompt)')
     parser.add_argument('--sync', action='store_true', help='Sync R2 with local (delete orphaned notes)')
-    
+
     args = parser.parse_args()
+
+    # Support deprecated -f/--force as alias for --full
+    if args.force:
+        args.full = True
+
+    # Import hash map module for incremental uploads
+    # Script is at data/anki/upload-to-r2, hash_map is at graph/hash_map.py
+    script_dir = Path(__file__).parent
+    project_root = script_dir.parent.parent
+    sys.path.insert(0, str(project_root / 'graph'))
+    from hash_map import compute_note_hash, load_hash_map, save_hash_map, find_changed_notes, update_hash_map
 
     # Load credentials (not required for dry run)
     creds = load_credentials()
@@ -498,24 +513,58 @@ R2 Directory Structure:
             print("❌ Error: No staged files found in", staging_dir, file=sys.stderr)
             print("   Run without --upload-only first to stage files.", file=sys.stderr)
             sys.exit(1)
-        
+
         if not creds['account_id'] or not creds['access_key'] or not creds['secret_key']:
             print("❌ Error: R2 credentials not found", file=sys.stderr)
             sys.exit(1)
-        
+
         if args.verbose:
             # codeql[py/clear-text-logging-sensitive-info] Masked values used for display
             print(f"📦 R2 Bucket: {mask_value(creds['bucket'])}")
             # codeql[py/clear-text-logging-sensitive-info] Masked values used for display
             print(f"   Account: {mask_value(creds['account_id'])}")
             print(f"   Staging: {staging_dir}")
-        
+
         # Count staged files
         notes_count = len(list((staging_dir / "notes").glob("*.json.gz")))
-        
+
         # Upload from staging
         print(f"\n📤 Uploading staged files to R2...")
         upload_from_staging(staging_dir, creds, args.verbose, notes_count, sync=args.sync)
+
+        # Update hash map after upload (for --upload-only)
+        # Load current notes from collection to update hash map
+        hash_map_file = staging_dir / "hash_map.json"
+        old_hash_map = load_hash_map(hash_map_file)
+
+        # Read notes from collection file to update hashes
+        notes_file = staging_dir / "collection" / "notes.json.gz"
+        if notes_file.exists():
+            with gzip.open(notes_file, 'rt', encoding='utf-8') as f:
+                notes = json.load(f)
+            new_hash_map = update_hash_map(old_hash_map, notes)
+            
+            # Also compute and save collection file hashes
+            collection_files = [
+                'collection/notes.json.gz',
+                'collection/cards-data.json.gz',
+                'collection/notetypes.json.gz',
+                'collection/decks-config.json.gz',
+                'collection/media-registry.json',
+                'collection/collection-config.json',
+            ]
+            
+            for key in collection_files:
+                file_path = staging_dir / key
+                if file_path.exists():
+                    with open(file_path, 'rb') as f:
+                        content = f.read()
+                    new_hash_map[key] = hashlib.sha256(content).hexdigest()
+            
+            save_hash_map(new_hash_map, hash_map_file)
+            if args.verbose:
+                print(f"\n   ✓ Updated hash map ({len(new_hash_map):,} entries)")
+        
         return
 
     if not args.dry_run:
@@ -559,9 +608,32 @@ R2 Directory Structure:
     if args.verbose:
         print(f"   Staging: {staging_dir}")
 
-    # Files to stage locally and upload (organized by directory)
-    uploads = [
-        # Collection data
+    # Hash map file for incremental uploads
+    hash_map_file = staging_dir / "hash_map.json"
+
+    # Load previous hash map (for incremental uploads)
+    if args.full:
+        old_hash_map = {}
+        if args.verbose:
+            print("   Full upload mode (ignoring hash map)")
+    else:
+        old_hash_map = load_hash_map(hash_map_file)
+        if args.verbose and old_hash_map:
+            print(f"   Loaded hash map with {len(old_hash_map):,} entries")
+
+    # Find changed notes (incremental upload)
+    if not args.full and old_hash_map:
+        changed_notes, unchanged_notes = find_changed_notes(data['notes'], old_hash_map)
+        if not args.quiet:
+            print(f"   New/changed notes: {len(changed_notes):,} / {len(data['notes']):,}")
+            if unchanged_notes:
+                print(f"   Unchanged notes (skipped): {len(unchanged_notes):,}")
+    else:
+        changed_notes = data['notes']
+        unchanged_notes = []
+
+    # Collection files with their data
+    collection_files = [
         ('collection/notes.json.gz', data['notes']),
         ('collection/cards-data.json.gz', data['cards_data']),
         ('collection/notetypes.json.gz', data['notetypes']),
@@ -569,6 +641,34 @@ R2 Directory Structure:
         ('collection/media-registry.json', data['media_registry']),
         ('collection/collection-config.json', data['collection_config']),
     ]
+
+    # Compute hashes for collection files and detect changes
+    collection_hashes = {}
+    changed_collection_files = []
+    unchanged_collection_files = []
+    
+    for key, content in collection_files:
+        if isinstance(content, (dict, list)):
+            content_str = json.dumps(content, sort_keys=True, ensure_ascii=False, default=str).encode('utf-8')
+        else:
+            content_str = content if isinstance(content, bytes) else str(content).encode('utf-8')
+        
+        current_hash = hashlib.sha256(content_str).hexdigest()
+        collection_hashes[key] = current_hash
+        
+        old_hash = old_hash_map.get(key) if old_hash_map else None
+        if old_hash is None or old_hash != current_hash:
+            changed_collection_files.append((key, content))
+        else:
+            unchanged_collection_files.append((key, content))
+    
+    if not args.full and old_hash_map and not args.quiet:
+        print(f"   Changed collection files: {len(changed_collection_files)}/{len(collection_files)}")
+        if unchanged_collection_files:
+            print(f"   Unchanged collection files (skipped): {[k for k, _ in unchanged_collection_files]}")
+
+    # Files to stage locally and upload
+    uploads = changed_collection_files
 
     # Dry run
     if args.dry_run:
@@ -580,7 +680,8 @@ R2 Directory Structure:
                 print(f"   {key} ({len(content):,} keys)")
 
         # Individual notes
-        print(f"   notes/{{guid}}.json.gz ({len(data['notes']):,} files)")
+        upload_count = len(changed_notes) if not args.full and old_hash_map else len(data['notes'])
+        print(f"   notes/{{guid}}.json.gz ({upload_count:,} files)")
         print()
 
         # Estimate sizes
@@ -619,14 +720,25 @@ R2 Directory Structure:
         if args.verbose:
             print(f"   ✓ Staged {key} ({len(content_gz):,} bytes)")
 
-    # Stage individual notes
+    # Stage individual notes (only changed notes for incremental upload)
+    notes_to_upload = changed_notes if not args.full and old_hash_map else data['notes']
+    
     if args.verbose:
-        print(f"\n   Staging individual notes...")
+        print(f"\n   Staging individual notes ({len(notes_to_upload):,} to upload)...")
 
     notes_dir = staging_dir / "notes"
     notes_dir.mkdir(exist_ok=True)
 
-    for i, note in enumerate(data['notes']):
+    # Clean up unchanged note files from staging (for incremental uploads)
+    if not args.full and old_hash_map and unchanged_notes:
+        # Remove unchanged note files from staging directory
+        for note in unchanged_notes:
+            guid_hash = hashlib.md5(note['guid'].encode()).hexdigest()[:16]
+            note_file = notes_dir / f"{guid_hash}.json.gz"
+            if note_file.exists():
+                note_file.unlink()
+
+    for i, note in enumerate(notes_to_upload):
         # GUID may contain special chars, use hash for filename
         guid_hash = hashlib.md5(note['guid'].encode()).hexdigest()[:16]
         local_path = notes_dir / f"{guid_hash}.json.gz"
@@ -644,11 +756,11 @@ R2 Directory Structure:
 
         # Progress indicator
         if (i + 1) % 5000 == 0:
-            print(f"   Progress: {i + 1:,}/{len(data['notes']):,} notes")
+            print(f"   Progress: {i + 1:,}/{len(notes_to_upload):,} notes")
 
-    print(f"\n   ✓ Staged {len(data['notes']):,} individual notes")
+    print(f"\n   ✓ Staged {len(notes_to_upload):,} individual notes")
 
-    # If --stage-only, skip upload prompt
+    # If --stage-only, skip upload prompt (don't update hash map yet)
     if args.stage_only:
         print(f"\n✅ Files staged in: {staging_dir}")
         print("   (Run 'upload-to-r2 --upload-only' to upload)")
@@ -663,16 +775,31 @@ R2 Directory Structure:
     print(f"   Account: {mask_value(creds['account_id'])}")
     print()
     response = input("   Type 'yes' to upload, or press Enter to skip: ")
-    
+
     if response.strip().lower() != 'yes':
         print("\n   ⊘ Upload skipped. Files staged in:", staging_dir)
         print("\n   To upload later, run:")
         print(f"   ./upload-to-r2 --upload-only")
         return
 
-    # Upload from staging
+    # Upload from staging (only changed notes)
     print(f"\n📤 Uploading from staging directory...")
-    upload_from_staging(staging_dir, creds, args.verbose, len(data['notes']), sync=args.sync)
+    upload_from_staging(staging_dir, creds, args.verbose, len(notes_to_upload), sync=args.sync)
+
+    # Update hash map after successful upload
+    if not args.full:
+        # Start with old hash map
+        new_hash_map = dict(old_hash_map)
+        
+        # Update note hashes
+        new_hash_map = update_hash_map(new_hash_map, data['notes'])
+        
+        # Update collection file hashes
+        new_hash_map.update(collection_hashes)
+        
+        save_hash_map(new_hash_map, hash_map_file)
+        if args.verbose:
+            print(f"\n   ✓ Updated hash map ({len(new_hash_map):,} entries)")
 
 
 if __name__ == "__main__":
