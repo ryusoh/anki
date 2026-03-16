@@ -22,8 +22,16 @@ export function isTradingDay(date) {
     return false; // Sunday or Saturday
   }
 
-  // TODO: Add major holiday checks here if needed
-  // For now, we'll just check weekends
+  // Check major US market holidays (fixed dates)
+  const month = date.getMonth(); // 0-indexed
+  const day = date.getDate();
+
+  // New Year's Day (Jan 1)
+  if (month === 0 && day === 1) return false;
+  // Independence Day (Jul 4)
+  if (month === 6 && day === 4) return false;
+  // Christmas Day (Dec 25)
+  if (month === 11 && day === 25) return false;
 
   return true; // Monday through Friday
 }

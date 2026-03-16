@@ -140,6 +140,20 @@ function runTests() {
     assert.strictEqual(isTradingDay(saturday), false);
   });
 
+  runTest("isTradingDay correctly identifies major fixed holidays", () => {
+    // New Year's Day (Jan 1, 2024 is a Monday)
+    const newYear = new Date("2024-01-01T12:00:00Z");
+    assert.strictEqual(isTradingDay(newYear), false);
+
+    // Independence Day (Jul 4, 2024 is a Thursday)
+    const independenceDay = new Date("2024-07-04T12:00:00Z");
+    assert.strictEqual(isTradingDay(independenceDay), false);
+
+    // Christmas Day (Dec 25, 2024 is a Wednesday)
+    const christmas = new Date("2024-12-25T12:00:00Z");
+    assert.strictEqual(isTradingDay(christmas), false);
+  });
+
   // Summary
   console.log("\n" + "=".repeat(60));
   console.log(`\n📊 Results: ${passed} passed, ${failed} failed\n`);
