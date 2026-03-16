@@ -99,35 +99,38 @@ function runTests() {
     assert.strictEqual(formatDate(undefined), "");
   });
 
-  runTest("formatCurrency formats correctly with exchange rates and fallbacks", () => {
-    const exchangeRates = { USD: 1, CNY: 7, JPY: 150 };
-    const currencySymbols = { USD: "$", CNY: "¥", JPY: "¥" };
+  runTest(
+    "formatCurrency formats correctly with exchange rates and fallbacks",
+    () => {
+      const exchangeRates = { USD: 1, CNY: 7, JPY: 150 };
+      const currencySymbols = { USD: "$", CNY: "¥", JPY: "¥" };
 
-    assert.strictEqual(
-      formatCurrency(100, "CNY", exchangeRates, currencySymbols),
-      "¥700.00"
-    );
-    assert.strictEqual(
-      formatCurrency(-50, "JPY", exchangeRates, currencySymbols),
-      "¥7,500.00"
-    );
-    assert.strictEqual(
-      formatCurrency(NaN, "USD", exchangeRates, currencySymbols),
-      "$0.00"
-    );
-    assert.strictEqual(
-      formatCurrency("invalid_string", "USD", exchangeRates, currencySymbols),
-      "invalid_string"
-    );
-    assert.strictEqual(
-      formatCurrency(100, "EUR", exchangeRates, currencySymbols),
-      "$100.00"
-    );
-    assert.strictEqual(
-      formatCurrency(100, "USD", exchangeRates, {}), // Empty symbols
-      "USD100.00"
-    );
-  });
+      assert.strictEqual(
+        formatCurrency(100, "CNY", exchangeRates, currencySymbols),
+        "¥700.00",
+      );
+      assert.strictEqual(
+        formatCurrency(-50, "JPY", exchangeRates, currencySymbols),
+        "¥7,500.00",
+      );
+      assert.strictEqual(
+        formatCurrency(NaN, "USD", exchangeRates, currencySymbols),
+        "$0.00",
+      );
+      assert.strictEqual(
+        formatCurrency("invalid_string", "USD", exchangeRates, currencySymbols),
+        "invalid_string",
+      );
+      assert.strictEqual(
+        formatCurrency(100, "EUR", exchangeRates, currencySymbols),
+        "$100.00",
+      );
+      assert.strictEqual(
+        formatCurrency(100, "USD", exchangeRates, {}), // Empty symbols
+        "USD100.00",
+      );
+    },
+  );
 
   // Summary
   console.log("\n" + "=".repeat(60));
