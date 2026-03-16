@@ -657,12 +657,12 @@ export function updateTerminalCrosshair(snapshot, rangeSummary) {
           (entry) => `
                         <div class="terminal-crosshair-range-row">
                             <span class="terminal-crosshair-key">
-                                <span class="terminal-crosshair-dot" style="background:${entry.color};"></span>
-                                ${entry.label}
+                                <span class="terminal-crosshair-dot" style="background:${escapeHtml(entry.color)};"></span>
+                                ${escapeHtml(entry.label)}
                             </span>
-                            <span class="terminal-crosshair-value">${entry.deltaFormatted}${
+                            <span class="terminal-crosshair-value">${escapeHtml(entry.deltaFormatted)}${
                               entry.percentFormatted
-                                ? ` (${entry.percentFormatted})`
+                                ? ` (${escapeHtml(entry.percentFormatted)})`
                                 : ""
                             }</span>
                         </div>
