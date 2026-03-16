@@ -23,5 +23,7 @@
     );
 
     // eslint-disable-next-line no-unused-vars
-  } catch (e) {}
+  } catch (e) {
+    console.debug("[ambient/config] Failed to set ambient config:", e);
+  }
 })();
