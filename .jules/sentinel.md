@@ -23,3 +23,9 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Vulnerability:** Dynamic strings like `deckName` derived from Anki's stats endpoint were being injected directly into the DOM using `innerHTML` to build custom Chart.js legends.
 **Learning:** Even though the data is generated internally by the add-on/Anki backend, user-supplied names (like Anki deck names) can contain HTML or script tags. When rendered in the webview via `innerHTML` without sanitization, this exposes the application to DOM-based Cross-Site Scripting (XSS).
 **Prevention:** Always wrap dynamically injected text values derived from Anki properties with an HTML escaping utility (like `escapeHtml`) before concatenating them into `innerHTML` strings.
+
+## 2024-05-30 - Prevent DOM-based XSS when interpolating crosshair entry properties in terminal UI
+
+**Vulnerability:** Dynamic properties like `entry.label`, `entry.color`, `entry.deltaFormatted`, and `entry.percentFormatted` were being directly injected into the DOM using `innerHTML` to build custom terminal crosshair ranges.
+**Learning:** Even though the terminal UI processes internal formatted data, the labels and colors could still originate from external data sources (e.g. ticker symbols). If a user can inject malicious payload as the ticker name, it will be executed when rendered.
+**Prevention:** Always wrap dynamically injected text values or color properties with an HTML escaping utility (like `escapeHtml`) before concatenating them into `innerHTML` strings.
