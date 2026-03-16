@@ -37,8 +37,8 @@ jobs:
           npm install
           
       - name: Create PR if resolution changed
-        # codeql[js/unpinned-tag] Tag v7.0.5 pinned to SHA: 5e9146869b36d071869e2c608f7ce6984e03b705
-        uses: peter-evans/create-pull-request@5e9146869b36d071869e2c608f7ce6984e03b705
+        # codeql[js/unpinned-tag] Tag v7.0.5 pinned to SHA: 5e914681df9dc83aa4e4905692ca88beb2f9e91f
+        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f
         with:
           commit-message: "chore: auto-resolve dependency conflicts (undici/jsdom)"
           title: "chore: auto-resolve dependency conflicts"
