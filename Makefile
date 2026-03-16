@@ -34,7 +34,12 @@ fetch:
 # Tests
 # -----------------------------------------------------------------------------
 
-check: check-data check-ranges check-commands check-legend check-trie check-timerange check-reviews
+check: check-data check-ranges check-commands check-legend check-trie check-timerange check-reviews check-handler-validation
+
+check-handler-validation:
+	@mkdir -p node_modules
+	@if [ ! -L node_modules/@js ]; then ln -s ../js node_modules/@js; fi
+	@node tests/validateCommand.real.test.mjs
 
 check-data:
 	@node tests/data_files.test.js
