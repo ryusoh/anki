@@ -5,7 +5,7 @@ Anki Add-on: Hide Deck Browser Expand/Collapse Icons & Center Layout
 Hides the +/- symbols and quantitatively centers content within the original pane width.
 """
 
-from aqt import gui_hooks
+from aqt import gui_hooks # type: ignore
 
 def on_webview_will_set_content(web_content, context):
     """Inject CSS to hide icons and balance the layout while keeping the original width."""
