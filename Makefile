@@ -113,7 +113,7 @@ audit:
 # Tests
 # -----------------------------------------------------------------------------
 
-check: check-data check-ranges check-commands check-legend check-trie check-timerange check-reviews check-debounce check-host check-date check-formatting check-logger check-smoothing check-handler-validation
+check: check-data check-ranges check-commands check-legend check-trie check-timerange check-reviews check-debounce check-host check-date check-formatting check-logger check-smoothing check-handler-validation check-incremental-upload
 
 check-debounce:
 	@node tests/debounce.test.js
@@ -156,6 +156,9 @@ check-timerange:
 
 check-reviews:
 	@node tests/reviews.test.cjs
+
+check-incremental-upload:
+	@python3 data/anki/tests/test_incremental_upload.py
 
 # -----------------------------------------------------------------------------
 # Pre-commit Checks
