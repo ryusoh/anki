@@ -113,7 +113,7 @@ audit:
 # Tests
 # -----------------------------------------------------------------------------
 
-check: check-data check-ranges check-commands check-legend check-trie check-timerange check-reviews check-debounce check-host check-date check-formatting check-logger check-smoothing
+check: check-data check-ranges check-commands check-legend check-trie check-timerange check-reviews check-debounce check-host check-date check-formatting check-logger check-smoothing check-handler-validation
 
 check-debounce:
 	@node tests/debounce.test.js
@@ -132,6 +132,11 @@ check-host:
 
 check-date:
 	@node tests/date.test.js
+
+check-handler-validation:
+	@mkdir -p node_modules
+	@if [ ! -L node_modules/@js ]; then ln -s ../js node_modules/@js; fi
+	@node tests/validateCommand.real.test.mjs
 
 check-data:
 	@node tests/data_files.test.js
