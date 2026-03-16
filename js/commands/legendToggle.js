@@ -5,7 +5,7 @@
  * with Chart.js's built-in animation.
  *
  * Usage:
- *   import { bindLegendToggle } from "@js/commands/legendToggle.js";
+ *   import { bindLegendToggle } from "#js/commands/legendToggle.js";
  *   const chart = new Chart(ctx, config);
  *   bindLegendToggle(chart, legendEl);
  */

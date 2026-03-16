@@ -1,5 +1,5 @@
 import { easeInOutSine } from "@utils/easing.js";
-import { PLUGIN_CONFIGS } from "@js/config.js";
+import { PLUGIN_CONFIGS } from "#js/config.js";
 
 // --- Wave Animation Plugin Helpers ---
 function _startWaveAnimation(chart) {

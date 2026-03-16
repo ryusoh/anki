@@ -1,4 +1,4 @@
-import { UI_BREAKPOINTS } from "@js/config.js";
+import { UI_BREAKPOINTS } from "#js/config.js";
 
 const DEFAULT_OPTIONS = {
   enabled: true,

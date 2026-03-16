@@ -6,7 +6,7 @@ import {
   lowess,
   adaptiveSmoothing,
   smoothFinancialData,
-  SMOOTHING_CONFIGS
+  SMOOTHING_CONFIGS,
 } from "../js/utils/smoothing.js";
 
 function runTests() {
@@ -41,8 +41,15 @@ function runTests() {
     assert.deepStrictEqual(simpleMovingAverage(null), null);
     assert.deepStrictEqual(simpleMovingAverage("not array"), "not array");
 
-    const smallData = [{ x: 1, y: 10 }, { x: 2, y: 20 }];
-    assert.deepStrictEqual(simpleMovingAverage(smallData, 3), smallData, "Returns original data if length < window");
+    const smallData = [
+      { x: 1, y: 10 },
+      { x: 2, y: 20 },
+    ];
+    assert.deepStrictEqual(
+      simpleMovingAverage(smallData, 3),
+      smallData,
+      "Returns original data if length < window",
+    );
   });
 
   runTest("simpleMovingAverage computes correct averages", () => {
@@ -61,13 +68,20 @@ function runTests() {
 
     assert.strictEqual(result.length, 5);
     assert.strictEqual(result[4].y, 50, "Last point should remain unchanged");
-    assert.notStrictEqual(result[4], sampleData[4], "Should return a copy, not a reference");
+    assert.notStrictEqual(
+      result[4],
+      sampleData[4],
+      "Should return a copy, not a reference",
+    );
   });
 
   runTest("exponentialMovingAverage handles empty or small data", () => {
     assert.deepStrictEqual(exponentialMovingAverage([]), []);
     const singleElement = [{ x: 1, y: 10 }];
-    assert.deepStrictEqual(exponentialMovingAverage(singleElement), singleElement);
+    assert.deepStrictEqual(
+      exponentialMovingAverage(singleElement),
+      singleElement,
+    );
   });
 
   runTest("exponentialMovingAverage computes correct values", () => {

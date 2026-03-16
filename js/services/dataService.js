@@ -3,8 +3,8 @@ import { formatCurrency } from "@utils/formatting.js";
 import { escapeHtml } from "../transactions/utils.js";
 import { getBlueColorForSlice, hexToRgba } from "@utils/colors.js";
 import { updatePieChart } from "@charts/allocationChartManager.js";
-import { checkAndToggleVerticalScroll } from "@ui/responsive.js";
-import { setThinkingHighlight } from "@ui/textHighlightManager.js";
+import { checkAndToggleVerticalScroll } from "#ui/responsive.js";
+import { setThinkingHighlight } from "#ui/textHighlightManager.js";
 import {
   HOLDINGS_DETAILS_URL,
   FUND_DATA_URL,
@@ -13,7 +13,7 @@ import {
   TICKER_TO_LOGO_MAP,
   BASE_URL,
   POSITION_PNL_HIGHLIGHT,
-} from "@js/config.js";
+} from "#js/config.js";
 import { logger } from "@utils/logger.js";
 
 const ANALYSIS_INDEX_URL = "../data/analysis/index.json";

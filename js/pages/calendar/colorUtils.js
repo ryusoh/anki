@@ -1,4 +1,4 @@
-import { CALENDAR_CONFIG, CALENDAR_SELECTORS } from "@js/config.js";
+import { CALENDAR_CONFIG, CALENDAR_SELECTORS } from "#js/config.js";
 
 export const VALUE_FIELD_BY_CURRENCY = {
   USD: "valueUSD",

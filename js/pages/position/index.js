@@ -16,23 +16,23 @@ import {
   cycleCurrency,
   applyCurrencySelection,
   getStoredCurrency,
-} from "@ui/currencyToggleManager.js";
-import { initFooterToggle } from "@ui/footerToggle.js";
+} from "#ui/currencyToggleManager.js";
+import { initFooterToggle } from "#ui/footerToggle.js";
 import {
   APP_SETTINGS,
   CURRENCY_SYMBOLS,
   PIE_CHART_GLASS_EFFECT,
   UI_BREAKPOINTS,
-} from "@js/config.js";
+} from "#js/config.js";
 import { triggerCenterToggle } from "@charts/allocationChartManager.js";
 import {
   checkAndToggleVerticalScroll,
   alignToggleWithChartMobile,
-} from "@ui/responsive.js";
+} from "#ui/responsive.js";
 import { logger } from "@utils/logger.js";
 import { mountPerlinPlaneBackground } from "../../vendor/perlin-plane.js";
-import { PERLIN_BACKGROUND_SETTINGS, TABLE_GLASS_EFFECT } from "@js/config.js";
-import { TableGlassEffect } from "@ui/tableGlassEffect.js";
+import { PERLIN_BACKGROUND_SETTINGS, TABLE_GLASS_EFFECT } from "#js/config.js";
+import { TableGlassEffect } from "#ui/tableGlassEffect.js";
 import { debounce } from "../../utils/debounce.js";
 
 let currentSelectedCurrency = "USD"; // Default currency

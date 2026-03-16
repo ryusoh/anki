@@ -1,6 +1,6 @@
 import { getBlueColorForSlice, hexToRgba } from "@utils/colors.js";
-import { checkAndToggleVerticalScroll } from "@ui/responsive.js";
-import { CHART_DEFAULTS, UI_BREAKPOINTS } from "@js/config.js";
+import { checkAndToggleVerticalScroll } from "#ui/responsive.js";
+import { CHART_DEFAULTS, UI_BREAKPOINTS } from "#js/config.js";
 import { imagePlugin } from "@plugins/imagePlugin.js";
 import { customArcBordersPlugin } from "@plugins/customArcBordersPlugin.js";
 import { waveAnimationPlugin } from "@plugins/waveAnimationPlugin.js";

@@ -7,7 +7,8 @@ const windowMock = {
     futureDue: [],
     futureDueByDeck: {},
     reviewStats: []
-  }
+  },
+  innerWidth: 1024
 };
 global.window = windowMock;
 global.self = windowMock;
@@ -16,7 +17,8 @@ global.document = {
     classList: { add: () => {}, remove: () => {} },
     innerHTML: '',
     style: {}
-  })
+  }),
+  querySelector: () => null
 };
 
 async function run() {

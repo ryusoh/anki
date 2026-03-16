@@ -1,4 +1,4 @@
-import { PIE_CHART_GLASS_EFFECT } from "@js/config.js";
+import { PIE_CHART_GLASS_EFFECT } from "#js/config.js";
 
 export class TableGlassEffect {
   constructor(containerSelector, options = {}) {

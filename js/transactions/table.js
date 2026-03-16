@@ -15,7 +15,7 @@ import {
 } from "./utils.js";
 import { normalizeDateOnly } from "@utils/date.js";
 import { adjustMobilePanels } from "./layout.js";
-import { getHoldingAssetClass } from "@js/config.js";
+import { getHoldingAssetClass } from "#js/config.js";
 
 function isTransactionTableVisible() {
   if (typeof document === "undefined") {

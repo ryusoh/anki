@@ -134,30 +134,28 @@ check-date:
 	@node tests/date.test.js
 
 check-handler-validation:
-	@mkdir -p node_modules
-	@if [ ! -L node_modules/@js ]; then ln -s ../js node_modules/@js; fi
 	@node tests/validateCommand.real.test.mjs
 
 check-data:
-	@node tests/data_files.test.js
+	@node tests/data_files.test.cjs
 
 check-ranges:
-	@node tests/terminal_time_ranges.test.js
+	@node tests/terminal_time_ranges.test.cjs
 
 check-commands:
-	@node tests/commands.test.js
+	@node tests/commands.test.cjs
 
 check-legend:
-	@node tests/legend.test.js
+	@node tests/legend.test.cjs
 
 check-trie:
-	@node tests/trie.test.js
+	@node tests/trie.test.cjs
 
 check-timerange:
-	@node tests/timeRange.test.js
+	@node tests/timeRange.test.cjs
 
 check-reviews:
-	@node tests/reviews.test.js
+	@node tests/reviews.test.cjs
 
 # -----------------------------------------------------------------------------
 # Pre-commit Checks

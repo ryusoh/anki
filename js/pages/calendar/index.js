@@ -3,7 +3,7 @@ import {
   cycleCurrency,
   applyCurrencySelection,
   getStoredCurrency,
-} from "@ui/currencyToggleManager.js";
+} from "#ui/currencyToggleManager.js";
 import {
   CURRENCY_SYMBOLS,
   DATA_PATHS,
@@ -13,12 +13,12 @@ import {
   getCalendarRange,
   PERLIN_BACKGROUND_SETTINGS,
   CALENDAR_BACKGROUND_EFFECT,
-} from "@js/config.js";
+} from "#js/config.js";
 import { getNyDate } from "@utils/date.js";
 import { getCalendarData } from "@services/dataService.js";
-import { initCalendarResponsiveHandlers } from "@ui/responsive.js";
+import { initCalendarResponsiveHandlers } from "#ui/responsive.js";
 import { logger } from "@utils/logger.js";
-import { updateMonthLabels } from "@ui/calendarMonthLabelManager.js";
+import { updateMonthLabels } from "#ui/calendarMonthLabelManager.js";
 import {
   getValueFieldForCurrency,
   applyCurrencyColors,
@@ -31,7 +31,7 @@ import { mountPerlinPlaneBackground } from "../../vendor/perlin-plane.js";
 import {
   initBackgroundSweepEffect,
   stopBackgroundSweepEffect as stopReusableBackgroundSweepEffect,
-} from "@ui/backgroundSweep.js";
+} from "#ui/backgroundSweep.js";
 import { debounce } from "../../utils/debounce.js";
 
 // --- STATE ---

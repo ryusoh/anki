@@ -15,16 +15,16 @@ import {
   setFxRatesByCurrency,
   getActiveFilterTerm,
   setChartDateRange,
-} from "@js/transactions/state.js";
-import { convertValueToCurrency } from "@js/transactions/utils.js";
+} from "#js/transactions/state.js";
+import { convertValueToCurrency } from "#js/transactions/utils.js";
 import {
   PERLIN_BACKGROUND_SETTINGS,
   TABLE_GLASS_EFFECT,
   TERMINAL_BACKGROUND_EFFECT,
   INITIAL_CHART_DATE_RANGE,
 } from "../../config.js";
-import { TableGlassEffect } from "@ui/tableGlassEffect.js";
-import { initBackgroundSweepEffect } from "@ui/backgroundSweep.js";
+import { TableGlassEffect } from "#ui/tableGlassEffect.js";
+import { initBackgroundSweepEffect } from "#ui/backgroundSweep.js";
 
 // Helper function to convert currency series
 function convertCurrencySeries(series, targetCurrency) {
@@ -76,20 +76,20 @@ import {
   loadContributionSeries,
   loadPerformanceSeries,
   loadFxDailyRates,
-} from "@js/transactions/dataLoader.js";
-import { initTable } from "@js/transactions/table.js";
-import { createChartManager } from "@js/transactions/chart.js";
-import { createUiController } from "@js/transactions/ui.js";
+} from "#js/transactions/dataLoader.js";
+import { initTable } from "#js/transactions/table.js";
+import { createChartManager } from "#js/transactions/chart.js";
+import { createUiController } from "#js/transactions/ui.js";
 import {
   initTerminal,
   updateTerminalCrosshair,
-} from "@js/transactions/terminal.js";
-import { adjustMobilePanels } from "@js/transactions/layout.js";
+} from "#js/transactions/terminal.js";
+import { adjustMobilePanels } from "#js/transactions/layout.js";
 import {
   initCurrencyToggle,
   cycleCurrency,
   getStoredCurrency,
-} from "@ui/currencyToggleManager.js";
+} from "#ui/currencyToggleManager.js";
 
 let chartManager;
 let tableController;

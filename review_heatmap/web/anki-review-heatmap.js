@@ -2861,7 +2861,8 @@ document.head.appendChild(__vite_style__);
   // codeql[js/prototype-pollution] Third-party library function, not exposed to user input
   function mergeRecursive(obj1, obj2) {
     for (var p in obj2) {
-      if (p === "__proto__" || p === "constructor" || p === "prototype") continue;
+      if (p === "__proto__" || p === "constructor" || p === "prototype")
+        continue;
       try {
         // codeql[js/prototype-pollution] Third-party library function, not exposed to user input
         if (obj2[p].constructor === Object) {

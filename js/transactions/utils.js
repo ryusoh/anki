@@ -1,5 +1,5 @@
 import { transactionState, getSelectedCurrency } from "./state.js";
-import { CURRENCY_SYMBOLS } from "@js/config.js";
+import { CURRENCY_SYMBOLS } from "#js/config.js";
 
 export function formatDate(dateString) {
   const date = new Date(dateString);

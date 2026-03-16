@@ -12,7 +12,7 @@ import {
   formatAsCurrency,
   addCommas,
   toFixed,
-  formatDate
+  formatDate,
 } from "../js/utils/formatting.js";
 
 function runTests() {
@@ -43,7 +43,9 @@ function runTests() {
     // Depending on implementation, non-numbers might return "" or "0"
     // Just verify they don't crash
     const invalidResult = addCommas(null);
-    assert.ok(invalidResult === "0" || invalidResult === "" || invalidResult === "NaN");
+    assert.ok(
+      invalidResult === "0" || invalidResult === "" || invalidResult === "NaN",
+    );
   });
 
   runTest("toFixed formats decimals correctly", () => {

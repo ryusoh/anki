@@ -1,4 +1,4 @@
-import { CURRENCY_SYMBOLS } from "@js/config.js";
+import { CURRENCY_SYMBOLS } from "#js/config.js";
 
 const sortState = { column: "tradeDate", order: "desc" };
 const DEFAULT_CURRENCY = "USD";
