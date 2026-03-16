@@ -41,6 +41,6 @@
 
     // eslint-disable-next-line no-unused-vars
   } catch (e) {
-    // ignore
+    console.debug("[ambient/loader] Ambient effect failed to load:", e);
   }
 })();
