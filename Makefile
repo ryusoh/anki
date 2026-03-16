@@ -157,8 +157,13 @@ check-timerange:
 check-reviews:
 	@node tests/reviews.test.cjs
 
-check-incremental-upload:
+check-incremental-upload: check-incremental-basic check-incremental-comprehensive
+
+check-incremental-basic:
 	@python3 data/anki/tests/test_incremental_upload.py
+
+check-incremental-comprehensive:
+	@python3 data/anki/tests/test_incremental_upload_comprehensive.py
 
 # -----------------------------------------------------------------------------
 # Pre-commit Checks
