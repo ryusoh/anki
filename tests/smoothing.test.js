@@ -95,27 +95,30 @@ function runTests() {
     assert.strictEqual(result[2].y, 22.5);
   });
 
-  runTest("savitzkyGolay computes correct values and handles edge cases", () => {
-    assert.deepStrictEqual(savitzkyGolay([]), []);
-    assert.deepStrictEqual(savitzkyGolay(null), null);
+  runTest(
+    "savitzkyGolay computes correct values and handles edge cases",
+    () => {
+      assert.deepStrictEqual(savitzkyGolay([]), []);
+      assert.deepStrictEqual(savitzkyGolay(null), null);
 
-    const smallData = [{ x: 1, y: 10 }];
-    assert.deepStrictEqual(
-      savitzkyGolay(smallData, 5),
-      smallData,
-      "Returns original data if length < window"
-    );
+      const smallData = [{ x: 1, y: 10 }];
+      assert.deepStrictEqual(
+        savitzkyGolay(smallData, 5),
+        smallData,
+        "Returns original data if length < window",
+      );
 
-    // Even window size test, it should increment to odd internally
-    const evenWindowResult = savitzkyGolay(sampleData, 4, 1, false);
-    assert.strictEqual(evenWindowResult.length, 5);
+      // Even window size test, it should increment to odd internally
+      const evenWindowResult = savitzkyGolay(sampleData, 4, 1, false);
+      assert.strictEqual(evenWindowResult.length, 5);
 
-    // Basic calculation check (simplistic given polynomialFit mock-like behavior)
-    const result = savitzkyGolay(sampleData, 3, 1, false);
-    assert.strictEqual(result.length, 5);
-    assert.strictEqual(result[0].y, 10); // Edge point logic
-    assert.strictEqual(result[2].y, 30); // Middle point logic
-  });
+      // Basic calculation check (simplistic given polynomialFit mock-like behavior)
+      const result = savitzkyGolay(sampleData, 3, 1, false);
+      assert.strictEqual(result.length, 5);
+      assert.strictEqual(result[0].y, 10); // Edge point logic
+      assert.strictEqual(result[2].y, 30); // Middle point logic
+    },
+  );
 
   runTest("lowess computes correct values and handles edge cases", () => {
     assert.deepStrictEqual(lowess([]), []);
@@ -128,7 +131,7 @@ function runTests() {
     assert.deepStrictEqual(
       lowess(smallData, 0.3),
       smallData,
-      "Returns original data if length < 3"
+      "Returns original data if length < 3",
     );
 
     const result = lowess(sampleData, 0.5, false);

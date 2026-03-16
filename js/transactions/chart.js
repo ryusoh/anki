@@ -1004,9 +1004,6 @@ function handlePointerMove(event) {
     updateCrosshairUI(null, null);
     return;
   }
-  if (event.pointerType === "touch") {
-    event.preventDefault();
-  }
   const rect = pointerCanvas.getBoundingClientRect();
   const x = event.clientX - rect.left;
   const y = event.clientY - rect.top;
@@ -1175,7 +1172,27 @@ function attachCrosshairEvents(canvas, chartManager) {
   if (pointerEventsAttached) {
     return;
   }
-  canvas.addEventListener("pointermove", handlePointerMove, { passive: false });
+
+  // ⚡ Bolt Performance Optimization:
+  // Throttled pointermove event using requestAnimationFrame and a ticking lock.
+  // Why: Prevent high-frequency events from triggering expensive DOM operations continuously.
+  let ticking = false;
+  canvas.addEventListener(
+    "pointermove",
+    (event) => {
+      if (event.pointerType === "touch") {
+        event.preventDefault(); // Must run synchronously
+      }
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          handlePointerMove(event);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    },
+    { passive: false },
+  );
   canvas.addEventListener("pointerleave", handlePointerLeave);
   canvas.addEventListener("pointerdown", handlePointerDown, { passive: false });
   canvas.addEventListener("pointerup", handlePointerUp);

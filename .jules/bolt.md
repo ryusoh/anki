@@ -17,3 +17,8 @@
 
 **Learning:** In applications where table rows have hover effects driven by mouse tracking, continuously resolving hovered rows via `document.elementFromPoint(e.clientX, e.clientY)` followed by an O(N) `findIndex` lookup over row collections causes severe layout thrashing and main-thread blocking, particularly with large datasets.
 **Action:** Always prefer retrieving the interacted element via `e.target` directly in mouse events. Pair this with a `WeakMap` during initialization to associate DOM nodes to their corresponding index or metadata for O(1) constant-time lookup instead of iterating through arrays.
+
+## 2025-03-16 - [Synchronous preventDefault in Throttled Events]
+
+**Learning:** When using `requestAnimationFrame` + `ticking` lock to throttle high-frequency events like `pointermove` or `touchmove`, calling `event.preventDefault()` inside the deferred animation frame callback can fail or cause passive event listener warnings in browsers, as it's no longer synchronous with the event dispatch. This leads to unwanted default behaviors (like scrolling) triggering intermittently on touch devices.
+**Action:** Always extract and execute `event.preventDefault()` synchronously _before_ the `requestAnimationFrame` deferral when throttling user input events.
