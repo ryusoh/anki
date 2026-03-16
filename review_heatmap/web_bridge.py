@@ -33,6 +33,7 @@
 JS <-> PY communication
 """
 
+import json
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, Type, Union
 
 import aqt
@@ -114,7 +115,12 @@ class HeatmapBridge:
             logger.warning("Empty command received in Web Bridge message: '%s'", message)
             return None
 
-        # TODO: decode payload JSON
+        if payload is not None:
+            try:
+                payload = json.loads(payload)
+            except (ValueError, TypeError):
+                # not JSON, keep as-is
+                pass
 
         return self._command_handler(command, payload, context)
 
