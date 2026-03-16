@@ -242,7 +242,7 @@ async function bootstrapCustomStats() {
     const payload = await fetchCustomStatsData();
     if (window.initCustomStats) return window.initCustomStats(payload);
   } catch (error) {
-    console.error("custom stats fetch failed", error);
+    console.error("[terminal.js] custom stats fetch failed:", error);
   }
   return false;
 }
@@ -255,7 +255,7 @@ async function bootstrapReviewStats() {
       return true;
     }
   } catch (error) {
-    console.error("review stats fetch failed", error);
+    console.error("[terminal.js] review stats fetch failed:", error);
   }
   return false;
 }

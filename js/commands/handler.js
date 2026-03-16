@@ -77,6 +77,403 @@ export function clearCurrentChart() {
   currentChart = null;
 }
 
+
+function updateChartState(chartType, isTime, isDeck, isCumulative, appendLine, rangeOverride) {
+  clearCurrentChart();
+  const range = rangeOverride || activeTimeRange;
+
+  if (chartType === "reviews") {
+    const message = showReviews(range, isTime, isDeck, isCumulative);
+    appendLine(message, "success");
+
+    let newChart = "reviews";
+    if (isTime) newChart += "-time";
+    if (isDeck) newChart += "-deck";
+    if (isCumulative) newChart += "-cumulative";
+
+    currentChart = newChart;
+    activeTimeRange = range;
+    return { handled: true, command: newChart, range };
+  } else if (chartType === "due") {
+    const message = showDue(range, isDeck);
+    appendLine(message, "success");
+    currentChart = isDeck ? "due-deck" : "due";
+    activeTimeRange = range;
+    return { handled: true, command: currentChart, range };
+  } else if (chartType === "retention") {
+    const message = showRetention(range);
+    appendLine(message, "success");
+    currentChart = "retention";
+    activeTimeRange = range;
+    return { handled: true, command: "retention", range };
+  }
+}
+
+function handleTimeRangeShortcut(normalized, appendLine) {
+  // Auto-unzoom if zoomed
+  if (getZoomState()) {
+    toggleZoom();
+  }
+  // Apply shortcut to current chart (don't switch)
+  activeTimeRange = normalized;
+
+  if (currentChart && currentChart.startsWith("reviews")) {
+    const isCumulative = currentChart.endsWith("-cumulative");
+    const isTime = currentChart.includes("time");
+    const isDeck = currentChart.includes("deck");
+    return updateChartState("reviews", isTime, isDeck, isCumulative, appendLine, normalized);
+  } else if (currentChart === "retention") {
+    return updateChartState("retention", false, false, false, appendLine, normalized);
+  } else if (currentChart === "due-deck") {
+    return updateChartState("due", false, true, false, appendLine, normalized);
+  } else {
+    // Default to due chart
+    return updateChartState("due", false, false, false, appendLine, normalized);
+  }
+}
+
+function handleAbbreviations(normalized, appendLine) {
+  if (normalized === "h" || normalized === "?") {
+    showHelp(appendLine);
+    return { handled: true, command: "help" };
+  }
+  if (normalized === "p" || normalized === "plot") {
+    appendLine(
+      "Usage: plot <due|reviews|reviews time|retention> [range]",
+      "muted"
+    );
+    appendLine("Subcommands:", "muted");
+    appendLine("  plot due [range]               - Due forecast chart", "muted");
+    appendLine("  plot reviews [range]           - Review history chart", "muted");
+    appendLine("  plot reviews deck [range]      - Review history by deck", "muted");
+    appendLine("  plot reviews time [range]      - Review time history chart", "muted");
+    appendLine("  plot reviews time deck [range] - Review time history by deck", "muted");
+    appendLine("  plot retention [range]         - Retention rate chart", "muted");
+    appendLine("Examples: pd, pd 3m, pr, pr 1y, prt 1y, prd 1m", "muted");
+    return { handled: true, command: "plot" };
+  }
+
+  // Plot shortcuts mapping
+  const plotShortcuts = {
+    pd: { chart: "due", deck: false },
+    pr: { chart: "reviews", time: false, deck: false, cum: false },
+    prd: { chart: "reviews", time: false, deck: true, cum: false },
+    prt: { chart: "reviews", time: true, deck: false, cum: false },
+    prtd: { chart: "reviews", time: true, deck: true, cum: false },
+    prc: { chart: "reviews", time: false, deck: false, cum: true },
+    prdc: { chart: "reviews", time: false, deck: true, cum: true },
+    prtc: { chart: "reviews", time: true, deck: false, cum: true },
+    prtdc: { chart: "reviews", time: true, deck: true, cum: true },
+    prdtc: { chart: "reviews", time: true, deck: true, cum: true },
+  };
+
+  if (plotShortcuts[normalized]) {
+    const s = plotShortcuts[normalized];
+    if (s.chart === "due") {
+      return updateChartState("due", false, s.deck, false, appendLine);
+    } else {
+      let cmd = "plot-reviews";
+      if (s.time) cmd += "-time";
+      if (s.deck) cmd += "-deck";
+      if (s.cum) cmd += "-cumulative";
+      const res = updateChartState("reviews", s.time, s.deck, s.cum, appendLine);
+      res.command = cmd; // override command name for tests
+      return res;
+    }
+  }
+
+  // Switch shortcuts
+  const switchShortcuts = {
+    d: { chart: "due", deck: false },
+    dd: { chart: "due", deck: true },
+    r: { chart: "reviews", time: false, deck: false, cum: false },
+    rd: { chart: "reviews", time: false, deck: true, cum: false },
+    rc: { chart: "reviews", time: false, deck: false, cum: true },
+    rdc: { chart: "reviews", time: false, deck: true, cum: true },
+    rtc: { chart: "reviews", time: true, deck: false, cum: true },
+    rtdc: { chart: "reviews", time: true, deck: true, cum: true },
+    rdtc: { chart: "reviews", time: true, deck: true, cum: true },
+    rtd: { chart: "reviews", time: true, deck: true, cum: false }
+  };
+
+  if (switchShortcuts[normalized]) {
+    const s = switchShortcuts[normalized];
+    if (s.chart === "due") {
+      return updateChartState("due", false, s.deck, false, appendLine);
+    } else {
+      return updateChartState("reviews", s.time, s.deck, s.cum, appendLine);
+    }
+  }
+
+  // Toggles
+  if (normalized === "c" || normalized === "cumulative") {
+    if (currentChart && currentChart.startsWith("reviews")) {
+      const isCumulative = !currentChart.endsWith("-cumulative");
+      const isTime = currentChart.includes("time");
+      const isDeck = currentChart.includes("deck");
+      return updateChartState("reviews", isTime, isDeck, isCumulative, appendLine);
+    } else {
+      return updateChartState("reviews", false, false, true, appendLine);
+    }
+  }
+
+  if (normalized === "rt" || normalized === "t" || normalized === "time") {
+    if (currentChart && currentChart.startsWith("reviews")) {
+      const isCumulative = currentChart.endsWith("-cumulative");
+      const isTime = !currentChart.includes("time");
+      const isDeck = currentChart.includes("deck");
+      return updateChartState("reviews", isTime, isDeck, isCumulative, appendLine);
+    } else {
+      return updateChartState("reviews", true, false, false, appendLine);
+    }
+  }
+
+  if (normalized === "deck" || normalized === "dk") {
+    if (currentChart && currentChart.startsWith("reviews")) {
+      const isCumulative = currentChart.endsWith("-cumulative");
+      const isTime = currentChart.includes("time");
+      const isDeck = !currentChart.includes("deck");
+      return updateChartState("reviews", isTime, isDeck, isCumulative, appendLine);
+    } else if (currentChart === "due") {
+      return updateChartState("due", false, true, false, appendLine);
+    } else if (currentChart === "due-deck") {
+      return updateChartState("due", false, false, false, appendLine);
+    } else {
+      return updateChartState("reviews", false, true, false, appendLine);
+    }
+  }
+
+  return null;
+}
+
+function handlePlotCommand(normalized, activeTimeRange, appendLine) {
+  const plotMatch = normalized.match(
+    /^plots+(dues+deck|due|reviewss+times+decks+cumulative|reviewss+decks+times+cumulative|reviewss+decks+cumulative|reviewss+times+cumulative|reviewss+cumulative|reviewss+times+deck|reviewss+decks+time|reviewss+deck|reviewss+time|reviews|retention)s*(.*)$/,
+  );
+  if (plotMatch) {
+    const [, chartType, rangeStr] = plotMatch;
+    const range = rangeStr.trim() || activeTimeRange;
+
+    if (range && !isValidRange(range)) {
+      appendLine(`Unknown range: ${range}`, "warn");
+      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      return { handled: true, command: "plot", error: "invalid range" };
+    }
+
+    if (chartType === "due") {
+      const res = updateChartState("due", false, false, false, appendLine, range);
+      res.command = "plot-due";
+      return res;
+    } else if (chartType === "due deck") {
+      const res = updateChartState("due", false, true, false, appendLine, range);
+      res.command = "plot-due-deck";
+      return res;
+    } else if (chartType === "reviews time") {
+      const res = updateChartState("reviews", true, false, false, appendLine, range);
+      res.command = "plot-reviews-time";
+      return res;
+    } else if (chartType === "reviews") {
+      const res = updateChartState("reviews", false, false, false, appendLine, range);
+      res.command = "plot-reviews";
+      return res;
+    } else if (chartType === "reviews time deck" || chartType === "reviews deck time") {
+      const res = updateChartState("reviews", true, true, false, appendLine, range);
+      res.command = "plot-reviews-time-deck";
+      return res;
+    } else if (chartType === "reviews deck") {
+      const res = updateChartState("reviews", false, true, false, appendLine, range);
+      res.command = "plot-reviews-deck";
+      return res;
+    } else if (chartType === "reviews time cumulative") {
+      const res = updateChartState("reviews", true, false, true, appendLine, range);
+      res.command = "plot-reviews-time-cumulative";
+      return res;
+    } else if (chartType === "reviews cumulative") {
+      const res = updateChartState("reviews", false, false, true, appendLine, range);
+      res.command = "plot-reviews-cumulative";
+      return res;
+    } else if (chartType === "reviews time deck cumulative" || chartType === "reviews deck time cumulative") {
+      const res = updateChartState("reviews", true, true, true, appendLine, range);
+      res.command = "plot-reviews-time-deck-cumulative";
+      return res;
+    } else if (chartType === "reviews deck cumulative") {
+      const res = updateChartState("reviews", false, true, true, appendLine, range);
+      res.command = "plot-reviews-deck-cumulative";
+      return res;
+    } else {
+      const res = updateChartState("retention", false, false, false, appendLine, range);
+      res.command = "plot-retention";
+      return res;
+    }
+  }
+  return null;
+}
+
+function handleRegexCommands(normalized, activeTimeRange, appendLine) {
+  // due deck [range]
+  const dueDeckMatch = normalized.match(/^dues+deck(?:s+(.+))?$/);
+  if (dueDeckMatch && normalized.startsWith("due deck")) {
+    const range = dueDeckMatch[1] || activeTimeRange;
+    if (isValidRange(range)) {
+      return updateChartState("due", false, true, false, appendLine, range);
+    } else if (dueDeckMatch[1]) {
+      appendLine(`Unknown range: ${dueDeckMatch[1]}`, "warn");
+      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      return { handled: true, command: "due-deck", error: "invalid range" };
+    }
+  }
+
+  // due [range]
+  const dueMatch = normalized.match(/^(due|future)(?:s+(.+))?$/);
+  if (dueMatch && !normalized.startsWith("due deck")) {
+    const range = dueMatch[2] || activeTimeRange;
+    if (isValidRange(range)) {
+      return updateChartState("due", false, false, false, appendLine, range);
+    } else if (dueMatch[2]) {
+      appendLine(`Unknown range: ${dueMatch[2]}`, "warn");
+      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      return { handled: true, command: "due", error: "invalid range" };
+    }
+  }
+
+  // reviews time deck cumulative [range]
+  const rtdcMatch = normalized.match(/^reviewss+(times+deck|decks+time)s+cumulative(?:s+(.+))?$/);
+  if (rtdcMatch) {
+    const range = rtdcMatch[2] || activeTimeRange;
+    if (isValidRange(range)) {
+      return updateChartState("reviews", true, true, true, appendLine, range);
+    } else if (rtdcMatch[2]) {
+      appendLine(`Unknown range: ${rtdcMatch[2]}`, "warn");
+      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      return { handled: true, command: "reviews-time-deck-cumulative", error: "invalid range" };
+    }
+  }
+
+  // reviews time cumulative [range]
+  const rtcMatch = normalized.match(/^reviewss+times+cumulative(?:s+(.+))?$/);
+  if (rtcMatch && !normalized.includes("deck")) {
+    const range = rtcMatch[1] || activeTimeRange;
+    if (isValidRange(range)) {
+      return updateChartState("reviews", true, false, true, appendLine, range);
+    } else if (rtcMatch[1]) {
+      appendLine(`Unknown range: ${rtcMatch[1]}`, "warn");
+      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      return { handled: true, command: "reviews-time-cumulative", error: "invalid range" };
+    }
+  }
+
+  // reviews deck cumulative [range]
+  const rdcMatch = normalized.match(/^reviewss+decks+cumulative(?:s+(.+))?$/);
+  if (rdcMatch && !normalized.includes("time")) {
+    const range = rdcMatch[1] || activeTimeRange;
+    if (isValidRange(range)) {
+      return updateChartState("reviews", false, true, true, appendLine, range);
+    } else if (rdcMatch[1]) {
+      appendLine(`Unknown range: ${rdcMatch[1]}`, "warn");
+      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      return { handled: true, command: "reviews-deck-cumulative", error: "invalid range" };
+    }
+  }
+
+  // reviews cumulative [range]
+  const rcMatch = normalized.match(/^reviewss+cumulative(?:s+(.+))?$/);
+  if (rcMatch && !normalized.includes("time") && !normalized.includes("deck")) {
+    const range = rcMatch[1] || activeTimeRange;
+    if (isValidRange(range)) {
+      return updateChartState("reviews", false, false, true, appendLine, range);
+    } else if (rcMatch[1]) {
+      appendLine(`Unknown range: ${rcMatch[1]}`, "warn");
+      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      return { handled: true, command: "reviews-cumulative", error: "invalid range" };
+    }
+  }
+
+  // reviews time deck [range]
+  const rtdMatch = normalized.match(/^reviewss+(times+deck|decks+time)(?:s+(.+))?$/);
+  if (rtdMatch && !normalized.includes("cumulative")) {
+    const range = rtdMatch[2] || activeTimeRange;
+    if (isValidRange(range)) {
+      return updateChartState("reviews", true, true, false, appendLine, range);
+    } else if (rtdMatch[2]) {
+      appendLine(`Unknown range: ${rtdMatch[2]}`, "warn");
+      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      return { handled: true, command: "reviews-time-deck", error: "invalid range" };
+    }
+  }
+
+  // reviews time [range]
+  const rtMatch = normalized.match(/^reviewss+time(?:s+(.+))?$/);
+  if (rtMatch && !normalized.includes("deck") && !normalized.includes("cumulative")) {
+    const range = rtMatch[1] || activeTimeRange;
+    if (isValidRange(range)) {
+      return updateChartState("reviews", true, false, false, appendLine, range);
+    } else if (rtMatch[1]) {
+      appendLine(`Unknown range: ${rtMatch[1]}`, "warn");
+      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      return { handled: true, command: "reviews-time", error: "invalid range" };
+    }
+  }
+
+  // reviews deck [range]
+  const rdMatch = normalized.match(/^reviewss+deck(?:s+(.+))?$/);
+  if (rdMatch && !normalized.includes("time") && !normalized.includes("cumulative")) {
+    const range = rdMatch[1] || activeTimeRange;
+    if (isValidRange(range)) {
+      return updateChartState("reviews", false, true, false, appendLine, range);
+    } else if (rdMatch[1]) {
+      appendLine(`Unknown range: ${rdMatch[1]}`, "warn");
+      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      return { handled: true, command: "reviews-deck", error: "invalid range" };
+    }
+  }
+
+  // reviews [range]
+  const rMatch = normalized.match(/^reviews(?:s+(.+))?$/);
+  if (rMatch && !normalized.includes("time") && !normalized.includes("deck") && !normalized.includes("cumulative") && !normalized.startsWith("show")) {
+    const range = rMatch[1] || activeTimeRange;
+    if (isValidRange(range)) {
+      return updateChartState("reviews", false, false, false, appendLine, range);
+    } else if (rMatch[1]) {
+      appendLine(`Unknown range: ${rMatch[1]}`, "warn");
+      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      return { handled: true, command: "reviews", error: "invalid range" };
+    }
+  }
+
+  // retention [range]
+  const retMatch = normalized.match(/^retention(?:s+(.+))?$/);
+  if (retMatch && !normalized.startsWith("show")) {
+    const range = retMatch[1] || activeTimeRange;
+    if (isValidRange(range)) {
+      return updateChartState("retention", false, false, false, appendLine, range);
+    } else if (retMatch[1]) {
+      appendLine(`Unknown range: ${retMatch[1]}`, "warn");
+      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      return { handled: true, command: "retention", error: "invalid range" };
+    }
+  }
+
+  // show due [range] / show reviews [range]
+  if (normalized.startsWith("show ")) {
+    const parts = normalized.split(/s+/);
+    if (parts[1] === "due" || parts[1] === "future") {
+      const range = parts[2] || activeTimeRange;
+      if (isValidRange(range)) {
+        return updateChartState("due", false, false, false, appendLine, range);
+      }
+    } else if (parts[1] === "reviews") {
+      const range = parts[2] || activeTimeRange;
+      if (isValidRange(range)) {
+        return updateChartState("reviews", false, false, false, appendLine, range);
+      }
+    }
+    appendLine(`Unknown chart: ${parts[1]}`, "warn");
+    return { handled: true, command: "show", error: "unknown chart" };
+  }
+
+  return null;
+}
+
 export function handleCommand(input, appendLine) {
   const normalized = input.toLowerCase().trim();
 
@@ -91,9 +488,9 @@ export function handleCommand(input, appendLine) {
   const isShortcut = isValidRange(normalized);
 
   const dynamicPatterns = [
-    /^plot\s+(due|reviews\s+time\s+deck|reviews\s+deck\s+time|reviews\s+deck|reviews\s+time|reviews|retention)\s+(.+)$/,
-    /^(due|future|reviews\s+time\s+deck|reviews\s+deck\s+time|reviews\s+deck|reviews\s+time|reviews|retention)\s+(.+)$/,
-    /^show\s+(due|future|reviews)\s+(.+)$/,
+    /^plots+(due|reviewss+times+deck|reviewss+decks+time|reviewss+deck|reviewss+time|reviews|retention)s+(.+)$/,
+    /^(due|future|reviewss+times+deck|reviewss+decks+time|reviewss+deck|reviewss+time|reviews|retention)s+(.+)$/,
+    /^shows+(due|future|reviews)s+(.+)$/,
   ];
   const isDynamic = dynamicPatterns.some((re) => {
     const match = normalized.match(re);
@@ -120,818 +517,25 @@ export function handleCommand(input, appendLine) {
   }
 
   // Handle time range shortcuts - apply to current chart
-  if (isValidRange(normalized)) {
-    // Auto-unzoom if zoomed
-    if (getZoomState()) {
-      toggleZoom();
-    }
-    // Apply shortcut to current chart (don't switch)
-    activeTimeRange = normalized;
-    if (currentChart === "reviews") {
-      const message = showReviews(normalized, false, false, false);
-      appendLine(message, "success");
-      return { handled: true, command: "reviews", range: normalized };
-    } else if (currentChart === "reviews-cumulative") {
-      const message = showReviews(normalized, false, false, true);
-      appendLine(message, "success");
-      return {
-        handled: true,
-        command: "reviews-cumulative",
-        range: normalized,
-      };
-    } else if (currentChart === "reviews-time") {
-      const message = showReviews(normalized, true, false, false);
-      appendLine(message, "success");
-      return { handled: true, command: "reviews-time", range: normalized };
-    } else if (currentChart === "reviews-time-cumulative") {
-      const message = showReviews(normalized, true, false, true);
-      appendLine(message, "success");
-      return {
-        handled: true,
-        command: "reviews-time-cumulative",
-        range: normalized,
-      };
-    } else if (currentChart === "reviews-deck") {
-      const message = showReviews(normalized, false, true, false);
-      appendLine(message, "success");
-      return { handled: true, command: "reviews-deck", range: normalized };
-    } else if (currentChart === "reviews-deck-cumulative") {
-      const message = showReviews(normalized, false, true, true);
-      appendLine(message, "success");
-      return {
-        handled: true,
-        command: "reviews-deck-cumulative",
-        range: normalized,
-      };
-    } else if (currentChart === "reviews-time-deck") {
-      const message = showReviews(normalized, true, true, false);
-      appendLine(message, "success");
-      return { handled: true, command: "reviews-time-deck", range: normalized };
-    } else if (currentChart === "reviews-time-deck-cumulative") {
-      const message = showReviews(normalized, true, true, true);
-      appendLine(message, "success");
-      return {
-        handled: true,
-        command: "reviews-time-deck-cumulative",
-        range: normalized,
-      };
-    } else if (currentChart === "retention") {
-      const message = showRetention(normalized);
-      appendLine(message, "success");
-      return { handled: true, command: "retention", range: normalized };
-    } else if (currentChart === "due-deck") {
-      const message = showDue(normalized, true);
-      appendLine(message, "success");
-      return { handled: true, command: "due-deck", range: normalized };
-    } else {
-      // Default to due chart
-      const message = showDue(normalized, false);
-      appendLine(message, "success");
-      currentChart = "due";
-      return { handled: true, command: "due", range: normalized };
-    }
+  if (isShortcut) {
+    return handleTimeRangeShortcut(normalized, appendLine);
   }
 
-  // Handle abbreviations
-  if (normalized === "h" || normalized === "?") {
-    showHelp(appendLine);
-    return { handled: true, command: "help" };
-  }
-  if (normalized === "p" || normalized === "plot") {
-    appendLine(
-      "Usage: plot <due|reviews|reviews time|retention> [range]",
-      "muted",
-    );
-    appendLine("Subcommands:", "muted");
-    appendLine(
-      "  plot due [range]               - Due forecast chart",
-      "muted",
-    );
-    appendLine(
-      "  plot reviews [range]           - Review history chart",
-      "muted",
-    );
-    appendLine(
-      "  plot reviews deck [range]      - Review history by deck",
-      "muted",
-    );
-    appendLine(
-      "  plot reviews time [range]      - Review time history chart",
-      "muted",
-    );
-    appendLine(
-      "  plot reviews time deck [range] - Review time history by deck",
-      "muted",
-    );
-    appendLine(
-      "  plot retention [range]         - Retention rate chart",
-      "muted",
-    );
-    appendLine("Examples: pd, pd 3m, pr, pr 1y, prt 1y, prd 1m", "muted");
-    return { handled: true, command: "plot" };
-  }
-  if (normalized === "pd") {
-    clearCurrentChart();
-    const message = showDue(activeTimeRange);
-    appendLine(message, "success");
-    currentChart = "due";
-    return { handled: true, command: "plot-due", range: activeTimeRange };
-  }
-  if (normalized === "pr") {
-    clearCurrentChart();
-    const message = showReviews(activeTimeRange, false, false);
-    appendLine(message, "success");
-    currentChart = "reviews";
-    return { handled: true, command: "plot-reviews", range: activeTimeRange };
-  }
-  if (normalized === "prd") {
-    clearCurrentChart();
-    const message = showReviews(activeTimeRange, false, true);
-    appendLine(message, "success");
-    currentChart = "reviews-deck";
-    return {
-      handled: true,
-      command: "plot-reviews-deck",
-      range: activeTimeRange,
-    };
-  }
-  if (normalized === "prt") {
-    clearCurrentChart();
-    const message = showReviews(activeTimeRange, true, false);
-    appendLine(message, "success");
-    currentChart = "reviews-time";
-    return {
-      handled: true,
-      command: "plot-reviews-time",
-      range: activeTimeRange,
-    };
-  }
-  if (normalized === "prtd") {
-    clearCurrentChart();
-    const message = showReviews(activeTimeRange, true, true);
-    appendLine(message, "success");
-    currentChart = "reviews-time-deck";
-    return {
-      handled: true,
-      command: "plot-reviews-time-deck",
-      range: activeTimeRange,
-    };
-  }
-  if (normalized === "prc") {
-    clearCurrentChart();
-    const message = showReviews(activeTimeRange, false, false, true);
-    appendLine(message, "success");
-    currentChart = "reviews-cumulative";
-    return {
-      handled: true,
-      command: "plot-reviews-cumulative",
-      range: activeTimeRange,
-    };
-  }
-  if (normalized === "prdc") {
-    clearCurrentChart();
-    const message = showReviews(activeTimeRange, false, true, true);
-    appendLine(message, "success");
-    currentChart = "reviews-deck-cumulative";
-    return {
-      handled: true,
-      command: "plot-reviews-deck-cumulative",
-      range: activeTimeRange,
-    };
-  }
-  if (normalized === "prtc") {
-    clearCurrentChart();
-    const message = showReviews(activeTimeRange, true, false, true);
-    appendLine(message, "success");
-    currentChart = "reviews-time-cumulative";
-    return {
-      handled: true,
-      command: "plot-reviews-time-cumulative",
-      range: activeTimeRange,
-    };
-  }
-  if (normalized === "prtdc" || normalized === "prdtc") {
-    clearCurrentChart();
-    const message = showReviews(activeTimeRange, true, true, true);
-    appendLine(message, "success");
-    currentChart = "reviews-time-deck-cumulative";
-    return {
-      handled: true,
-      command: "plot-reviews-time-deck-cumulative",
-      range: activeTimeRange,
-    };
-  }
-  if (normalized === "d") {
-    clearCurrentChart();
-    const message = showDue(activeTimeRange, false);
-    appendLine(message, "success");
-    currentChart = "due";
-    return { handled: true, command: "due", range: activeTimeRange };
-  }
-  if (normalized === "dd") {
-    clearCurrentChart();
-    const message = showDue(activeTimeRange, true);
-    appendLine(message, "success");
-    currentChart = "due-deck";
-    return { handled: true, command: "due-deck", range: activeTimeRange };
-  }
-  if (normalized === "r") {
-    clearCurrentChart();
-    const message = showReviews(activeTimeRange, false, false);
-    appendLine(message, "success");
-    currentChart = "reviews";
-    return { handled: true, command: "reviews", range: activeTimeRange };
-  }
-  if (normalized === "rd") {
-    clearCurrentChart();
-    const message = showReviews(activeTimeRange, false, true);
-    appendLine(message, "success");
-    currentChart = "reviews-deck";
-    return { handled: true, command: "reviews-deck", range: activeTimeRange };
-  }
-  if (normalized === "rc") {
-    clearCurrentChart();
-    const message = showReviews(activeTimeRange, false, false, true);
-    appendLine(message, "success");
-    currentChart = "reviews-cumulative";
-    return {
-      handled: true,
-      command: "reviews-cumulative",
-      range: activeTimeRange,
-    };
-  }
-  if (normalized === "rdc") {
-    clearCurrentChart();
-    const message = showReviews(activeTimeRange, false, true, true);
-    appendLine(message, "success");
-    currentChart = "reviews-deck-cumulative";
-    return {
-      handled: true,
-      command: "reviews-deck-cumulative",
-      range: activeTimeRange,
-    };
-  }
-  if (normalized === "rtc") {
-    clearCurrentChart();
-    const message = showReviews(activeTimeRange, true, false, true);
-    appendLine(message, "success");
-    currentChart = "reviews-time-cumulative";
-    return {
-      handled: true,
-      command: "reviews-time-cumulative",
-      range: activeTimeRange,
-    };
-  }
-  if (normalized === "rtdc" || normalized === "rdtc") {
-    clearCurrentChart();
-    const message = showReviews(activeTimeRange, true, true, true);
-    appendLine(message, "success");
-    currentChart = "reviews-time-deck-cumulative";
-    return {
-      handled: true,
-      command: "reviews-time-deck-cumulative",
-      range: activeTimeRange,
-    };
-  }
-  if (normalized === "c" || normalized === "cumulative") {
-    if (currentChart && currentChart.startsWith("reviews")) {
-      const isCumulative = !currentChart.endsWith("-cumulative");
-      const isTime = currentChart.includes("time");
-      const isDeck = currentChart.includes("deck");
-      clearCurrentChart();
-      const message = showReviews(
-        activeTimeRange,
-        isTime,
-        isDeck,
-        isCumulative,
-      );
-      appendLine(message, "success");
-      let newChart = "reviews";
-      if (isTime) newChart += "-time";
-      if (isDeck) newChart += "-deck";
-      if (isCumulative) newChart += "-cumulative";
-      currentChart = newChart;
-      return { handled: true, command: newChart, range: activeTimeRange };
-    } else {
-      clearCurrentChart();
-      const message = showReviews(activeTimeRange, false, false, true);
-      appendLine(message, "success");
-      currentChart = "reviews-cumulative";
-      return {
-        handled: true,
-        command: "reviews-cumulative",
-        range: activeTimeRange,
-      };
-    }
-  }
-  if (normalized === "rt" || normalized === "t" || normalized === "time") {
-    if (currentChart && currentChart.startsWith("reviews")) {
-      const isCumulative = currentChart.endsWith("-cumulative");
-      const isTime = !currentChart.includes("time");
-      const isDeck = currentChart.includes("deck");
-      clearCurrentChart();
-      const message = showReviews(
-        activeTimeRange,
-        isTime,
-        isDeck,
-        isCumulative,
-      );
-      appendLine(message, "success");
-      let newChart = "reviews";
-      if (isTime) newChart += "-time";
-      if (isDeck) newChart += "-deck";
-      if (isCumulative) newChart += "-cumulative";
-      currentChart = newChart;
-      return { handled: true, command: newChart, range: activeTimeRange };
-    } else {
-      clearCurrentChart();
-      const message = showReviews(activeTimeRange, true, false, false);
-      appendLine(message, "success");
-      currentChart = "reviews-time";
-      return { handled: true, command: "reviews-time", range: activeTimeRange };
-    }
-  }
+  // Handle abbreviations (h, p, pr, d, etc.)
+  const abbrRes = handleAbbreviations(normalized, appendLine);
+  if (abbrRes) return abbrRes;
 
-  if (normalized === "deck" || normalized === "dk") {
-    if (currentChart && currentChart.startsWith("reviews")) {
-      const isCumulative = currentChart.endsWith("-cumulative");
-      const isTime = currentChart.includes("time");
-      const isDeck = !currentChart.includes("deck");
-      clearCurrentChart();
-      const message = showReviews(
-        activeTimeRange,
-        isTime,
-        isDeck,
-        isCumulative,
-      );
-      appendLine(message, "success");
-      let newChart = "reviews";
-      if (isTime) newChart += "-time";
-      if (isDeck) newChart += "-deck";
-      if (isCumulative) newChart += "-cumulative";
-      currentChart = newChart;
-      return { handled: true, command: newChart, range: activeTimeRange };
-    } else if (currentChart === "due") {
-      clearCurrentChart();
-      const message = showDue(activeTimeRange, true);
-      appendLine(message, "success");
-      currentChart = "due-deck";
-      return { handled: true, command: "due-deck", range: activeTimeRange };
-    } else if (currentChart === "due-deck") {
-      clearCurrentChart();
-      const message = showDue(activeTimeRange, false);
-      appendLine(message, "success");
-      currentChart = "due";
-      return { handled: true, command: "due", range: activeTimeRange };
-    } else {
-      clearCurrentChart();
-      const message = showReviews(activeTimeRange, false, true, false);
-      appendLine(message, "success");
-      currentChart = "reviews-deck";
-      return { handled: true, command: "reviews-deck", range: activeTimeRange };
-    }
-  }
-  if (normalized === "rtd") {
-    clearCurrentChart();
-    const message = showReviews(activeTimeRange, true, true);
-    appendLine(message, "success");
-    currentChart = "reviews-time-deck";
-    return {
-      handled: true,
-      command: "reviews-time-deck",
-      range: activeTimeRange,
-    };
-  }
+  // Handle plot command
+  const plotRes = handlePlotCommand(normalized, activeTimeRange, appendLine);
+  if (plotRes) return plotRes;
 
-  // Handle "plot due [range]" command (new umbrella syntax)
-  const plotMatch = normalized.match(
-    /^plot\s+(due\s+deck|due|reviews\s+time\s+deck\s+cumulative|reviews\s+deck\s+time\s+cumulative|reviews\s+deck\s+cumulative|reviews\s+time\s+cumulative|reviews\s+cumulative|reviews\s+time\s+deck|reviews\s+deck\s+time|reviews\s+deck|reviews\s+time|reviews|retention)\s*(.*)$/,
-  );
-  if (plotMatch) {
-    const [, chartType, rangeStr] = plotMatch;
-    const range = rangeStr.trim() || activeTimeRange;
-
-    if (range && !isValidRange(range)) {
-      appendLine(`Unknown range: ${range}`, "warn");
-      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
-      return { handled: true, command: "plot", error: "invalid range" };
-    }
-
-    clearCurrentChart();
-    activeTimeRange = range;
-    if (chartType === "due") {
-      const message = showDue(range, false);
-      appendLine(message, "success");
-      currentChart = "due";
-      return { handled: true, command: "plot-due", range };
-    } else if (chartType === "due deck") {
-      const message = showDue(range, true);
-      appendLine(message, "success");
-      currentChart = "due-deck";
-      return { handled: true, command: "plot-due-deck", range };
-    } else if (chartType === "reviews time") {
-      const message = showReviews(range, true, false, false);
-      appendLine(message, "success");
-      currentChart = "reviews-time";
-      return { handled: true, command: "plot-reviews-time", range };
-    } else if (chartType === "reviews") {
-      const message = showReviews(range, false, false, false);
-      appendLine(message, "success");
-      currentChart = "reviews";
-      return { handled: true, command: "plot-reviews", range };
-    } else if (
-      chartType === "reviews time deck" ||
-      chartType === "reviews deck time"
-    ) {
-      const message = showReviews(range, true, true, false);
-      appendLine(message, "success");
-      currentChart = "reviews-time-deck";
-      return { handled: true, command: "plot-reviews-time-deck", range };
-    } else if (chartType === "reviews deck") {
-      const message = showReviews(range, false, true, false);
-      appendLine(message, "success");
-      currentChart = "reviews-deck";
-      return { handled: true, command: "plot-reviews-deck", range };
-    } else if (chartType === "reviews time cumulative") {
-      const message = showReviews(range, true, false, true);
-      appendLine(message, "success");
-      currentChart = "reviews-time-cumulative";
-      return { handled: true, command: "plot-reviews-time-cumulative", range };
-    } else if (chartType === "reviews cumulative") {
-      const message = showReviews(range, false, false, true);
-      appendLine(message, "success");
-      currentChart = "reviews-cumulative";
-      return { handled: true, command: "plot-reviews-cumulative", range };
-    } else if (
-      chartType === "reviews time deck cumulative" ||
-      chartType === "reviews deck time cumulative"
-    ) {
-      const message = showReviews(range, true, true, true);
-      appendLine(message, "success");
-      currentChart = "reviews-time-deck-cumulative";
-      return {
-        handled: true,
-        command: "plot-reviews-time-deck-cumulative",
-        range,
-      };
-    } else if (chartType === "reviews deck cumulative") {
-      const message = showReviews(range, false, true, true);
-      appendLine(message, "success");
-      currentChart = "reviews-deck-cumulative";
-      return { handled: true, command: "plot-reviews-deck-cumulative", range };
-    } else {
-      const message = showRetention(range);
-      appendLine(message, "success");
-      currentChart = "retention";
-      return { handled: true, command: "plot-retention", range };
-    }
-  }
-
-  // Handle "due deck" command
-  if (normalized === "due deck") {
-    clearCurrentChart();
-    const message = showDue(activeTimeRange, true);
-    appendLine(message, "success");
-    currentChart = "due-deck";
-    return { handled: true, command: "due-deck", range: activeTimeRange };
-  }
-
-  // Handle "due" command
-  if (normalized === "due" || normalized === "future") {
-    clearCurrentChart();
-    const message = showDue(activeTimeRange, false);
-    appendLine(message, "success");
-    currentChart = "due";
-    return { handled: true, command: "due", range: activeTimeRange };
-  }
-
-  // Handle "reviews time deck" or "reviews deck time" command
-  if (
-    normalized === "reviews time deck" ||
-    normalized === "reviews deck time"
-  ) {
-    clearCurrentChart();
-    const message = showReviews(activeTimeRange, true, true);
-    appendLine(message, "success");
-    currentChart = "reviews-time-deck";
-    return {
-      handled: true,
-      command: "reviews-time-deck",
-      range: activeTimeRange,
-    };
-  }
-
-  // Handle "reviews time" command
-  if (normalized === "reviews time") {
-    clearCurrentChart();
-    const message = showReviews(activeTimeRange, true, false);
-    appendLine(message, "success");
-    currentChart = "reviews-time";
-    return { handled: true, command: "reviews-time", range: activeTimeRange };
-  }
-
-  // Handle "reviews deck" command
-  if (normalized === "reviews deck") {
-    clearCurrentChart();
-    const message = showReviews(activeTimeRange, false, true);
-    appendLine(message, "success");
-    currentChart = "reviews-deck";
-    return { handled: true, command: "reviews-deck", range: activeTimeRange };
-  }
-
-  // Handle "reviews" command
-  if (normalized === "reviews") {
-    clearCurrentChart();
-    const message = showReviews(activeTimeRange, false, false);
-    appendLine(message, "success");
-    currentChart = "reviews";
-    return { handled: true, command: "reviews", range: activeTimeRange };
-  }
-
-  // Handle "retention" command
-  if (normalized === "retention") {
-    clearCurrentChart();
-    const message = showRetention(activeTimeRange);
-    appendLine(message, "success");
-    currentChart = "retention";
-    return { handled: true, command: "retention", range: activeTimeRange };
-  }
-
-  // Handle "due deck [range]" command
-  const dueDeckMatch = normalized.match(/^due\s+deck\s+(.+)$/);
-  if (dueDeckMatch) {
-    const [, range] = dueDeckMatch;
-    if (isValidRange(range)) {
-      clearCurrentChart();
-      activeTimeRange = range;
-      const message = showDue(range, true);
-      appendLine(message, "success");
-      currentChart = "due-deck";
-      return { handled: true, command: "due-deck", range };
-    } else {
-      appendLine(`Unknown range: ${range}`, "warn");
-      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
-      return { handled: true, command: "due-deck", error: "invalid range" };
-    }
-  }
-
-  // Handle "due [range]" command
-  const dueMatch = normalized.match(/^(due|future)\s+(.+)$/);
-  if (dueMatch && !normalized.startsWith("due deck")) {
-    const [, , range] = dueMatch;
-    if (isValidRange(range)) {
-      clearCurrentChart();
-      activeTimeRange = range;
-      const message = showDue(range, false);
-      appendLine(message, "success");
-      currentChart = "due";
-      return { handled: true, command: "due", range };
-    } else {
-      appendLine(`Unknown range: ${range}`, "warn");
-      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
-      return { handled: true, command: "due", error: "invalid range" };
-    }
-  }
-
-  // Handle "reviews time deck cumulative [range]" or "reviews deck time cumulative [range]"
-  const reviewsTimeDeckCumMatch = normalized.match(
-    /^reviews\s+(time\s+deck|deck\s+time)\s+cumulative\s+(.+)$/,
-  );
-  if (reviewsTimeDeckCumMatch) {
-    const [, , range] = reviewsTimeDeckCumMatch;
-    if (isValidRange(range)) {
-      clearCurrentChart();
-      activeTimeRange = range;
-      const message = showReviews(range, true, true, true);
-      appendLine(message, "success");
-      currentChart = "reviews-time-deck-cumulative";
-      return { handled: true, command: "reviews-time-deck-cumulative", range };
-    } else {
-      appendLine(`Unknown range: ${range}`, "warn");
-      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
-      return {
-        handled: true,
-        command: "reviews-time-deck-cumulative",
-        error: "invalid range",
-      };
-    }
-  }
-
-  // Handle "reviews time cumulative [range]"
-  const reviewsTimeCumMatch = normalized.match(
-    /^reviews\s+time\s+cumulative\s+(.+)$/,
-  );
-  if (
-    reviewsTimeCumMatch &&
-    !normalized.startsWith("reviews time deck") &&
-    !normalized.startsWith("reviews deck time")
-  ) {
-    const [, range] = reviewsTimeCumMatch;
-    if (isValidRange(range)) {
-      clearCurrentChart();
-      activeTimeRange = range;
-      const message = showReviews(range, true, false, true);
-      appendLine(message, "success");
-      currentChart = "reviews-time-cumulative";
-      return { handled: true, command: "reviews-time-cumulative", range };
-    } else {
-      appendLine(`Unknown range: ${range}`, "warn");
-      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
-      return {
-        handled: true,
-        command: "reviews-time-cumulative",
-        error: "invalid range",
-      };
-    }
-  }
-
-  // Handle "reviews deck cumulative [range]"
-  const reviewsDeckCumMatch = normalized.match(
-    /^reviews\s+deck\s+cumulative\s+(.+)$/,
-  );
-  if (reviewsDeckCumMatch) {
-    const [, range] = reviewsDeckCumMatch;
-    if (isValidRange(range)) {
-      clearCurrentChart();
-      activeTimeRange = range;
-      const message = showReviews(range, false, true, true);
-      appendLine(message, "success");
-      currentChart = "reviews-deck-cumulative";
-      return { handled: true, command: "reviews-deck-cumulative", range };
-    } else {
-      appendLine(`Unknown range: ${range}`, "warn");
-      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
-      return {
-        handled: true,
-        command: "reviews-deck-cumulative",
-        error: "invalid range",
-      };
-    }
-  }
-
-  // Handle "reviews cumulative [range]"
-  const reviewsCumMatch = normalized.match(/^reviews\s+cumulative\s+(.+)$/);
-  if (
-    reviewsCumMatch &&
-    !normalized.startsWith("reviews time") &&
-    !normalized.startsWith("reviews deck")
-  ) {
-    const [, range] = reviewsCumMatch;
-    if (isValidRange(range)) {
-      clearCurrentChart();
-      activeTimeRange = range;
-      const message = showReviews(range, false, false, true);
-      appendLine(message, "success");
-      currentChart = "reviews-cumulative";
-      return { handled: true, command: "reviews-cumulative", range };
-    } else {
-      appendLine(`Unknown range: ${range}`, "warn");
-      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
-      return {
-        handled: true,
-        command: "reviews-cumulative",
-        error: "invalid range",
-      };
-    }
-  }
-
-  // Handle "reviews time deck [range]" or "reviews deck time [range]" command
-  const reviewsTimeDeckMatch = normalized.match(
-    /^reviews\s+(time\s+deck|deck\s+time)\s+(.+)$/,
-  );
-  if (reviewsTimeDeckMatch && !normalized.includes("cumulative")) {
-    const [, , range] = reviewsTimeDeckMatch;
-    if (isValidRange(range)) {
-      clearCurrentChart();
-      activeTimeRange = range;
-      const message = showReviews(range, true, true, false);
-      appendLine(message, "success");
-      currentChart = "reviews-time-deck";
-      return { handled: true, command: "reviews-time-deck", range };
-    } else {
-      appendLine(`Unknown range: ${range}`, "warn");
-      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
-      return {
-        handled: true,
-        command: "reviews-time-deck",
-        error: "invalid range",
-      };
-    }
-  }
-
-  // Handle "reviews time [range]" command
-  const reviewsTimeMatch = normalized.match(/^reviews\s+time\s+(.+)$/);
-  if (
-    reviewsTimeMatch &&
-    !normalized.startsWith("reviews time deck") &&
-    !normalized.startsWith("reviews deck time") &&
-    !normalized.includes("cumulative")
-  ) {
-    const [, range] = reviewsTimeMatch;
-    if (isValidRange(range)) {
-      clearCurrentChart();
-      activeTimeRange = range;
-      const message = showReviews(range, true, false, false);
-      appendLine(message, "success");
-      currentChart = "reviews-time";
-      return { handled: true, command: "reviews-time", range };
-    } else {
-      appendLine(`Unknown range: ${range}`, "warn");
-      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
-      return { handled: true, command: "reviews-time", error: "invalid range" };
-    }
-  }
-
-  // Handle "reviews deck [range]" command
-  const reviewsDeckMatch = normalized.match(/^reviews\s+deck\s+(.+)$/);
-  if (reviewsDeckMatch && !normalized.includes("cumulative")) {
-    const [, range] = reviewsDeckMatch;
-    if (isValidRange(range)) {
-      clearCurrentChart();
-      activeTimeRange = range;
-      const message = showReviews(range, false, true, false);
-      appendLine(message, "success");
-      currentChart = "reviews-deck";
-      return { handled: true, command: "reviews-deck", range };
-    } else {
-      appendLine(`Unknown range: ${range}`, "warn");
-      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
-      return { handled: true, command: "reviews-deck", error: "invalid range" };
-    }
-  }
-
-  // Handle "reviews [range]" command
-  // Avoid capturing "reviews time", "reviews deck", "reviews time deck", "reviews deck time"
-  const reviewsMatch = normalized.match(/^reviews\s+(.+)$/);
-  if (
-    reviewsMatch &&
-    !normalized.startsWith("reviews time") &&
-    !normalized.startsWith("reviews deck") &&
-    !normalized.includes("cumulative")
-  ) {
-    const [, range] = reviewsMatch;
-    if (isValidRange(range)) {
-      clearCurrentChart();
-      activeTimeRange = range;
-      const message = showReviews(range, false, false, false);
-      appendLine(message, "success");
-      currentChart = "reviews";
-      return { handled: true, command: "reviews", range };
-    } else {
-      appendLine(`Unknown range: ${range}`, "warn");
-      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
-      return { handled: true, command: "reviews", error: "invalid range" };
-    }
-  }
-
-  // Handle "retention [range]" command
-  const retentionMatch = normalized.match(/^retention\s+(.+)$/);
-  if (retentionMatch) {
-    const [, range] = retentionMatch;
-    if (isValidRange(range)) {
-      clearCurrentChart();
-      activeTimeRange = range;
-      const message = showRetention(range);
-      appendLine(message, "success");
-      currentChart = "retention";
-      return { handled: true, command: "retention", range };
-    } else {
-      appendLine(`Unknown range: ${range}`, "warn");
-      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
-      return { handled: true, command: "retention", error: "invalid range" };
-    }
-  }
-
-  // Handle "show due [range]" command
-  if (normalized.startsWith("show ")) {
-    const parts = normalized.split(/\s+/);
-    if (parts[1] === "due" || parts[1] === "future") {
-      const range = parts[2] || activeTimeRange;
-      if (isValidRange(range)) {
-        clearCurrentChart();
-        activeTimeRange = range;
-        const message = showDue(range);
-        appendLine(message, "success");
-        currentChart = "due";
-        return { handled: true, command: "due", range };
-      }
-    } else if (parts[1] === "reviews") {
-      const range = parts[2] || activeTimeRange;
-      if (isValidRange(range)) {
-        clearCurrentChart();
-        activeTimeRange = range;
-        const message = showReviews(range, false, false, false);
-        appendLine(message, "success");
-        currentChart = "reviews";
-        return { handled: true, command: "reviews", range };
-      }
-    }
-    appendLine(`Unknown chart: ${parts[1]}`, "warn");
-    return { handled: true, command: "show", error: "unknown chart" };
-  }
+  // Handle regex/full commands
+  const regexRes = handleRegexCommands(normalized, activeTimeRange, appendLine);
+  if (regexRes) return regexRes;
 
   return { handled: false };
 }
+
 
 export function showHelp(appendLine) {
   appendLine("Available commands:", "muted");
