@@ -27,7 +27,7 @@ let activeTimeRange = DEFAULT_RANGE;
 /**
  * Validate command against trie
  * @param {string} command - Command to validate
- * @returns {{valid: boolean, error?: string, suggestions?: string[]}}
+ * @returns {{valid: boolean, error?: string, suggestions?: string[], isPartial?: boolean}}
  */
 export function validateCommand(command) {
   return commandTrie.validate(command);
