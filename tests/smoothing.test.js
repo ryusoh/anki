@@ -95,6 +95,48 @@ function runTests() {
     assert.strictEqual(result[2].y, 22.5);
   });
 
+  runTest("savitzkyGolay computes correct values and handles edge cases", () => {
+    assert.deepStrictEqual(savitzkyGolay([]), []);
+    assert.deepStrictEqual(savitzkyGolay(null), null);
+
+    const smallData = [{ x: 1, y: 10 }];
+    assert.deepStrictEqual(
+      savitzkyGolay(smallData, 5),
+      smallData,
+      "Returns original data if length < window"
+    );
+
+    // Even window size test, it should increment to odd internally
+    const evenWindowResult = savitzkyGolay(sampleData, 4, 1, false);
+    assert.strictEqual(evenWindowResult.length, 5);
+
+    // Basic calculation check (simplistic given polynomialFit mock-like behavior)
+    const result = savitzkyGolay(sampleData, 3, 1, false);
+    assert.strictEqual(result.length, 5);
+    assert.strictEqual(result[0].y, 10); // Edge point logic
+    assert.strictEqual(result[2].y, 30); // Middle point logic
+  });
+
+  runTest("lowess computes correct values and handles edge cases", () => {
+    assert.deepStrictEqual(lowess([]), []);
+    assert.deepStrictEqual(lowess(null), null);
+
+    const smallData = [
+      { x: 1, y: 10 },
+      { x: 2, y: 20 },
+    ];
+    assert.deepStrictEqual(
+      lowess(smallData, 0.3),
+      smallData,
+      "Returns original data if length < 3"
+    );
+
+    const result = lowess(sampleData, 0.5, false);
+    assert.strictEqual(result.length, 5);
+    // With such a clean linear progression, lowess should closely approximate original values
+    assert.ok(Math.abs(result[2].y - 30) < 5);
+  });
+
   runTest("smoothFinancialData applies correct configuration", () => {
     // Basic test to ensure the main export function orchestrates correctly
     const result = smoothFinancialData(sampleData, "balanced", false);
