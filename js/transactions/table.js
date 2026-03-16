@@ -460,28 +460,47 @@ function handleFilter(column, target) {
 }
 
 function setupTableControls() {
+  const handleKeydown = (e, callback) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      callback(e);
+    }
+  };
+
   const tradeDateHeader = document.getElementById("header-tradeDate");
   if (tradeDateHeader) {
     tradeDateHeader.addEventListener("click", () => handleSort("tradeDate"));
+    tradeDateHeader.addEventListener("keydown", (e) =>
+      handleKeydown(e, () => handleSort("tradeDate")),
+    );
   }
   const securityHeader = document.getElementById("header-security");
   if (securityHeader) {
-    securityHeader.addEventListener("click", (e) => {
+    const securityCallback = (e) => {
       if (e.target.closest(".filter-indicator")) {
         handleFilter("security", e.currentTarget);
       } else {
         handleSort("security");
       }
-    });
+    };
+    securityHeader.addEventListener("click", securityCallback);
+    securityHeader.addEventListener("keydown", (e) =>
+      handleKeydown(e, securityCallback),
+    );
   }
   const netAmountHeader = document.getElementById("header-netAmount");
   if (netAmountHeader) {
     netAmountHeader.addEventListener("click", () => handleSort("netAmount"));
+    netAmountHeader.addEventListener("keydown", (e) =>
+      handleKeydown(e, () => handleSort("netAmount")),
+    );
   }
   const orderTypeHeader = document.getElementById("header-orderType");
   if (orderTypeHeader) {
-    orderTypeHeader.addEventListener("click", (e) =>
-      handleFilter("orderType", e.currentTarget),
+    const orderTypeCallback = (e) => handleFilter("orderType", e.currentTarget);
+    orderTypeHeader.addEventListener("click", orderTypeCallback);
+    orderTypeHeader.addEventListener("keydown", (e) =>
+      handleKeydown(e, orderTypeCallback),
     );
   }
 }
