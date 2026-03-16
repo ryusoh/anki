@@ -1549,6 +1549,10 @@ function injectSyntheticStartPoint(
   }
 
   const firstFiltered = filteredData[0];
+  if (!firstFiltered) {
+    return filteredData;
+  }
+
   const firstTime =
     firstFiltered && firstFiltered.date instanceof Date
       ? firstFiltered.date.getTime()
@@ -1558,14 +1562,17 @@ function injectSyntheticStartPoint(
   }
 
   const matchingIndex = fullSeries.findIndex((item) => {
-    if (!item) {
+    if (!item || item.date === null || item.date === undefined) {
       return false;
     }
-    const itemDate = new Date(item.date);
-    if (Number.isNaN(itemDate.getTime())) {
-      return false;
-    }
-    return itemDate.getTime() === firstTime;
+    const d = item.date;
+    const t =
+      d instanceof Date
+        ? d.getTime()
+        : typeof d === "number"
+          ? d
+          : Date.parse(d);
+    return t === firstTime;
   });
 
   if (matchingIndex <= 0) {
