@@ -525,46 +525,131 @@ R2 Directory Structure:
             print(f"   Account: {mask_value(creds['account_id'])}")
             print(f"   Staging: {staging_dir}")
 
-        # Count staged files
-        notes_count = len(list((staging_dir / "notes").glob("*.json.gz")))
-
-        # Upload from staging
-        print(f"\n📤 Uploading staged files to R2...")
-        upload_from_staging(staging_dir, creds, args.verbose, notes_count, sync=args.sync)
-
-        # Update hash map after upload (for --upload-only)
-        # Load current notes from collection to update hash map
+        # Load hash map to determine what needs upload
         hash_map_file = staging_dir / "hash_map.json"
         old_hash_map = load_hash_map(hash_map_file)
 
-        # Read notes from collection file to update hashes
-        notes_file = staging_dir / "collection" / "notes.json.gz"
-        if notes_file.exists():
-            with gzip.open(notes_file, 'rt', encoding='utf-8') as f:
-                notes = json.load(f)
-            new_hash_map = update_hash_map(old_hash_map, notes)
+        # Helper to check if file needs upload
+        def file_needs_upload(key, file_path):
+            """Check if file needs to be uploaded based on hash."""
+            if not file_path.exists():
+                return False, None
             
-            # Also compute and save collection file hashes
-            collection_files = [
-                'collection/notes.json.gz',
-                'collection/cards-data.json.gz',
-                'collection/notetypes.json.gz',
-                'collection/decks-config.json.gz',
-                'collection/media-registry.json',
-                'collection/collection-config.json',
-            ]
-            
-            for key in collection_files:
-                file_path = staging_dir / key
-                if file_path.exists():
-                    with open(file_path, 'rb') as f:
-                        content = f.read()
-                    new_hash_map[key] = hashlib.sha256(content).hexdigest()
-            
-            save_hash_map(new_hash_map, hash_map_file)
-            if args.verbose:
-                print(f"\n   ✓ Updated hash map ({len(new_hash_map):,} entries)")
+            with open(file_path, 'rb') as f:
+                content = f.read()
+            current_hash = hashlib.sha256(content).hexdigest()
+            old_hash = old_hash_map.get(key)
+            return old_hash is None or old_hash != current_hash, current_hash
+
+        # Check collection files
+        collection_files = [
+            'collection/notes.json.gz',
+            'collection/cards.json.gz',
+            'collection/reviews.json.gz',
+            'collection/notetypes.json.gz',
+            'collection/decks.json',
+            'collection/cards-data.json.gz',
+            'collection/media-registry.json',
+            'collection/collection-config.json',
+        ]
+
+        files_to_upload = []
+        new_collection_hashes = {}
+
+        for key in collection_files:
+            file_path = staging_dir / key
+            needs_upload, current_hash = file_needs_upload(key, file_path)
+            if current_hash:
+                new_collection_hashes[key] = current_hash
+            if needs_upload:
+                files_to_upload.append(('collection', key, file_path))
+                if args.verbose:
+                    print(f"   📤 {key} [CHANGED/NEW]")
+            elif args.verbose:
+                print(f"   ⊘ {key} [ALREADY UPLOADED]")
+
+        # Check individual notes
+        notes_dir = staging_dir / "notes"
+        notes_to_upload = []
         
+        if notes_dir.exists():
+            note_files = list(notes_dir.glob("*.json.gz"))
+            
+            if args.verbose:
+                print(f"\n   Checking {len(note_files):,} staged notes...")
+            
+            for note_file in note_files:
+                # Read note to get GUID for hash lookup
+                try:
+                    with gzip.open(note_file, 'rt', encoding='utf-8') as f:
+                        content = f.read()
+                        if not content:
+                            continue
+                        note = json.loads(content)
+                        guid = note.get('guid')
+                        if not guid:
+                            continue
+                    
+                    # Check if this note was already uploaded
+                    old_hash = old_hash_map.get(guid)
+                    current_hash = compute_note_hash(note)
+                    
+                    if old_hash is None or old_hash != current_hash:
+                        notes_to_upload.append((guid, note_file, current_hash))
+                except Exception:
+                    # Corrupted file, skip
+                    continue
+            
+            if args.verbose:
+                print(f"   📤 {len(notes_to_upload):,} notes need upload")
+                print(f"   ⊘ {len(note_files) - len(notes_to_upload):,} notes already uploaded")
+
+        # Upload only changed files
+        total_to_upload = len(files_to_upload) + len(notes_to_upload)
+        
+        if total_to_upload == 0:
+            print(f"\n✅ All files already uploaded to R2 - nothing to do")
+            return
+        
+        print(f"\n📤 Uploading {total_to_upload:,} changed/new files to R2...")
+        
+        # Upload collection files
+        for file_type, key, file_path in files_to_upload:
+            with open(file_path, 'rb') as f:
+                content = f.read()
+            success, size = upload_to_r2(creds['bucket'], key, content, creds, args.verbose)
+            if not success:
+                print(f"   ✗ Failed to upload {key}")
+
+        # Upload individual notes
+        for i, (guid, note_file, current_hash) in enumerate(notes_to_upload, 1):
+            key = f"notes/{note_file.name}"
+            with open(note_file, 'rb') as f:
+                content = f.read()
+            success, size = upload_to_r2(creds['bucket'], key, content, creds, args.verbose, quiet=True)
+            
+            # Progress
+            if i % 100 == 0 or i == len(notes_to_upload):
+                progress = (i / len(notes_to_upload)) * 100 if notes_to_upload else 0
+                bar_width = 40
+                filled = int(bar_width * i / len(notes_to_upload)) if notes_to_upload else 0
+                bar = '█' * filled + '░' * (bar_width - filled)
+                print(f"\r   [{bar}] {i:,}/{len(notes_to_upload):,} ({progress:.1f}%)", end='', flush=True)
+        
+        if notes_to_upload:
+            print()  # Newline after progress
+
+        # Update hash map after successful upload
+        new_hash_map = dict(old_hash_map)
+        new_hash_map.update(new_collection_hashes)
+        for guid, _, current_hash in notes_to_upload:
+            new_hash_map[guid] = current_hash
+        save_hash_map(new_hash_map, hash_map_file)
+        
+        if args.verbose:
+            print(f"\n   ✓ Updated hash map ({len(new_hash_map):,} entries)")
+        
+        print(f"\n✅ Done! Uploaded {total_to_upload:,} files")
         return
 
     if not args.dry_run:
@@ -722,7 +807,7 @@ R2 Directory Structure:
 
     # Stage individual notes (only changed notes for incremental upload)
     notes_to_upload = changed_notes if not args.full and old_hash_map else data['notes']
-    
+
     if args.verbose:
         print(f"\n   Staging individual notes ({len(notes_to_upload):,} to upload)...")
 
@@ -738,31 +823,47 @@ R2 Directory Structure:
             if note_file.exists():
                 note_file.unlink()
 
+    staging_errors = []
     for i, note in enumerate(notes_to_upload):
-        # GUID may contain special chars, use hash for filename
-        guid_hash = hashlib.md5(note['guid'].encode()).hexdigest()[:16]
-        local_path = notes_dir / f"{guid_hash}.json.gz"
-        note_data = {
-            'guid': note['guid'],
-            'mid': note['mid'],
-            'flds': note['flds'],
-            'tags': note['tags'],
-            'data': note['data'],
-        }
-        json_str = json.dumps(note_data, ensure_ascii=False, default=str).encode('utf-8')
-        content_gz = gzip.compress(json_str)
-        with open(local_path, 'wb') as f:
-            f.write(content_gz)
+        try:
+            # GUID may contain special chars, use hash for filename
+            guid_hash = hashlib.md5(note['guid'].encode()).hexdigest()[:16]
+            local_path = notes_dir / f"{guid_hash}.json.gz"
+            note_data = {
+                'guid': note['guid'],
+                'mid': note['mid'],
+                'flds': note['flds'],
+                'tags': note['tags'],
+                'data': note['data'],
+            }
+            json_str = json.dumps(note_data, ensure_ascii=False, default=str).encode('utf-8')
+            content_gz = gzip.compress(json_str)
+            with open(local_path, 'wb') as f:
+                f.write(content_gz)
+        except Exception as e:
+            staging_errors.append((note.get('guid', 'unknown'), str(e)))
 
         # Progress indicator
         if (i + 1) % 5000 == 0:
             print(f"   Progress: {i + 1:,}/{len(notes_to_upload):,} notes")
 
-    print(f"\n   ✓ Staged {len(notes_to_upload):,} individual notes")
+    # Report staging errors
+    if staging_errors:
+        print(f"\n   ⚠️  {len(staging_errors)} error(s) while staging notes:")
+        for guid, error in staging_errors[:10]:
+            print(f"      - {guid}: {error}")
+        if len(staging_errors) > 10:
+            print(f"      ... and {len(staging_errors) - 10} more")
+        print(f"   ⚠️  Some notes were NOT staged - check errors above")
+
+    notes_staged = len(notes_to_upload) - len(staging_errors)
+    print(f"\n   ✓ Staged {notes_staged:,}/{len(notes_to_upload):,} individual notes")
 
     # If --stage-only, skip upload prompt (don't update hash map yet)
     if args.stage_only:
         print(f"\n✅ Files staged in: {staging_dir}")
+        if staging_errors:
+            print(f"   ⚠️  {len(staging_errors)} note(s) failed to stage")
         print("   (Run 'upload-to-r2 --upload-only' to upload)")
         return
 

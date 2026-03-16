@@ -119,15 +119,17 @@ review_heatmap/data/cache/
 .anki-r2/
 *.anki-r2
 
-# Staging directory (temporary before upload)
+# Staging directory (temporary before upload) - includes hash_map.json
 data/cloudflare/
 
 # Graph output (contains merged private data)
 graph_output/
 
-# Hash map for incremental staging (SAFE for GitHub - just hashes)
-# But keep it local by default, user can commit if desired
+# Hash map for incremental staging (local cache, regenerated automatically)
+# Contains GUID -> content hash mappings for tracking uploaded notes
+# Safe to ignore - can be regenerated with: python3 data/anki/migrate-hash-map.py
 .hash_map.json
+data/cloudflare/hash_map.json
 
 # R2 private data files (full content, never GitHub)
 data/anki/cards-data.json.gz
