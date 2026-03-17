@@ -310,7 +310,7 @@ function handleAbbreviations(normalized, appendLine) {
 
 function handlePlotCommand(normalized, activeTimeRange, appendLine) {
   const plotMatch = normalized.match(
-    /^plots+(dues+deck|due|reviewss+times+decks+cumulative|reviewss+decks+times+cumulative|reviewss+decks+cumulative|reviewss+times+cumulative|reviewss+cumulative|reviewss+times+deck|reviewss+decks+time|reviewss+deck|reviewss+time|reviews|retention)s*(.*)$/,
+    /^plot\s+(due\s+deck|due|reviews\s+time\s+deck\s+cumulative|reviews\s+deck\s+time\s+cumulative|reviews\s+deck\s+cumulative|reviews\s+time\s+cumulative|reviews\s+cumulative|reviews\s+time\s+deck|reviews\s+deck\s+time|reviews\s+deck|reviews\s+time|reviews|retention)\s*(.*)$/,
   );
   if (plotMatch) {
     const [, chartType, rangeStr] = plotMatch;
@@ -456,7 +456,7 @@ function handlePlotCommand(normalized, activeTimeRange, appendLine) {
 
 function handleRegexCommands(normalized, activeTimeRange, appendLine) {
   // due deck [range]
-  const dueDeckMatch = normalized.match(/^dues+deck(?:s+(.+))?$/);
+  const dueDeckMatch = normalized.match(/^due\s+deck(?:\s+(.+))?$/);
   if (dueDeckMatch && normalized.startsWith("due deck")) {
     const range = dueDeckMatch[1] || activeTimeRange;
     if (isValidRange(range)) {
@@ -469,7 +469,7 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
   }
 
   // due [range]
-  const dueMatch = normalized.match(/^(due|future)(?:s+(.+))?$/);
+  const dueMatch = normalized.match(/^(due|future)(?:\s+(.+))?$/);
   if (dueMatch && !normalized.startsWith("due deck")) {
     const range = dueMatch[2] || activeTimeRange;
     if (isValidRange(range)) {
@@ -483,7 +483,7 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
 
   // reviews time deck cumulative [range]
   const rtdcMatch = normalized.match(
-    /^reviewss+(times+deck|decks+time)s+cumulative(?:s+(.+))?$/,
+    /^reviews\s+(time\s+deck|deck\s+time)\s+cumulative(?:\s+(.+))?$/,
   );
   if (rtdcMatch) {
     const range = rtdcMatch[2] || activeTimeRange;
@@ -501,7 +501,9 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
   }
 
   // reviews time cumulative [range]
-  const rtcMatch = normalized.match(/^reviewss+times+cumulative(?:s+(.+))?$/);
+  const rtcMatch = normalized.match(
+    /^reviews\s+time\s+cumulative(?:\s+(.+))?$/,
+  );
   if (rtcMatch && !normalized.includes("deck")) {
     const range = rtcMatch[1] || activeTimeRange;
     if (isValidRange(range)) {
@@ -518,7 +520,9 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
   }
 
   // reviews deck cumulative [range]
-  const rdcMatch = normalized.match(/^reviewss+decks+cumulative(?:s+(.+))?$/);
+  const rdcMatch = normalized.match(
+    /^reviews\s+deck\s+cumulative(?:\s+(.+))?$/,
+  );
   if (rdcMatch && !normalized.includes("time")) {
     const range = rdcMatch[1] || activeTimeRange;
     if (isValidRange(range)) {
@@ -535,7 +539,7 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
   }
 
   // reviews cumulative [range]
-  const rcMatch = normalized.match(/^reviewss+cumulative(?:s+(.+))?$/);
+  const rcMatch = normalized.match(/^reviews\s+cumulative(?:\s+(.+))?$/);
   if (rcMatch && !normalized.includes("time") && !normalized.includes("deck")) {
     const range = rcMatch[1] || activeTimeRange;
     if (isValidRange(range)) {
@@ -553,7 +557,7 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
 
   // reviews time deck [range]
   const rtdMatch = normalized.match(
-    /^reviewss+(times+deck|decks+time)(?:s+(.+))?$/,
+    /^reviews\s+(time\s+deck|deck\s+time)(?:\s+(.+))?$/,
   );
   if (rtdMatch && !normalized.includes("cumulative")) {
     const range = rtdMatch[2] || activeTimeRange;
@@ -571,7 +575,7 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
   }
 
   // reviews time [range]
-  const rtMatch = normalized.match(/^reviewss+time(?:s+(.+))?$/);
+  const rtMatch = normalized.match(/^reviews\s+time(?:\s+(.+))?$/);
   if (
     rtMatch &&
     !normalized.includes("deck") &&
@@ -588,7 +592,7 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
   }
 
   // reviews deck [range]
-  const rdMatch = normalized.match(/^reviewss+deck(?:s+(.+))?$/);
+  const rdMatch = normalized.match(/^reviews\s+deck(?:\s+(.+))?$/);
   if (
     rdMatch &&
     !normalized.includes("time") &&
@@ -605,7 +609,7 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
   }
 
   // reviews [range]
-  const rMatch = normalized.match(/^reviews(?:s+(.+))?$/);
+  const rMatch = normalized.match(/^reviews(?:\s+(.+))?$/);
   if (
     rMatch &&
     !normalized.includes("time") &&
@@ -631,7 +635,7 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
   }
 
   // retention [range]
-  const retMatch = normalized.match(/^retention(?:s+(.+))?$/);
+  const retMatch = normalized.match(/^retention(?:\s+(.+))?$/);
   if (retMatch && !normalized.startsWith("show")) {
     const range = retMatch[1] || activeTimeRange;
     if (isValidRange(range)) {
@@ -652,7 +656,7 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
 
   // show due [range] / show reviews [range]
   if (normalized.startsWith("show ")) {
-    const parts = normalized.split(/s+/);
+    const parts = normalized.split(/\s+/);
     if (parts[1] === "due" || parts[1] === "future") {
       const range = parts[2] || activeTimeRange;
       if (isValidRange(range)) {
@@ -692,9 +696,9 @@ export function handleCommand(input, appendLine) {
   const isShortcut = isValidRange(normalized);
 
   const dynamicPatterns = [
-    /^plots+(due|reviewss+times+deck|reviewss+decks+time|reviewss+deck|reviewss+time|reviews|retention)s+(.+)$/,
-    /^(due|future|reviewss+times+deck|reviewss+decks+time|reviewss+deck|reviewss+time|reviews|retention)s+(.+)$/,
-    /^shows+(due|future|reviews)s+(.+)$/,
+    /^plot\s+(due|reviews\s+time\s+deck|reviews\s+deck\s+time|reviews\s+deck|reviews\s+time|reviews|retention)\s+(.+)$/,
+    /^(due|future|reviews\s+time\s+deck|reviews\s+deck\s+time|reviews\s+deck|reviews\s+time|reviews|retention)\s+(.+)$/,
+    /^show\s+(due|future|reviews)\s+(.+)$/,
   ];
   const isDynamic = dynamicPatterns.some((re) => {
     const match = normalized.match(re);

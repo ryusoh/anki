@@ -113,7 +113,10 @@ audit:
 # Tests
 # -----------------------------------------------------------------------------
 
-check: check-data check-ranges check-commands check-legend check-trie check-timerange check-reviews check-debounce check-host check-date check-formatting check-logger check-smoothing check-handler-validation check-incremental-upload
+check: check-data check-ranges check-commands check-legend check-trie check-timerange check-reviews check-debounce check-host check-date check-formatting check-logger check-smoothing check-handler-validation check-handler-regression check-incremental-upload
+
+check-handler-regression:
+	@node tests/handler_regression.test.mjs
 
 check-debounce:
 	@node tests/debounce.test.js
