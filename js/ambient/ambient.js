@@ -154,6 +154,9 @@
     //   window.__ambient = { config: C, instance: s };
     // eslint-disable-next-line no-unused-vars
   } catch (e) {
-    console.debug("[ambient/ambient] Ambient background effect failed to load:", e);
+    console.debug(
+      "[ambient/ambient] Ambient background effect failed to load:",
+      e,
+    );
   }
 })();

@@ -77,8 +77,14 @@ export function clearCurrentChart() {
   currentChart = null;
 }
 
-
-function updateChartState(chartType, isTime, isDeck, isCumulative, appendLine, rangeOverride) {
+function updateChartState(
+  chartType,
+  isTime,
+  isDeck,
+  isCumulative,
+  appendLine,
+  rangeOverride,
+) {
   clearCurrentChart();
   const range = rangeOverride || activeTimeRange;
 
@@ -121,9 +127,23 @@ function handleTimeRangeShortcut(normalized, appendLine) {
     const isCumulative = currentChart.endsWith("-cumulative");
     const isTime = currentChart.includes("time");
     const isDeck = currentChart.includes("deck");
-    return updateChartState("reviews", isTime, isDeck, isCumulative, appendLine, normalized);
+    return updateChartState(
+      "reviews",
+      isTime,
+      isDeck,
+      isCumulative,
+      appendLine,
+      normalized,
+    );
   } else if (currentChart === "retention") {
-    return updateChartState("retention", false, false, false, appendLine, normalized);
+    return updateChartState(
+      "retention",
+      false,
+      false,
+      false,
+      appendLine,
+      normalized,
+    );
   } else if (currentChart === "due-deck") {
     return updateChartState("due", false, true, false, appendLine, normalized);
   } else {
@@ -140,15 +160,33 @@ function handleAbbreviations(normalized, appendLine) {
   if (normalized === "p" || normalized === "plot") {
     appendLine(
       "Usage: plot <due|reviews|reviews time|retention> [range]",
-      "muted"
+      "muted",
     );
     appendLine("Subcommands:", "muted");
-    appendLine("  plot due [range]               - Due forecast chart", "muted");
-    appendLine("  plot reviews [range]           - Review history chart", "muted");
-    appendLine("  plot reviews deck [range]      - Review history by deck", "muted");
-    appendLine("  plot reviews time [range]      - Review time history chart", "muted");
-    appendLine("  plot reviews time deck [range] - Review time history by deck", "muted");
-    appendLine("  plot retention [range]         - Retention rate chart", "muted");
+    appendLine(
+      "  plot due [range]               - Due forecast chart",
+      "muted",
+    );
+    appendLine(
+      "  plot reviews [range]           - Review history chart",
+      "muted",
+    );
+    appendLine(
+      "  plot reviews deck [range]      - Review history by deck",
+      "muted",
+    );
+    appendLine(
+      "  plot reviews time [range]      - Review time history chart",
+      "muted",
+    );
+    appendLine(
+      "  plot reviews time deck [range] - Review time history by deck",
+      "muted",
+    );
+    appendLine(
+      "  plot retention [range]         - Retention rate chart",
+      "muted",
+    );
     appendLine("Examples: pd, pd 3m, pr, pr 1y, prt 1y, prd 1m", "muted");
     return { handled: true, command: "plot" };
   }
@@ -176,7 +214,13 @@ function handleAbbreviations(normalized, appendLine) {
       if (s.time) cmd += "-time";
       if (s.deck) cmd += "-deck";
       if (s.cum) cmd += "-cumulative";
-      const res = updateChartState("reviews", s.time, s.deck, s.cum, appendLine);
+      const res = updateChartState(
+        "reviews",
+        s.time,
+        s.deck,
+        s.cum,
+        appendLine,
+      );
       res.command = cmd; // override command name for tests
       return res;
     }
@@ -193,7 +237,7 @@ function handleAbbreviations(normalized, appendLine) {
     rtc: { chart: "reviews", time: true, deck: false, cum: true },
     rtdc: { chart: "reviews", time: true, deck: true, cum: true },
     rdtc: { chart: "reviews", time: true, deck: true, cum: true },
-    rtd: { chart: "reviews", time: true, deck: true, cum: false }
+    rtd: { chart: "reviews", time: true, deck: true, cum: false },
   };
 
   if (switchShortcuts[normalized]) {
@@ -211,7 +255,13 @@ function handleAbbreviations(normalized, appendLine) {
       const isCumulative = !currentChart.endsWith("-cumulative");
       const isTime = currentChart.includes("time");
       const isDeck = currentChart.includes("deck");
-      return updateChartState("reviews", isTime, isDeck, isCumulative, appendLine);
+      return updateChartState(
+        "reviews",
+        isTime,
+        isDeck,
+        isCumulative,
+        appendLine,
+      );
     } else {
       return updateChartState("reviews", false, false, true, appendLine);
     }
@@ -222,7 +272,13 @@ function handleAbbreviations(normalized, appendLine) {
       const isCumulative = currentChart.endsWith("-cumulative");
       const isTime = !currentChart.includes("time");
       const isDeck = currentChart.includes("deck");
-      return updateChartState("reviews", isTime, isDeck, isCumulative, appendLine);
+      return updateChartState(
+        "reviews",
+        isTime,
+        isDeck,
+        isCumulative,
+        appendLine,
+      );
     } else {
       return updateChartState("reviews", true, false, false, appendLine);
     }
@@ -233,7 +289,13 @@ function handleAbbreviations(normalized, appendLine) {
       const isCumulative = currentChart.endsWith("-cumulative");
       const isTime = currentChart.includes("time");
       const isDeck = !currentChart.includes("deck");
-      return updateChartState("reviews", isTime, isDeck, isCumulative, appendLine);
+      return updateChartState(
+        "reviews",
+        isTime,
+        isDeck,
+        isCumulative,
+        appendLine,
+      );
     } else if (currentChart === "due") {
       return updateChartState("due", false, true, false, appendLine);
     } else if (currentChart === "due-deck") {
@@ -261,47 +323,130 @@ function handlePlotCommand(normalized, activeTimeRange, appendLine) {
     }
 
     if (chartType === "due") {
-      const res = updateChartState("due", false, false, false, appendLine, range);
+      const res = updateChartState(
+        "due",
+        false,
+        false,
+        false,
+        appendLine,
+        range,
+      );
       res.command = "plot-due";
       return res;
     } else if (chartType === "due deck") {
-      const res = updateChartState("due", false, true, false, appendLine, range);
+      const res = updateChartState(
+        "due",
+        false,
+        true,
+        false,
+        appendLine,
+        range,
+      );
       res.command = "plot-due-deck";
       return res;
     } else if (chartType === "reviews time") {
-      const res = updateChartState("reviews", true, false, false, appendLine, range);
+      const res = updateChartState(
+        "reviews",
+        true,
+        false,
+        false,
+        appendLine,
+        range,
+      );
       res.command = "plot-reviews-time";
       return res;
     } else if (chartType === "reviews") {
-      const res = updateChartState("reviews", false, false, false, appendLine, range);
+      const res = updateChartState(
+        "reviews",
+        false,
+        false,
+        false,
+        appendLine,
+        range,
+      );
       res.command = "plot-reviews";
       return res;
-    } else if (chartType === "reviews time deck" || chartType === "reviews deck time") {
-      const res = updateChartState("reviews", true, true, false, appendLine, range);
+    } else if (
+      chartType === "reviews time deck" ||
+      chartType === "reviews deck time"
+    ) {
+      const res = updateChartState(
+        "reviews",
+        true,
+        true,
+        false,
+        appendLine,
+        range,
+      );
       res.command = "plot-reviews-time-deck";
       return res;
     } else if (chartType === "reviews deck") {
-      const res = updateChartState("reviews", false, true, false, appendLine, range);
+      const res = updateChartState(
+        "reviews",
+        false,
+        true,
+        false,
+        appendLine,
+        range,
+      );
       res.command = "plot-reviews-deck";
       return res;
     } else if (chartType === "reviews time cumulative") {
-      const res = updateChartState("reviews", true, false, true, appendLine, range);
+      const res = updateChartState(
+        "reviews",
+        true,
+        false,
+        true,
+        appendLine,
+        range,
+      );
       res.command = "plot-reviews-time-cumulative";
       return res;
     } else if (chartType === "reviews cumulative") {
-      const res = updateChartState("reviews", false, false, true, appendLine, range);
+      const res = updateChartState(
+        "reviews",
+        false,
+        false,
+        true,
+        appendLine,
+        range,
+      );
       res.command = "plot-reviews-cumulative";
       return res;
-    } else if (chartType === "reviews time deck cumulative" || chartType === "reviews deck time cumulative") {
-      const res = updateChartState("reviews", true, true, true, appendLine, range);
+    } else if (
+      chartType === "reviews time deck cumulative" ||
+      chartType === "reviews deck time cumulative"
+    ) {
+      const res = updateChartState(
+        "reviews",
+        true,
+        true,
+        true,
+        appendLine,
+        range,
+      );
       res.command = "plot-reviews-time-deck-cumulative";
       return res;
     } else if (chartType === "reviews deck cumulative") {
-      const res = updateChartState("reviews", false, true, true, appendLine, range);
+      const res = updateChartState(
+        "reviews",
+        false,
+        true,
+        true,
+        appendLine,
+        range,
+      );
       res.command = "plot-reviews-deck-cumulative";
       return res;
     } else {
-      const res = updateChartState("retention", false, false, false, appendLine, range);
+      const res = updateChartState(
+        "retention",
+        false,
+        false,
+        false,
+        appendLine,
+        range,
+      );
       res.command = "plot-retention";
       return res;
     }
@@ -337,7 +482,9 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
   }
 
   // reviews time deck cumulative [range]
-  const rtdcMatch = normalized.match(/^reviewss+(times+deck|decks+time)s+cumulative(?:s+(.+))?$/);
+  const rtdcMatch = normalized.match(
+    /^reviewss+(times+deck|decks+time)s+cumulative(?:s+(.+))?$/,
+  );
   if (rtdcMatch) {
     const range = rtdcMatch[2] || activeTimeRange;
     if (isValidRange(range)) {
@@ -345,7 +492,11 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
     } else if (rtdcMatch[2]) {
       appendLine(`Unknown range: ${rtdcMatch[2]}`, "warn");
       appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
-      return { handled: true, command: "reviews-time-deck-cumulative", error: "invalid range" };
+      return {
+        handled: true,
+        command: "reviews-time-deck-cumulative",
+        error: "invalid range",
+      };
     }
   }
 
@@ -358,7 +509,11 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
     } else if (rtcMatch[1]) {
       appendLine(`Unknown range: ${rtcMatch[1]}`, "warn");
       appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
-      return { handled: true, command: "reviews-time-cumulative", error: "invalid range" };
+      return {
+        handled: true,
+        command: "reviews-time-cumulative",
+        error: "invalid range",
+      };
     }
   }
 
@@ -371,7 +526,11 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
     } else if (rdcMatch[1]) {
       appendLine(`Unknown range: ${rdcMatch[1]}`, "warn");
       appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
-      return { handled: true, command: "reviews-deck-cumulative", error: "invalid range" };
+      return {
+        handled: true,
+        command: "reviews-deck-cumulative",
+        error: "invalid range",
+      };
     }
   }
 
@@ -384,12 +543,18 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
     } else if (rcMatch[1]) {
       appendLine(`Unknown range: ${rcMatch[1]}`, "warn");
       appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
-      return { handled: true, command: "reviews-cumulative", error: "invalid range" };
+      return {
+        handled: true,
+        command: "reviews-cumulative",
+        error: "invalid range",
+      };
     }
   }
 
   // reviews time deck [range]
-  const rtdMatch = normalized.match(/^reviewss+(times+deck|decks+time)(?:s+(.+))?$/);
+  const rtdMatch = normalized.match(
+    /^reviewss+(times+deck|decks+time)(?:s+(.+))?$/,
+  );
   if (rtdMatch && !normalized.includes("cumulative")) {
     const range = rtdMatch[2] || activeTimeRange;
     if (isValidRange(range)) {
@@ -397,13 +562,21 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
     } else if (rtdMatch[2]) {
       appendLine(`Unknown range: ${rtdMatch[2]}`, "warn");
       appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
-      return { handled: true, command: "reviews-time-deck", error: "invalid range" };
+      return {
+        handled: true,
+        command: "reviews-time-deck",
+        error: "invalid range",
+      };
     }
   }
 
   // reviews time [range]
   const rtMatch = normalized.match(/^reviewss+time(?:s+(.+))?$/);
-  if (rtMatch && !normalized.includes("deck") && !normalized.includes("cumulative")) {
+  if (
+    rtMatch &&
+    !normalized.includes("deck") &&
+    !normalized.includes("cumulative")
+  ) {
     const range = rtMatch[1] || activeTimeRange;
     if (isValidRange(range)) {
       return updateChartState("reviews", true, false, false, appendLine, range);
@@ -416,7 +589,11 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
 
   // reviews deck [range]
   const rdMatch = normalized.match(/^reviewss+deck(?:s+(.+))?$/);
-  if (rdMatch && !normalized.includes("time") && !normalized.includes("cumulative")) {
+  if (
+    rdMatch &&
+    !normalized.includes("time") &&
+    !normalized.includes("cumulative")
+  ) {
     const range = rdMatch[1] || activeTimeRange;
     if (isValidRange(range)) {
       return updateChartState("reviews", false, true, false, appendLine, range);
@@ -429,10 +606,23 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
 
   // reviews [range]
   const rMatch = normalized.match(/^reviews(?:s+(.+))?$/);
-  if (rMatch && !normalized.includes("time") && !normalized.includes("deck") && !normalized.includes("cumulative") && !normalized.startsWith("show")) {
+  if (
+    rMatch &&
+    !normalized.includes("time") &&
+    !normalized.includes("deck") &&
+    !normalized.includes("cumulative") &&
+    !normalized.startsWith("show")
+  ) {
     const range = rMatch[1] || activeTimeRange;
     if (isValidRange(range)) {
-      return updateChartState("reviews", false, false, false, appendLine, range);
+      return updateChartState(
+        "reviews",
+        false,
+        false,
+        false,
+        appendLine,
+        range,
+      );
     } else if (rMatch[1]) {
       appendLine(`Unknown range: ${rMatch[1]}`, "warn");
       appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
@@ -445,7 +635,14 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
   if (retMatch && !normalized.startsWith("show")) {
     const range = retMatch[1] || activeTimeRange;
     if (isValidRange(range)) {
-      return updateChartState("retention", false, false, false, appendLine, range);
+      return updateChartState(
+        "retention",
+        false,
+        false,
+        false,
+        appendLine,
+        range,
+      );
     } else if (retMatch[1]) {
       appendLine(`Unknown range: ${retMatch[1]}`, "warn");
       appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
@@ -464,7 +661,14 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
     } else if (parts[1] === "reviews") {
       const range = parts[2] || activeTimeRange;
       if (isValidRange(range)) {
-        return updateChartState("reviews", false, false, false, appendLine, range);
+        return updateChartState(
+          "reviews",
+          false,
+          false,
+          false,
+          appendLine,
+          range,
+        );
       }
     }
     appendLine(`Unknown chart: ${parts[1]}`, "warn");
@@ -535,7 +739,6 @@ export function handleCommand(input, appendLine) {
 
   return { handled: false };
 }
-
 
 export function showHelp(appendLine) {
   appendLine("Available commands:", "muted");
