@@ -76,7 +76,6 @@ def test_note_hash_computation():
     print("   ✓ Empty note produces valid hash")
     
     print("   ✅ Note Hash Computation: PASSED")
-    return True
 
 
 def test_collection_file_hash():
@@ -112,7 +111,6 @@ def test_collection_file_hash():
     print("   ✓ Empty list produces valid hash")
     
     print("   ✅ Collection File Hash Computation: PASSED")
-    return True
 
 
 # =============================================================================
@@ -193,7 +191,6 @@ def test_find_changed_notes():
     print("   ✓ Multiple changes detected")
     
     print("   ✅ Find Changed Notes: PASSED")
-    return True
 
 
 def test_collection_file_change_detection():
@@ -240,7 +237,6 @@ def test_collection_file_change_detection():
     print("   ✓ New file detected")
     
     print("   ✅ Collection File Change Detection: PASSED")
-    return True
 
 
 # =============================================================================
@@ -282,7 +278,6 @@ def test_hash_map_save_load():
         print("   ✓ Corrupted file returns empty dict")
     
     print("   ✅ Hash Map Save/Load: PASSED")
-    return True
 
 
 def test_update_hash_map():
@@ -330,7 +325,6 @@ def test_update_hash_map():
     print("   ✓ New note added to hash map")
     
     print("   ✅ Update Hash Map: PASSED")
-    return True
 
 
 # =============================================================================
@@ -380,7 +374,6 @@ def test_corrupted_note_file_handling():
         print(f"   ✓ Error reported: {errors[0][1]}")
     
     print("   ✅ Corrupted Note File Handling: PASSED")
-    return True
 
 
 def test_missing_collection_file_handling():
@@ -417,7 +410,6 @@ def test_missing_collection_file_handling():
         print("   ✓ Existing file detected")
     
     print("   ✅ Missing Collection File Handling: PASSED")
-    return True
 
 
 def test_empty_hash_map_first_run():
@@ -448,7 +440,6 @@ def test_empty_hash_map_first_run():
     print("   ✓ All collection files detected as new on first run")
     
     print("   ✅ First Run: PASSED")
-    return True
 
 
 # =============================================================================
@@ -527,7 +518,6 @@ def test_full_incremental_workflow():
         print("   ✓ Fourth run: modified + new notes detected")
     
     print("   ✅ Full Incremental Workflow: PASSED")
-    return True
 
 
 # =============================================================================
@@ -596,7 +586,6 @@ def test_upload_only_checks_hash_map():
         print("   ✓ Modified note detected for upload")
     
     print("   ✅ Upload-Only Checks Hash Map: PASSED")
-    return True
 
 
 def test_fetch_does_not_update_hash_map():
@@ -666,7 +655,6 @@ def test_fetch_does_not_update_hash_map():
         print("   ✓ Hash map updated after upload")
     
     print("   ✅ Fetch Does Not Update Hash Map: PASSED")
-    return True
 
 
 def test_upload_only_detects_new_notes():
@@ -722,7 +710,6 @@ def test_upload_only_detects_new_notes():
         print("   ✓ New note detected when hash map is from yesterday")
     
     print("   ✅ Upload-Only Detects New Notes: PASSED")
-    return True
 
 
 def run_all_tests():
@@ -753,8 +740,8 @@ def run_all_tests():
     
     for name, test_func in tests:
         try:
-            if test_func():
-                passed += 1
+            test_func()
+            passed += 1
         except AssertionError as e:
             print(f"   ✗ FAILED: {e}")
             failed += 1
