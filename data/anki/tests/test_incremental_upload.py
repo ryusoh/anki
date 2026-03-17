@@ -51,7 +51,6 @@ def test_compute_file_hash():
     print("   ✓ Dict key order doesn't affect hash")
     
     print("   ✅ compute_file_hash tests passed")
-    return True
 
 
 def test_collection_file_change_detection():
@@ -81,7 +80,6 @@ def test_collection_file_change_detection():
     print("   ✓ Modified note detected")
     
     print("   ✅ collection_file_change_detection tests passed")
-    return True
 
 
 def test_collection_hash_map():
@@ -116,7 +114,6 @@ def test_collection_hash_map():
         print("   ✓ Update collection hash map")
         
         print("   ✅ collection_hash_map tests passed")
-    return True
 
 
 def test_find_changed_collection_files():
@@ -164,7 +161,6 @@ def test_find_changed_collection_files():
     print("   ✓ New collection file detected")
     
     print("   ✅ find_changed_collection_files tests passed")
-    return True
 
 
 def test_incremental_collection_staging():
@@ -204,7 +200,6 @@ def test_incremental_collection_staging():
         assert "collection/cards-data.json.gz" in files_to_stage, "New cards should be staged"
         
         print("   ✅ incremental_collection_staging tests passed")
-    return True
 
 
 def test_full_incremental_workflow():
@@ -271,7 +266,6 @@ def test_full_incremental_workflow():
         print("   ✓ Third run: only modified files staged")
         
         print("   ✅ full_incremental_workflow tests passed")
-    return True
 
 
 def run_all_tests():
@@ -294,8 +288,8 @@ def run_all_tests():
     
     for test in tests:
         try:
-            if test():
-                passed += 1
+            test()
+            passed += 1
         except AssertionError as e:
             print(f"   ✗ FAILED: {e}")
             failed += 1

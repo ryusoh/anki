@@ -4,11 +4,11 @@ PYTHON := python3
 NPM := npm
 
 # File patterns for formatters/linters (exclude vendor, data, and node_modules directories)
-JS_FILES := $(shell git ls-files --cached --others --exclude-standard '*.js' 2>/dev/null | grep -v '^js/vendor/' | grep -v '^assets/vendor/' | grep -v '^data/' | grep -v 'node_modules')
-CSS_FILES := $(shell git ls-files --cached --others --exclude-standard '*.css' 2>/dev/null | grep -v '^assets/vendor/')
-MD_FILES := $(shell git ls-files --cached --others --exclude-standard '*.md' 2>/dev/null)
-HTML_FILES := $(shell git ls-files --cached --others --exclude-standard '*.html' 2>/dev/null)
-JSON_FILES := $(shell git ls-files --cached --others --exclude-standard '*.json' 2>/dev/null | grep -v '^data/' | grep -v '^graph/' | grep -v 'package-lock.json' | grep -v 'custom_stats_data.json' | grep -v 'review_stats_data.json')
+JS_FILES := $(shell git ls-files --cached --others --exclude-standard '*.js' 2>/dev/null | grep -v '^js/vendor/' | grep -v '^assets/vendor/' | grep -v '^data/' | grep -v '^coverage/' | grep -v 'node_modules')
+CSS_FILES := $(shell git ls-files --cached --others --exclude-standard '*.css' 2>/dev/null | grep -v '^assets/vendor/' | grep -v '^coverage/')
+MD_FILES := $(shell git ls-files --cached --others --exclude-standard '*.md' 2>/dev/null | grep -v '^coverage/')
+HTML_FILES := $(shell git ls-files --cached --others --exclude-standard '*.html' 2>/dev/null | grep -v '^coverage/')
+JSON_FILES := $(shell git ls-files --cached --others --exclude-standard '*.json' 2>/dev/null | grep -v '^data/' | grep -v '^graph/' | grep -v '^coverage/' | grep -v 'package-lock.json' | grep -v 'custom_stats_data.json' | grep -v 'review_stats_data.json')
 PRETTIER_FILES := $(JS_FILES) $(CSS_FILES) $(MD_FILES) $(HTML_FILES) $(JSON_FILES)
 
 help:
@@ -113,60 +113,21 @@ audit:
 # Tests
 # -----------------------------------------------------------------------------
 
-check: check-data check-ranges check-commands check-legend check-trie check-timerange check-reviews check-debounce check-host check-date check-formatting check-logger check-smoothing check-handler-validation check-handler-regression check-incremental-upload
+check: check-node check-py
+
+check-node:
+	@node tools/node_test_runner.mjs
 
 check-handler-regression:
 	@node tests/handler_regression.test.mjs
 
-check-debounce:
-	@node tests/debounce.test.js
-
-check-formatting:
-	@node tests/formatting.test.js
-
-check-logger:
-	@node tests/logger.test.js
-
-check-smoothing:
-	@node tests/smoothing.test.js
-
-check-host:
-	@node tests/host.test.js
-
-check-date:
-	@node tests/date.test.js
-
 check-handler-validation:
 	@node tests/validateCommand.real.test.mjs
 
-check-data:
-	@node tests/data_files.test.cjs
-
-check-ranges:
-	@node tests/terminal_time_ranges.test.cjs
-
-check-commands:
-	@node tests/commands.test.cjs
-
-check-legend:
-	@node tests/legend.test.cjs
-
-check-trie:
-	@node tests/trie.test.cjs
-
-check-timerange:
-	@node tests/timeRange.test.cjs
-
-check-reviews:
-	@node tests/reviews.test.cjs
-
-check-incremental-upload: check-incremental-basic check-incremental-comprehensive
-
-check-incremental-basic:
-	@python3 data/anki/tests/test_incremental_upload.py
-
-check-incremental-comprehensive:
-	@python3 data/anki/tests/test_incremental_upload_comprehensive.py
+check-py:
+	@echo "🐍 Running Python Test Suite..."
+	@pytest -q --disable-warnings data/anki/tests/test_incremental_upload.py data/anki/tests/test_incremental_upload_comprehensive.py data/anki/tests/test_calculate_future_due.py data/anki/tests/test_fail_open.py
+	@echo "✅ Python tests complete"
 
 # -----------------------------------------------------------------------------
 # Pre-commit Checks

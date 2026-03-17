@@ -313,7 +313,9 @@ function handlePlotCommand(normalized, activeTimeRange, appendLine) {
     /^plot\s+(due\s+deck|due|reviews\s+time\s+deck\s+cumulative|reviews\s+deck\s+time\s+cumulative|reviews\s+deck\s+cumulative|reviews\s+time\s+cumulative|reviews\s+cumulative|reviews\s+time\s+deck|reviews\s+deck\s+time|reviews\s+deck|reviews\s+time|reviews|retention)\s*(.*)$/,
   );
   if (plotMatch) {
-    const [, chartType, rangeStr] = plotMatch;
+    let [, chartType, rangeStr] = plotMatch;
+    // Normalize chartType spaces to single space for easier comparison
+    chartType = chartType.replace(/\s+/g, " ");
     const range = rangeStr.trim() || activeTimeRange;
 
     if (range && !isValidRange(range)) {
@@ -457,7 +459,7 @@ function handlePlotCommand(normalized, activeTimeRange, appendLine) {
 function handleRegexCommands(normalized, activeTimeRange, appendLine) {
   // due deck [range]
   const dueDeckMatch = normalized.match(/^due\s+deck(?:\s+(.+))?$/);
-  if (dueDeckMatch && normalized.startsWith("due deck")) {
+  if (dueDeckMatch) {
     const range = dueDeckMatch[1] || activeTimeRange;
     if (isValidRange(range)) {
       return updateChartState("due", false, true, false, appendLine, range);
@@ -470,7 +472,7 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
 
   // due [range]
   const dueMatch = normalized.match(/^(due|future)(?:\s+(.+))?$/);
-  if (dueMatch && !normalized.startsWith("due deck")) {
+  if (dueMatch && !normalized.includes("deck")) {
     const range = dueMatch[2] || activeTimeRange;
     if (isValidRange(range)) {
       return updateChartState("due", false, false, false, appendLine, range);
