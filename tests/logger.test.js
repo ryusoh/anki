@@ -46,8 +46,8 @@ function runTests() {
       // Mock window
       global.window = {
         location: {
-          hostname: "localhost"
-        }
+          hostname: "localhost",
+        },
       };
       assert.strictEqual(isDevelopment(), true);
 
@@ -68,27 +68,29 @@ function runTests() {
 
       global.window.location.hostname = "app.prod.com";
       assert.strictEqual(isDevelopment(), false);
-
     } finally {
       global.window = oldWindow;
       global.process = oldProcess;
     }
   });
 
-  runTest("isDevelopment defaults to true if neither process nor window exists", () => {
-    const oldProcess = global.process;
-    const oldWindow = global.window;
+  runTest(
+    "isDevelopment defaults to true if neither process nor window exists",
+    () => {
+      const oldProcess = global.process;
+      const oldWindow = global.window;
 
-    try {
-      global.process = undefined;
-      global.window = undefined;
+      try {
+        global.process = undefined;
+        global.window = undefined;
 
-      assert.strictEqual(isDevelopment(), true);
-    } finally {
-      global.process = oldProcess;
-      global.window = oldWindow;
-    }
-  });
+        assert.strictEqual(isDevelopment(), true);
+      } finally {
+        global.process = oldProcess;
+        global.window = oldWindow;
+      }
+    },
+  );
 
   runTest("logger methods call console methods when in development", () => {
     const oldNodeEnv = process.env.NODE_ENV;
@@ -153,7 +155,9 @@ function runTests() {
     console.log("[ERROR] TESTS FAILED - Logger utility has issues\n");
     process.exit(1);
   } else {
-    console.log("[SUCCESS] ALL TESTS PASSED - Logger utility working correctly");
+    console.log(
+      "[SUCCESS] ALL TESTS PASSED - Logger utility working correctly",
+    );
   }
 }
 

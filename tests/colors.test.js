@@ -3,16 +3,17 @@ import assert from "assert";
 // Mock the DOM environment needed by js/config.js before importing
 // Must be global for ES module evaluation phase when using top level imports
 global.document = {
-  querySelector: () => null
+  querySelector: () => null,
 };
 global.window = {
   getComputedStyle: () => ({ getPropertyValue: () => "" }),
-  matchMedia: () => ({ matches: false })
+  matchMedia: () => ({ matches: false }),
 };
 
 async function runTests() {
   // Use dynamic import so global mocks are established BEFORE module evaluation
-  const { getBlueColorForSlice, hexToRgba } = await import("../js/utils/colors.js");
+  const { getBlueColorForSlice, hexToRgba } =
+    await import("../js/utils/colors.js");
 
   let passed = 0;
   let failed = 0;
@@ -69,11 +70,14 @@ async function runTests() {
     assert.strictEqual(hexToRgba("#123", 0.75), "rgba(17, 34, 51, 0.75)");
   });
 
-  runTest("hexToRgba returns rgba(0, 0, 0, alpha) for invalid hex length", () => {
-    assert.strictEqual(hexToRgba("#FF00000", 0.5), "rgba(0, 0, 0, 0.5)");
-    assert.strictEqual(hexToRgba("#F0", 1), "rgba(0, 0, 0, 1)");
-    assert.strictEqual(hexToRgba("", 0.2), "rgba(0, 0, 0, 0.2)");
-  });
+  runTest(
+    "hexToRgba returns rgba(0, 0, 0, alpha) for invalid hex length",
+    () => {
+      assert.strictEqual(hexToRgba("#FF00000", 0.5), "rgba(0, 0, 0, 0.5)");
+      assert.strictEqual(hexToRgba("#F0", 1), "rgba(0, 0, 0, 1)");
+      assert.strictEqual(hexToRgba("", 0.2), "rgba(0, 0, 0, 0.2)");
+    },
+  );
 
   // Summary
   console.log("\n" + "=".repeat(60));
@@ -83,12 +87,14 @@ async function runTests() {
     console.log("[ERROR] TESTS FAILED - Colors utility has issues\n");
     process.exit(1);
   } else {
-    console.log("[SUCCESS] ALL TESTS PASSED - Colors utility working correctly");
+    console.log(
+      "[SUCCESS] ALL TESTS PASSED - Colors utility working correctly",
+    );
     process.exit(0);
   }
 }
 
-runTests().catch(err => {
+runTests().catch((err) => {
   console.error(err);
   process.exit(1);
 });
