@@ -20,6 +20,8 @@ const tests = [
   { name: 'Debounce', path: 'tests/debounce.test.js' },
   { name: 'Formatting', path: 'tests/formatting.test.js' },
   { name: 'Logger', path: 'tests/logger.test.js' },
+  { name: 'Colors', path: 'tests/colors.test.js' },
+  { name: 'Easing', path: 'tests/easing.test.js' },
   { name: 'Smoothing', path: 'tests/smoothing.test.js' },
   { name: 'Host', path: 'tests/host.test.js' },
   { name: 'Date', path: 'tests/date.test.js' },
