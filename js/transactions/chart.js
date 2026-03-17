@@ -4040,7 +4040,9 @@ async function drawPerformanceChart(ctx, chartManager, timestamp) {
     return;
   }
 
-  const allTimes = allPoints.map((p) => new Date(p.date).getTime());
+  const allTimes = allPoints.map((p) =>
+    p.date instanceof Date ? p.date.getTime() : new Date(p.date).getTime(),
+  );
   const minTime = Math.min(...allTimes);
   const maxTime = Math.max(...allTimes);
   const allValues = allPoints.map((p) => p.value);
@@ -4129,14 +4131,29 @@ async function drawPerformanceChart(ctx, chartManager, timestamp) {
     const smoothingConfig = getSmoothingConfig("performance");
     const smoothedPoints = smoothingConfig
       ? smoothFinancialData(
-          rawPoints.map((p) => ({ x: new Date(p.date).getTime(), y: p.value })),
+          rawPoints.map((p) => ({
+            x:
+              p.date instanceof Date
+                ? p.date.getTime()
+                : new Date(p.date).getTime(),
+            y: p.value,
+          })),
           smoothingConfig,
           true, // preserveEnd - keep the last point unchanged
         )
-      : rawPoints.map((p) => ({ x: new Date(p.date).getTime(), y: p.value }));
+      : rawPoints.map((p) => ({
+          x:
+            p.date instanceof Date
+              ? p.date.getTime()
+              : new Date(p.date).getTime(),
+          y: p.value,
+        }));
 
+    // ⚡ Bolt Performance Optimization:
+    // Avoid re-instantiating `new Date(p.x)` objects inside this hot render loop.
+    // We store the timestamp `p.x` directly as `date` to eliminate GC pressure.
     const points = smoothedPoints.map((p) => ({
-      date: new Date(p.x),
+      date: p.x,
       value: p.y,
     }));
     const gradientStops = BENCHMARK_GRADIENTS[series.key];
@@ -4159,7 +4176,11 @@ async function drawPerformanceChart(ctx, chartManager, timestamp) {
     }
 
     const coords = points.map((point) => {
-      const time = new Date(point.date).getTime();
+      // Use the pre-computed timestamp directly
+      const time =
+        typeof point.date === "number"
+          ? point.date
+          : new Date(point.date).getTime();
       const x = xScale(time);
       const y = yScale(point.value);
       return { x, y, time, value: point.value };

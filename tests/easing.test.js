@@ -36,10 +36,16 @@ function runTests() {
     const nearStart = easeInOutSine(0.1);
     const nearEnd = easeInOutSine(0.9);
 
-    assert.ok(nearStart > 0 && nearStart < 0.5, `Expected nearStart to be (0, 0.5), got ${nearStart}`);
-    assert.ok(nearEnd > 0.5 && nearEnd < 1, `Expected nearEnd to be (0.5, 1), got ${nearEnd}`);
+    assert.ok(
+      nearStart > 0 && nearStart < 0.5,
+      `Expected nearStart to be (0, 0.5), got ${nearStart}`,
+    );
+    assert.ok(
+      nearEnd > 0.5 && nearEnd < 1,
+      `Expected nearEnd to be (0.5, 1), got ${nearEnd}`,
+    );
     // Symmetric check
-    assert.ok(Math.abs((1 - nearEnd) - nearStart) < 1e-10, "Should be symmetric");
+    assert.ok(Math.abs(1 - nearEnd - nearStart) < 1e-10, "Should be symmetric");
   });
 
   // Summary
@@ -50,7 +56,9 @@ function runTests() {
     console.log("[ERROR] TESTS FAILED - Easing utility has issues\n");
     process.exit(1);
   } else {
-    console.log("[SUCCESS] ALL TESTS PASSED - Easing utility working correctly");
+    console.log(
+      "[SUCCESS] ALL TESTS PASSED - Easing utility working correctly",
+    );
     process.exit(0);
   }
 }
