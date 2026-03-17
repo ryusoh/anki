@@ -422,7 +422,10 @@ function createFilterDropdown(column) {
   options.forEach((option) => {
     const div = document.createElement("div");
     div.textContent = option;
-    div.addEventListener("click", (e) => {
+    div.role = "button";
+    div.tabIndex = 0;
+
+    const applyFilter = (e) => {
       e.stopPropagation();
       const command =
         option === "All"
@@ -434,7 +437,16 @@ function createFilterDropdown(column) {
       }
       filterAndSort(command);
       closeAllFilterDropdowns();
+    };
+
+    div.addEventListener("click", applyFilter);
+    div.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        applyFilter(e);
+      }
     });
+
     dropdown.appendChild(div);
   });
 
