@@ -119,21 +119,28 @@ review_heatmap/data/cache/
 .anki-r2/
 *.anki-r2
 
-# Staging directory (temporary before upload) - includes hash_map.json
-data/cloudflare/
+# Staging directory (temporary before upload)
+# Note: hash_map.json is tracked (force added), other files ignored below
+data/cloudflare/notes/
+data/cloudflare/collection/
 
 # Graph output (contains merged private data)
 graph_output/
 
-# Hash map for incremental staging (DO NOT COMMIT)
+# Hash map for incremental staging (OPTIONAL - can commit for multi-machine sync)
 # Contains: GUID -> SHA256(flds+tags+mid) mappings
-# Why ignore:
-#   - Can be regenerated: python3 data/anki/migrate-hash-map.py
-#   - Contains plain GUIDs (privacy concern if DB leaks)
-#   - Changes frequently (git noise)
-# Backup locally via Time Machine
+#
+# To commit (recommended for multi-machine use):
+#   git add data/cloudflare/hash_map.json
+#   git commit -m "Add hash map for incremental R2 uploads"
+#
+# To keep local only:
+#   Keep this in .gitignore, backup via Time Machine
+#   Regenerate: python3 data/anki/migrate-hash-map.py
+#
+# Privacy: SHA256 hashes can't be reversed, GUIDs are in your Anki DB already
 .hash_map.json
-data/cloudflare/hash_map.json
+# data/cloudflare/hash_map.json  # Uncomment to allow committing
 
 # R2 private data files (full content, never GitHub)
 data/anki/cards-data.json.gz
