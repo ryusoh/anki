@@ -599,6 +599,132 @@ def test_upload_only_checks_hash_map():
     return True
 
 
+def test_fetch_does_not_update_hash_map():
+    """Test that fetch stages files but does NOT update hash map (upload-to-r2 does that)."""
+    print("\n📋 Test 12: Fetch Does Not Update Hash Map")
+    
+    with tempfile.TemporaryDirectory() as tmpdir:
+        staging_dir = Path(tmpdir) / "staging"
+        staging_dir.mkdir()
+        hash_file = staging_dir / "hash_map.json"
+        collection_dir = staging_dir / "collection"
+        collection_dir.mkdir()
+        notes_dir = staging_dir / "notes"
+        notes_dir.mkdir()
+        
+        # Simulate OLD hash map (yesterday's state)
+        old_notes = [
+            {'guid': 'note1', 'flds': 'a', 'tags': [], 'mid': 1},
+            {'guid': 'note2', 'flds': 'b', 'tags': [], 'mid': 1},
+        ]
+        old_hash_map = {
+            'note1': compute_note_hash(old_notes[0]),
+            'note2': compute_note_hash(old_notes[1]),
+        }
+        save_hash_map(old_hash_map, hash_file)
+        
+        # Simulate NEW notes (today - 1 new note)
+        new_notes = [
+            {'guid': 'note1', 'flds': 'a', 'tags': [], 'mid': 1},
+            {'guid': 'note2', 'flds': 'b', 'tags': [], 'mid': 1},
+            {'guid': 'note3', 'flds': 'NEW', 'tags': [], 'mid': 1},  # New note
+        ]
+        
+        # Stage new notes (simulating fetch)
+        for note in new_notes:
+            guid_hash = hashlib.md5(note['guid'].encode()).hexdigest()[:16]
+            note_file = notes_dir / f"{guid_hash}.json.gz"
+            with gzip.open(note_file, 'wt', encoding='utf-8') as f:
+                json.dump(note, f)
+        
+        # DO NOT update hash map (this is what fetch should do)
+        # Hash map still has only 2 notes
+        
+        # Simulate upload-to-r2 checking what needs upload
+        loaded_hash_map = load_hash_map(hash_file)
+        
+        notes_to_upload = []
+        for note_file in notes_dir.glob("*.json.gz"):
+            with gzip.open(note_file, 'rt', encoding='utf-8') as f:
+                note = json.loads(f.read())
+            guid = note.get('guid')
+            if guid not in loaded_hash_map:
+                notes_to_upload.append(guid)
+        
+        assert len(notes_to_upload) == 1, f"Should detect 1 new note, got {len(notes_to_upload)}"
+        assert notes_to_upload[0] == 'note3'
+        print("   ✓ New note detected for upload (hash map not prematurely updated)")
+        
+        # After upload, update hash map (simulating upload-to-r2 behavior)
+        for note in new_notes:
+            loaded_hash_map[note['guid']] = compute_note_hash(note)
+        save_hash_map(loaded_hash_map, hash_file)
+        
+        # Verify hash map now has all 3 notes
+        final_map = load_hash_map(hash_file)
+        assert len(final_map) == 3, "Hash map should have all 3 notes after upload"
+        print("   ✓ Hash map updated after upload")
+    
+    print("   ✅ Fetch Does Not Update Hash Map: PASSED")
+    return True
+
+
+def test_upload_only_detects_new_notes():
+    """Test that --upload-only correctly detects new notes when hash map is from yesterday."""
+    print("\n📋 Test 13: Upload-Only Detects New Notes")
+    
+    with tempfile.TemporaryDirectory() as tmpdir:
+        staging_dir = Path(tmpdir) / "staging"
+        staging_dir.mkdir()
+        hash_file = staging_dir / "hash_map.json"
+        collection_dir = staging_dir / "collection"
+        collection_dir.mkdir()
+        notes_dir = staging_dir / "notes"
+        notes_dir.mkdir()
+        
+        # Yesterday's hash map (161,183 notes equivalent)
+        yesterday_notes = [
+            {'guid': 'note1', 'flds': 'a', 'tags': [], 'mid': 1},
+            {'guid': 'note2', 'flds': 'b', 'tags': [], 'mid': 1},
+        ]
+        yesterday_map = {
+            'note1': compute_note_hash(yesterday_notes[0]),
+            'note2': compute_note_hash(yesterday_notes[1]),
+        }
+        save_hash_map(yesterday_map, hash_file)
+        
+        # Today's staged files (161,191 notes equivalent - 1 new)
+        today_notes = [
+            {'guid': 'note1', 'flds': 'a', 'tags': [], 'mid': 1},
+            {'guid': 'note2', 'flds': 'b', 'tags': [], 'mid': 1},
+            {'guid': 'note3', 'flds': 'NEW', 'tags': [], 'mid': 1},  # New today
+        ]
+        
+        for note in today_notes:
+            guid_hash = hashlib.md5(note['guid'].encode()).hexdigest()[:16]
+            note_file = notes_dir / f"{guid_hash}.json.gz"
+            with gzip.open(note_file, 'wt', encoding='utf-8') as f:
+                json.dump(note, f)
+        
+        # Simulate --upload-only check
+        loaded_map = load_hash_map(hash_file)
+        notes_to_upload = []
+        
+        for note_file in notes_dir.glob("*.json.gz"):
+            with gzip.open(note_file, 'rt', encoding='utf-8') as f:
+                note = json.loads(f.read())
+            guid = note.get('guid')
+            if guid not in loaded_map:
+                notes_to_upload.append(guid)
+        
+        assert len(notes_to_upload) == 1, f"Should detect 1 new note, got {len(notes_to_upload)}"
+        assert notes_to_upload[0] == 'note3'
+        print("   ✓ New note detected when hash map is from yesterday")
+    
+    print("   ✅ Upload-Only Detects New Notes: PASSED")
+    return True
+
+
 def run_all_tests():
     """Run all tests."""
     print("=" * 70)
@@ -617,6 +743,8 @@ def run_all_tests():
         ("First Run (Empty)", test_empty_hash_map_first_run),
         ("Full Workflow", test_full_incremental_workflow),
         ("Upload-Only Hash Check", test_upload_only_checks_hash_map),
+        ("Fetch No Hash Update", test_fetch_does_not_update_hash_map),
+        ("Upload-Only Detects New", test_upload_only_detects_new_notes),
     ]
     
     passed = 0

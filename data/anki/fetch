@@ -351,17 +351,14 @@ def stage_r2_content(data, output_dir, verbose=True):
     if verbose:
         print()
 
-    # Update and save hash map (include both note hashes and collection file hashes)
-    updated_hash_map = update_hash_map(old_hash_map, notes_with_deck)
-    updated_hash_map.update(collection_hashes)
-    save_hash_map(updated_hash_map, hash_map_file)
-
+    # DO NOT update hash map here - upload-to-r2 will do it after successful upload
+    # If we update here, upload-to-r2 won't know what needs to be uploaded
+    notes_staged = len(changed_notes) - len(errors)
     if verbose:
-        notes_staged = len(changed_notes) - len(errors)
         print(f"\n   ✅ Staged {notes_staged:,}/{len(changed_notes):,} changed/new notes")
         if errors:
             print(f"   ⚠️  {len(errors)} note(s) failed to stage")
-        print(f"   💾 Hash map saved to: {hash_map_file}")
+        print(f"   💾 Hash map will be updated after upload to R2")
         print(f"\n   📦 Complete R2 staging includes:")
         print(f"      - notes.json.gz (with deck info)")
         print(f"      - cards.json.gz (all cards)")
