@@ -20,3 +20,6 @@
 
 **Learning:** When dynamically generating interactive elements like dropdown menus via JavaScript (e.g., `document.createElement('div')`), these elements inherently lack the accessibility features of native interactive elements like `<button>`. They cannot receive keyboard focus or be activated by keyboard inputs.
 **Action:** Always manually apply interactive attributes (`role="button"`, `tabindex="0"`) to dynamically created clickable non-semantic elements. Additionally, attach explicit `keydown` listeners specifically for `Enter` and `Space` keys to duplicate the activation logic normally handled by `click` events.
+## 2024-03-18 - Keyboard Accessibility for Chart Legends
+**Learning:** The interactive chart legends (e.g., toggling benchmarks in the performance chart) were built using generic `div` elements with only mouse `click` listeners. They lacked keyboard navigation and screen reader state tracking, meaning keyboard users could not filter or toggle chart data sets.
+**Action:** When creating custom interactive toggles with `div` or `span` elements, always add `role="button"`, `tabIndex=0`, appropriate `aria-pressed` states, and a combined `keydown` handler for the 'Enter' and 'Space' keys.
