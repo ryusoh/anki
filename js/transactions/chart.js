@@ -2111,53 +2111,72 @@ function updateLegend(series, chartManager) {
 
     // Skip click events for composition chart (non-interactive legend)
     if (transactionState.activeChart !== "composition") {
-      item.addEventListener("click", () => {
-        if (transactionState.activeChart === "performance") {
-          // Special handling for performance chart
-          if (s.key === "^LZ") {
-            return; // Portfolio line ('^LZ') is not toggleable
-          }
+      const isPortfolioLine =
+        transactionState.activeChart === "performance" && s.key === "^LZ";
 
-          const benchmarks = [
-            "^GSPC",
-            "^IXIC",
-            "^DJI",
-            "^SSEC",
-            "^HSI",
-            "^N225",
-          ];
-          if (benchmarks.includes(s.key)) {
+      if (!isPortfolioLine) {
+        item.role = "button";
+        item.tabIndex = 0;
+        item.setAttribute(
+          "aria-pressed",
+          transactionState.chartVisibility[s.key] !== false ? "true" : "false",
+        );
+
+        const toggleLegend = () => {
+          if (transactionState.activeChart === "performance") {
+            const benchmarks = [
+              "^GSPC",
+              "^IXIC",
+              "^DJI",
+              "^SSEC",
+              "^HSI",
+              "^N225",
+            ];
+            if (benchmarks.includes(s.key)) {
+              const isDisabled = item.classList.toggle("legend-disabled");
+              const isVisible = !isDisabled;
+              item.setAttribute("aria-pressed", isVisible ? "true" : "false");
+
+              // Hide other benchmarks for a "radio button" style interaction
+              benchmarks.forEach((benchmark) => {
+                if (benchmark !== s.key) {
+                  transactionState.chartVisibility[benchmark] = false;
+                  const otherItem = legendContainer.querySelector(
+                    `[data-series="${benchmark}"]`,
+                  );
+                  if (otherItem) {
+                    otherItem.classList.add("legend-disabled");
+                    otherItem.setAttribute("aria-pressed", "false");
+                  }
+                }
+              });
+
+              transactionState.chartVisibility[s.key] = isVisible;
+              performanceLegendDirty = true; // Mark legend as needing update
+            }
+          } else {
+            // Normal behavior for other charts (like Contribution)
             const isDisabled = item.classList.toggle("legend-disabled");
             const isVisible = !isDisabled;
-
-            // Hide other benchmarks for a "radio button" style interaction
-            benchmarks.forEach((benchmark) => {
-              if (benchmark !== s.key) {
-                transactionState.chartVisibility[benchmark] = false;
-                const otherItem = legendContainer.querySelector(
-                  `[data-series="${benchmark}"]`,
-                );
-                if (otherItem) {
-                  otherItem.classList.add("legend-disabled");
-                }
-              }
-            });
-
-            transactionState.chartVisibility[s.key] = isVisible;
-            performanceLegendDirty = true; // Mark legend as needing update
+            item.setAttribute("aria-pressed", isVisible ? "true" : "false");
+            setChartVisibility(s.key, isVisible);
+            contributionLegendDirty = true; // Set flag to redraw legend
           }
-        } else {
-          // Normal behavior for other charts (like Contribution)
-          const isDisabled = item.classList.toggle("legend-disabled");
-          setChartVisibility(s.key, !isDisabled);
-          contributionLegendDirty = true; // Set flag to redraw legend
-        }
 
-        // Redraw the chart to apply visibility changes
-        if (typeof chartManager.redraw === "function") {
-          chartManager.redraw();
-        }
-      });
+          // Redraw the chart to apply visibility changes
+          if (typeof chartManager.redraw === "function") {
+            chartManager.redraw();
+          }
+        };
+
+        item.addEventListener("click", toggleLegend);
+        item.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            toggleLegend();
+          }
+        });
+      }
     } // End of conditional for non-composition charts
 
     if (transactionState.chartVisibility[s.key] === false) {
