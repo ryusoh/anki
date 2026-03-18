@@ -493,7 +493,15 @@ function renderSummary(config) {
   ].forEach((stat) => {
     const card = document.createElement("div");
     card.className = "stat-card";
-    card.innerHTML = `<h3>${escapeHtml(stat.label)}</h3><p>${escapeHtml(String(stat.value))}</p>`;
+
+    const h3 = document.createElement("h3");
+    h3.textContent = stat.label;
+
+    const p = document.createElement("p");
+    p.textContent = String(stat.value);
+
+    card.appendChild(h3);
+    card.appendChild(p);
     summaryStatsEl.appendChild(card);
   });
 }
@@ -516,15 +524,35 @@ function renderScenarioCards(config) {
         : null;
     const card = document.createElement("div");
     card.className = "result-card";
-    card.innerHTML = `
-            <h4>${escapeHtml(outcome.name)}</h4>
-            <p>Prob: ${(outcome.prob * 100).toFixed(1)}%</p>
-            <p>Multiple: ${outcome.multiple.toFixed(2)}x</p>
-            <p>Price CAGR: ${formatPercent(outcome.priceCagr)}</p>
-            <p>Earnings CAGR: ${formatPercent(outcome.earningsCagr)}</p>
-            <p>Implied Annual EPS: ${formatCurrency(terminalEps)}</p>
-            <p>Total Annual Earnings: ${formatCompactCurrency(totalEarnings)}</p>
-        `;
+
+    const h4 = document.createElement("h4");
+    h4.textContent = outcome.name;
+    card.appendChild(h4);
+
+    const probP = document.createElement("p");
+    probP.textContent = `Prob: ${(outcome.prob * 100).toFixed(1)}%`;
+    card.appendChild(probP);
+
+    const multipleP = document.createElement("p");
+    multipleP.textContent = `Multiple: ${outcome.multiple.toFixed(2)}x`;
+    card.appendChild(multipleP);
+
+    const priceCagrP = document.createElement("p");
+    priceCagrP.textContent = `Price CAGR: ${formatPercent(outcome.priceCagr)}`;
+    card.appendChild(priceCagrP);
+
+    const earningsCagrP = document.createElement("p");
+    earningsCagrP.textContent = `Earnings CAGR: ${formatPercent(outcome.earningsCagr)}`;
+    card.appendChild(earningsCagrP);
+
+    const impliedEpsP = document.createElement("p");
+    impliedEpsP.textContent = `Implied Annual EPS: ${formatCurrency(terminalEps)}`;
+    card.appendChild(impliedEpsP);
+
+    const totalEarningsP = document.createElement("p");
+    totalEarningsP.textContent = `Total Annual Earnings: ${formatCompactCurrency(totalEarnings)}`;
+    card.appendChild(totalEarningsP);
+
     scenarioResultsEl.appendChild(card);
   });
 }
@@ -637,16 +665,25 @@ function renderBayesOutput() {
     return;
   }
   const priors = state.bayesEngine.priors;
-  bayesOutput.innerHTML = priors
-    .map(
-      (p) => `
-        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--ink); padding: 4px 0;">
-            <span>${escapeHtml(p.name)}</span>
-            <strong>${(p.prob * 100).toFixed(1)}%</strong>
-        </div>
-    `,
-    )
-    .join("");
+  bayesOutput.textContent = ""; // Clear existing content securely
+
+  priors.forEach((p) => {
+    const row = document.createElement("div");
+    row.style.display = "flex";
+    row.style.justifyContent = "space-between";
+    row.style.borderBottom = "1px dashed var(--ink)";
+    row.style.padding = "4px 0";
+
+    const nameSpan = document.createElement("span");
+    nameSpan.textContent = p.name; // Safely set text content
+
+    const probStrong = document.createElement("strong");
+    probStrong.textContent = `${(p.prob * 100).toFixed(1)}%`; // Safely set text content
+
+    row.appendChild(nameSpan);
+    row.appendChild(probStrong);
+    bayesOutput.appendChild(row);
+  });
 }
 
 btnBayesBull.addEventListener("click", () => {
@@ -706,20 +743,40 @@ state.monteCarloWorker.onmessage = function (e) {
 
 function renderMonteCarloResults(result) {
   // Render Metrics
-  riskMetricsEl.innerHTML = `
-        <div class="stat-card" style="padding: 10px;">
-            <h3>Mean Terminal Price</h3>
-            <p>${formatCurrency(result.mean)}</p>
-        </div>
-        <div class="stat-card" style="padding: 10px;">
-            <h3>VaR (95%)</h3>
-            <p>${formatCurrency(result.VaR_95)}</p>
-        </div>
-        <div class="stat-card" style="padding: 10px;">
-            <h3>CVaR (95%)</h3>
-            <p>${formatCurrency(result.CVaR_95)}</p>
-        </div>
-    `;
+  riskMetricsEl.textContent = ""; // Clear existing safely
+
+  const meanCard = document.createElement("div");
+  meanCard.className = "stat-card";
+  meanCard.style.padding = "10px";
+  const meanH3 = document.createElement("h3");
+  meanH3.textContent = "Mean Terminal Price";
+  const meanP = document.createElement("p");
+  meanP.textContent = formatCurrency(result.mean);
+  meanCard.appendChild(meanH3);
+  meanCard.appendChild(meanP);
+  riskMetricsEl.appendChild(meanCard);
+
+  const varCard = document.createElement("div");
+  varCard.className = "stat-card";
+  varCard.style.padding = "10px";
+  const varH3 = document.createElement("h3");
+  varH3.textContent = "VaR (95%)";
+  const varP = document.createElement("p");
+  varP.textContent = formatCurrency(result.VaR_95);
+  varCard.appendChild(varH3);
+  varCard.appendChild(varP);
+  riskMetricsEl.appendChild(varCard);
+
+  const cvarCard = document.createElement("div");
+  cvarCard.className = "stat-card";
+  cvarCard.style.padding = "10px";
+  const cvarH3 = document.createElement("h3");
+  cvarH3.textContent = "CVaR (95%)";
+  const cvarP = document.createElement("p");
+  cvarP.textContent = formatCurrency(result.CVaR_95);
+  cvarCard.appendChild(cvarH3);
+  cvarCard.appendChild(cvarP);
+  riskMetricsEl.appendChild(cvarCard);
 
   // Render Histogram
   const ctx = monteCarloCanvas.getContext("2d");
@@ -1042,8 +1099,12 @@ async function buildConfigs() {
 async function init() {
   try {
     if (summaryStatsEl) {
-      summaryStatsEl.innerHTML =
-        '<div style="color:white; padding:10px;">Loading...</div>';
+      summaryStatsEl.textContent = "";
+      const loadingDiv = document.createElement("div");
+      loadingDiv.style.color = "white";
+      loadingDiv.style.padding = "10px";
+      loadingDiv.textContent = "Loading...";
+      summaryStatsEl.appendChild(loadingDiv);
     }
     await buildConfigs();
     renderTickerList();
@@ -1052,7 +1113,7 @@ async function init() {
     // eslint-disable-next-line no-console
     console.error(err);
     if (summaryStatsEl) {
-      summaryStatsEl.innerHTML = "";
+      summaryStatsEl.textContent = "";
       const errorDiv = document.createElement("div");
       errorDiv.style.color = "red";
       errorDiv.style.padding = "10px";
