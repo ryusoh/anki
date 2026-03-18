@@ -164,7 +164,7 @@ export function renderFutureDueChart(data, byDeck = false, rangeDays = null) {
           stack: "future",
         });
 
-        legendHtml += `<span data-dataset-index="${datasetIdx}"><i class="legend-color" style="background:${color};"></i> ${escapeHtml(deckName)}</span>`;
+        legendHtml += `<span data-dataset-index="${datasetIdx}"><i class="legend-color" style="background:${escapeHtml(color)};"></i> ${escapeHtml(deckName)}</span>`;
         datasetIdx++;
       }
 

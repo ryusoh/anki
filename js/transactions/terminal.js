@@ -672,7 +672,7 @@ export function updateTerminalCrosshair(snapshot, rangeSummary) {
       const startLabel = formatCrosshairDateLabel(rangeSummary.start);
       const endLabel = formatCrosshairDateLabel(rangeSummary.end);
       details.range.innerHTML = `
-                <div class="terminal-crosshair-range-header">${startLabel} → ${endLabel} · ${durationLabel}</div>
+                <div class="terminal-crosshair-range-header">${escapeHtml(startLabel)} → ${escapeHtml(endLabel)} · ${escapeHtml(durationLabel)}</div>
                 ${entriesMarkup ? `<div class="terminal-crosshair-range-body">${entriesMarkup}</div>` : ""}
             `;
       details.range.hidden = false;

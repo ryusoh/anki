@@ -416,7 +416,7 @@ export function renderReviewsChart(
       });
 
       legendHTML.push(
-        `<span data-dataset-index="${datasetIndex}"><i class="legend-color" style="background:${color}"></i> ${escapeHtml(deckName)}</span>`,
+        `<span data-dataset-index="${datasetIndex}"><i class="legend-color" style="background:${escapeHtml(color)}"></i> ${escapeHtml(deckName)}</span>`,
       );
       datasetIndex++;
     }
