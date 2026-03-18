@@ -147,6 +147,29 @@ function runTests() {
     }
   });
 
+  runTest("isDevelopment node environment without process.env", () => {
+    const oldProcess = global.process;
+    try {
+      global.process = {};
+      assert.strictEqual(isDevelopment(), true);
+    } finally {
+      global.process = oldProcess;
+    }
+  });
+
+  runTest("isDevelopment window without window.location", () => {
+    const oldProcess = global.process;
+    const oldWindow = global.window;
+    try {
+      global.process = undefined;
+      global.window = {};
+      assert.strictEqual(isDevelopment(), true);
+    } finally {
+      global.process = oldProcess;
+      global.window = oldWindow;
+    }
+  });
+
   runTest("isDevelopment checks window in browser environments", () => {
     // This test modifies global scope which is messy in standard JS without a test runner like jest.
     // Instead of doing `new Function()`, we simply verify that isDevelopment executes gracefully.

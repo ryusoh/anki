@@ -85,6 +85,10 @@ function runTests() {
     assert.strictEqual(toFixed(1.236, 2), "1.24");
     assert.strictEqual(toFixed(1, 2), "1.00");
     assert.strictEqual(toFixed(0, 2), "0.00");
+
+    // Covers lines 250-251 where num is NaN or null
+    assert.strictEqual(toFixed(NaN, 2), "");
+    assert.strictEqual(toFixed(null, 2), "");
   });
 
   runTest("compactNumber formats large numbers compactly", () => {
@@ -399,6 +403,71 @@ function runTests() {
     assert.ok(typeof val2 === "string");
     assert.ok(typeof val3 === "string");
     assert.ok(typeof val4 === "string");
+
+    // Coverage for large formatted numbers in lines 214-235
+    const large1 = formatNumber(1.5e9, {}, false, "USD");
+    assert.strictEqual(large1, "1.500b");
+    const large2 = formatNumber(1.5e6, {}, false, "USD");
+    assert.strictEqual(large2, "1.500m");
+    const large3 = formatNumber(1500, {}, false, "USD");
+    assert.strictEqual(large3, "1.50k");
+    const large4 = formatNumber(1.5e9, {}, true, "USD");
+    assert.strictEqual(large4, "+1.50b");
+    const large5 = formatNumber(1.5e6, {}, true, "USD");
+    assert.strictEqual(large5, "+1.50m");
+    const large6 = formatNumber(1500, {}, true, "USD");
+    assert.strictEqual(large6, "+1.50k");
+
+    // Coverage for KRW large number formatting branch
+    const krwVal = formatNumber(1.5e6, { KRW: "₩" }, false, "KRW");
+    assert.strictEqual(krwVal, "₩1.50m");
+    const krwVal2 = formatNumber(1.5e6, { KRW: "₩" }, true, "KRW");
+    assert.strictEqual(krwVal2, "+₩1.50m"); // true goes to withSign branch
+
+    // Test decimals formatting precision 0 logic
+    const precise0 = formatNumber(1234, {}, false, "USD");
+    assert.strictEqual(precise0, "1.23k");
+
+    // To hit `precision = 0` on line 226, suffix must be empty and `val % 1 === 0`.
+    const precise0Val = formatNumber(42, {}, false, "USD");
+    assert.strictEqual(precise0Val, "42");
+
+    // Test formatting when symbol is empty string
+    const emptySym = formatNumber(1234, { USD: "" }, false, "USD");
+    assert.strictEqual(emptySym, "1.23k");
+  });
+
+  runTest("formatCurrencyChange default formatter invalid input", () => {
+    // Calling internal default formatter via omitting the parameter with valid number
+    const resValid = formatCurrencyChange(1234.56);
+    assert.strictEqual(resValid, "+$1,234.56");
+    const resValidNeg = formatCurrencyChange(-1234.56);
+    assert.strictEqual(resValidNeg, "-$1,234.56");
+
+    const res = formatCurrencyChange(NaN);
+    assert.strictEqual(res, "n/a");
+    const res2 = formatCurrencyChange(Infinity);
+    assert.strictEqual(res2, "n/a");
+
+    const fallbackFormatter = formatCurrencyChange(123.45, "not-a-function");
+    assert.strictEqual(fallbackFormatter, "+$123.45");
+  });
+
+  runTest("formatSummaryBlock default formatter edge cases", () => {
+    const sum = { hasData: true, startValue: NaN, endValue: NaN, netChange: 0 };
+    const res = formatSummaryBlock("Test", sum, null);
+    assert.ok(res.includes("$0.00")); // hits lines 322-323
+  });
+
+  runTest("formatCompact fallback logic", () => {
+    // Hits line 440 (the return num.toString() block)
+    assert.strictEqual(formatCompact(500), "500");
+  });
+
+  runTest("getHistoricalCurrencyValue empty entry", () => {
+    // Hits line 250-251 where entry is falsy
+    assert.strictEqual(getHistoricalCurrencyValue(null, "USD", "total"), 0);
+    assert.strictEqual(getHistoricalCurrencyValue(undefined, "USD", "total"), 0);
   });
 
   // Summary
