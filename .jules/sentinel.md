@@ -29,3 +29,9 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Vulnerability:** Dynamic properties like `entry.label`, `entry.color`, `entry.deltaFormatted`, and `entry.percentFormatted` were being directly injected into the DOM using `innerHTML` to build custom terminal crosshair ranges.
 **Learning:** Even though the terminal UI processes internal formatted data, the labels and colors could still originate from external data sources (e.g. ticker symbols). If a user can inject malicious payload as the ticker name, it will be executed when rendered.
 **Prevention:** Always wrap dynamically injected text values or color properties with an HTML escaping utility (like `escapeHtml`) before concatenating them into `innerHTML` strings.
+
+## 2024-03-20 - Prevent DOM-based XSS in terminal crosshair and chart legends
+
+**Vulnerability:** Dynamic properties like `color` in chart legends and date labels (`startLabel`, `endLabel`, `durationLabel`) in terminal UI were interpolated directly into the DOM using `innerHTML` without sanitization.
+**Learning:** Even internal formatting values or properties like colors derived from backend configurations could potentially be manipulated.
+**Prevention:** Always wrap dynamically injected text values or color properties with an HTML escaping utility (like `escapeHtml`) before concatenating them into `innerHTML` strings.
