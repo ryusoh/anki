@@ -6,6 +6,8 @@ import {
   parseQuarterToken,
   resolveQuarterRange,
   normalizeDateOnly,
+  getNyDate,
+  getTradingDayDate,
 } from "../js/utils/date.js";
 
 function runTests() {
@@ -152,6 +154,20 @@ function runTests() {
     // Christmas Day (Dec 25, 2024 is a Wednesday)
     const christmas = new Date("2024-12-25T12:00:00Z");
     assert.strictEqual(isTradingDay(christmas), false);
+  });
+
+  runTest("getTradingDayDate handles current NY date", () => {
+    // Pass a specific deterministic date rather than relying on system time
+    const mondayDate = new Date("2023-10-16T12:00:00Z"); // Known trading day
+    const sundayDate = new Date("2023-10-15T12:00:00Z"); // Known weekend
+    assert.ok(getTradingDayDate(mondayDate) instanceof Date);
+    assert.strictEqual(getTradingDayDate(sundayDate), null);
+  });
+
+  runTest("getNyDate returns a valid Date object", () => {
+    const d = getNyDate();
+    assert.ok(d instanceof Date);
+    assert.ok(!Number.isNaN(d.getTime()));
   });
 
   // Summary
