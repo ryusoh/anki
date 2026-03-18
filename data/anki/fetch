@@ -80,20 +80,21 @@ def fetch_and_anonymize(source_db, for_r2=False):
     cur.execute("SELECT id, name FROM notetypes")
     notetypes = {row[0]: row[1] for row in cur.fetchall()}
 
-    # Notes metadata
+    # Notes metadata (always anonymized for Git)
+    cur.execute("""
+        SELECT id, guid, mid, mod, usn, csum, flags
+        FROM notes
+    """)
+    notes = [dict(row) for row in cur.fetchall()]
+
+    # Fetch full content only if for_r2 is True
+    notes_full = []
     if for_r2:
-        # Full content for R2
         cur.execute("""
             SELECT id, guid, mid, mod, usn, flds, tags, data, csum, flags
             FROM notes
         """)
-    else:
-        # Anonymized for GitHub
-        cur.execute("""
-            SELECT id, guid, mid, mod, usn, csum, flags
-            FROM notes
-        """)
-    notes = [dict(row) for row in cur.fetchall()]
+        notes_full = [dict(row) for row in cur.fetchall()]
 
     conn.close()
 
@@ -106,6 +107,7 @@ def fetch_and_anonymize(source_db, for_r2=False):
     }
     
     if for_r2:
+        result['notes_full'] = notes_full
         # Also fetch cards with data field
         cur2 = sqlite3.connect(source_db)
         cur2.row_factory = sqlite3.Row
@@ -174,7 +176,8 @@ def stage_r2_content(data, output_dir, verbose=True):
     
     # Add deck info to notes
     notes_with_deck = []
-    for note in data['notes']:
+    notes_to_process = data.get('notes_full', data['notes'])
+    for note in notes_to_process:
         note_copy = dict(note)
         nid = note.get('id')
         if nid in note_to_deck:
