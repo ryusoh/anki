@@ -38,14 +38,18 @@ def success(msg):
     print(f"{GREEN}✅ {msg}{RESET}")
 
 def get_gitignored_files():
-    """Get list of gitignored files."""
+    """Get list of gitignored files that exist in the filesystem."""
     result = subprocess.run(
-        ['git', 'check-ignore', '.'],
+        ['git', 'ls-files', '--others', '--ignored', '--exclude-standard'],
         capture_output=True,
         text=True,
         cwd=Path(__file__).parent.parent
     )
-    return set()
+    files = set()
+    for line in result.stdout.strip().split('\n'):
+        if line:
+            files.add(line)
+    return files
 
 def get_tracked_files():
     """Get all files that would be committed."""
@@ -142,6 +146,15 @@ def check_file_for_private_data(filepath, content):
                             'message': f'File contains private note data with flds field',
                             'fields': [k for k in first_item.keys() if k in ['flds', 'tags', 'mid', 'guid', 'usn', 'csum']]
                         })
+                    
+                    # Target specific Git-versioned files for anonymization verification
+                    if filepath.endswith('notes.json.gz') and 'cloudflare' not in filepath:
+                        if has_flds or has_tags:
+                            violations.append({
+                                'type': 'data_leak_regression',
+                                'message': f'REGRESSION: {filepath} contains private fields (flds/tags) but must be anonymized for Git.',
+                                'fields': [k for k in first_item.keys() if k in ['flds', 'tags']]
+                            })
                     
         except (json.JSONDecodeError, UnicodeDecodeError):
             pass
