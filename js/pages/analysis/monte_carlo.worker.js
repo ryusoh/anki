@@ -63,12 +63,23 @@ function runSimulation(config) {
   terminalValues.sort((a, b) => a - b);
 
   // Compute Metrics
-  const mean = terminalValues.reduce((a, b) => a + b, 0) / paths;
-  const VaR_95 = terminalValues[Math.floor(paths * 0.05)];
-  const CVaR_95 =
-    terminalValues
-      .slice(0, Math.floor(paths * 0.05))
-      .reduce((a, b) => a + b, 0) / Math.floor(paths * 0.05);
+  // Bolt: Single O(N) loop to compute metrics, avoiding .slice() array allocation
+  // and multiple .reduce() passes over terminalValues.
+  const p05Index = Math.floor(paths * 0.05);
+  let sum = 0;
+  let cvarSum = 0;
+
+  for (let i = 0; i < paths; i++) {
+    const val = terminalValues[i];
+    sum += val;
+    if (i < p05Index) {
+      cvarSum += val;
+    }
+  }
+
+  const mean = sum / paths;
+  const VaR_95 = terminalValues[p05Index];
+  const CVaR_95 = cvarSum / p05Index;
 
   // Create Histogram Data
   const histogram = createHistogram(terminalValues, 50);

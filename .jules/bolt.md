@@ -27,3 +27,7 @@
 
 **Learning:** High-frequency event handlers like `scroll` and `resize` (even when debounced or throttled with `requestAnimationFrame`) can cause performance issues if they repeatedly query the DOM using `document.querySelector` or `getElementById`.
 **Action:** Cache DOM element references outside the event handler scope or lazily initialize them once to avoid repeated main-thread blocking DOM lookups during layout calculations.
+
+## 2025-03-19 - [Optimize Monte Carlo Metric Computation]
+**Learning:** In Web Workers dealing with thousands of simulation paths (like Monte Carlo simulations), using array methods that create intermediate allocations (e.g., `.slice()`) chained with multiple passes (e.g., repeated `.reduce()`) adds significant memory and Garbage Collection overhead.
+**Action:** Replace chained, multi-pass array methods with a single O(N) `for` loop to compute multiple aggregate metrics simultaneously, saving memory and processing time without sacrificing correctness.
