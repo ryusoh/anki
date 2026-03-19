@@ -48,6 +48,13 @@ function runTests() {
       "",
       "Should return empty string for invalid dates",
     );
+    // Explicit coverage for NaN date parsing check
+    const nanDate = new Date(NaN);
+    assert.strictEqual(
+      toIsoDate(nanDate),
+      "",
+      "Should return empty string for NaN date value",
+    );
   });
 
   runTest("parseYearFromDate handles dates and strings", () => {
@@ -63,6 +70,10 @@ function runTests() {
 
   runTest("parseQuarterToken parses valid quarters", () => {
     assert.deepStrictEqual(parseQuarterToken("2023q1"), {
+      year: 2023,
+      quarter: 1,
+    });
+    assert.deepStrictEqual(parseQuarterToken("2023Q1"), {
       year: 2023,
       quarter: 1,
     });

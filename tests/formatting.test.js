@@ -424,11 +424,29 @@ function runTests() {
     const krwVal2 = formatNumber(1.5e6, { KRW: "₩" }, true, "KRW");
     assert.strictEqual(krwVal2, "+₩1.50m"); // true goes to withSign branch
 
+    // Coverage for KRW formatting precision edges
+    const krwPrecise0 = formatNumber(1.5e8, { KRW: "₩" }, false, "KRW");
+    assert.strictEqual(krwPrecise0, "₩150m"); // 150m has precision 0
+
     // Test decimals formatting precision 0 logic
     const precise0 = formatNumber(1234, {}, false, "USD");
     assert.strictEqual(precise0, "1.23k");
+    const preciseK = formatNumber(12345, {}, false, "USD");
+    assert.strictEqual(preciseK, "12.35k"); // 12.345 rounded to 2 decimal places
 
-    // To hit `precision = 0` on line 226, suffix must be empty and `val % 1 === 0`.
+    // Coverage for precision edge cases
+    const precEdge1 = formatNumber(1e10, {}, false, "USD");
+    assert.strictEqual(precEdge1, "10.00b");
+    const precEdge2 = formatNumber(0.005, {}, false, "USD");
+    assert.strictEqual(precEdge2, "0.005000");
+
+    // Hit remaining else conditions logic
+    const precLarge = formatNumber(1.5e10, {}, false, "USD");
+    assert.strictEqual(precLarge, "15.00b"); // >1e9 goes to b
+    const precMid = formatNumber(1.5e7, {}, false, "USD");
+    assert.strictEqual(precMid, "15.00m"); // >1e6 goes to m
+
+    // To hit `precision = 0` on line 198, suffix must be empty and `val % 1 === 0`.
     const precise0Val = formatNumber(42, {}, false, "USD");
     assert.strictEqual(precise0Val, "42");
 
