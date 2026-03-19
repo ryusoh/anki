@@ -79,9 +79,7 @@ export function initCalendarResponsiveHandlers() {
       heatmapRoot = document.querySelector(CALENDAR_SELECTORS.heatmap);
     }
     if (!calendarContainer) {
-      calendarContainer = document.querySelector(
-        CALENDAR_SELECTORS.container,
-      );
+      calendarContainer = document.querySelector(CALENDAR_SELECTORS.container);
     }
     if (!navControls) {
       navControls = document.querySelector(CALENDAR_SELECTORS.navControls);
@@ -213,14 +211,15 @@ export function initCalendarResponsiveHandlers() {
 
     // Fallback to query in case alignToggle hasn't cached these yet,
     // though usually alignToggle() is called above initializing them.
-    const obsToggle = toggleContainer || document.querySelector(
-      CALENDAR_SELECTORS.currencyToggle,
-    );
-    const obsHeatmap = heatmapRoot || document.querySelector(CALENDAR_SELECTORS.heatmap);
-    const obsCalendar = calendarContainer || document.querySelector(
-      CALENDAR_SELECTORS.container,
-    );
-    const obsNav = navControls || document.querySelector(CALENDAR_SELECTORS.navControls);
+    const obsToggle =
+      toggleContainer ||
+      document.querySelector(CALENDAR_SELECTORS.currencyToggle);
+    const obsHeatmap =
+      heatmapRoot || document.querySelector(CALENDAR_SELECTORS.heatmap);
+    const obsCalendar =
+      calendarContainer || document.querySelector(CALENDAR_SELECTORS.container);
+    const obsNav =
+      navControls || document.querySelector(CALENDAR_SELECTORS.navControls);
 
     if (obsToggle) {
       observer.observe(obsToggle);

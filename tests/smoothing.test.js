@@ -152,43 +152,63 @@ function runTests() {
     assert.strictEqual(result[1].y, expectedSecondY);
 
     // Test 'simple' method dispatch
-    const simpleResult = smoothFinancialData(sampleData, {
-      method: "simple",
-      params: { window: 3 },
-      passes: 1
-    }, false);
+    const simpleResult = smoothFinancialData(
+      sampleData,
+      {
+        method: "simple",
+        params: { window: 3 },
+        passes: 1,
+      },
+      false,
+    );
     assert.strictEqual(simpleResult.length, 5);
 
     // Test 'savitzky' method dispatch
-    const savitzkyResult = smoothFinancialData(sampleData, {
-      method: "savitzky",
-      params: { window: 5, order: 2 },
-      passes: 1
-    }, false);
+    const savitzkyResult = smoothFinancialData(
+      sampleData,
+      {
+        method: "savitzky",
+        params: { window: 5, order: 2 },
+        passes: 1,
+      },
+      false,
+    );
     assert.strictEqual(savitzkyResult.length, 5);
 
     // Test 'lowess' method dispatch
-    const lowessResult = smoothFinancialData(sampleData, {
-      method: "lowess",
-      params: { bandwidth: 0.3 },
-      passes: 1
-    }, false);
+    const lowessResult = smoothFinancialData(
+      sampleData,
+      {
+        method: "lowess",
+        params: { bandwidth: 0.3 },
+        passes: 1,
+      },
+      false,
+    );
     assert.strictEqual(lowessResult.length, 5);
 
     // Test 'adaptive' method dispatch
-    const adaptiveResult = smoothFinancialData(sampleData, {
-      method: "adaptive",
-      params: {},
-      passes: 1
-    }, false);
+    const adaptiveResult = smoothFinancialData(
+      sampleData,
+      {
+        method: "adaptive",
+        params: {},
+        passes: 1,
+      },
+      false,
+    );
     assert.strictEqual(adaptiveResult.length, 5);
 
     // Test default fallback dispatch
-    const defaultResult = smoothFinancialData(sampleData, {
-      method: "unknown_method",
-      params: {},
-      passes: 1
-    }, false);
+    const defaultResult = smoothFinancialData(
+      sampleData,
+      {
+        method: "unknown_method",
+        params: {},
+        passes: 1,
+      },
+      false,
+    );
     assert.strictEqual(defaultResult.length, 5);
   });
 
