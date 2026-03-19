@@ -36,7 +36,14 @@ export function bindLegendToggle(chart, legendEl) {
 
   const items = legendEl.querySelectorAll("[data-dataset-index]");
 
-  // 1. Initial sync: Apply any previously hidden labels from our global state
+  // 1. Setup accessibility attributes
+  items.forEach((item) => {
+    item.setAttribute("role", "button");
+    item.setAttribute("tabindex", "0");
+    item.setAttribute("aria-pressed", "true");
+  });
+
+  // 2. Initial sync: Apply any previously hidden labels from our global state
   chart.data.datasets.forEach((dataset, index) => {
     if (hiddenLabels.has(dataset.label)) {
       const meta = chart.getDatasetMeta(index);
@@ -48,6 +55,7 @@ export function bindLegendToggle(chart, legendEl) {
       );
       if (item) {
         item.classList.add("legend-disabled");
+        item.setAttribute("aria-pressed", "false");
       }
     }
   });
@@ -55,9 +63,9 @@ export function bindLegendToggle(chart, legendEl) {
   // Trigger update if we modified any visibility (no animation for initial sync)
   chart.update("none");
 
-  // 2. Click handlers: Toggle visibility and update global state
+  // 3. Click handlers: Toggle visibility and update global state
   items.forEach((item) => {
-    item.addEventListener("click", () => {
+    const toggleLegend = () => {
       const index = parseInt(item.dataset.datasetIndex, 10);
       if (isNaN(index)) return;
 
@@ -67,6 +75,7 @@ export function bindLegendToggle(chart, legendEl) {
       // Toggle state
       meta.hidden = !meta.hidden;
       item.classList.toggle("legend-disabled", meta.hidden);
+      item.setAttribute("aria-pressed", (!meta.hidden).toString());
 
       // Persist by label name
       if (meta.hidden) {
@@ -76,6 +85,14 @@ export function bindLegendToggle(chart, legendEl) {
       }
 
       chart.update(); // animated transition
+    };
+
+    item.addEventListener("click", toggleLegend);
+    item.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        toggleLegend();
+      }
     });
   });
 }
