@@ -177,6 +177,84 @@ function runTests() {
     assert.strictEqual(typeof isDevelopment(), "boolean");
   });
 
+  runTest(
+    "isDevelopment checks window in browser environments properly",
+    () => {
+      const oldProcess = global.process;
+      const oldWindow = global.window;
+
+      try {
+        global.process = undefined;
+
+        // test multiple hostnames to hit all lines in the giant boolean expression
+        global.window = { location: { hostname: "localhost" } };
+        assert.strictEqual(isDevelopment(), true);
+
+        global.window.location.hostname = "127.0.0.1";
+        assert.strictEqual(isDevelopment(), true);
+
+        global.window.location.hostname = "dev.site.com";
+        assert.strictEqual(isDevelopment(), true);
+
+        global.window.location.hostname = "test.site.com";
+        assert.strictEqual(isDevelopment(), true);
+
+        global.window.location.hostname = "site.staging.com";
+        assert.strictEqual(isDevelopment(), true);
+
+        global.window.location.hostname = "prod.com";
+        assert.strictEqual(isDevelopment(), false);
+      } finally {
+        global.process = oldProcess;
+        global.window = oldWindow;
+      }
+    },
+  );
+
+  runTest(
+    "logger coverage for log, warn, error without mocking process.env",
+    () => {
+      // Cover the "isDevelopment() == true" case without replacing process.env during node tests,
+      // which is the default for logger methods.
+
+      const originalLog = console.log;
+      const originalWarn = console.warn;
+      const originalError = console.error;
+
+      let calls = { log: 0, warn: 0, error: 0 };
+      console.log = () => {
+        calls.log++;
+      };
+      console.warn = () => {
+        calls.warn++;
+      };
+      console.error = () => {
+        calls.error++;
+      };
+
+      try {
+        // we need to set isDevelopment to true. In node, it's true unless NODE_ENV === "production".
+        // Let's ensure it's not "production"
+        const prevEnv = process.env.NODE_ENV;
+        process.env.NODE_ENV = "test";
+
+        logger.log("test-log");
+        logger.warn("test-warn");
+        logger.error("test-error");
+
+        assert.strictEqual(calls.log, 1);
+        assert.strictEqual(calls.warn, 1);
+        assert.strictEqual(calls.error, 1);
+
+        process.env.NODE_ENV = prevEnv;
+      } finally {
+        console.log = originalLog;
+        console.warn = originalWarn;
+        console.error = originalError;
+      }
+    },
+  );
+
   // Summary
   console.log("\n" + "=".repeat(60));
   console.log(`\n[SUMMARY] Results: ${passed} passed, ${failed} failed\n`);

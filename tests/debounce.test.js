@@ -114,6 +114,26 @@ async function runTests() {
     failed++;
   }
 
+  // Test 5: function is called correctly (cover lines 15-16)
+  console.log("\n📋 Test 5: function is called correctly (cover lines 15-16)");
+  try {
+    let callCount = 0;
+    const fn = debounce(() => {
+      callCount++;
+    }, 10);
+
+    fn();
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.strictEqual(callCount, 1, "Function should be called");
+
+    console.log("   ✓ function is called correctly (cover lines 15-16)");
+    passed++;
+  } catch (e) {
+    console.log(`   ✗ ${e.message}`);
+    failed++;
+  }
+
   // Summary
   console.log("\n" + "=".repeat(60));
   console.log(`\n📊 Results: ${passed} passed, ${failed} failed\n`);
@@ -123,7 +143,7 @@ async function runTests() {
     process.exit(1);
   } else {
     console.log("✅ ALL TESTS PASSED - Debounce utility working correctly");
-    process.exit(0);
+    // Do not call process.exit(0) to allow coverage runner to exit naturally
   }
 }
 

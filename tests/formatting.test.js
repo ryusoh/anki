@@ -485,7 +485,141 @@ function runTests() {
   runTest("getHistoricalCurrencyValue empty entry", () => {
     // Hits line 250-251 where entry is falsy
     assert.strictEqual(getHistoricalCurrencyValue(null, "USD", "total"), 0);
-    assert.strictEqual(getHistoricalCurrencyValue(undefined, "USD", "total"), 0);
+    assert.strictEqual(
+      getHistoricalCurrencyValue(undefined, "USD", "total"),
+      0,
+    );
+  });
+
+  runTest("formatNumber edge cases for high coverage", () => {
+    // cover 182-183: withSign = true, absNum < 1e3
+    const valSmall = formatNumber(42, { USD: "$" }, true, "USD");
+    assert.strictEqual(valSmall, "+$42.0");
+
+    // cover 187: val >= 100
+    const valLargeSmall = formatNumber(150, { USD: "$" }, true, "USD");
+    assert.strictEqual(valLargeSmall, "+$150");
+
+    // cover 189: val >= 10
+    const valMediumSmall = formatNumber(15, { USD: "$" }, true, "USD");
+    assert.strictEqual(valMediumSmall, "+$15.0");
+
+    // cover 193-194: val < 1
+    const valTinySmall = formatNumber(0.5, { USD: "$" }, true, "USD");
+    assert.strictEqual(valTinySmall, "+$0.500");
+
+    // cover 206-207: KRW precision logic
+    const valKrwPrecision = formatNumber(
+      1500000000,
+      { KRW: "W" },
+      false,
+      "KRW",
+    );
+
+    formatNumber(999999999.9999999, { KRW: "W" }, false, "KRW"); // Might hit precision < 0
+    formatNumber(999.9999999999999, { USD: "$" }, false, "USD"); // Might hit precision < 0
+  });
+
+  runTest("compactNumber missing branches", () => {
+    // cover 66-67: !unit
+    assert.strictEqual(compactNumber(1e15), "1.00e+15");
+
+    // cover 73: value >= 100
+    // We need unitIndex >= 0 and value >= 100.
+    // e.g. absNum = 150000 -> unitIndex = 0 (1000^1), value = 150
+    assert.strictEqual(compactNumber(150000), "150k");
+
+    // cover 75: value >= 10
+    // e.g. absNum = 15000 -> unitIndex = 0, value = 15
+    assert.strictEqual(compactNumber(15000), "15.0k");
+  });
+
+  runTest("getHistoricalCurrencyValue more branches", () => {
+    // cover 118, 120-121
+    const val = getHistoricalCurrencyValue({ totalUSD: 123 }, "USD", "total");
+    assert.strictEqual(val, 123);
+  });
+
+  runTest("formatNumber missing branches", () => {
+    // cover 157
+    const formattedWithEntry = formatNumber(
+      100,
+      { USD: "$" },
+      false,
+      "USD",
+      {},
+      { totalUSD: 200 },
+      "total",
+    );
+    assert.strictEqual(formattedWithEntry, "$200");
+  });
+
+  runTest("formatNumber edge cases for high coverage precision", () => {
+    // 230-231: precision < 0 in the else branch for general formatting
+    const valHighBillion = formatNumber(9.9e12, { USD: "$" }, false, "USD");
+    const valSuperHighBillion = formatNumber(1e14, { USD: "$" }, false, "USD");
+    assert.strictEqual(valSuperHighBillion, "$100000b");
+  });
+
+  runTest("formatCurrency edge cases", () => {
+    // 21: invalid valueInUSD not string
+    const res21 = formatCurrency(null, "USD", {}, { USD: "$" });
+    assert.strictEqual(res21, "$0.00");
+
+    // 29: exchange rate missing
+    const res29 = formatCurrency(100, "EUR", {}, { USD: "$" });
+    assert.strictEqual(res29, "$100.00");
+
+    // 156: entry missing but valueType is total
+    const res156 = formatNumber(
+      100,
+      { USD: "$" },
+      false,
+      "USD",
+      {},
+      null,
+      "total",
+    );
+    assert.strictEqual(res156, "$100"); // assuming 100 * 1 = 100, no sign, symbol $
+
+    // 163: sign when convertedNum === 0
+    const res163 = formatNumber(
+      0,
+      { USD: "$" },
+      false,
+      "USD",
+      {},
+      null,
+      "total",
+    );
+    assert.strictEqual(res163, "$0");
+
+    // 344: formatSummaryBlock summary hasData is true but no data to display (hit edge of formatSummaryDateSuffix)
+    const res344 = formatSummaryBlock(
+      "Label",
+      {
+        hasData: true,
+        startDate: "2023-01-01",
+        endDate: "2023-12-31",
+        startValue: 100,
+        endValue: 200,
+        netChange: 100,
+      },
+      { from: "2023-01-01", to: "2023-12-31" },
+    );
+    // It should hit lines 343-344 (in formatSummaryDateSuffix)
+    assert.ok(res344.includes("Label"));
+
+    // 370-375: formatAppreciationBlock valueAdded not finite
+    const res370 = formatAppreciationBlock(
+      { hasData: true, netChange: Infinity },
+      { hasData: true, netChange: 50 },
+    );
+    assert.strictEqual(res370, "");
+
+    // 401: formatCompact with very small numbers that return num.toString()
+    const res401 = formatCompact(1);
+    assert.strictEqual(res401, "1");
   });
 
   // Summary
@@ -497,7 +631,7 @@ function runTests() {
     process.exit(1);
   } else {
     console.log("✅ ALL TESTS PASSED - Formatting utility working correctly");
-    process.exit(0);
+    // Do not call process.exit(0) to allow coverage runner to exit naturally
   }
 }
 
