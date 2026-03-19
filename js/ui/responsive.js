@@ -13,32 +13,42 @@ export function checkAndToggleVerticalScroll() {
   }
 }
 
+// Bolt Performance Optimization:
+// Cache DOM references so we don't query the document repeatedly on every scroll/resize frame.
+// We initialize them lazily to ensure the elements are actually present in the DOM.
+let mobileToggleContainer, mobileChartContainer;
+
 export function alignToggleWithChartMobile() {
   const isMobile = window.innerWidth <= UI_BREAKPOINTS.MOBILE;
-  const toggleContainer = document.getElementById("currencyToggleContainer");
-  const chartContainer = document.getElementById("fundPieChartContainer");
 
-  if (!toggleContainer || !chartContainer) {
+  if (!mobileToggleContainer) {
+    mobileToggleContainer = document.getElementById("currencyToggleContainer");
+  }
+  if (!mobileChartContainer) {
+    mobileChartContainer = document.getElementById("fundPieChartContainer");
+  }
+
+  if (!mobileToggleContainer || !mobileChartContainer) {
     return;
   }
 
   if (isMobile) {
     // Ensure toggle is fixed for JS positioning to work as intended relative to viewport
-    toggleContainer.style.position = "fixed";
-    toggleContainer.style.left = "0px"; // Keep it stuck to the left
+    mobileToggleContainer.style.position = "fixed";
+    mobileToggleContainer.style.left = "0px"; // Keep it stuck to the left
 
-    const chartRect = chartContainer.getBoundingClientRect();
+    const chartRect = mobileChartContainer.getBoundingClientRect();
     const chartCenterY = chartRect.top + chartRect.height / 2;
 
-    const toggleHeight = toggleContainer.offsetHeight;
+    const toggleHeight = mobileToggleContainer.offsetHeight;
     const toggleTop = chartCenterY - toggleHeight / 2;
 
-    toggleContainer.style.top = `${toggleTop}px`;
+    mobileToggleContainer.style.top = `${toggleTop}px`;
   } else {
     // Reset styles if not mobile, so desktop CSS takes over
-    toggleContainer.style.position = ""; // Reverts to CSS defined position (e.g. fixed, top: 15px, left: 15px)
-    toggleContainer.style.top = "";
-    toggleContainer.style.left = ""; // Allow desktop CSS to control left
+    mobileToggleContainer.style.position = ""; // Reverts to CSS defined position (e.g. fixed, top: 15px, left: 15px)
+    mobileToggleContainer.style.top = "";
+    mobileToggleContainer.style.left = ""; // Allow desktop CSS to control left
   }
 }
 
@@ -52,16 +62,30 @@ export function setupResizeListener() {
 }
 
 export function initCalendarResponsiveHandlers() {
+  // Bolt Performance Optimization:
+  // Cache DOM references so we don't query the document repeatedly on every scroll/resize frame.
+  // We initialize them lazily to ensure the elements are actually present in the DOM.
+  let toggleContainer, heatmapRoot, calendarContainer, navControls;
+
   const alignToggle = () => {
     const isMobile = window.innerWidth <= UI_BREAKPOINTS.MOBILE;
-    const toggleContainer = document.querySelector(
-      CALENDAR_SELECTORS.currencyToggle,
-    );
-    const heatmapRoot = document.querySelector(CALENDAR_SELECTORS.heatmap);
-    const calendarContainer = document.querySelector(
-      CALENDAR_SELECTORS.container,
-    );
-    const navControls = document.querySelector(CALENDAR_SELECTORS.navControls);
+
+    if (!toggleContainer) {
+      toggleContainer = document.querySelector(
+        CALENDAR_SELECTORS.currencyToggle,
+      );
+    }
+    if (!heatmapRoot) {
+      heatmapRoot = document.querySelector(CALENDAR_SELECTORS.heatmap);
+    }
+    if (!calendarContainer) {
+      calendarContainer = document.querySelector(
+        CALENDAR_SELECTORS.container,
+      );
+    }
+    if (!navControls) {
+      navControls = document.querySelector(CALENDAR_SELECTORS.navControls);
+    }
 
     if (!toggleContainer || !heatmapRoot) {
       return;
@@ -186,25 +210,29 @@ export function initCalendarResponsiveHandlers() {
   window.addEventListener("calendar-zoom-end", scheduleAlignResize);
   if (typeof window !== "undefined" && window.ResizeObserver) {
     const observer = new window.ResizeObserver(scheduleAlignResize);
-    const toggleContainer = document.querySelector(
+
+    // Fallback to query in case alignToggle hasn't cached these yet,
+    // though usually alignToggle() is called above initializing them.
+    const obsToggle = toggleContainer || document.querySelector(
       CALENDAR_SELECTORS.currencyToggle,
     );
-    const heatmapRoot = document.querySelector(CALENDAR_SELECTORS.heatmap);
-    const calendarContainer = document.querySelector(
+    const obsHeatmap = heatmapRoot || document.querySelector(CALENDAR_SELECTORS.heatmap);
+    const obsCalendar = calendarContainer || document.querySelector(
       CALENDAR_SELECTORS.container,
     );
-    const navControls = document.querySelector(CALENDAR_SELECTORS.navControls);
-    if (toggleContainer) {
-      observer.observe(toggleContainer);
+    const obsNav = navControls || document.querySelector(CALENDAR_SELECTORS.navControls);
+
+    if (obsToggle) {
+      observer.observe(obsToggle);
     }
-    if (heatmapRoot) {
-      observer.observe(heatmapRoot);
+    if (obsHeatmap) {
+      observer.observe(obsHeatmap);
     }
-    if (calendarContainer) {
-      observer.observe(calendarContainer);
+    if (obsCalendar) {
+      observer.observe(obsCalendar);
     }
-    if (navControls) {
-      observer.observe(navControls);
+    if (obsNav) {
+      observer.observe(obsNav);
     }
   }
 
