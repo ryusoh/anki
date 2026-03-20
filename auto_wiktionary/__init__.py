@@ -64,12 +64,12 @@ def _apply_wiktionary(editor, text_to_search):
     if not editor.addMode:
         try:
             editor.note.flush()
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Error flushing note: {e}")
     try:
         editor.loadNoteKeepingFocus()
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Error loading note: {e}")
 
     tooltip(f"Added definition for '{text}' to Back field.")
 

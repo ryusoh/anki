@@ -1222,7 +1222,7 @@ export async function initCalendar() {
     logger.log(error);
     const container = document.querySelector(CALENDAR_SELECTORS.container);
     if (container) {
-      container.innerHTML = "";
+      container.textContent = "";
       const p = document.createElement("p");
       p.textContent = error.message;
       container.appendChild(p);

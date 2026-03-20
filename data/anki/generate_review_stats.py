@@ -158,7 +158,8 @@ def _read_existing_review_total(path):
             data = json.load(f)
         entries = data.get("reviews", [])
         return sum(d.get("count", 0) for d in entries)
-    except Exception:
+    except Exception as e:
+        print(f"Error aggregating day counts: {e}")
         return 0
 
 

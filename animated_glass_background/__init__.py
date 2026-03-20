@@ -52,7 +52,8 @@ def on_webview_did_inject_style_into_page(web):
     # This hook is for Svelte-based pages like the "congrats" screen
     try:
         page = os.path.basename(web.page().url().path())
-    except Exception:
+    except Exception as e:
+        print(f"Error getting page URL path: {e}")
         return
         
     config = get_addon_config()
