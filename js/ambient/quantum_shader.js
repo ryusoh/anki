@@ -105,32 +105,46 @@ function initControls(container, surface, state, uniforms, onStateChange) {
     container.classList.add("is-dragging");
   };
 
+  // Bolt Performance Optimization:
+  // Throttled pointermove event using requestAnimationFrame and a ticking lock.
+  // Why: Prevent high-frequency events from triggering expensive DOM operations continuously.
+  // Impact: Improves frame rates by avoiding redundant state updates and layout thrashing.
+  let ticking = false;
+  let latestEvent = null;
   const onPointerMove = (event) => {
-    if (!pointerActive) {
-      updatePointerUniform(event.clientX, event.clientY);
-      return;
-    }
-    if (pointerId !== event.pointerId) {
+    if (pointerActive && pointerId !== event.pointerId) {
       return;
     }
 
-    const deltaX = (event.clientX - start.x) / 60;
-    const deltaY = (event.clientY - start.y) / 60;
-    const newNx = clamp(Math.round(start.nx + deltaX), 0, MAX_N);
-    const newNy = clamp(Math.round(start.ny - deltaY), 0, MAX_N);
+    latestEvent = event;
+    if (!ticking) {
+      window.requestAnimationFrame(() => {
+        const ev = latestEvent;
+        if (!pointerActive) {
+          updatePointerUniform(ev.clientX, ev.clientY);
+        } else {
+          const deltaX = (ev.clientX - start.x) / 60;
+          const deltaY = (ev.clientY - start.y) / 60;
+          const newNx = clamp(Math.round(start.nx + deltaX), 0, MAX_N);
+          const newNy = clamp(Math.round(start.ny - deltaY), 0, MAX_N);
 
-    if (newNx !== state.nx || newNy !== state.ny) {
-      state.nx = newNx;
-      state.ny = newNy;
-      uniforms.nx.value = state.nx;
-      uniforms.ny.value = state.ny;
-      uniforms.normalizationX.value = normalization(state.nx);
-      uniforms.normalizationY.value = normalization(state.ny);
-      uniforms.energy.value = state.nx + state.ny + 1;
-      onStateChange();
+          if (newNx !== state.nx || newNy !== state.ny) {
+            state.nx = newNx;
+            state.ny = newNy;
+            uniforms.nx.value = state.nx;
+            uniforms.ny.value = state.ny;
+            uniforms.normalizationX.value = normalization(state.nx);
+            uniforms.normalizationY.value = normalization(state.ny);
+            uniforms.energy.value = state.nx + state.ny + 1;
+            onStateChange();
+          }
+
+          updatePointerUniform(ev.clientX, ev.clientY);
+        }
+        ticking = false;
+      });
+      ticking = true;
     }
-
-    updatePointerUniform(event.clientX, event.clientY);
   };
 
   const releasePointer = (event) => {
