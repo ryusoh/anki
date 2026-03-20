@@ -1075,7 +1075,7 @@ export function initTerminal({
     }
     const safeCommand = escapeHtml(command);
     const prompt = `<div><span class="prompt-user">lz@fund:~$</span> ${safeCommand}</div>`;
-    outputContainer.innerHTML += prompt;
+    outputContainer.insertAdjacentHTML("beforeend", prompt);
     requestFadeUpdate();
 
     const parts = command.toLowerCase().split(" ");
