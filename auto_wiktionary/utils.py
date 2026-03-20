@@ -235,8 +235,8 @@ def get_wiktionary_candidates(word, lang="en"):
             data = json.loads(response.read().decode('utf-8'))
             if len(data) > 1 and isinstance(data[1], list):
                 return data[1]
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Error getting wiktionary candidates: {e}")
     
     return []
 

@@ -24,7 +24,8 @@ def on_editor_did_load_note(editor: Editor) -> None:
         query = search_edit.currentText() if hasattr(search_edit, 'currentText') else search_edit.text()
         if not query or not query.strip():
             query = _last_search_query
-    except Exception:
+    except Exception as e:
+        print(f"Error getting search edit text: {e}")
         query = _last_search_query
 
     terms = extract_search_terms(query)
@@ -105,8 +106,8 @@ def on_editor_did_load_note(editor: Editor) -> None:
 """
     try:
         editor.web.eval(script)
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Error evaluating JS: {e}")
 
 def init_editor():
     browser_did_search.append(on_browser_did_search)

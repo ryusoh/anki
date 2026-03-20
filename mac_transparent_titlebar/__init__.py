@@ -21,8 +21,8 @@ class WindowDragFilter(QObject):
                     if 0 <= win_pos.y() <= 28 and win_pos.x() > 75:
                         if mw.windowHandle():
                             mw.windowHandle().startSystemMove()
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"Error dragging window: {e}")
         return False
 
 def make_window_transparent(win_id):

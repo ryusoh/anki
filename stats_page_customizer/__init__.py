@@ -58,8 +58,8 @@ def _log(message: str) -> None:
         log_path.parent.mkdir(parents=True, exist_ok=True)
         with log_path.open("a", encoding="utf-8") as fh:
             fh.write(message + "\n")
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Error writing to log file: {e}")
 
 
 def _load_injected_js() -> str:
@@ -171,7 +171,8 @@ def _read_existing_total_from_file(path: Path) -> int:
         data = json.loads(content)
         entries = data.get("futureDue", [])
         return sum(d.get("mature", 0) + d.get("young", 0) for d in entries)
-    except Exception:
+    except Exception as e:
+        _log(f"Error aggregating sum of reviews: {e}")
         return 0
 
 

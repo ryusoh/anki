@@ -132,12 +132,12 @@ def _apply_mathjax(editor):
     if not editor.addMode:
         try:
             editor.note.flush()
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Error flushing note in auto_mathjax: {e}")
     try:
         editor.loadNoteKeepingFocus()
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Error loading note in auto_mathjax: {e}")
 
 
 def on_auto_mathjax(editor: Editor) -> None:

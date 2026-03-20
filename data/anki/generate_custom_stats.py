@@ -48,7 +48,8 @@ def get_anki_today():
         crt_date = datetime.fromtimestamp(crt).replace(hour=0, minute=0, second=0, microsecond=0)
         today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         return (today - crt_date).days
-    except Exception:
+    except Exception as e:
+        print(f"Error calculating epoch days: {e}")
         # Fallback to 2007 epoch
         anki_epoch = datetime(2007, 1, 1)
         today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -175,7 +176,8 @@ def _read_existing_total(path):
             data = json.load(f)
         entries = data.get("futureDue", [])
         return sum(d.get("mature", 0) + d.get("young", 0) for d in entries)
-    except Exception:
+    except Exception as e:
+        print(f"Error aggregating review totals: {e}")
         return 0
 
 
@@ -267,8 +269,8 @@ def main():
                 existing_content = f.read()
             if new_content == existing_content:
                 write_full = False
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Error opening CUSTOM_STATS_DATA: {e}")
 
     if write_full:
         with gzip.open(full_file, "wt", encoding="utf-8") as f:

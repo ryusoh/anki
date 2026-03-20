@@ -267,12 +267,14 @@ def _strip_field(editor, new_html=None):
     if not editor.addMode:
         try:
             editor.note.flush()
-        except Exception:
-            pass
+        except Exception as e:
+            import sys
+            print(f"Error flushing note in strip_html_tags: {e}", file=sys.stderr)
     try:
         editor.loadNoteKeepingFocus()
-    except Exception:
-        pass
+    except Exception as e:
+        import sys
+        print(f"Error loading note in strip_html_tags: {e}", file=sys.stderr)
 
 
 def on_strip_html(editor: Editor) -> None:

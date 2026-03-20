@@ -42,8 +42,9 @@ class TopPaneFilter(QObject):
                     if 0 <= local_pos.y() <= 80:
                         toggle_bottom_pane_logic()
                         return True
-                except Exception:
-                    pass
+                except Exception as e:
+                    import sys
+                    print(f"Error handling top pane double click: {e}", file=sys.stderr)
         return False
 
 def on_main_window_did_init():
