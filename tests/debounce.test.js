@@ -37,6 +37,20 @@ async function runTests() {
     failed++;
   }
 
+  // Test 6: Throws error if not a function
+  console.log("\n📋 Test 6: Throws error if not a function");
+  try {
+    assert.throws(() => {
+      debounce(null, 50);
+    }, TypeError, "Should throw TypeError if first argument is not a function");
+
+    console.log("   ✓ Throws error if not a function");
+    passed++;
+  } catch (e) {
+    console.log(`   ✗ ${e.message}`);
+    failed++;
+  }
+
   // Test 2: Multiple calls within wait time only trigger once
   console.log("\n📋 Test 2: Multiple calls within wait time only trigger once");
   try {

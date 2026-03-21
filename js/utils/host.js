@@ -1,5 +1,5 @@
 export const isLocalhost = (hostname) => {
-  if (!hostname) {
+  if (!hostname || typeof hostname !== "string") {
     return false;
   }
 

@@ -9,6 +9,10 @@ export function getBlueColorForSlice(index) {
 }
 
 export function hexToRgba(hex, alpha) {
+  if (!hex || typeof hex !== "string") {
+    return `rgba(0, 0, 0, ${alpha})`;
+  }
+
   let r = 0,
     g = 0,
     b = 0;

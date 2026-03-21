@@ -24,6 +24,8 @@ function runTests() {
     assert.strictEqual(isLocalhost(""), false);
     assert.strictEqual(isLocalhost(null), false);
     assert.strictEqual(isLocalhost(undefined), false);
+    assert.strictEqual(isLocalhost(123), false);
+    assert.strictEqual(isLocalhost({}), false);
   });
 
   runTest("Identifies common loopback hostnames", () => {
