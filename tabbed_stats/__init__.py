@@ -27,7 +27,7 @@ _CENTER_GRAPHS_JS = """
     if (document.getElementById('tabbedStatsCenterFix')) return;
     const style = document.createElement('style');
     style.id = 'tabbedStatsCenterFix';
-    style.textContent = '.graphs-container { margin-left: auto !important; margin-right: auto !important; max-width: calc(100vw - 2em); width: auto !important; }';
+    style.textContent = '.graphs-container { margin-left: auto !important; margin-right: auto !important; max-width: calc(100vw - 2em); width: auto !important; } .range-box { background: transparent !important; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); } .spacer { height: 0 !important; } .range-box-pad { height: 0.5em !important; } body { background: transparent !important; } html { background: transparent !important; } #statisticsSearchText { background: transparent !important; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(128,128,128,0.3) !important; }';
     document.head.appendChild(style);
 })();
 """
@@ -59,6 +59,8 @@ def _show_stats() -> None:
     if _stats_web is None:
         return
     mw.web.hide()
+    # Actually remove bottomWeb from layout so it takes zero space
+    mw.mainLayout.removeWidget(mw.bottomWeb)
     mw.bottomWeb.hide()
     _stats_web.show()
 
@@ -77,6 +79,11 @@ def _close_stats() -> None:
     _stats_web.deleteLater()
     _stats_web = None
 
+    # Restore bottomWeb to layout
+    mw.mainLayout.addWidget(mw.bottomWeb)
+    mw.bottomWeb.show()
+    mw.bottomWeb.adjustHeightToFit()
+
 
 def _inject_customizations() -> None:
     """Inject the deck chooser button and centering fix, with retries."""
@@ -88,8 +95,28 @@ def _inject_customizations() -> None:
             return
         _stats_web.eval(_CENTER_GRAPHS_JS)
         _stats_web.eval(_INJECT_DECK_BUTTON_JS)
+        _inject_glass_effect()
     for delay in (0, 300, 600, 1200, 2500):
         QTimer.singleShot(delay, _do_inject)
+
+
+def _inject_glass_effect() -> None:
+    """Inject the animated glass background effect into the stats webview."""
+    if _stats_web is None:
+        return
+    try:
+        from animated_glass_background import get_glass_effect_js, get_addon_config
+        import json
+        config = get_addon_config()
+        if not config.get("enabled", True):
+            return
+        config_json = json.dumps(config)
+        _stats_web.eval(f"window.glassEffectConfig = {config_json};")
+        script = get_glass_effect_js()
+        if script:
+            _stats_web.eval(script)
+    except Exception:
+        pass
 
 
 def _open_deck_chooser() -> None:
