@@ -154,8 +154,8 @@ class RevHmOptions(OptionsDialog):
         list_widget = self.form.listDecks
         ret = StudyDeck(
             self.mw,
-            accept=_("Choose"),
-            title=_("Choose Deck"),
+            accept=_("選択"),
+            title=_("選択"),
             help="",
             parent=self,
             geomKey="selectDeck",
