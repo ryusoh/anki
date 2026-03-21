@@ -71,7 +71,7 @@ jobs:
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
       # codeql[js/unpinned-tag] Pinned to github/codeql-action/init@v4.32.6 SHA: 0d579ffd059c29b07949a3cce3983f0780820c98
-      uses: github/codeql-action/init@0d579ffd059c29b07949a3cce3983f0780820c98
+      uses: github/codeql-action/init@38697555549f1db7851b81482ff19f1fa5c4fedc
       with:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
@@ -102,6 +102,6 @@ jobs:
 
     - name: Perform CodeQL Analysis
       # codeql[js/unpinned-tag] Pinned to github/codeql-action/analyze@v4.32.6 SHA: 0d579ffd059c29b07949a3cce3983f0780820c98
-      uses: github/codeql-action/analyze@0d579ffd059c29b07949a3cce3983f0780820c98
+      uses: github/codeql-action/analyze@38697555549f1db7851b81482ff19f1fa5c4fedc
       with:
         category: "/language:${{matrix.language}}"
