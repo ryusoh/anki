@@ -40,9 +40,13 @@ async function runTests() {
   // Test 6: Throws error if not a function
   console.log("\n📋 Test 6: Throws error if not a function");
   try {
-    assert.throws(() => {
-      debounce(null, 50);
-    }, TypeError, "Should throw TypeError if first argument is not a function");
+    assert.throws(
+      () => {
+        debounce(null, 50);
+      },
+      TypeError,
+      "Should throw TypeError if first argument is not a function",
+    );
 
     console.log("   ✓ Throws error if not a function");
     passed++;

@@ -27,7 +27,7 @@ _CENTER_GRAPHS_JS = """
     if (document.getElementById('tabbedStatsCenterFix')) return;
     const style = document.createElement('style');
     style.id = 'tabbedStatsCenterFix';
-    style.textContent = '.graphs-container { margin-left: auto !important; margin-right: auto !important; max-width: calc(100vw - 2em); width: auto !important; } .range-box { background: transparent !important; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); } .spacer { height: 0 !important; } .range-box-pad { height: 0.5em !important; } body { background: transparent !important; } html { background: transparent !important; } #statisticsSearchText { background: transparent !important; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(128,128,128,0.3) !important; }';
+    style.textContent = '.graphs-container { margin-left: auto !important; margin-right: auto !important; max-width: calc(100vw - 2em); width: auto !important; } .range-box { background: rgba(0,0,0,0.05) !important; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); } .spacer, div.spacer { height: 1em !important; margin: 0 !important; padding: 0 !important; } .range-box-pad, div.range-box-pad { height: 1em !important; margin: 0 !important; padding: 0 !important; } #statisticsSearchText { background: rgba(0,0,0,0.05) !important; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(128,128,128,0.3) !important; }';
     document.head.appendChild(style);
 })();
 """
@@ -58,10 +58,13 @@ def _show_stats() -> None:
     """Hide main webview, show stats webview."""
     if _stats_web is None:
         return
+    # Remove both mw.web and bottomWeb from layout so they take zero space
+    mw.mainLayout.removeWidget(mw.web)
     mw.web.hide()
-    # Actually remove bottomWeb from layout so it takes zero space
+    mw.web.setFixedHeight(0)
     mw.mainLayout.removeWidget(mw.bottomWeb)
     mw.bottomWeb.hide()
+    mw.bottomWeb.setFixedHeight(0)
     _stats_web.show()
 
 
@@ -79,7 +82,13 @@ def _close_stats() -> None:
     _stats_web.deleteLater()
     _stats_web = None
 
-    # Restore bottomWeb to layout
+    # Restore mw.web and bottomWeb to layout (toolbar is index 0)
+    mw.web.setMinimumHeight(0)
+    mw.web.setMaximumHeight(16777215)
+    mw.mainLayout.insertWidget(1, mw.web)
+    mw.web.show()
+    mw.bottomWeb.setMinimumHeight(0)
+    mw.bottomWeb.setMaximumHeight(16777215)
     mw.mainLayout.addWidget(mw.bottomWeb)
     mw.bottomWeb.show()
     mw.bottomWeb.adjustHeightToFit()
@@ -95,9 +104,10 @@ def _inject_customizations() -> None:
             return
         _stats_web.eval(_CENTER_GRAPHS_JS)
         _stats_web.eval(_INJECT_DECK_BUTTON_JS)
-        _inject_glass_effect()
     for delay in (0, 300, 600, 1200, 2500):
         QTimer.singleShot(delay, _do_inject)
+    # Inject glass effect only once (not in retry loop) to avoid layout issues
+    QTimer.singleShot(100, _inject_glass_effect)
 
 
 def _inject_glass_effect() -> None:
@@ -181,12 +191,16 @@ def _create_stats_tab() -> None:
     # Inject deck button after page loads
     web.loadFinished.connect(lambda ok: _inject_customizations() if ok else None)
 
-    # Insert into layout after mw.web
+    # Remove mw.web and bottomWeb, insert stats webview in mw.web's place
     layout: QVBoxLayout = mw.mainLayout
     web_index = layout.indexOf(mw.web)
-    layout.insertWidget(web_index + 1, web)
+    layout.removeWidget(mw.web)
+    mw.web.hide()
+    layout.removeWidget(mw.bottomWeb)
+    mw.bottomWeb.hide()
+    layout.insertWidget(web_index, web)
 
-    _show_stats()
+    _stats_web.show()
     web.load_sveltekit_page("graphs")
 
     # Let stats_page_customizer attach its JS injection

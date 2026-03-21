@@ -9,8 +9,8 @@
  * @returns {Function} The debounced function
  */
 export function debounce(func, wait) {
-  if (typeof func !== 'function') {
-    throw new TypeError('Expected a function');
+  if (typeof func !== "function") {
+    throw new TypeError("Expected a function");
   }
 
   let timeout;
