@@ -76,6 +76,9 @@ async function runTests() {
       assert.strictEqual(hexToRgba("#FF00000", 0.5), "rgba(0, 0, 0, 0.5)");
       assert.strictEqual(hexToRgba("#F0", 1), "rgba(0, 0, 0, 1)");
       assert.strictEqual(hexToRgba("", 0.2), "rgba(0, 0, 0, 0.2)");
+      assert.strictEqual(hexToRgba(null, 0.2), "rgba(0, 0, 0, 0.2)");
+      assert.strictEqual(hexToRgba(undefined, 0.2), "rgba(0, 0, 0, 0.2)");
+      assert.strictEqual(hexToRgba(123, 0.2), "rgba(0, 0, 0, 0.2)");
     },
   );
 
