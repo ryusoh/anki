@@ -32,8 +32,6 @@ _CENTER_GRAPHS_JS = """
 })();
 """
 
-# JS: add a "Choose Deck" button next to the search input, and select the
-# Custom radio so the search input value is respected by Svelte.
 _INJECT_DECK_BUTTON_JS = """
 (function() {
     const input = document.getElementById('statisticsSearchText');
@@ -58,7 +56,6 @@ def _show_stats() -> None:
     """Hide main webview, show stats webview."""
     if _stats_web is None:
         return
-    # Remove both mw.web and bottomWeb from layout so they take zero space
     mw.mainLayout.removeWidget(mw.web)
     mw.web.hide()
     mw.web.setFixedHeight(0)
@@ -76,13 +73,11 @@ def _close_stats() -> None:
         return
 
     _stats_web.hide()
-    layout: QVBoxLayout = mw.mainLayout
-    layout.removeWidget(_stats_web)
+    mw.mainLayout.removeWidget(_stats_web)
     _stats_web.cleanup()
     _stats_web.deleteLater()
     _stats_web = None
 
-    # Restore mw.web and bottomWeb to layout (toolbar is index 0)
     mw.web.setMinimumHeight(0)
     mw.web.setMaximumHeight(16777215)
     mw.mainLayout.insertWidget(1, mw.web)
@@ -95,23 +90,24 @@ def _close_stats() -> None:
 
 
 def _inject_customizations() -> None:
-    """Inject the deck chooser button and centering fix, with retries."""
+    """Inject the deck chooser button, centering fix, and glass effect."""
     if _stats_web is None:
         return
     from aqt.qt import QTimer
+
     def _do_inject():
         if _stats_web is None:
             return
         _stats_web.eval(_CENTER_GRAPHS_JS)
         _stats_web.eval(_INJECT_DECK_BUTTON_JS)
+
     for delay in (0, 300, 600, 1200, 2500):
         QTimer.singleShot(delay, _do_inject)
-    # Inject glass effect only once (not in retry loop) to avoid layout issues
     QTimer.singleShot(100, _inject_glass_effect)
 
 
 def _inject_glass_effect() -> None:
-    """Inject the animated glass background effect into the stats webview."""
+    """Inject a patched version of the glass effect that doesn't break stats layout."""
     if _stats_web is None:
         return
     try:
@@ -122,9 +118,25 @@ def _inject_glass_effect() -> None:
             return
         config_json = json.dumps(config)
         _stats_web.eval(f"window.glassEffectConfig = {config_json};")
+
         script = get_glass_effect_js()
-        if script:
-            _stats_web.eval(script)
+        if not script:
+            return
+
+        # Patch: remove the aggressive per-frame background stripping loop
+        # that forces position:relative and transparent backgrounds on all
+        # body children, which breaks the Svelte stats page layout.
+        script = script.replace(
+            'body > *:not(#glass-effect-bg):not(script):not(style)',
+            '#__never_match_anything__'
+        )
+        # Patch: remove position:relative on body>div which shifts layout
+        script = script.replace(
+            'position: relative !important;',
+            'position: static !important;'
+        )
+
+        _stats_web.eval(script)
     except Exception:
         pass
 
@@ -150,10 +162,8 @@ def _open_deck_chooser() -> None:
     import json
     deck_name = json.dumps(ret.name)
 
-    # Click the Custom radio (value=3), set the search input, trigger change
     _stats_web.eval(f"""
     (function() {{
-        // Select the "custom" radio to enable manual search
         const radios = document.querySelectorAll('.range-box input[type="radio"]');
         for (const r of radios) {{
             if (r.value === '3') {{
@@ -188,10 +198,8 @@ def _create_stats_tab() -> None:
     web.set_open_links_externally(True)
     _stats_web = web
 
-    # Inject deck button after page loads
     web.loadFinished.connect(lambda ok: _inject_customizations() if ok else None)
 
-    # Remove mw.web and bottomWeb, insert stats webview in mw.web's place
     layout: QVBoxLayout = mw.mainLayout
     web_index = layout.indexOf(mw.web)
     layout.removeWidget(mw.web)
@@ -203,7 +211,6 @@ def _create_stats_tab() -> None:
     _stats_web.show()
     web.load_sveltekit_page("graphs")
 
-    # Let stats_page_customizer attach its JS injection
     try:
         from stats_page_customizer import _attach_on_load
         _attach_on_load(web)
@@ -224,7 +231,6 @@ def _on_stats_bridge_cmd(cmd: str) -> bool:
 
 
 def _on_state_did_change(new_state: str, old_state: str) -> None:
-    """When Anki switches to deckBrowser/overview/review, close stats."""
     if new_state in ("deckBrowser", "overview", "review"):
         _close_stats()
 
