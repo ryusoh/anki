@@ -1,13 +1,18 @@
 import { parseCSVLine } from "./utils.js";
 
 export function getSplitAdjustment(splitHistory, symbol, transactionDate) {
-  return splitHistory
-    .filter(
-      (split) =>
-        split.symbol === symbol &&
-        new Date(split.splitDate) > new Date(transactionDate),
-    )
-    .reduce((cumulative, split) => cumulative * split.splitMultiplier, 1.0);
+  let cumulative = 1.0;
+  // Pre-calculate transaction timestamp outside the loop
+  const txTime = new Date(transactionDate).getTime();
+
+  for (let i = 0; i < splitHistory.length; i += 1) {
+    const split = splitHistory[i];
+    if (split.symbol === symbol && new Date(split.splitDate).getTime() > txTime) {
+      cumulative *= split.splitMultiplier;
+    }
+  }
+
+  return cumulative;
 }
 
 export function applyTransactionFIFO(lots, transaction, splitHistory) {
