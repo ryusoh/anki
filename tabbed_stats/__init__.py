@@ -1,8 +1,7 @@
-"""Tabbed Stats — show Anki stats as a tab instead of a separate window.
+"""Tabbed Views — show Anki stats and add-card as inline tabs instead of separate windows.
 
-Intercepts the Stats toolbar button to show stats inline in the main window
-instead of opening a separate dialog. Uses the existing toolbar buttons
-(Decks/Stats) for navigation.
+Intercepts the Stats and Add toolbar buttons to show content inline in the
+main window. Uses the existing toolbar buttons (Decks/Stats/Add) for navigation.
 """
 
 from __future__ import annotations
@@ -12,13 +11,15 @@ from typing import Any
 try:
     import aqt
     from aqt import gui_hooks, mw
-    from aqt.qt import QVBoxLayout
+    from aqt.qt import QVBoxLayout, QWidget
     from aqt.webview import AnkiWebView, AnkiWebViewKind
 except Exception:
     mw = None  # type: ignore
 
 
 _stats_web: AnkiWebView | None = None
+_addcards: Any = None
+_addcards_central: Any = None
 _original_open: Any = None
 _installed = False
 
@@ -52,16 +53,37 @@ _INJECT_DECK_BUTTON_JS = """
 """
 
 
-def _show_stats() -> None:
-    """Hide main webview, show stats webview."""
-    if _stats_web is None:
-        return
+def _hide_main_content() -> None:
+    """Remove mw.web and bottomWeb from layout so an embedded view gets full space."""
     mw.mainLayout.removeWidget(mw.web)
     mw.web.hide()
     mw.web.setFixedHeight(0)
     mw.mainLayout.removeWidget(mw.bottomWeb)
     mw.bottomWeb.hide()
     mw.bottomWeb.setFixedHeight(0)
+
+
+def _restore_main_content() -> None:
+    """Put mw.web and bottomWeb back into layout if not already there."""
+    if mw.mainLayout.indexOf(mw.web) < 0:
+        mw.web.setMinimumHeight(0)
+        mw.web.setMaximumHeight(16777215)
+        mw.mainLayout.insertWidget(1, mw.web)
+        mw.web.show()
+    if mw.mainLayout.indexOf(mw.bottomWeb) < 0:
+        mw.bottomWeb.setMinimumHeight(0)
+        mw.bottomWeb.setMaximumHeight(16777215)
+        mw.mainLayout.addWidget(mw.bottomWeb)
+        mw.bottomWeb.show()
+        mw.bottomWeb.adjustHeightToFit()
+
+
+def _show_stats() -> None:
+    """Hide main webview, show stats webview."""
+    if _stats_web is None:
+        return
+    _close_addcards()
+    _hide_main_content()
     _stats_web.show()
 
 
@@ -78,15 +100,7 @@ def _close_stats() -> None:
     _stats_web.deleteLater()
     _stats_web = None
 
-    mw.web.setMinimumHeight(0)
-    mw.web.setMaximumHeight(16777215)
-    mw.mainLayout.insertWidget(1, mw.web)
-    mw.web.show()
-    mw.bottomWeb.setMinimumHeight(0)
-    mw.bottomWeb.setMaximumHeight(16777215)
-    mw.mainLayout.addWidget(mw.bottomWeb)
-    mw.bottomWeb.show()
-    mw.bottomWeb.adjustHeightToFit()
+    _restore_main_content()
 
 
 def _inject_customizations() -> None:
@@ -218,6 +232,73 @@ def _create_stats_tab() -> None:
         pass
 
 
+def _create_addcards_tab() -> None:
+    """Create AddCards inline in the main window."""
+    global _addcards
+
+    if _addcards is not None:
+        # Already open, just switch to it
+        _close_stats()
+        _hide_main_content()
+        _addcards.show()
+        return
+
+    _close_stats()
+
+    from aqt.addcards import AddCards
+    from aqt.qt import Qt
+
+    # Monkey-patch show() to prevent the window from appearing separately
+    _original_show = AddCards.show
+
+    def _patched_show(self):
+        pass  # Don't show as separate window
+
+    AddCards.show = _patched_show
+    try:
+        addcards = AddCards(mw)
+    finally:
+        AddCards.show = _original_show
+
+    _addcards = addcards
+
+    # Register with dialog manager so Anki knows it's open
+    aqt.dialogs._dialogs["AddCards"][1] = addcards
+
+    # Grab the central widget and embed it in the main layout
+    global _addcards_central
+    central = addcards.centralWidget()
+    central.setParent(None)  # detach from AddCards window
+    _addcards_central = central
+
+    _hide_main_content()
+
+    layout: QVBoxLayout = mw.mainLayout
+    layout.insertWidget(1, central)
+    central.show()
+
+    # Keep the AddCards window hidden (it still owns the logic)
+    addcards.hide()
+
+
+def _close_addcards() -> None:
+    """Close the embedded AddCards view."""
+    global _addcards, _addcards_central
+
+    if _addcards is None:
+        return
+
+    if _addcards_central is not None:
+        mw.mainLayout.removeWidget(_addcards_central)
+        _addcards_central.hide()
+        _addcards_central = None
+
+    # Let AddCards clean itself up properly
+    _addcards._close_event_has_cleaned_up = False
+    _addcards._close()
+    _addcards = None
+
+
 def _on_stats_bridge_cmd(cmd: str) -> bool:
     if cmd == "tabbed_stats_choose_deck":
         _open_deck_chooser()
@@ -233,12 +314,17 @@ def _on_stats_bridge_cmd(cmd: str) -> bool:
 def _on_state_did_change(new_state: str, old_state: str) -> None:
     if new_state in ("deckBrowser", "overview", "review"):
         _close_stats()
+        _close_addcards()
+        _restore_main_content()
 
 
 def _patched_dialogs_open(name: str, *args: Any, **kwargs: Any) -> Any:
     if name == "NewDeckStats":
         _create_stats_tab()
         return None
+    if name == "AddCards":
+        _create_addcards_tab()
+        return _addcards
     return _original_open(name, *args, **kwargs)
 
 
