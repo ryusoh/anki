@@ -25,3 +25,8 @@
 
 **Learning:** The interactive chart legends (e.g., toggling benchmarks in the performance chart) were built using generic `div` elements with only mouse `click` listeners. They lacked keyboard navigation and screen reader state tracking, meaning keyboard users could not filter or toggle chart data sets.
 **Action:** When creating custom interactive toggles with `div` or `span` elements, always add `role="button"`, `tabIndex=0`, appropriate `aria-pressed` states, and a combined `keydown` handler for the 'Enter' and 'Space' keys.
+
+## 2025-03-20 - Terminal Emulator Output Accessibility
+
+**Learning:** Terminal emulators or command-line interfaces built with web technologies that dynamically append command output and results using JavaScript are entirely invisible to assistive technologies like screen readers if no ARIA live regions are used. Without explicit indication, screen reader users input a command, hit enter, and receive absolutely no feedback.
+**Action:** When building custom web-based terminal interfaces or logs, always ensure the container holding the output stream uses `role="log"` and `aria-live="polite"` so new lines are announced without interrupting the user. Additionally, route dedicated command error messages to a container with `aria-live="assertive" role="alert"` to immediately interrupt and alert the user of failure.
