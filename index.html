@@ -136,7 +136,13 @@
     </div>
     <div class="transaction-container">
       <div class="terminal" id="terminal">
-        <div class="terminal-output" id="terminalOutput"></div>
+        <div
+          class="terminal-output"
+          id="terminalOutput"
+          role="log"
+          aria-live="polite"
+          aria-atomic="false"
+        ></div>
         <div class="terminal-prompt">
           <label for="terminalInput" class="prompt-user">lz@anki:~$</label>
           <input
