@@ -145,6 +145,15 @@ async function runTests() {
     await new Promise((resolve) => setTimeout(resolve, 50));
     assert.strictEqual(callCount, 1, "Function should be called");
 
+    // Call again, which clears previous timeout and sets a new one
+    fn();
+
+    // Inside the debounce function, after wait time, 'later' is called
+    // 'later' will clear the timeout and call the original function
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    assert.strictEqual(callCount, 2, "Function should be called again");
+
     console.log("   ✓ function is called correctly (cover lines 15-16)");
     passed++;
   } catch (e) {
