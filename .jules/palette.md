@@ -30,3 +30,8 @@
 
 **Learning:** Emulated terminal outputs that continuously append new text lines dynamically (e.g., via `appendChild`) are completely silent to screen readers unless explicitly marked as a live region. This creates a severe accessibility barrier where visually impaired users cannot perceive command responses or real-time logs.
 **Action:** When building custom terminal or log viewer UIs, always add `role="log"`, `aria-live="polite"`, and `aria-atomic="false"` to the scrolling container element (`div.terminal-output`). This ensures screen readers correctly queue and announce new lines of text as they appear without interrupting the user.
+
+## 2025-03-20 - Terminal Emulator Output Accessibility
+
+**Learning:** Terminal emulators or command-line interfaces built with web technologies that dynamically append command output and results using JavaScript are entirely invisible to assistive technologies like screen readers if no ARIA live regions are used. Without explicit indication, screen reader users input a command, hit enter, and receive absolutely no feedback.
+**Action:** When building custom web-based terminal interfaces or logs, always ensure the container holding the output stream uses `role="log"` and `aria-live="polite"` so new lines are announced without interrupting the user. Additionally, route dedicated command error messages to a container with `aria-live="assertive" role="alert"` to immediately interrupt and alert the user of failure.
