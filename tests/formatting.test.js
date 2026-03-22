@@ -469,12 +469,40 @@ function runTests() {
 
     const fallbackFormatter = formatCurrencyChange(123.45, "not-a-function");
     assert.strictEqual(fallbackFormatter, "+$123.45");
+
+    // Test branch formatted?.startsWith("+") where formatted doesn't start with + but number > 0
+    const startWithoutPlus = formatCurrencyChange(100, (n) => `$${n}.00`);
+    assert.strictEqual(startWithoutPlus, "+$100.00");
+
+    // Test branch where formatted already starts with +
+    const startWithPlus = formatCurrencyChange(100, (n) => `+$${n}.00`);
+    assert.strictEqual(startWithPlus, "+$100.00");
   });
 
   runTest("formatSummaryBlock default formatter edge cases", () => {
     const sum = { hasData: true, startValue: NaN, endValue: NaN, netChange: 0 };
     const res = formatSummaryBlock("Test", sum, null);
     assert.ok(res.includes("$0.00")); // hits lines 322-323
+
+    const sumValid = {
+      hasData: true,
+      startValue: 100,
+      endValue: 150,
+      netChange: 50,
+    };
+    const res2 = formatSummaryBlock("Test2", sumValid, null, {
+      formatValue: "not a function",
+    });
+    assert.ok(res2.includes("$100.00"));
+  });
+
+  runTest("formatAppreciationBlock default formatter edge cases", () => {
+    const balanceSummary = { hasData: true, netChange: 150 };
+    const contributionSummary = { hasData: true, netChange: 50 };
+    const res = formatAppreciationBlock(balanceSummary, contributionSummary, {
+      formatValue: "not a function",
+    });
+    assert.ok(res.includes("+$100.00"));
   });
 
   runTest("formatCompact fallback logic", () => {
