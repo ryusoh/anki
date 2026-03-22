@@ -51,7 +51,9 @@ export const imagePlugin = {
           // Hint decode scheduling; avoid blocking the main thread
           try {
             img.decoding = "async";
-          } catch {}
+          } catch {
+            // Ignore error if decoding attribute is not supported
+          }
           img.onload = () => {
             loadedImages[imageUrl] = img;
             pendingLoads.delete(imageUrl);
@@ -62,7 +64,9 @@ export const imagePlugin = {
           };
           img.src = imageUrl;
         }
-      } catch {}
+      } catch {
+        // Ignore preload errors to allow chart drawing to continue
+      }
       // Do not draw yet; exit early since logos aren't visible
       return;
     }

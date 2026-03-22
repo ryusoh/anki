@@ -13,7 +13,9 @@
         l.crossOrigin = "anonymous";
         document.head.appendChild(l);
       }
-    } catch {}
+    } catch {
+      // Ignore errors when dynamically appending preconnect links
+    }
   }
   function loadScriptSequential(urls, attrs) {
     return new Promise(function (resolve, reject) {

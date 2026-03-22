@@ -18,5 +18,7 @@
       "https://cdn.baomitu.com",
     ]);
     window.CDNLoader.loadCssWithFallback(fontAwesome);
-  } catch {}
+  } catch {
+    // Ignore vendor script setup errors to not block the rest of the application
+  }
 })();
