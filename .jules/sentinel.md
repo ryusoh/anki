@@ -35,3 +35,9 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Vulnerability:** Dynamic properties like `color` in chart legends and date labels (`startLabel`, `endLabel`, `durationLabel`) in terminal UI were interpolated directly into the DOM using `innerHTML` without sanitization.
 **Learning:** Even internal formatting values or properties like colors derived from backend configurations could potentially be manipulated.
 **Prevention:** Always wrap dynamically injected text values or color properties with an HTML escaping utility (like `escapeHtml`) before concatenating them into `innerHTML` strings.
+
+## 2024-03-21 - Flawed gitignore auditing
+
+**Vulnerability:** A security audit script (`tools/security_audit.py`) was generating false positives by checking `git check-ignore <dir>/` on a directory that legitimately contained a tracked file (`hash_map.json`), masking potential real issues and causing developer fatigue.
+**Learning:** `git check-ignore` on a directory path returns a non-zero exit code if the directory contains tracked files, even if the `.gitignore` rules correctly ignore all other untracked contents in that directory.
+**Prevention:** When writing custom security scripts to verify gitignore coverage of a directory that might contain tracked files, test the ignore rules against a dummy file path (e.g., `<dir>/test_dummy.json`) rather than the directory itself.

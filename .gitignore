@@ -185,3 +185,5 @@ Desktop.ini
 
 # Graph data (contains card content)
 graph/graph_data.json
+data/cloudflare/*
+!data/cloudflare/hash_map.json

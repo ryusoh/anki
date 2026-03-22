@@ -121,11 +121,11 @@ def check_gitignore_coverage():
     issues = []
     
     result = subprocess.run(
-        ['git', 'check-ignore', 'data/cloudflare/'],
+        ['git', 'check-ignore', 'data/cloudflare/test_dummy.json'],
         capture_output=True
     )
     if result.returncode != 0:
-        issues.append("data/cloudflare/ is NOT gitignored!")
+        issues.append("data/cloudflare/test_dummy.json is NOT gitignored!")
     
     result = subprocess.run(
         ['git', 'check-ignore', 'graph/graph_data.json'],
