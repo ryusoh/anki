@@ -158,10 +158,9 @@ async function runTests() {
 
   if (failed > 0) {
     console.log("❌ TESTS FAILED - Debounce utility has issues\n");
-    process.exit(1);
+    process.exitCode = 1;
   } else {
     console.log("✅ ALL TESTS PASSED - Debounce utility working correctly");
-    // Do not call process.exit(0) to allow coverage runner to exit naturally
   }
 }
 

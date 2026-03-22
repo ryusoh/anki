@@ -82,10 +82,9 @@ function runTests() {
 
   if (failed > 0) {
     console.log("❌ TESTS FAILED - Host utility has issues\n");
-    process.exit(1);
+    process.exitCode = 1;
   } else {
     console.log("✅ ALL TESTS PASSED - Host utility working correctly");
-    process.exit(0);
   }
 }
 

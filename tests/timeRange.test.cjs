@@ -11,41 +11,16 @@ const assert = require("assert");
 // INLINE IMPLEMENTATION (mirrors js/utils/timeRange.js)
 // ============================================================================
 
-const RANGE_RE = /^(?:(\d+)y)?(?:(\d+)m)?(?:(\d+)d)?$/;
-
-function parseRange(rangeKey) {
-  if (!rangeKey || typeof rangeKey !== "string") return undefined;
-  const key = rangeKey.trim().toLowerCase();
-  if (key === "all") return null;
-  if (!key) return undefined;
-  const match = key.match(RANGE_RE);
-  if (!match) return undefined;
-  const years = match[1] ? parseInt(match[1], 10) : 0;
-  const months = match[2] ? parseInt(match[2], 10) : 0;
-  const days = match[3] ? parseInt(match[3], 10) : 0;
-  if (years === 0 && months === 0 && days === 0) return undefined;
-  if (months > 12) return undefined;
-  if (match[1] && years < 1) return undefined;
-  const total = years * 365 + months * 30 + days;
-  return total > 0 ? total : undefined;
-}
-
-function isValidRange(rangeKey) {
-  return parseRange(rangeKey) !== undefined;
-}
-
-function formatRange(rangeKey) {
-  const days = parseRange(rangeKey);
-  if (days === null) return "all time";
-  if (days === undefined) return "unknown";
-  return `${days} days`;
-}
+// We remove the inline implementation and import it from the source file
+// to allow c8 to calculate coverage.
+// But this file is CommonJS, so we use dynamic import.
 
 // ============================================================================
 // TESTS
 // ============================================================================
 
-function runTests() {
+async function runTests() {
+  const { parseRange, isValidRange, formatRange } = await import("../js/utils/timeRange.js");
   let passed = 0;
   let failed = 0;
 
@@ -61,6 +36,16 @@ function runTests() {
     assert.strictEqual(parseRange("6m"), 180);
     assert.strictEqual(parseRange("12m"), 360);
     console.log("   ✓ 1m=30, 2m=60, 3m=90, 6m=180, 12m=360");
+    passed++;
+  } catch (e) {
+    console.log(`   ✗ ${e.message}`);
+    failed++;
+  }
+
+  // Test 4b: empty strings
+  console.log("\n📋 Test 4b: empty string returns undefined");
+  try {
+    assert.strictEqual(parseRange("   "), undefined);
     passed++;
   } catch (e) {
     console.log(`   ✗ ${e.message}`);
@@ -282,7 +267,7 @@ function runTests() {
 
   if (failed > 0) {
     console.log("❌ TESTS FAILED - Time range parser has issues\n");
-    process.exit(1);
+    process.exitCode = 1;
   } else {
     console.log("✅ ALL TESTS PASSED - Time range parser working correctly");
     console.log("\n📝 Verified:");
@@ -302,7 +287,6 @@ function runTests() {
     console.log("   • Invalid months in combos rejected");
     console.log("   • Large year values");
     console.log();
-    process.exit(0);
   }
 }
 
