@@ -77,10 +77,9 @@ def normalized_ascii(value):
     """
     value = value.encode('ascii', 'ignore').decode()
 
-    # TODO: .isalnum() could be used here, but it is not equivalent
     return ''.join(char.lower()
                    for char in value
-                   if char.isalpha() or char.isdigit())
+                   if char.isalnum())
 
 
 def nullable_key(value):
