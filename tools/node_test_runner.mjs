@@ -33,7 +33,8 @@ const tests = [
   { name: 'Legend', path: 'tests/legend.test.cjs' },
   { name: 'Trie', path: 'tests/trie.test.cjs' },
   { name: 'TimeRange Utils', path: 'tests/timeRange.test.cjs' },
-  { name: 'Reviews', path: 'tests/reviews.test.cjs' }
+  { name: 'Reviews', path: 'tests/reviews.test.cjs' },
+  { name: 'Asset Classes', path: 'tests/assetClasses.test.js' }
 ];
 
 async function runTest(test) {
@@ -96,27 +97,55 @@ async function main() {
   console.log(`\n${BOLD}Coverage Report (Real):${RESET}`);
   const testPaths = tests.map(t => t.path);
   
+  // Since some modules use top-level async execution or have side-effects that interfere
+  // with coverage collection in a single process, we run c8 directly on the tests using the runner.
+
+  // Wait, no. If we just run tests individually with c8, we get correct coverage.
+  // Actually, wait! The problem is that many tests mock globals in their test files (like colors.test.js mocking document).
+  // When run sequentially in the same process, they pollute each other or fail.
+  // We can just run the original node test runner but with c8 wrapping IT!
+  // Wait, if we wrap `node_test_runner.mjs` with c8, c8 will collect coverage from child processes automatically!
+  // BUT node_test_runner.mjs spawns node tests, c8 supports this if --all or proper settings are used.
+
+  // To keep it simple, we just generate a simple test runner script that imports all original SOURCE files, NOT tests!
+  // That will give us the base line, BUT coverage requires executing the code.
+
+  // Oh, wait! c8 collects coverage from node's built in inspector.
+  // By importing the test files, we run the tests.
+  // The reason it's failing to get coverage for colors.js and host.js is that the test files mock globals
+  // and run asynchronous code without exporting a promise.
+  // To fix this, let's just make the temporary script execute them as child processes with c8!
+  // Wait, `c8` can just run `node --test tests/*.js` or similar if we wanted, but we have a custom runner.
+
   const runnerScript = `
+
+    const testPaths = ${JSON.stringify(testPaths)};
+
+    // Run all tests sequentially in this process? No, we spawn them in the same process to collect coverage.
+    // Actually, c8 has a programmatic API, but it's simpler to just import the source files
+    // Wait, let's just import the test files sequentially and await them if possible.
+    // If they execute asynchronously, we might just need to wait longer.
+
+    // Simply run all test paths sequentially with node
+    // Wait, we need them to run as child processes so they can execute cleanly.
+    // However, c8 CAN capture multiple child processes by default!
+    // But since the current npx c8 command runs a single temp file,
+    // we can make that temp file spawn the child processes using spawnSync.
+    
+    import { spawnSync } from 'child_process';
     import path from 'path';
-    import { fileURLToPath } from 'url';
-    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+    const testFilesToRun = ${JSON.stringify(testPaths)};
     
-    // Silence output during coverage run to keep output clean
-    console.log = () => {};
-    console.info = () => {};
-    console.warn = () => {};
-    // We keep console.error for actual import failures, but redirect to null
-    // or just silence it as well for maximum cleanliness
-    console.error = () => {};
-    
-    async function run() {
-      ${testPaths.map(p => `try { await import(path.join(process.cwd(), '${p}')); } catch (e) {}`).join('\n')}
+    for (const p of testFilesToRun) {
+      spawnSync(process.execPath, [path.join(process.cwd(), p)]);
     }
-    run();
   `;
   const tempFile = path.join(process.cwd(), `test-runner-${Date.now()}.mjs`);
   fs.writeFileSync(tempFile, runnerScript);
 
+  // Note: we must set clean: false or similar if we want to combine? No, running in same c8 invocation
+  // will capture child processes automatically because c8 intercepts child_process.spawn
   const coverageChild = spawn('npx', ['c8', '--include=js/**', '--reporter=text', 'node', tempFile]);
   
   coverageChild.stdout.pipe(process.stdout);

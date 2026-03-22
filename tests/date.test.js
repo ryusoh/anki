@@ -66,6 +66,9 @@ function runTests() {
     assert.strictEqual(parseYearFromDate("  2025/01/01"), 2025);
     assert.strictEqual(parseYearFromDate(null), null);
     assert.strictEqual(parseYearFromDate("invalid"), null);
+    assert.strictEqual(parseYearFromDate({}), null);
+    assert.strictEqual(parseYearFromDate(1234), null);
+    assert.strictEqual(parseYearFromDate("123"), null);
   });
 
   runTest("parseQuarterToken parses valid quarters", () => {
@@ -187,10 +190,9 @@ function runTests() {
 
   if (failed > 0) {
     console.log("❌ TESTS FAILED - Date utility has issues\n");
-    process.exit(1);
+    process.exitCode = 1;
   } else {
     console.log("✅ ALL TESTS PASSED - Date utility working correctly");
-    process.exit(0);
   }
 }
 

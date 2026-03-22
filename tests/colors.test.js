@@ -88,12 +88,11 @@ async function runTests() {
 
   if (failed > 0) {
     console.log("[ERROR] TESTS FAILED - Colors utility has issues\n");
-    process.exit(1);
+    process.exitCode = 1;
   } else {
     console.log(
       "[SUCCESS] ALL TESTS PASSED - Colors utility working correctly",
     );
-    process.exit(0);
   }
 }
 
