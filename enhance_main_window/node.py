@@ -245,7 +245,7 @@ class DeckNode:
         fromTree = tree.times.get(self.did, 0)
         self.timeDue["deck"] = fromTree or 0
         debug(
-            """For deck {self.name} with id {self.did!r}, we get from tree {fromTree} and thus {self.timeDue["deck"]}.""")
+            f"""For deck {self.name} with id {self.did!r}, we get from tree {fromTree} and thus {self.timeDue["deck"]}.""")
 
     def setChildren(self):
         """ create node from every child and save them in
@@ -282,7 +282,7 @@ class DeckNode:
                 childNb = child.count["absolute"]["subdeck"][False][name]
                 if not isinstance(childNb, int):
                     debugWrongLine(
-                        "For child {child.name}, the value of {name} is not an int but {childNb}")
+                        f"For child {child.name}, the value of {name} is not an int but {childNb}")
                 if not isinstance(childNb, int):
                     debugWrongLine(f"childNb for «{name}» is «{childNb}»")
                 count += childNb
@@ -411,7 +411,7 @@ class DeckNode:
         for kind in ["deck", "subdeck"]:
             learningNow = self.count["absolute"][kind][False]["learning now"]
             debug(
-                """{self.name}[{kind}]=={learningNow}. Time due is {self.timeDue[kind]}.""")
+                f"""{self.name}[{kind}]=={learningNow}. Time due is {self.timeDue[kind]}.""")
             for absoluteOrPercent in self.count:
                 if ((not learningNow)) and (self.timeDue[kind] != 0):
                     remainingSeconds = self.timeDue[kind] - int_time()
@@ -422,7 +422,7 @@ class DeckNode:
                         self.addCount(absoluteOrPercent, kind, True,
                                       "learning now", "[%ds]" % remainingSeconds)
                     debug(
-                        """Thus we set it to be time {self.count[absoluteOrPercent][kind][True]["learning now"]}""")
+                        f"""Thus we set it to be time {self.count[absoluteOrPercent][kind][True]["learning now"]}""")
 
     def setFlags(self):
         flagColor = {1: "red", 2: "orange", 3: "green", 4: "blue"}
@@ -478,7 +478,7 @@ class DeckNode:
     def addCount(self, absoluteOrPercent, kind, isString, name,  value):
         """Ensure that self.count[absoluteOrPercent][kind][name] is defined and equals value"""
         debug(
-            "Adding {self.did}, {absoluteOrPercent}, {kind}, {isString}, {name}, {value}")
+            f"Adding {self.did}, {absoluteOrPercent}, {kind}, {isString}, {name}, {value}")
         self.count[absoluteOrPercent][kind][isString][name] = value
         if isString is False:
             if value:
@@ -566,7 +566,7 @@ class DeckNode:
                 if name not in warned:
                     warned.add(name)
                     debug(
-                        "The add-on enhance main window does not know any column whose name is {name}. It thus won't be displayed. Please correct your add-on's configuration.", file=sys.stderr)
+                        f"The add-on enhance main window does not know any column whose name is {name}. It thus won't be displayed. Please correct your add-on's configuration.", file=sys.stderr)
                 return None
             contents = countNumberKind[name]
         # In some cases, we decided contents is empty. Instead of having complex value such as "0/0%" or "0(0)". Then we set it back to 0, which nicely summarize everything.

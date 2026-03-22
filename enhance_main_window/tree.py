@@ -50,7 +50,7 @@ def computeValues():
             table = "cards"
         query = f"select did, {element} from {table} {condition} group by did"
         results = mw.col.db.all(query)
-        debug("""For {name}: query "{query}".""")
+        debug(f"""For {name}: query "{query}".""")
         values[name] = dict()
         for did, value in results:
             debug(f"In deck {did} there are {value} cards of kind {name}")

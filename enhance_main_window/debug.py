@@ -1,6 +1,4 @@
 import re
-from inspect import stack
-
 # whether debug may be turned on eventually. Less efficient
 mayDebug = False
 
@@ -23,13 +21,10 @@ def endDebug():
 indentation = 0
 
 
-def debug(text, indentToAdd=0, force=False, level=1):
+def debug(text, indentToAdd=0, force=False, **kwargs):
     if not shouldDebug and not force:
         return
     global indentation
-    glob = stack()[level].frame.f_globals
-    loc = stack()[level].frame.f_locals
-    text = eval(f"""f"{text}" """, glob, loc)
     indentToPrint = indentation
     t = " "*indentToPrint
     if indentToAdd > 0:
@@ -37,11 +32,11 @@ def debug(text, indentToAdd=0, force=False, level=1):
     space = " "
     newline = "\n"
     t += re.sub(newline, newline+space, text)
-    print (t)
+    print (t, file=kwargs.get("file"))
     indentation += indentToAdd
     if indentToAdd < 0:
         indentToPrint += indentToAdd
-        print((" "*indentToPrint)+">}")
+        print((" "*indentToPrint)+">}", file=kwargs.get("file"))
 
 
 nbInsideThis = 0
@@ -64,7 +59,7 @@ def debugInsideThisMethod(fun):
 
 
 def debugOnlyThisMethod(fun):
-    return debugFun(fun, (lambda text, indentToAdd=0: debug(text, indentToAdd, force=True, level=2)))
+    return debugFun(fun, (lambda text, indentToAdd=0: debug(text, indentToAdd, force=True)))
 
 
 def assertEqual(left, right):
@@ -87,19 +82,6 @@ def assertEqual(left, right):
         print("Only the second is a Gen")
     return False
 
-# def assertEqualString(left, right):
-#     glob = stack()[1].frame.f_globals
-#     loc = stack()[1].frame.f_locals
-#     # try:
-#     leftEval = eval(left, glob, loc)
-#     # except NameError as n:
-#     #     print(f"""glob is {glob}""")
-#     #     raise
-#     rightEval = eval(right,glob,loc)
-#     if leftEval == rightEval:
-#         return True
-#     print(f"""\n\n{left} evaluates as \n"{leftEval}".\n"{rightEval}"\n is the value of {right}, they are distinct.""")
-#     return False
 
 
 def assertType(element, types):
@@ -133,9 +115,9 @@ def debugFun(fun, debug=debug):
         for kw in kwargs:
             comma(f"{kw}={kwargs[kw]}")
         t += ")"
-        debug("{t}", 1)
+        debug(f"{t}", 1)
         ret = fun(*args, **kwargs)
-        debug("returns {ret}", -1)
+        debug(f"returns {ret}", -1)
         return ret
     aux_debugFun.__name__ = f"debug_{fun.__name__}"
     aux_debugFun.__qualname__ = f"debug_{fun.__qualname__}"
@@ -166,16 +148,16 @@ def debugInit(fun, debug=debug):
         for kw in kwargs:
             comma(f"{kw}={kwargs[kw]}")
         t += ")"
-        debug("{t}", 1)
+        debug(f"{t}", 1)
         fun(self, *args, **kwargs)
-        debug("returns {self}", -1)
+        debug(f"returns {self}", -1)
     aux_debugInit.__name__ = f"debug_{fun.__name__}"
     aux_debugInit.__qualname__ = f"debug_{fun.__qualname__}"
     return aux_debugInit
 
 
 def debugOnlyThisInit(fun):
-    return debugInit(fun, (lambda text, indentToAdd=0: debug(text, indentToAdd, force=True, level=2)))
+    return debugInit(fun, (lambda text, indentToAdd=0: debug(text, indentToAdd, force=True)))
 
 
 class ExceptionInverse(Exception):
