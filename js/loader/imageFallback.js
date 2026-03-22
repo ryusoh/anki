@@ -11,6 +11,7 @@
       try {
         list = JSON.parse(listAttr);
       } catch {
+        // Fallback gracefully on parsing failure
         list = [];
       }
       if (!Array.isArray(list) || list.length === 0) {
@@ -43,5 +44,7 @@
     for (let j = 0; j < imgs.length; j++) {
       attach(imgs[j]);
     }
-  } catch {}
+  } catch {
+    // Top-level catch to ensure document loading completes without error blocks
+  }
 })();

@@ -30,6 +30,12 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Learning:** Even though the terminal UI processes internal formatted data, the labels and colors could still originate from external data sources (e.g. ticker symbols). If a user can inject malicious payload as the ticker name, it will be executed when rendered.
 **Prevention:** Always wrap dynamically injected text values or color properties with an HTML escaping utility (like `escapeHtml`) before concatenating them into `innerHTML` strings.
 
+## 2026-03-21 - Refactored silent catch blocks to prevent generic error suppression
+
+**Vulnerability:** Empty catch blocks were indiscriminately swallowing all exceptions during `fetch` and network requests, rendering debugging impossible and hiding true failure modes across data loaders.
+**Learning:** Suppressing exceptions indiscriminately without logging conceals application instability from developers and creates confusing silent failures for end users.
+**Prevention:** Always log exceptions or explicitly document via code comments why an error is deliberately being ignored inside a catch block to enforce resilient application behaviour.
+
 ## 2024-03-20 - Prevent DOM-based XSS in terminal crosshair and chart legends
 
 **Vulnerability:** Dynamic properties like `color` in chart legends and date labels (`startLabel`, `endLabel`, `durationLabel`) in terminal UI were interpolated directly into the DOM using `innerHTML` without sanitization.
