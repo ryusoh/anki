@@ -7,7 +7,10 @@ export function getSplitAdjustment(splitHistory, symbol, transactionDate) {
 
   for (let i = 0; i < splitHistory.length; i += 1) {
     const split = splitHistory[i];
-    if (split.symbol === symbol && new Date(split.splitDate).getTime() > txTime) {
+    if (
+      split.symbol === symbol &&
+      new Date(split.splitDate).getTime() > txTime
+    ) {
       cumulative *= split.splitMultiplier;
     }
   }
