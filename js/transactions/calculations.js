@@ -19,13 +19,17 @@ export function getSplitAdjustment(splitHistory, symbol, transactionDate) {
 }
 
 export function applyTransactionFIFO(lots, transaction, splitHistory) {
-  const newLots = lots.map((l) => ({ ...l }));
+  // Bolt Optimization:
+  // Instead of deeply cloning the 'lots' array on every transaction,
+  // we modify it in-place. This significantly reduces intermediate object
+  // allocations and Garbage Collection pressure in hot loops,
+  // making performance scales much better for large datasets.
   let realizedGainDelta = 0;
 
   const quantity = parseFloat(transaction.quantity);
   const price = parseFloat(transaction.price);
   if (!Number.isFinite(quantity) || !Number.isFinite(price) || quantity <= 0) {
-    return { lots: newLots, realizedGainDelta: 0 };
+    return { lots, realizedGainDelta: 0 };
   }
 
   const isBuy = transaction.orderType.toLowerCase() === "buy";
@@ -38,14 +42,14 @@ export function applyTransactionFIFO(lots, transaction, splitHistory) {
   if (isBuy) {
     const adjustedQuantity = quantity * adjustment;
     const adjustedPrice = price / adjustment;
-    newLots.push({ qty: adjustedQuantity, price: adjustedPrice });
+    lots.push({ qty: adjustedQuantity, price: adjustedPrice });
   } else {
     const adjustedSellQuantity = quantity * adjustment;
     let sellQty = adjustedSellQuantity;
     let costOfSoldShares = 0;
 
-    while (sellQty > 0 && newLots.length > 0) {
-      const lot = newLots[0];
+    while (sellQty > 0 && lots.length > 0) {
+      const lot = lots[0];
       const qtyFromLot = Math.min(sellQty, lot.qty);
 
       costOfSoldShares += qtyFromLot * lot.price;
@@ -53,14 +57,14 @@ export function applyTransactionFIFO(lots, transaction, splitHistory) {
       sellQty -= qtyFromLot;
 
       if (lot.qty < 1e-8) {
-        newLots.shift();
+        lots.shift();
       }
     }
     const proceeds = quantity * price;
     realizedGainDelta = proceeds - costOfSoldShares;
   }
 
-  return { lots: newLots, realizedGainDelta };
+  return { lots, realizedGainDelta };
 }
 
 export function computeRunningTotals(transactions, splitHistory) {
@@ -81,19 +85,22 @@ export function computeRunningTotals(transactions, splitHistory) {
       totalRealizedGain: 0,
     };
 
-    const { lots: newLots, realizedGainDelta } = applyTransactionFIFO(
+    const { lots: updatedLots, realizedGainDelta } = applyTransactionFIFO(
       currentState.lots,
       transaction,
       splitHistory,
     );
 
     const newState = {
-      lots: newLots,
+      lots: updatedLots,
       totalRealizedGain: currentState.totalRealizedGain + realizedGainDelta,
     };
     securityStates.set(security, newState);
 
-    const totalShares = newState.lots.reduce((sum, lot) => sum + lot.qty, 0);
+    let totalShares = 0;
+    for (let i = 0; i < newState.lots.length; i++) {
+      totalShares += newState.lots[i].qty;
+    }
     const netAmount = Number.parseFloat(transaction.netAmount);
     const normalizedNetAmount = Number.isFinite(netAmount) ? netAmount : 0;
     cumulativeNetAmount += normalizedNetAmount;
