@@ -36,6 +36,12 @@ function appendLine(text, variant = "info") {
 
   const line = document.createElement("div");
   line.className = `terminal-line variant-${variant}`;
+
+  if (variant === "error") {
+    line.setAttribute("role", "alert");
+    line.setAttribute("aria-live", "assertive");
+  }
+
   line.textContent = text;
   terminalOutput.appendChild(line);
   terminalOutput.scrollTop = terminalOutput.scrollHeight;
