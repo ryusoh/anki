@@ -42,3 +42,8 @@
 
 **Learning:** Deeply cloning arrays of objects (`lots.map((l) => ({ ...l }))`) inside hot inner loops like transaction FIFO calculations creates massive intermediate object allocations and Garbage Collection pressure, scaling poorly (O(n) memory allocation inside O(n) loops).
 **Action:** When calculating cumulative or sequential state across thousands of records, modify the accumulator state arrays in-place when safely scoped to a single computational pass, instead of recreating them on every iteration.
+
+## 2025-03-23 - [Pre-calculating Parsed Dates for Sorting]
+
+**Learning:** In transaction tables, using `new Date(item.tradeDate).getTime()` repeatedly inside `.sort((a,b) => ...)` callbacks generates millions of temporary Date objects. For example, sorting an array of just 5,000 items evaluates the comparison function over 60,000 times. Re-parsing the same strings every time triggers huge garbage collection spikes and blocks the main thread.
+**Action:** When sorting or filtering datasets by date, always pre-calculate and cache the parsed timestamp (e.g. `_parsedDate`) for each item in a single O(N) pass _before_ calling `.sort()`.

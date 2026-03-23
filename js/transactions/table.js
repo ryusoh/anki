@@ -334,6 +334,13 @@ function filterAndSort(searchTerm = "") {
     return 0;
   };
 
+  // Pre-calculate timestamps before sorting to avoid redundant Date instantiations
+  filtered.forEach((t) => {
+    if (t._parsedDate === undefined) {
+      t._parsedDate = new Date(t.tradeDate).getTime();
+    }
+  });
+
   filtered.sort((a, b) => {
     const { column, order } = transactionState.sortState;
     switch (column) {
@@ -347,8 +354,8 @@ function filterAndSort(searchTerm = "") {
           return result;
         }
         return compareValues(
-          new Date(a.tradeDate).getTime(),
-          new Date(b.tradeDate).getTime(),
+          a._parsedDate,
+          b._parsedDate,
           "desc",
         );
       }
@@ -364,16 +371,14 @@ function filterAndSort(searchTerm = "") {
           return result;
         }
         return compareValues(
-          new Date(a.tradeDate).getTime(),
-          new Date(b.tradeDate).getTime(),
+          a._parsedDate,
+          b._parsedDate,
           "desc",
         );
       }
       case "tradeDate":
       default: {
-        const dateA = new Date(a.tradeDate).getTime();
-        const dateB = new Date(b.tradeDate).getTime();
-        const dateComparison = compareValues(dateA, dateB, order);
+        const dateComparison = compareValues(a._parsedDate, b._parsedDate, order);
         if (dateComparison !== 0) {
           return dateComparison;
         }

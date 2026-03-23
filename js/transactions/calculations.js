@@ -72,9 +72,15 @@ export function computeRunningTotals(transactions, splitHistory) {
   const runningTotalsById = new Map();
   let cumulativeNetAmount = 0;
 
-  const chronologicalTransactions = [...transactions].sort(
+  const chronologicalTransactions = [...transactions];
+  chronologicalTransactions.forEach(t => {
+    if (t._parsedDate === undefined) {
+      t._parsedDate = new Date(t.tradeDate).getTime();
+    }
+  });
+  chronologicalTransactions.sort(
     (a, b) =>
-      new Date(a.tradeDate) - new Date(b.tradeDate) ||
+      a._parsedDate - b._parsedDate ||
       a.transactionId - b.transactionId,
   );
 
@@ -141,6 +147,7 @@ export function parseCSV(csvText) {
           (values[1].toLowerCase() === "sell" ? -1 : 1)
         ).toString(),
         transactionId: i - 1,
+        _parsedDate: new Date(values[0]).getTime(),
       });
     }
   }
