@@ -241,12 +241,12 @@ function createHoldingRow(
 
   row.innerHTML = `
         <td>${escapeHtml(holding.name)}</td>
-        <td class="allocation">${allocationPercentage.toFixed(2)}%</td>
-        <td class="price">${formatCurrency(holding.currentPrice, currentCurrency, exchangeRates, currencySymbols)}</td>
-        <td class="per">${perDisplayValue}</td>
-        <td class="cost">${formatCurrency(holding.cost, currentCurrency, exchangeRates, currencySymbols)}</td>
-        <td class="shares">${holding.shares.toFixed(2)}</td>
-        <td class="value">${formatCurrency(holding.currentValue, currentCurrency, exchangeRates, currencySymbols)}</td>
+        <td class="allocation">${escapeHtml(allocationPercentage.toFixed(2))}%</td>
+        <td class="price">${escapeHtml(formatCurrency(holding.currentPrice, currentCurrency, exchangeRates, currencySymbols))}</td>
+        <td class="per">${escapeHtml(perDisplayValue)}</td>
+        <td class="cost">${escapeHtml(formatCurrency(holding.cost, currentCurrency, exchangeRates, currencySymbols))}</td>
+        <td class="shares">${escapeHtml(holding.shares.toFixed(2))}</td>
+        <td class="value">${escapeHtml(formatCurrency(holding.currentValue, currentCurrency, exchangeRates, currencySymbols))}</td>
         <td class="pnl"></td>
         <td class="pnl-percentage"></td>
     `;
