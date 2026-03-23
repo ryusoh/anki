@@ -7,6 +7,7 @@ main window. Uses the existing toolbar buttons (Decks/Stats/Add) for navigation.
 from __future__ import annotations
 
 from typing import Any
+import sys
 
 try:
     import aqt
@@ -151,8 +152,8 @@ def _inject_glass_effect() -> None:
         )
 
         _stats_web.eval(script)
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[tabbed_stats] Error applying glass effect: {e}", file=sys.stderr)
 
 
 def _open_deck_chooser() -> None:
@@ -228,8 +229,8 @@ def _create_stats_tab() -> None:
     try:
         from stats_page_customizer import _attach_on_load
         _attach_on_load(web)
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[tabbed_stats] Error attaching stats page customizer: {e}", file=sys.stderr)
 
 
 def _create_addcards_tab() -> None:

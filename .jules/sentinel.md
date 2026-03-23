@@ -47,3 +47,9 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Vulnerability:** A security audit script (`tools/security_audit.py`) was generating false positives by checking `git check-ignore <dir>/` on a directory that legitimately contained a tracked file (`hash_map.json`), masking potential real issues and causing developer fatigue.
 **Learning:** `git check-ignore` on a directory path returns a non-zero exit code if the directory contains tracked files, even if the `.gitignore` rules correctly ignore all other untracked contents in that directory.
 **Prevention:** When writing custom security scripts to verify gitignore coverage of a directory that might contain tracked files, test the ignore rules against a dummy file path (e.g., `<dir>/test_dummy.json`) rather than the directory itself.
+
+## 2026-03-24 - Fix silent exceptions in optional UI initializers
+
+**Vulnerability:** Empty catch blocks were swallowing all exceptions during the initialization of optional UI components (glass effect and stats customizer) in `tabbed_stats/__init__.py`. This suppresses errors, making debugging impossible and hiding failures.
+**Learning:** Suppressing exceptions indiscriminately without logging conceals application instability from developers and creates confusing silent failures for end users. Even for optional components where a fallback to standard UI is desired, the failure must be logged.
+**Prevention:** Always log exceptions (e.g., using `print(..., file=sys.stderr)`) or explicitly document via code comments why an error is deliberately being ignored inside a catch block to enforce resilient application behaviour.
