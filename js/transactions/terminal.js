@@ -633,7 +633,7 @@ export function updateTerminalCrosshair(snapshot, rangeSummary) {
                         <span class="terminal-crosshair-dot" style="background:${escapeHtml(series.color)};"></span>
                         ${escapeHtml(series.label)}
                     </span>
-                    <span class="terminal-crosshair-value">${series.formatted}</span>
+                    <span class="terminal-crosshair-value">${escapeHtml(series.formatted)}</span>
                 </div>
             `,
       )

@@ -188,13 +188,13 @@ function displayTransactions(transactions) {
     });
 
     row.innerHTML = `
-            <td class="date">${formatDate(transaction.tradeDate)}</td>
-            <td class="${orderTypeClass}">${escapeHtml(transaction.orderType)}</td>
+            <td class="date">${escapeHtml(formatDate(transaction.tradeDate))}</td>
+            <td class="${escapeHtml(orderTypeClass)}">${escapeHtml(transaction.orderType)}</td>
             <td>${escapeHtml(transaction.security)}</td>
-            <td>${parseFloat(transaction.quantity).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-            <td>${formatCurrency(convertedPrice)}</td>
-            <td class="amount">${formattedNetAmount}</td>
-            <td class="amount">${formattedPortfolio}</td>
+            <td>${escapeHtml(parseFloat(transaction.quantity).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}</td>
+            <td>${escapeHtml(formatCurrency(convertedPrice))}</td>
+            <td class="amount">${escapeHtml(formattedNetAmount)}</td>
+            <td class="amount">${escapeHtml(formattedPortfolio)}</td>
         `;
     tbody.appendChild(row);
   });
