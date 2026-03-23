@@ -138,7 +138,16 @@ function runTests() {
       // We also test if order=1 is hit.
       // But actually, savitzkyGolay only calls polynomialFit for indices < halfWindow or > length-1-halfWindow.
       // Let's pass a small array where window is larger.
-      const order10Result = savitzkyGolay([{x: 1, y: 10}, {x: 2, y: 20}, {x: 3, y: 30}], 3, 10, false);
+      const order10Result = savitzkyGolay(
+        [
+          { x: 1, y: 10 },
+          { x: 2, y: 20 },
+          { x: 3, y: 30 },
+        ],
+        3,
+        10,
+        false,
+      );
       assert.strictEqual(order10Result[0].y, 10);
 
       // Hit lines 244 (higher orders fallback)
@@ -151,7 +160,7 @@ function runTests() {
       assert.strictEqual(order2Result[0].y, 10);
 
       // Hit default 0 returns in polynomialFit when data is missing 'y' property
-      const dataWithoutY = [{x: 1}, {x: 2}, {x: 3}, {x: 4}, {x: 5}];
+      const dataWithoutY = [{ x: 1 }, { x: 2 }, { x: 3 }, { x: 4 }, { x: 5 }];
       const noYResult1 = savitzkyGolay(dataWithoutY, 5, 5, false);
       assert.strictEqual(noYResult1[0].y, 0); // hits line 228
 
@@ -188,28 +197,37 @@ function runTests() {
     assert.strictEqual(zeroBandwidthResult[2].y, 30);
   });
 
-  runTest("adaptiveSmoothing handles different volatilities and edge cases", () => {
-    assert.deepStrictEqual(adaptiveSmoothing([]), []);
-    assert.deepStrictEqual(adaptiveSmoothing(null), null);
+  runTest(
+    "adaptiveSmoothing handles different volatilities and edge cases",
+    () => {
+      assert.deepStrictEqual(adaptiveSmoothing([]), []);
+      assert.deepStrictEqual(adaptiveSmoothing(null), null);
 
-    const smallData = [{ x: 1, y: 10 }];
-    assert.strictEqual(adaptiveSmoothing(smallData, false).length, 1);
+      const smallData = [{ x: 1, y: 10 }];
+      assert.strictEqual(adaptiveSmoothing(smallData, false).length, 1);
 
-    // low volatility (flat line)
-    const lowVol = Array.from({length: 15}, (_, i) => ({x: i, y: 10}));
-    const resLow = adaptiveSmoothing(lowVol, false);
-    assert.strictEqual(resLow.length, 15);
+      // low volatility (flat line)
+      const lowVol = Array.from({ length: 15 }, (_, i) => ({ x: i, y: 10 }));
+      const resLow = adaptiveSmoothing(lowVol, false);
+      assert.strictEqual(resLow.length, 15);
 
-    // medium volatility (alternating small jumps)
-    const medVol = Array.from({length: 15}, (_, i) => ({x: i, y: 10 + (i % 2 === 0 ? 0.3 : 0)}));
-    const resMed = adaptiveSmoothing(medVol, false);
-    assert.strictEqual(resMed.length, 15);
+      // medium volatility (alternating small jumps)
+      const medVol = Array.from({ length: 15 }, (_, i) => ({
+        x: i,
+        y: 10 + (i % 2 === 0 ? 0.3 : 0),
+      }));
+      const resMed = adaptiveSmoothing(medVol, false);
+      assert.strictEqual(resMed.length, 15);
 
-    // high volatility (large jumps)
-    const highVol = Array.from({length: 15}, (_, i) => ({x: i, y: 10 + (i % 2 === 0 ? 5 : 0)}));
-    const resHigh = adaptiveSmoothing(highVol, false);
-    assert.strictEqual(resHigh.length, 15);
-  });
+      // high volatility (large jumps)
+      const highVol = Array.from({ length: 15 }, (_, i) => ({
+        x: i,
+        y: 10 + (i % 2 === 0 ? 5 : 0),
+      }));
+      const resHigh = adaptiveSmoothing(highVol, false);
+      assert.strictEqual(resHigh.length, 15);
+    },
+  );
 
   runTest("smoothFinancialData applies correct configuration", () => {
     // 331-332: null array
@@ -226,7 +244,11 @@ function runTests() {
     assert.strictEqual(result[1].y, expectedSecondY);
 
     // Test unknown config string uses fallback "balanced"
-    const fallbackResult = smoothFinancialData(sampleData, "not_a_real_config", false);
+    const fallbackResult = smoothFinancialData(
+      sampleData,
+      "not_a_real_config",
+      false,
+    );
     assert.strictEqual(fallbackResult.length, 5);
 
     // Test 'simple' method dispatch
@@ -242,15 +264,27 @@ function runTests() {
     assert.strictEqual(simpleResult.length, 5);
 
     // Test 'simple' default params
-    const simpleResultDef = smoothFinancialData(sampleData, { method: "simple", params: {} }, false);
+    const simpleResultDef = smoothFinancialData(
+      sampleData,
+      { method: "simple", params: {} },
+      false,
+    );
     assert.strictEqual(simpleResultDef.length, 5);
 
     // Test 'exponential' method dispatch
-    const expResult = smoothFinancialData(sampleData, { method: "exponential", params: { alpha: 0.5 }, passes: "invalid" }, false);
+    const expResult = smoothFinancialData(
+      sampleData,
+      { method: "exponential", params: { alpha: 0.5 }, passes: "invalid" },
+      false,
+    );
     assert.strictEqual(expResult.length, 5);
 
     // Test 'exponential' default params
-    const expResultDef = smoothFinancialData(sampleData, { method: "exponential", params: {} }, false);
+    const expResultDef = smoothFinancialData(
+      sampleData,
+      { method: "exponential", params: {} },
+      false,
+    );
     assert.strictEqual(expResultDef.length, 5);
 
     // Test 'savitzky' method dispatch
@@ -266,7 +300,11 @@ function runTests() {
     assert.strictEqual(savitzkyResult.length, 5);
 
     // Test 'savitzky' default params
-    const savitzkyResultDef = smoothFinancialData(sampleData, { method: "savitzky", params: {} }, false);
+    const savitzkyResultDef = smoothFinancialData(
+      sampleData,
+      { method: "savitzky", params: {} },
+      false,
+    );
     assert.strictEqual(savitzkyResultDef.length, 5);
 
     // Test 'lowess' method dispatch
@@ -282,7 +320,11 @@ function runTests() {
     assert.strictEqual(lowessResult.length, 5);
 
     // Test 'lowess' default params
-    const lowessResultDef = smoothFinancialData(sampleData, { method: "lowess", params: {} }, false);
+    const lowessResultDef = smoothFinancialData(
+      sampleData,
+      { method: "lowess", params: {} },
+      false,
+    );
     assert.strictEqual(lowessResultDef.length, 5);
 
     // Test 'adaptive' method dispatch
