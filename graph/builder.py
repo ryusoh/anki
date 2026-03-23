@@ -24,6 +24,12 @@ def build_graph(notes, with_pagerank=False, with_anonymization=False, alpha=0.85
     """
     import hashlib
     G = nx.DiGraph()
+    hash_cache = {}
+
+    def get_hash(text):
+        if text not in hash_cache:
+            hash_cache[text] = hashlib.sha256(text.encode('utf-8')).hexdigest()
+        return hash_cache[text]
     
     # Add all notes as nodes
     for note in notes:
@@ -33,12 +39,12 @@ def build_graph(notes, with_pagerank=False, with_anonymization=False, alpha=0.85
         
         if with_anonymization:
             # Hash front and tags to prevent clear-text exposure
-            front_hash = hashlib.sha256(front.encode('utf-8')).hexdigest()[:12]
+            front_hash = get_hash(front)[:12]
             front = f"Note_{front_hash}"
             
             if tags:
                 tag_list = tags.split()
-                hashed_tags = [hashlib.sha256(t.encode('utf-8')).hexdigest()[:8] for t in tag_list]
+                hashed_tags = [get_hash(t)[:8] for t in tag_list]
                 tags = ' '.join(hashed_tags)
         
         G.add_node(
@@ -59,7 +65,7 @@ def build_graph(notes, with_pagerank=False, with_anonymization=False, alpha=0.85
     for edge in edges:
         word = edge['word']
         if with_anonymization:
-            word = hashlib.sha256(word.encode('utf-8')).hexdigest()[:8]
+            word = get_hash(word)[:8]
 
         G.add_edge(
             edge['source'],
