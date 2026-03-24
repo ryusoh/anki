@@ -95,6 +95,9 @@ function runTests() {
     assert.strictEqual(parseQuarterToken("invalid"), null);
     assert.strictEqual(parseQuarterToken("q5", 2023), null);
     assert.strictEqual(parseQuarterToken(null), null);
+    assert.strictEqual(parseQuarterToken(1234), null); // non string token
+    // Line 68: Number.isFinite(fallbackYear) being false branch for simple token "q1"
+    assert.strictEqual(parseQuarterToken("q1", NaN), null);
   });
 
   runTest("resolveQuarterRange returns correct date ranges", () => {
@@ -119,12 +122,26 @@ function runTests() {
       to: "2023-03-31",
     });
 
+    // Invalid modes fallback to full
+    assert.deepStrictEqual(resolveQuarterRange(2023, 1, "invalid_mode"), {
+      from: "2023-01-01",
+      to: "2023-03-31",
+    });
+
     // Invalid inputs
     assert.deepStrictEqual(resolveQuarterRange(null, 1), {
       from: null,
       to: null,
     });
     assert.deepStrictEqual(resolveQuarterRange(2023, null), {
+      from: null,
+      to: null,
+    });
+    assert.deepStrictEqual(resolveQuarterRange(NaN, 1), {
+      from: null,
+      to: null,
+    });
+    assert.deepStrictEqual(resolveQuarterRange(2023, NaN), {
       from: null,
       to: null,
     });
@@ -176,12 +193,26 @@ function runTests() {
     const sundayDate = new Date("2023-10-15T12:00:00Z"); // Known weekend
     assert.ok(getTradingDayDate(mondayDate) instanceof Date);
     assert.strictEqual(getTradingDayDate(sundayDate), null);
+
+    // Test default param usage
+    const res = getTradingDayDate();
+    assert.ok(res === null || res instanceof Date);
   });
 
   runTest("getNyDate returns a valid Date object", () => {
     const d = getNyDate();
     assert.ok(d instanceof Date);
     assert.ok(!Number.isNaN(d.getTime()));
+  });
+
+  runTest("parseYearFromDate line 68 coverage", () => {
+    const originalParseInt = Number.parseInt;
+    try {
+      Number.parseInt = () => NaN;
+      assert.strictEqual(parseYearFromDate("2023"), null);
+    } finally {
+      Number.parseInt = originalParseInt;
+    }
   });
 
   // Summary
