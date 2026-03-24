@@ -42,3 +42,8 @@
 
 **Learning:** Deeply cloning arrays of objects (`lots.map((l) => ({ ...l }))`) inside hot inner loops like transaction FIFO calculations creates massive intermediate object allocations and Garbage Collection pressure, scaling poorly (O(n) memory allocation inside O(n) loops).
 **Action:** When calculating cumulative or sequential state across thousands of records, modify the accumulator state arrays in-place when safely scoped to a single computational pass, instead of recreating them on every iteration.
+
+## 2026-03-24 - [Optimizing Hot Path Sorting]
+
+**Learning:** When sorting or filtering large datasets by expensive computed values (like parsed date strings) using `Array.prototype.sort()`, doing the parsing inside the comparator (`new Date(tradeDate)`) triggers massive Garbage Collection pressure and main thread blocking because it runs multiple times per item in O(N log N).
+**Action:** Always pre-calculate the values in a single O(N) pass before sorting. To avoid mutating the underlying data objects (which causes side effects in modern JS apps), use a Schwartzian transform pattern: `.map(t => ({ t, parsedDate: new Date(t.date).getTime() })).sort((a, b) => a.parsedDate - b.parsedDate).map(({ t }) => t)`.

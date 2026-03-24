@@ -334,54 +334,68 @@ function filterAndSort(searchTerm = "") {
     return 0;
   };
 
-  filtered.sort((a, b) => {
+  // ⚡ Bolt Performance Optimization:
+  // Pre-calculate parsed dates in an O(N) pass before sorting (Schwartzian transform).
+  // This avoids massive Garbage Collection and CPU overhead caused by creating millions of
+  // intermediate `new Date(tradeDate)` objects inside the O(N log N) sort comparator,
+  // without mutating the underlying transaction objects.
+  const mappedFiltered = filtered.map((t) => ({
+    t,
+    parsedDate: new Date(t.tradeDate).getTime(),
+  }));
+
+  mappedFiltered.sort((a, b) => {
     const { column, order } = transactionState.sortState;
     switch (column) {
       case "security": {
         const result = compareValues(
-          a.security.toLowerCase(),
-          b.security.toLowerCase(),
+          a.t.security.toLowerCase(),
+          b.t.security.toLowerCase(),
           order,
         );
         if (result !== 0) {
           return result;
         }
         return compareValues(
-          new Date(a.tradeDate).getTime(),
-          new Date(b.tradeDate).getTime(),
+          a.parsedDate,
+          b.parsedDate,
           "desc",
         );
       }
       case "netAmount": {
         const amountA = Math.abs(
-          convertValueToCurrency(a.netAmount, a.tradeDate, currentCurrency),
+          convertValueToCurrency(a.t.netAmount, a.t.tradeDate, currentCurrency),
         );
         const amountB = Math.abs(
-          convertValueToCurrency(b.netAmount, b.tradeDate, currentCurrency),
+          convertValueToCurrency(b.t.netAmount, b.t.tradeDate, currentCurrency),
         );
         const result = compareValues(amountA, amountB, order);
         if (result !== 0) {
           return result;
         }
         return compareValues(
-          new Date(a.tradeDate).getTime(),
-          new Date(b.tradeDate).getTime(),
+          a.parsedDate,
+          b.parsedDate,
           "desc",
         );
       }
       case "tradeDate":
       default: {
-        const dateA = new Date(a.tradeDate).getTime();
-        const dateB = new Date(b.tradeDate).getTime();
-        const dateComparison = compareValues(dateA, dateB, order);
+        const dateComparison = compareValues(
+          a.parsedDate,
+          b.parsedDate,
+          order,
+        );
         if (dateComparison !== 0) {
           return dateComparison;
         }
         const idOrder = order === "asc" ? "asc" : "desc";
-        return compareValues(a.transactionId, b.transactionId, idOrder);
+        return compareValues(a.t.transactionId, b.t.transactionId, idOrder);
       }
     }
   });
+
+  filtered = mappedFiltered.map(({ t }) => t);
 
   displayTransactions(filtered);
   setFilteredTransactions(filtered);
