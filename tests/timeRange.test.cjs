@@ -261,6 +261,35 @@ async function runTests() {
     failed++;
   }
 
+  // Test 18: Additional coverage edge cases (3)
+  console.log("\n📋 Test 18: Additional coverage edge cases 3");
+  try {
+    // line 46: "if (match[1] && years < 1) return undefined;"
+    assert.strictEqual(parseRange("0y12m"), undefined);
+
+    // line 49: "return total > 0 ? total : undefined;"
+    // We already return undefined for everything < 1, but we can try 0m0d
+    // Oh wait, 0m0d returns undefined at line 40: "if (years === 0 && months === 0 && days === 0) return undefined;"
+    // Is it possible to reach line 49 with total <= 0 ?
+    // years, months, days are all integers >= 0.
+    // If they sum to >0, it returns total.
+    // If they sum to 0, it means years=0, months=0, days=0, but that's caught at line 40.
+    // Wait, what if someone enters negative numbers?
+    // The regex /^(?:(\d+)y)?(?:(\d+)m)?(?:(\d+)d)?$/ only matches digits (\d+).
+    // Thus years, months, days can only be positive or zero.
+    // So total can only be 0 if all are 0.
+    // But all being 0 is caught by `if (years === 0 && months === 0 && days === 0) return undefined;`
+    // Therefore, the false branch of `total > 0 ? total : undefined` on line 49 is fundamentally mathematically unreachable unless total overflows to negative or NaN, which is practically impossible with standard JS strings parsed from \d+.
+    // Let's at least test some boundaries to ensure the line is hit.
+    assert.strictEqual(parseRange("1m0d"), 30);
+    assert.strictEqual(parseRange("0y1m"), undefined); // 0y gets rejected at line 46
+
+    passed++;
+  } catch (e) {
+    console.log(`   ✗ ${e.message}`);
+    failed++;
+  }
+
   // Summary
   console.log("\n" + "=".repeat(60));
   console.log(`\n📊 Results: ${passed} passed, ${failed} failed\n`);
@@ -270,24 +299,7 @@ async function runTests() {
     process.exitCode = 1;
   } else {
     console.log("✅ ALL TESTS PASSED - Time range parser working correctly");
-    console.log("\n📝 Verified:");
-    console.log("   • Simple months (1m–12m)");
-    console.log("   • Simple years (1y+)");
-    console.log("   • Simple days (Nd)");
-    console.log("   • 'all' returns null");
-    console.log("   • Combo: year+month (1y4m)");
-    console.log("   • Combo: month+day (3m9d)");
-    console.log("   • Combo: year+month+day (2y6m15d)");
-    console.log("   • Combo: year+day (1y15d)");
-    console.log("   • Invalid inputs rejected");
-    console.log("   • Case insensitive");
-    console.log("   • Whitespace trimmed");
-    console.log("   • isValidRange helper");
-    console.log("   • formatRange helper");
-    console.log("   • Invalid months in combos rejected");
-    console.log("   • Large year values");
-    console.log();
   }
 }
 
-runTests();
+runTests().catch(console.error);

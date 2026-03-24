@@ -650,16 +650,162 @@ function runTests() {
     assert.strictEqual(res401, "1");
   });
 
+  runTest("formatCurrency fallback code path (line 21, 29)", () => {
+    // line 21: numValueInUSD is NaN and valueInUSD is not a string
+    assert.strictEqual(formatCurrency(null, "USD", {}, { EUR: "€" }), "$0.00");
+    assert.strictEqual(
+      formatCurrency(undefined, "EUR", {}, { EUR: "€" }),
+      "€0.00",
+    );
+
+    // line 29: rate is not a number, displaying in USD (fallback)
+    assert.strictEqual(
+      formatCurrency(100, "JPY", { JPY: "invalid" }, { USD: "$" }),
+      "$100.00",
+    );
+  });
+
+  runTest("formatNumber missing lines (line 156, 163)", () => {
+    // line 156: entry && valueType is something else or falsy
+    // We need to trigger the fallback to rate conversion even when entry exists
+    assert.strictEqual(
+      formatNumber(
+        100,
+        { USD: "$" },
+        false,
+        "USD",
+        { USD: 2 },
+        { some: "data" },
+        "otherType",
+      ),
+      "$200",
+    );
+
+    // line 163: sign branch convertedNum === 0
+    assert.strictEqual(
+      formatNumber(0, { USD: "$" }, true, "USD", {}, null, "total"),
+      "$0.00",
+    );
+  });
+
+  runTest(
+    "formatSummaryBlock/Appreciation missing lines (line 370, 401)",
+    () => {
+      // 370: formatValueFn fallback to defaultCurrencyFormatter inside formatSummaryBlock
+      assert.ok(
+        formatSummaryBlock(
+          "Label",
+          {
+            hasData: true,
+            startValue: 100,
+            endValue: 100,
+            netChange: 0,
+            startDate: new Date(),
+            endDate: new Date(),
+          },
+          null,
+          { formatValue: null },
+        ).includes("$100.00"),
+      );
+
+      // 401: formatValueFn fallback to defaultCurrencyFormatter inside formatAppreciationBlock
+      assert.ok(
+        formatAppreciationBlock(
+          { hasData: true, netChange: 150 },
+          { hasData: true, netChange: 50 },
+          { formatValue: null },
+        ).includes("$100.00"),
+      );
+    },
+  );
+
+  runTest(
+    "formatCurrency fallback code path (line 29) when rate undefined",
+    () => {
+      // line 29: formatCurrency when targetCurrency is missing from rate, missing USD fallback too
+      assert.strictEqual(formatCurrency(100, "JPY", {}, {}), "$100.00");
+    },
+  );
+
+  runTest("formatNumber line 163 zero with sign", () => {
+    // num = 0, withSign = false, convertedNum = 0
+    assert.strictEqual(
+      formatNumber(0, { USD: "$" }, false, "USD", {}, null, "total"),
+      "$0",
+    );
+  });
+
+  runTest("formatSummaryBlock formatValue is undefined", () => {
+    // 370: explicitly pass no options to hit typeof formatValue fallback
+    assert.ok(
+      formatSummaryBlock(
+        "Label",
+        { hasData: true, startValue: 100, endValue: 100, netChange: 0 },
+        null,
+      ).includes("$100.00"),
+    );
+  });
+
+  runTest("formatAppreciationBlock formatValue is undefined", () => {
+    // 401: explicitly pass no options to hit typeof formatValue fallback
+    assert.ok(
+      formatAppreciationBlock(
+        { hasData: true, netChange: 150 },
+        { hasData: true, netChange: 50 },
+      ).includes("$100.00"),
+    );
+  });
+
+  runTest("formatNumber line 163 negative with no sign mode", () => {
+    // line 163: convertedNum < 0 ? "-" : ""
+    assert.strictEqual(
+      formatNumber(-100, { USD: "$" }, false, "USD", {}, null, "total"),
+      "$100",
+    );
+  });
+
+  runTest("formatNumber remaining missing lines check", () => {
+    // Force hit line 163 where convertedNum < 0 but we want to capture sign (withSign = true)
+    assert.strictEqual(
+      formatNumber(-100, { USD: "$" }, true, "USD", {}, null, "total"),
+      "-$100",
+    );
+  });
+
+  runTest(
+    "formatSummaryBlock/Appreciation missing lines part 2 (line 370, 401)",
+    () => {
+      // line 370: formatValue === "function" (we have covered the fallback where it is not a function)
+      // we need to cover the true branch: typeof formatValue === "function"
+      assert.ok(
+        formatSummaryBlock(
+          "Label",
+          { hasData: true, startValue: 100, endValue: 100, netChange: 0 },
+          null,
+          { formatValue: () => "mockedValue" },
+        ).includes("mockedValue"),
+      );
+
+      // 401: formatValueFn fallback true branch
+      assert.ok(
+        formatAppreciationBlock(
+          { hasData: true, netChange: 150 },
+          { hasData: true, netChange: 50 },
+          { formatValue: () => "mockedValue2" },
+        ).includes("mockedValue2"),
+      );
+    },
+  );
+
   // Summary
   console.log("\n" + "=".repeat(60));
   console.log(`\n📊 Results: ${passed} passed, ${failed} failed\n`);
 
   if (failed > 0) {
     console.log("❌ TESTS FAILED - Formatting utility has issues\n");
-    process.exit(1);
+    process.exitCode = 1;
   } else {
     console.log("✅ ALL TESTS PASSED - Formatting utility working correctly");
-    // Do not call process.exit(0) to allow coverage runner to exit naturally
   }
 }
 
