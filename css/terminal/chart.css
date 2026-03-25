@@ -154,6 +154,13 @@
   cursor: pointer;
   user-select: none;
   transition: opacity 0.2s ease;
+  outline: none;
+}
+
+.chart-legend span[data-dataset-index]:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 4px;
+  border-radius: 2px;
 }
 
 .chart-legend span.legend-disabled {
