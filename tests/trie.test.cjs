@@ -208,7 +208,8 @@ const { TrieNode, CommandTrie, createCommandTrie } = (() => {
 // TESTS
 // ============================================================================
 
-function runTests() {
+async function runTests() {
+  const { TrieNode, CommandTrie, createCommandTrie } = await import("../js/utils/trie.js");
   let passed = 0;
   let failed = 0;
   let trie;

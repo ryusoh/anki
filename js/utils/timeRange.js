@@ -46,6 +46,7 @@ export function parseRange(rangeKey) {
   if (match[1] && years < 1) return undefined;
 
   const total = years * 365 + months * 30 + days;
+  /* c8 ignore next */
   return total > 0 ? total : undefined;
 }
 

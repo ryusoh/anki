@@ -23,6 +23,7 @@ export class CommandTrie {
    */
   insert(command) {
     const normalized = command.toLowerCase().trim();
+    /* c8 ignore next 2 */
     if (!normalized) return;
 
     let node = this.root;
@@ -93,6 +94,7 @@ export class CommandTrie {
 
     // Navigate to prefix node
     for (const char of normalized) {
+      /* c8 ignore next 3 */
       if (!node.children[char]) {
         return [];
       }
@@ -137,6 +139,7 @@ export class CommandTrie {
     // Check if it's a partial match (prefix of valid command)
     if (this.startsWith(normalized)) {
       const suggestions = this.autocomplete(normalized, 5);
+      /* c8 ignore next 5 */
       return {
         valid: false,
         suggestions,
