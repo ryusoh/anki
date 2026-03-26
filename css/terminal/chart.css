@@ -156,6 +156,12 @@
   transition: opacity 0.2s ease;
 }
 
+.chart-legend span[data-dataset-index]:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 .chart-legend span.legend-disabled {
   opacity: 0.35;
   text-decoration: line-through;

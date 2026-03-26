@@ -416,7 +416,7 @@ export function renderReviewsChart(
       });
 
       legendHTML.push(
-        `<span data-dataset-index="${datasetIndex}"><i class="legend-color" style="background:${escapeHtml(color)}"></i> ${escapeHtml(deckName)}</span>`,
+        `<span data-dataset-index="${datasetIndex}" role="button" tabindex="0" aria-pressed="true"><i class="legend-color" style="background:${escapeHtml(color)}"></i> ${escapeHtml(deckName)}</span>`,
       );
       datasetIndex++;
     }
@@ -432,10 +432,10 @@ export function renderReviewsChart(
     // Normal mature/young/etc
     if (legend) {
       legend.innerHTML = `
-              <span data-dataset-index="0"><i class="legend-color color-mature"></i> Mature</span>
-              <span data-dataset-index="1"><i class="legend-color color-young"></i> Young</span>
-              <span data-dataset-index="2"><i class="legend-color color-relearn"></i> Relearn</span>
-              <span data-dataset-index="3"><i class="legend-color color-learn"></i> Learn</span>
+              <span data-dataset-index="0" role="button" tabindex="0" aria-pressed="true"><i class="legend-color color-mature"></i> Mature</span>
+              <span data-dataset-index="1" role="button" tabindex="0" aria-pressed="true"><i class="legend-color color-young"></i> Young</span>
+              <span data-dataset-index="2" role="button" tabindex="0" aria-pressed="true"><i class="legend-color color-relearn"></i> Relearn</span>
+              <span data-dataset-index="3" role="button" tabindex="0" aria-pressed="true"><i class="legend-color color-learn"></i> Learn</span>
           `;
       legend.style.display = "flex";
       legend.style.flexWrap = "nowrap"; // reset

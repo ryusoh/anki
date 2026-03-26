@@ -35,3 +35,8 @@
 
 **Learning:** Terminal emulators or command-line interfaces built with web technologies that dynamically append command output and results using JavaScript are entirely invisible to assistive technologies like screen readers if no ARIA live regions are used. Without explicit indication, screen reader users input a command, hit enter, and receive absolutely no feedback.
 **Action:** When building custom web-based terminal interfaces or logs, always ensure the container holding the output stream uses `role="log"` and `aria-live="polite"` so new lines are announced without interrupting the user. Additionally, route dedicated command error messages to a container with `aria-live="assertive" role="alert"` to immediately interrupt and alert the user of failure.
+
+## 2025-03-26 - Static Initialization of Dynamic ARIA States
+
+**Learning:** Hardcoding `aria-pressed="true"` in static HTML templates for toggleable custom elements (like chart legends) can mislead screen readers if the element's default visual state is overridden by a global hidden state upon initialization.
+**Action:** When initializing dynamic toggle elements that depend on a saved or global state (e.g., `hiddenLabels`), ensure the JavaScript initialization block explicitly resolves the `aria-pressed` state to either `"true"` or `"false"` immediately, syncing it accurately with the element's visual visibility from the start.

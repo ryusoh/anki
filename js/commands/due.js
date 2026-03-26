@@ -164,7 +164,7 @@ export function renderFutureDueChart(data, byDeck = false, rangeDays = null) {
           stack: "future",
         });
 
-        legendHtml += `<span data-dataset-index="${datasetIdx}"><i class="legend-color" style="background:${escapeHtml(color)};"></i> ${escapeHtml(deckName)}</span>`;
+        legendHtml += `<span data-dataset-index="${datasetIdx}" role="button" tabindex="0" aria-pressed="true"><i class="legend-color" style="background:${escapeHtml(color)};"></i> ${escapeHtml(deckName)}</span>`;
         datasetIdx++;
       }
 
@@ -220,8 +220,8 @@ export function renderFutureDueChart(data, byDeck = false, rangeDays = null) {
 
     if (legend) {
       legend.innerHTML = `
-        <span data-dataset-index="0"><i class="legend-color color-mature"></i> Mature</span>
-        <span data-dataset-index="1"><i class="legend-color color-young"></i> Young</span>
+        <span data-dataset-index="0" role="button" tabindex="0" aria-pressed="true"><i class="legend-color color-mature"></i> Mature</span>
+        <span data-dataset-index="1" role="button" tabindex="0" aria-pressed="true"><i class="legend-color color-young"></i> Young</span>
       `;
       legend.style.display = "flex";
     }

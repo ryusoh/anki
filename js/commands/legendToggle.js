@@ -38,24 +38,30 @@ export function bindLegendToggle(chart, legendEl) {
 
   // 1. Setup accessibility attributes
   items.forEach((item) => {
-    item.setAttribute("role", "button");
-    item.setAttribute("tabindex", "0");
-    item.setAttribute("aria-pressed", "true");
+    // These might already be set in HTML, but we ensure they exist.
+    if (!item.hasAttribute("role")) item.setAttribute("role", "button");
+    if (!item.hasAttribute("tabindex")) item.setAttribute("tabindex", "0");
   });
 
   // 2. Initial sync: Apply any previously hidden labels from our global state
   chart.data.datasets.forEach((dataset, index) => {
-    if (hiddenLabels.has(dataset.label)) {
+    const isHidden = hiddenLabels.has(dataset.label);
+    if (isHidden) {
       const meta = chart.getDatasetMeta(index);
       meta.hidden = true;
+    }
 
-      // Find corresponding legend item and add disabled class
-      const item = Array.from(items).find(
-        (i) => parseInt(i.dataset.datasetIndex, 10) === index,
-      );
-      if (item) {
+    // Find corresponding legend item to update its state classes
+    const item = Array.from(items).find(
+      (i) => parseInt(i.dataset.datasetIndex, 10) === index,
+    );
+    if (item) {
+      if (isHidden) {
         item.classList.add("legend-disabled");
         item.setAttribute("aria-pressed", "false");
+      } else {
+        item.classList.remove("legend-disabled");
+        item.setAttribute("aria-pressed", "true");
       }
     }
   });

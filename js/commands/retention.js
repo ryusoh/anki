@@ -30,7 +30,7 @@ export function renderRetentionChart(data) {
   // Update legend for retention chart
   if (legend) {
     legend.innerHTML = `
-            <span data-dataset-index="0"><i class="legend-color color-retention"></i> Retention Rate</span>
+            <span data-dataset-index="0" role="button" tabindex="0" aria-pressed="true"><i class="legend-color color-retention"></i> Retention Rate</span>
         `;
     legend.style.display = "flex";
   }
