@@ -35,7 +35,8 @@ const tests = [
   { name: 'Trie', path: 'tests/trie.test.cjs' },
   { name: 'TimeRange Utils', path: 'tests/timeRange.test.cjs' },
   { name: 'Reviews', path: 'tests/reviews.test.cjs' },
-  { name: 'Asset Classes', path: 'tests/assetClasses.test.js' }
+  { name: 'Asset Classes', path: 'tests/assetClasses.test.js' },
+  { name: 'Config Utils', path: 'tests/config.test.js' }
 ];
 
 async function runTest(test) {

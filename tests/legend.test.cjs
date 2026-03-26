@@ -250,7 +250,8 @@ function validateLegend(mockDOM, expected, chartName) {
 // TESTS
 // ============================================================================
 
-function runTests() {
+async function runTests() {
+  const { isLabelHidden, bindLegendToggle } = await import("../js/commands/legendToggle.js");
   let passed = 0;
   let failed = 0;
 
@@ -622,8 +623,16 @@ function runTests() {
   // Test 14: Legend toggle adds/removes legend-disabled class
   console.log("\n📋 Test 14: Legend toggle adds legend-disabled class");
   try {
-    // Simulate bindLegendToggle behavior
+    // Simulate bindLegendToggle behavior using actual source code
     const mockChart = {
+      data: {
+        datasets: [
+          { label: "Mature" },
+          { label: "Young" },
+          { label: "Relearn" },
+          { label: "Learn" }
+        ]
+      },
       _datasetMeta: [{}, {}, {}, {}],
       getDatasetMeta(i) {
         if (!this._datasetMeta[i]) this._datasetMeta[i] = {};
@@ -644,16 +653,10 @@ function runTests() {
     const spans = mockDOM.chartLegend.querySelectorAll("[data-dataset-index]");
     assert.strictEqual(spans.length, 4, "Should have 4 legend items");
 
-    // Simulate binding
-    spans.forEach((span) => {
-      span.addEventListener("click", () => {
-        const i = parseInt(span.dataset.datasetIndex, 10);
-        const meta = mockChart.getDatasetMeta(i);
-        meta.hidden = !meta.hidden;
-        span.classList.toggle("legend-disabled", meta.hidden);
-        mockChart.update("active");
-      });
-    });
+    // Inject them into mockDOM.chartLegend (so querySelectorAll returns something resembling elements)
+    mockDOM.chartLegend.querySelectorAll = () => spans;
+
+    bindLegendToggle(mockChart, mockDOM.chartLegend);
 
     // Click first item to hide
     const firstSpan = spans[0];
@@ -664,6 +667,7 @@ function runTests() {
       true,
       "Dataset 0 should be hidden after click",
     );
+    assert.ok(isLabelHidden("Mature"), "Label 'Mature' should be hidden globally");
     assert.ok(
       firstSpan.classList.contains("legend-disabled"),
       "Span should have legend-disabled class",
@@ -688,10 +692,11 @@ function runTests() {
     failed++;
   }
 
-  // Test 15: chart.update("active") is called on toggle (animation)
-  console.log("\n📋 Test 15: chart.update is called with animation");
+  // Test 15: chart.update is called
+  console.log("\n📋 Test 15: chart.update is called");
   try {
     const mockChart = {
+      data: { datasets: [{ label: "Mature" }, { label: "Young" }] },
       _datasetMeta: [{}, {}],
       getDatasetMeta(i) {
         return this._datasetMeta[i];
@@ -708,16 +713,12 @@ function runTests() {
     renderDueChart(mockDOM);
 
     const spans = mockDOM.chartLegend.querySelectorAll("[data-dataset-index]");
+    mockDOM.chartLegend.querySelectorAll = () => spans;
 
-    spans.forEach((span) => {
-      span.addEventListener("click", () => {
-        const i = parseInt(span.dataset.datasetIndex, 10);
-        const meta = mockChart.getDatasetMeta(i);
-        meta.hidden = !meta.hidden;
-        span.classList.toggle("legend-disabled", meta.hidden);
-        mockChart.update("active");
-      });
-    });
+    bindLegendToggle(mockChart, mockDOM.chartLegend);
+
+    // reset updateCalled which was called during initial sync
+    mockChart.updateCalled = false;
 
     spans[0]._listeners["click"][0]();
 
@@ -728,9 +729,20 @@ function runTests() {
     );
     assert.strictEqual(
       mockChart.updateMode,
-      "active",
-      'chart.update must be called with "active" for animation',
+      undefined,
+      'chart.update must be called without arguments for animation',
     );
+
+    // Also trigger keydown
+    mockChart.updateCalled = false;
+    spans[0]._listeners["keydown"][0]({ key: "Enter", preventDefault: () => {} });
+    assert.strictEqual(mockChart.updateCalled, true, "Enter keydown should trigger toggle");
+
+    // Check invalid index
+    mockChart.updateCalled = false;
+    spans[0].dataset.datasetIndex = "NaN";
+    spans[0]._listeners["click"][0]();
+    assert.strictEqual(mockChart.updateCalled, false, "NaN index should early return");
 
     console.log("   ✓ chart.update() called on toggle");
     passed++;
@@ -801,21 +813,9 @@ function runTests() {
     renderReviewsChart(mockDOM);
 
     const spans = mockDOM.chartLegend.querySelectorAll("[data-dataset-index]");
+    mockDOM.chartLegend.querySelectorAll = () => spans;
 
-    // Simulate binding (simplified for test context)
-    spans.forEach((span) => {
-      span.addEventListener("click", () => {
-        const i = parseInt(span.dataset.datasetIndex, 10);
-        const meta = mockChart.getDatasetMeta(i);
-        meta.hidden = !meta.hidden;
-        span.classList.toggle("legend-disabled", meta.hidden);
-
-        // This is the core logic we are testing: Chart.js native behavior might try to recolor,
-        // but our implementation must ensure the background color of remaining datasets
-        // stays firmly attached to their original dataset index.
-        mockChart.update();
-      });
-    });
+    bindLegendToggle(mockChart, mockDOM.chartLegend);
 
     // Capture initial colors
     const initialColors = mockChart.data.datasets.map((d) => d.backgroundColor);
@@ -834,6 +834,27 @@ function runTests() {
       initialColors[2],
       "Relearn dataset color should not change when Mature is hidden",
     );
+
+    // Check missing label
+    const prevLabel = mockChart.data.datasets[1].label;
+    delete mockChart.data.datasets[1].label;
+    spans[1]._listeners["click"][0](); // Hiding
+    spans[1]._listeners["click"][0](); // Showing
+    mockChart.data.datasets[1].label = prevLabel;
+
+    // Check keyboard that doesn't trigger
+    spans[0]._listeners["keydown"][0]({ key: "Escape" });
+
+    // Check initial sync with previously hidden label
+    const initialSyncChart = {
+      ...mockChart,
+      getDatasetMeta: () => ({ hidden: false })
+    };
+    bindLegendToggle(initialSyncChart, mockDOM.chartLegend);
+
+    // Check undefined chart or legend
+    bindLegendToggle(null, mockDOM.chartLegend);
+    bindLegendToggle(mockChart, null);
 
     console.log("   ✓ Legend toggle preserves colors of other datasets");
     passed++;
