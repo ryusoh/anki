@@ -35,3 +35,8 @@
 
 **Learning:** Terminal emulators or command-line interfaces built with web technologies that dynamically append command output and results using JavaScript are entirely invisible to assistive technologies like screen readers if no ARIA live regions are used. Without explicit indication, screen reader users input a command, hit enter, and receive absolutely no feedback.
 **Action:** When building custom web-based terminal interfaces or logs, always ensure the container holding the output stream uses `role="log"` and `aria-live="polite"` so new lines are announced without interrupting the user. Additionally, route dedicated command error messages to a container with `aria-live="assertive" role="alert"` to immediately interrupt and alert the user of failure.
+
+## 2025-03-27 - Focus Visible Styles for Table Headers
+
+**Learning:** Table headers (`th` elements) configured as buttons (`role="button"`, `tabindex="0"`) can receive keyboard focus, but default browser focus outlines are often removed or masked by custom CSS (e.g., Apple-style gradients, background colors), leaving keyboard-only users with no visual indication of their current location.
+**Action:** When converting semantic but non-interactive elements like `th` into interactive components, explicitly define a `:focus-visible` pseudo-class to ensure keyboard users have a clear visual focus indicator that aligns with the design system, such as `outline: 2px solid var(--primary-color)`.
