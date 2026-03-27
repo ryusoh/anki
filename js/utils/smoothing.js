@@ -230,10 +230,20 @@ function polynomialFit(points, order, targetIndex) {
 
   // Simple linear regression for order 1, quadratic for order 2
   if (order === 1) {
-    const sumX = points.reduce((sum, p, i) => sum + i, 0);
-    const sumY = points.reduce((sum, p) => sum + p.y, 0);
-    const sumXY = points.reduce((sum, p, i) => sum + i * p.y, 0);
-    const sumXX = points.reduce((sum, p, i) => sum + i * i, 0);
+    let sumX = 0;
+    let sumY = 0;
+    let sumXY = 0;
+    let sumXX = 0;
+
+    // Bolt: Use a single O(N) loop instead of four chained .reduce() passes
+    // to significantly reduce GC pressure and intermediate allocations.
+    for (let i = 0; i < n; i++) {
+      const p = points[i];
+      sumX += i;
+      sumY += p.y;
+      sumXY += i * p.y;
+      sumXX += i * i;
+    }
 
     const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
     const intercept = (sumY - slope * sumX) / n;
