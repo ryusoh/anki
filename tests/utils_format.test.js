@@ -40,6 +40,8 @@ async function runTests() {
   assert.strictEqual(formatCurrencyCompact(1000000000000), '$1T');
   assert.strictEqual(formatCurrencyCompact(1500000000000), '$1.50T');
   assert.strictEqual(formatCurrencyCompact(0.001), '$0');
+  assert.strictEqual(formatCurrencyCompact(0.004), '$0'); // less than 0.005 edge case
+  assert.strictEqual(formatCurrencyCompact(0.006), '$0.01'); // above 0.005 edge case
   assert.strictEqual(formatCurrencyCompact(-1500), '-$1.5k');
   assert.strictEqual(formatCurrencyCompact('abc'), '$0');
 
@@ -54,6 +56,52 @@ async function runTests() {
 
   // Custom non-integer edge cases for non-CJK
   assert.strictEqual(formatCurrencyCompact(10), '$10');
+  assert.strictEqual(formatCurrencyCompact(10.5), '$11'); // Number rounding for non-CJK < 1000 check
+
+  // formatCurrencyCompact with CJK Currency
+  assert.strictEqual(formatCurrencyCompact(1500000000000, { currency: 'CNY' }), '¥1.50T');
+  assert.strictEqual(formatCurrencyCompact(1000000000000, { currency: 'JPY' }), '¥1.00T');
+  assert.strictEqual(formatCurrencyCompact(10000000000000, { currency: 'KRW' }), '₩10.0T');
+  assert.strictEqual(formatCurrencyCompact(100000000000000, { currency: 'CNY' }), '¥100T');
+
+  assert.strictEqual(formatCurrencyCompact(1500000000, { currency: 'CNY' }), '¥1.50B');
+  assert.strictEqual(formatCurrencyCompact(1000000000, { currency: 'JPY' }), '¥1.00B');
+  assert.strictEqual(formatCurrencyCompact(10000000000, { currency: 'KRW' }), '₩10.0B');
+  assert.strictEqual(formatCurrencyCompact(100000000000, { currency: 'CNY' }), '¥100B');
+
+  assert.strictEqual(formatCurrencyCompact(1500000, { currency: 'CNY' }), '¥1.5M');
+  assert.strictEqual(formatCurrencyCompact(1000000, { currency: 'JPY' }), '¥1M');
+  assert.strictEqual(formatCurrencyCompact(10000000, { currency: 'KRW' }), '₩10M'); // million checks >= 10 logic
+  assert.strictEqual(formatCurrencyCompact(100000000, { currency: 'CNY' }), '¥100M');
+
+  assert.strictEqual(formatCurrencyCompact(1500, { currency: 'CNY' }), '¥1.5k');
+  assert.strictEqual(formatCurrencyCompact(1000, { currency: 'JPY' }), '¥1k');
+  assert.strictEqual(formatCurrencyCompact(10000, { currency: 'KRW' }), '₩10k'); // thousand checks >= 10 logic
+  assert.strictEqual(formatCurrencyCompact(100000, { currency: 'CNY' }), '¥100k');
+
+  assert.strictEqual(formatCurrencyCompact(10, { currency: 'CNY' }), '¥10');
+  assert.strictEqual(formatCurrencyCompact(10.5, { currency: 'JPY' }), '¥11');
+  assert.strictEqual(formatCurrencyCompact(0.5, { currency: 'KRW' }), '₩1');
+
+  // Edge cases for non-CJK exact rounding inside the k logic
+  assert.strictEqual(formatCurrencyCompact(1050), '$1.1k');
+  assert.strictEqual(formatCurrencyCompact(1001), '$1k'); // rounds to 1k based on absolute - Math.round(thousands) < 0.05
+  assert.strictEqual(formatCurrencyCompact(1000001), '$1M');
+  assert.strictEqual(formatCurrencyCompact(1000000001), '$1B');
+
+  // Non-CJK fallback formatting paths for >= 100, >= 10, etc when not effectively an integer
+  assert.strictEqual(formatCurrencyCompact(150000000000), '$150B');
+  assert.strictEqual(formatCurrencyCompact(15000000000), '$15B');
+  assert.strictEqual(formatCurrencyCompact(150000000), '$150M');
+  assert.strictEqual(formatCurrencyCompact(15000000), '$15M');
+  assert.strictEqual(formatCurrencyCompact(150000), '$150k');
+  assert.strictEqual(formatCurrencyCompact(15000), '$15k'); // Non-CJK thousands >= 10 fallback
+  assert.strictEqual(formatCurrencyCompact(15500), '$15.5k');
+  assert.strictEqual(formatCurrencyCompact(155500), '$156k'); // Non-CJK thousands >= 100 fallback
+  assert.strictEqual(formatCurrencyCompact(15500000), '$15.5M'); // Non-CJK millions >= 10 fallback
+  assert.strictEqual(formatCurrencyCompact(155500000), '$156M'); // Non-CJK millions >= 100 fallback
+  assert.strictEqual(formatCurrencyCompact(15500000000), '$15.5B'); // Non-CJK billions >= 10 fallback
+  assert.strictEqual(formatCurrencyCompact(155500000000), '$156B'); // Non-CJK billions >= 100 fallback
 
   // formatCurrency / formatCurrencyInlineValue
   setSelectedCurrency('USD');

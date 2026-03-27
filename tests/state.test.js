@@ -151,12 +151,20 @@ async function runTests() {
   setSelectedCurrency('');
   assert.strictEqual(getSelectedCurrency(), 'EUR'); // Should not change if invalid
 
+  // Test default selected currency fallback
+  transactionState.selectedCurrency = null;
+  assert.strictEqual(getSelectedCurrency(), 'USD');
+
   // Test: composition filters
   setCompositionFilterTickers([' aapl ', 'MSFT', 'aapl']);
   assert.deepStrictEqual(getCompositionFilterTickers(), ['AAPL', 'MSFT']);
   setCompositionFilterTickers([]);
   assert.deepStrictEqual(getCompositionFilterTickers(), []);
   setCompositionFilterTickers([123]);
+  assert.deepStrictEqual(getCompositionFilterTickers(), []);
+
+  // Test default composition filter tickers fallback
+  transactionState.compositionFilterTickers = null;
   assert.deepStrictEqual(getCompositionFilterTickers(), []);
 
   setCompositionAssetClassFilter('etf');
