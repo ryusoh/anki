@@ -40,7 +40,9 @@ const tests = [
   { name: 'State', path: 'tests/state.test.js' },
   { name: 'Utils Format', path: 'tests/utils_format.test.js' },
   { name: 'Utils CSV', path: 'tests/utils_csv.test.js' },
-  { name: 'Due', path: 'tests/due.test.cjs' }
+  { name: 'Due', path: 'tests/due.test.cjs' },
+  { name: 'Zoom', path: 'tests/zoom.test.js' },
+  { name: 'Retention', path: 'tests/retention.test.cjs' }
 ];
 
 async function runTest(test) {
