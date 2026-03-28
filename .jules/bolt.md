@@ -45,5 +45,5 @@
 
 ## 2025-03-27 - [Optimize Polynomial Fitting in Smoothing Utility]
 
-**Learning:** When performing mathematical operations over arrays (like polynomial fitting), using multiple chained `Array.prototype.reduce()` calls to compute sums (e.g., sumX, sumY, sumXY) introduces significant overhead. Each `.reduce()` call requires a new function allocation and iterates over the array independently, leading to O(k*N) time complexity and unnecessary GC pressure.
+**Learning:** When performing mathematical operations over arrays (like polynomial fitting), using multiple chained `Array.prototype.reduce()` calls to compute sums (e.g., sumX, sumY, sumXY) introduces significant overhead. Each `.reduce()` call requires a new function allocation and iterates over the array independently, leading to O(k\*N) time complexity and unnecessary GC pressure.
 **Action:** Replace multiple chained `.reduce()` passes with a single O(N) `for` loop to compute multiple aggregates simultaneously, particularly in performance-critical or high-frequency calculation paths.

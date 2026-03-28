@@ -1,12 +1,12 @@
-import assert from 'assert';
+import assert from "assert";
 
 global.document = {
-  querySelector: () => null
+  querySelector: () => null,
 };
 global.window = {
   innerWidth: 1024,
-  location: { search: '' },
-  localStorage: { getItem: () => null, setItem: () => {} }
+  location: { search: "" },
+  localStorage: { getItem: () => null, setItem: () => {} },
 };
 
 async function runTests() {
@@ -41,33 +41,41 @@ async function runTests() {
     setCompositionAssetClassFilter,
     getCompositionAssetClassFilter,
     setZoomed,
-    isZoomed
-  } = await import('../js/transactions/state.js');
+    isZoomed,
+  } = await import("../js/transactions/state.js");
 
-  console.log('--- state.test.js ---');
+  console.log("--- state.test.js ---");
 
   // Test: setActiveFilterTerm / getActiveFilterTerm
-  setActiveFilterTerm(' AAPL ');
-  assert.strictEqual(getActiveFilterTerm(), 'AAPL', 'setActiveFilterTerm should trim whitespace');
+  setActiveFilterTerm(" AAPL ");
+  assert.strictEqual(
+    getActiveFilterTerm(),
+    "AAPL",
+    "setActiveFilterTerm should trim whitespace",
+  );
   setActiveFilterTerm(123);
-  assert.strictEqual(getActiveFilterTerm(), '', 'setActiveFilterTerm should handle non-strings');
+  assert.strictEqual(
+    getActiveFilterTerm(),
+    "",
+    "setActiveFilterTerm should handle non-strings",
+  );
 
   // Test: resetSortState
-  transactionState.sortState.column = 'amount';
-  transactionState.sortState.order = 'asc';
+  transactionState.sortState.column = "amount";
+  transactionState.sortState.order = "asc";
   resetSortState();
-  assert.strictEqual(transactionState.sortState.column, 'tradeDate');
-  assert.strictEqual(transactionState.sortState.order, 'desc');
+  assert.strictEqual(transactionState.sortState.column, "tradeDate");
+  assert.strictEqual(transactionState.sortState.order, "desc");
 
   // Test: array setters
   setAllTransactions([{ id: 1 }]);
   assert.deepStrictEqual(transactionState.allTransactions, [{ id: 1 }]);
-  setAllTransactions('not array');
+  setAllTransactions("not array");
   assert.deepStrictEqual(transactionState.allTransactions, []);
 
   setFilteredTransactions([{ id: 2 }]);
   assert.deepStrictEqual(transactionState.filteredTransactions, [{ id: 2 }]);
-  setFilteredTransactions('not array');
+  setFilteredTransactions("not array");
   assert.deepStrictEqual(transactionState.filteredTransactions, []);
 
   setSplitHistory([{ split: 2 }]);
@@ -87,12 +95,16 @@ async function runTests() {
 
   // Test: object map setters
   setRunningAmountSeriesMap({ USD: [1] });
-  assert.deepStrictEqual(transactionState.runningAmountSeriesByCurrency, { USD: [1] });
+  assert.deepStrictEqual(transactionState.runningAmountSeriesByCurrency, {
+    USD: [1],
+  });
   setRunningAmountSeriesMap(null);
   assert.deepStrictEqual(transactionState.runningAmountSeriesByCurrency, {});
 
   setPortfolioSeriesMap({ EUR: [2] });
-  assert.deepStrictEqual(transactionState.portfolioSeriesByCurrency, { EUR: [2] });
+  assert.deepStrictEqual(transactionState.portfolioSeriesByCurrency, {
+    EUR: [2],
+  });
   setPortfolioSeriesMap(null);
   assert.deepStrictEqual(transactionState.portfolioSeriesByCurrency, {});
 
@@ -107,14 +119,16 @@ async function runTests() {
   assert.deepStrictEqual(transactionState.historicalPrices, {});
 
   setFxRatesByCurrency({ EUR: { rate: 1.1 } });
-  assert.deepStrictEqual(transactionState.fxRatesByCurrency, { EUR: { rate: 1.1 } });
+  assert.deepStrictEqual(transactionState.fxRatesByCurrency, {
+    EUR: { rate: 1.1 },
+  });
   setFxRatesByCurrency(null);
   assert.deepStrictEqual(transactionState.fxRatesByCurrency, {});
 
   // Test: chart visibility
-  setChartVisibility('contribution', false);
+  setChartVisibility("contribution", false);
   assert.strictEqual(getChartVisibility().contribution, false);
-  setChartVisibility('buy', true);
+  setChartVisibility("buy", true);
   assert.strictEqual(getChartVisibility().buy, true);
 
   // Test: chart labels
@@ -124,10 +138,10 @@ async function runTests() {
   assert.strictEqual(getShowChartLabels(), true);
 
   // Test: command history
-  pushCommandHistory('test1');
-  pushCommandHistory('test2');
-  assert.strictEqual(transactionState.commandHistory[0], 'test2');
-  assert.strictEqual(transactionState.commandHistory[1], 'test1');
+  pushCommandHistory("test1");
+  pushCommandHistory("test2");
+  assert.strictEqual(transactionState.commandHistory[0], "test2");
+  assert.strictEqual(transactionState.commandHistory[1], "test1");
 
   // Test: history index
   setHistoryIndex(5);
@@ -136,28 +150,31 @@ async function runTests() {
   assert.strictEqual(transactionState.historyIndex, -1);
 
   // Test: active chart
-  setActiveChart('performance');
-  assert.strictEqual(transactionState.activeChart, 'performance');
+  setActiveChart("performance");
+  assert.strictEqual(transactionState.activeChart, "performance");
 
   // Test: chart date range
-  setChartDateRange({ from: '2023-01-01', to: '2023-12-31' });
-  assert.deepStrictEqual(transactionState.chartDateRange, { from: '2023-01-01', to: '2023-12-31' });
+  setChartDateRange({ from: "2023-01-01", to: "2023-12-31" });
+  assert.deepStrictEqual(transactionState.chartDateRange, {
+    from: "2023-01-01",
+    to: "2023-12-31",
+  });
 
   // Test: currency
-  setSelectedCurrency('EUR');
-  assert.strictEqual(getSelectedCurrency(), 'EUR');
+  setSelectedCurrency("EUR");
+  assert.strictEqual(getSelectedCurrency(), "EUR");
   // Just test that transactionState.selectedCurrency changed
-  assert.strictEqual(transactionState.selectedCurrency, 'EUR');
-  setSelectedCurrency('');
-  assert.strictEqual(getSelectedCurrency(), 'EUR'); // Should not change if invalid
+  assert.strictEqual(transactionState.selectedCurrency, "EUR");
+  setSelectedCurrency("");
+  assert.strictEqual(getSelectedCurrency(), "EUR"); // Should not change if invalid
 
   // Test default selected currency fallback
   transactionState.selectedCurrency = null;
-  assert.strictEqual(getSelectedCurrency(), 'USD');
+  assert.strictEqual(getSelectedCurrency(), "USD");
 
   // Test: composition filters
-  setCompositionFilterTickers([' aapl ', 'MSFT', 'aapl']);
-  assert.deepStrictEqual(getCompositionFilterTickers(), ['AAPL', 'MSFT']);
+  setCompositionFilterTickers([" aapl ", "MSFT", "aapl"]);
+  assert.deepStrictEqual(getCompositionFilterTickers(), ["AAPL", "MSFT"]);
   setCompositionFilterTickers([]);
   assert.deepStrictEqual(getCompositionFilterTickers(), []);
   setCompositionFilterTickers([123]);
@@ -167,9 +184,9 @@ async function runTests() {
   transactionState.compositionFilterTickers = null;
   assert.deepStrictEqual(getCompositionFilterTickers(), []);
 
-  setCompositionAssetClassFilter('etf');
-  assert.strictEqual(getCompositionAssetClassFilter(), 'etf');
-  setCompositionAssetClassFilter('invalid');
+  setCompositionAssetClassFilter("etf");
+  assert.strictEqual(getCompositionAssetClassFilter(), "etf");
+  setCompositionAssetClassFilter("invalid");
   assert.strictEqual(getCompositionAssetClassFilter(), null);
 
   // Test: zoom
@@ -180,10 +197,10 @@ async function runTests() {
 
   delete global.document;
   delete global.window;
-  console.log('All tests passed.');
+  console.log("All tests passed.");
 }
 
-runTests().catch(e => {
+runTests().catch((e) => {
   console.error(e);
   process.exitCode = 1;
 });
