@@ -184,3 +184,9 @@
 .legend-color.color-relearn {
   background: rgba(234, 67, 53, 0.85);
 }
+
+.chart-legend span[data-dataset-index]:focus-visible {
+  outline: 2px solid var(--primary-color, #f0b90b);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
