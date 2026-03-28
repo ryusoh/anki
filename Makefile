@@ -147,7 +147,7 @@ fetch-prompt:
 		echo "   ⊘ Fetch skipped"; \
 	fi
 
-precommit-fix: $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt-fix) fmt lint-fix check
+precommit-fix: install $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt-fix) fmt lint-fix check
 	@echo ""
 	@echo "🔒 Running EXTREMELY RIGOROUS security check..."
 	@echo "   Scanning ALL files for private Anki data..."
