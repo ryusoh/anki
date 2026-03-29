@@ -35,3 +35,8 @@
 
 **Learning:** Terminal emulators or command-line interfaces built with web technologies that dynamically append command output and results using JavaScript are entirely invisible to assistive technologies like screen readers if no ARIA live regions are used. Without explicit indication, screen reader users input a command, hit enter, and receive absolutely no feedback.
 **Action:** When building custom web-based terminal interfaces or logs, always ensure the container holding the output stream uses `role="log"` and `aria-live="polite"` so new lines are announced without interrupting the user. Additionally, route dedicated command error messages to a container with `aria-live="assertive" role="alert"` to immediately interrupt and alert the user of failure.
+
+## 2024-03-29 - Keyboard Accessibility for Custom Interactive Elements
+
+**Learning:** Adding tabindex="0" and role="button" to custom interactive elements (like th.sortable, filter dropdowns, and chart legends) is insufficient for full keyboard accessibility if visual focus indicators are missing. Users navigating via keyboard cannot perceive which element has focus, rendering the interface unusable.
+**Action:** Always pair tabindex="0" with explicit :focus-visible CSS rules using existing design system variables (e.g., outlines or background highlights). This ensures keyboard users have clear visual context without compromising the experience for mouse users.
