@@ -107,7 +107,7 @@ async function runTests() {
     if (id === 'runningAmountCanvas') return { getContext: () => ({}) };
     if (id === 'runningAmountSection') return { classList: { remove: () => {}, contains: () => false } };
     if (id === 'chartLegend') return { style: {}, innerHTML: '', querySelectorAll: () => [] };
-    if (id === 'runningAmountEmpty') return { style: {}, textContent: '', classList: { remove: () => {} } };
+    if (id === 'runningAmountEmpty') return { style: {}, display: '', textContent: '', classList: { remove: () => {} } };
     return null;
   };
 
@@ -126,10 +126,6 @@ async function runTests() {
       ]
     }
   };
-
-  // In `js/commands/due.js`, `const Chart = window.Chart;` evaluates once.
-  // Because my initial mock set `window` to `{}`, `window.Chart` was undefined!
-  // I already updated the top of this script to initialize `window.Chart` *before* the import.
 
   // Test showDue
   assert.strictEqual(showDue('2d'), "Rendered upcoming reviews chart (2 days).");
@@ -163,7 +159,8 @@ async function runTests() {
   // Test help
   assert.strictEqual(Array.isArray(getDueHelp()), true);
 
-  // Test callbacks (for coverage)
+  // Test callbacks
+  global.document.getElementById = originalGetElementById;
   renderFutureDueChart(window.customStatsData.futureDue);
   if (capturedConfig && capturedConfig.options && capturedConfig.options.plugins && capturedConfig.options.plugins.tooltip) {
     const titleCallback = capturedConfig.options.plugins.tooltip.callbacks.title;
@@ -174,17 +171,62 @@ async function runTests() {
     assert.strictEqual(labelCallback({raw: 0, dataset: {label: "Young"}}), null);
 
     const byDeckCallback = capturedConfig.options.plugins.tooltip.callbacks.label;
-    // We can just call it directly to hit branches
     assert.strictEqual(byDeckCallback({raw: 5, dataset: {label: "Deck1"}}), "Deck1: 5");
   }
 
   // Cover empty state
-  window.customStatsData.futureDue = [];
-  assert.strictEqual(renderFutureDueChart(window.customStatsData.futureDue).success, false);
+  let emptyStateTextContent = '';
+  global.document.getElementById = (id) => {
+    if (id === 'runningAmountCanvas') return { getContext: () => ({}) };
+    if (id === 'runningAmountSection') return { classList: { remove: () => {}, contains: () => false } };
+    if (id === 'runningAmountEmpty') return {
+        style: {},
+        set textContent(val) { emptyStateTextContent = val; },
+        get textContent() { return emptyStateTextContent; },
+        classList: { remove: () => {} }
+    };
+    return null;
+  };
 
-  // Cover byDeck branch fully
-  const longData = Array.from({length: 150}, (_, i) => ({ day: i, young: 1, mature: 1 }));
-  renderFutureDueChart(longData);
+  // Test global empty state correctly handles UI
+  window.customStatsData.futureDue = [];
+  const emptyRes = renderFutureDueChart(window.customStatsData.futureDue);
+  assert.strictEqual(emptyRes.success, false, "Empty future due should return success: false");
+  assert.strictEqual(emptyStateTextContent, "No data yet. Complete some reviews first.", "Empty state should set the textContent to indicate no reviews");
+
+  // Test byDeck empty state
+  emptyStateTextContent = ''; // reset
+  const emptyByDeckRes = renderFutureDueChart({ "EmptyDeck": [] }, true);
+  assert.strictEqual(emptyByDeckRes.success, false, "Empty byDeck data should return success: false");
+  assert.strictEqual(emptyStateTextContent, "No data yet. Complete some reviews first.", "Empty state should display proper textContent");
+
+  emptyStateTextContent = '';
+  const zeroCountsByDeckRes = renderFutureDueChart({ "EmptyDeck": [{ young: 0, mature: 0 }] }, true);
+  assert.strictEqual(zeroCountsByDeckRes.success, false, "byDeck with only zero counts should return success: false");
+  assert.strictEqual(emptyStateTextContent, "No data yet. Complete some reviews first.", "Zero counts state should display proper textContent");
+
+  // Render explicitly with maxDay limit and assert the label limits were properly truncated or scaled
+  // Note: the previous failure "false !== true" was because `originalGetElementById` wasn't returning `runningAmountCanvas` properly since `global.document.getElementById` was overridden in the empty tests above.
+  // We need to restore it to `originalGetElementById`. But wait, `originalGetElementById` also returns null for `chartLegend`? No, it returns an object.
+  global.document.getElementById = (id) => {
+    if (id === 'runningAmountCanvas') return { getContext: () => ({}) };
+    if (id === 'runningAmountSection') return { classList: { remove: () => {}, contains: () => false } };
+    if (id === 'chartLegend') return { style: {}, innerHTML: '', querySelectorAll: () => [] };
+    if (id === 'runningAmountEmpty') return { style: {}, textContent: '', classList: { remove: () => {} } };
+    return null;
+  };
+
+  const resLimitMaxDay = renderFutureDueChart([{ day: 0, young: 1, mature: 1 }], false, 5);
+  assert.strictEqual(resLimitMaxDay.success, true, "Standard subset data explicitly setting rangeDays limits to true");
+  assert.strictEqual(capturedConfig.data.labels.length, 5, "Chart should have 5 padded day labels explicitly limiting maxDay to rangeDays - 1 (5 days)");
+
+  // Cover byDeck branch explicitly rendering limits
+  // Requires `window.customStatsData.futureDueByDeck` to be populated since `reviews.js` uses `groupAndSortDecks`
+  window.customStatsData.futureDueByDeck = { "Deck": [{ day: 0, young: 1, mature: 1 }] };
+  const byDeckLimitRes = renderFutureDueChart({ "Deck": [{ day: 0, young: 1, mature: 1 }] }, true, 5);
+  // Wait for dynamic reviews.js module load to populate the global graph logic since byDeck runs asynchronously
+  await new Promise(resolve => setTimeout(resolve, 50));
+  assert.strictEqual(byDeckLimitRes.success, true, "byDeck with limit explicitly setting rangeDays returns true");
 
   console.log('All tests passed.');
 }
