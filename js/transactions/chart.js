@@ -4016,7 +4016,9 @@ async function drawPerformanceChart(ctx, chartManager, timestamp) {
       for (let i = 0; i < series.data.length; i++) {
         const d = series.data[i];
         const pointTime =
-          d.date instanceof Date ? d.date.getTime() : new Date(d.date).getTime();
+          d.date instanceof Date
+            ? d.date.getTime()
+            : new Date(d.date).getTime();
 
         if (pointTime >= filterFromTime && pointTime <= filterToTime) {
           filteredData.push({ ...d, date: new Date(pointTime) });

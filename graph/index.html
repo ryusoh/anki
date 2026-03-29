@@ -20,57 +20,6 @@
         display: block;
       }
 
-      #node-info {
-        position: fixed;
-        bottom: 30px;
-        left: 30px;
-        color: #fff;
-        background: rgba(20, 20, 30, 0.95);
-        padding: 20px;
-        border-radius: 12px;
-        border: 1px solid rgba(102, 126, 234, 0.3);
-        z-index: 1000;
-        max-width: 350px;
-        display: none;
-      }
-
-      #node-info h2 {
-        font-size: 14px;
-        font-weight: 600;
-        margin-bottom: 12px;
-        color: #667eea;
-      }
-
-      .stat {
-        display: flex;
-        justify-content: space-between;
-        padding: 6px 0;
-        font-size: 13px;
-      }
-
-      .label {
-        color: #888;
-      }
-
-      .value {
-        color: #fff;
-        font-weight: 500;
-      }
-
-      #close {
-        position: absolute;
-        top: 12px;
-        right: 15px;
-        cursor: pointer;
-        font-size: 20px;
-        color: #666;
-        transition: color 0.3s;
-      }
-
-      #close:hover {
-        color: #fff;
-      }
-
       #loading {
         position: fixed;
         top: 50%;
@@ -104,18 +53,6 @@
       <div class="spinner"></div>
     </div>
 
-    <div id="node-info">
-      <span id="close">&times;</span>
-      <h2 id="ni-title">Node</h2>
-      <div class="stat">
-        <span class="label">Deck</span><span class="value" id="ni-deck"></span>
-      </div>
-      <div class="stat">
-        <span class="label">PageRank</span
-        ><span class="value" id="ni-pr"></span>
-      </div>
-    </div>
-
     <script type="importmap">
       {
         "imports": {
@@ -128,13 +65,19 @@
       import * as THREE from "three";
       import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
-      const info = document.getElementById("info");
       const loading = document.getElementById("loading");
-      const nodeInfo = document.getElementById("node-info");
 
       // Load data
-      const response = await fetch("/graph/graph_data.json");
-      const data = await response.json();
+      let data;
+      try {
+        const response = await fetch("/graph/graph_data.json");
+        if (!response.ok)
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        data = await response.json();
+      } catch (e) {
+        loading.innerHTML = `<div style="color:#f5576c;font-size:16px;">Failed to load graph data<br><small style="color:#888">${e.message}</small></div>`;
+        throw e;
+      }
 
       // Scene with subtle fog
       const scene = new THREE.Scene();
@@ -225,8 +168,9 @@
       const dummy = new THREE.Object3D();
       const color = new THREE.Color();
 
-      // Map for O(1) position lookup during edge creation
+      // Maps for O(1) lookup during edge creation
       const nodeMap = new Map();
+      const nodeDeckMap = new Map();
 
       data.nodes.forEach((node, i) => {
         const deckAngle = deckAngles[node.deck] || 0;
@@ -243,6 +187,7 @@
         const pz = node.z || (Math.random() - 0.5) * 150;
 
         nodeMap.set(node.id, { x: px, y: py, z: pz });
+        nodeDeckMap.set(node.id, node.deck);
 
         dummy.position.set(px, py, pz);
 
@@ -268,26 +213,26 @@
       const edgePositions = [];
       const edgeColorsArray = [];
 
+      // Pre-resolve deck colors to THREE.Color for O(1) lookup
+      const deckColorCache = new Map();
+      for (const [deck, hex] of Object.entries(deckColors)) {
+        const c = new THREE.Color(hex);
+        deckColorCache.set(deck, { r: c.r, g: c.g, b: c.b });
+      }
+      const fallbackColor = new THREE.Color("#4facfe");
+
       data.links.forEach((link) => {
         const sourcePos = nodeMap.get(link.source);
         const targetPos = nodeMap.get(link.target);
 
         if (sourcePos && targetPos) {
-          // Source
           edgePositions.push(sourcePos.x, sourcePos.y, sourcePos.z);
-          // Target
           edgePositions.push(targetPos.x, targetPos.y, targetPos.z);
 
-          // Get source node for color (from links data or lookup)
-          // Since we don't have source node object easily, we'll look up by ID if needed,
-          // but it's faster if the link data has metadata.
-          // For now, let's assume source color.
-          const sourceNode = data.nodes.find((n) => n.id === link.source);
-          const c = new THREE.Color(
-            deckColors[sourceNode ? sourceNode.deck : ""] || "#4facfe",
-          );
-          edgeColorsArray.push(c.r, c.g, c.b, 0.3); // source vertex
-          edgeColorsArray.push(c.r, c.g, c.b, 0.3); // target vertex
+          const deck = nodeDeckMap.get(link.source);
+          const c = deckColorCache.get(deck) || fallbackColor;
+          edgeColorsArray.push(c.r, c.g, c.b, 0.3);
+          edgeColorsArray.push(c.r, c.g, c.b, 0.3);
         }
       });
 
@@ -312,36 +257,6 @@
       scene.add(edges);
 
       loading.style.display = "none";
-
-      // Click handler with InstancedMesh support
-      const raycaster = new THREE.Raycaster();
-      const mouse = new THREE.Vector2();
-
-      window.addEventListener("click", (event) => {
-        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-        raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObject(instancedMesh);
-
-        if (intersects.length > 0) {
-          const instanceId = intersects[0].instanceId;
-          const node = data.nodes[instanceId];
-
-          document.getElementById("ni-title").textContent =
-            node.label.startsWith("Note_") ? node.label : "Node Info";
-          document.getElementById("ni-deck").textContent = node.deck;
-          document.getElementById("ni-pr").textContent = (
-            node.pagerank * 1000
-          ).toFixed(3);
-
-          nodeInfo.style.display = "block";
-        }
-      });
-
-      document.getElementById("close").onclick = () => {
-        nodeInfo.style.display = "none";
-      };
 
       // Animation with gentle rotation
       let time = 0;
