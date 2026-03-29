@@ -10,7 +10,7 @@
         video.pause();
       }
     }
-  } catch {
-    /* no-op */
+  } catch (error) {
+    console.warn("Failed to apply reduced motion preference:", error);
   }
 })();
