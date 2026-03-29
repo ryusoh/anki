@@ -103,12 +103,10 @@ data.nodes.forEach((node, i) => {
 
   const px =
     node.x ||
-    Math.cos(deckAngle) * clusterRadius +
-      (Math.random() - 0.5) * clusterSpread;
+    Math.cos(deckAngle) * clusterRadius + (Math.random() - 0.5) * clusterSpread;
   const py =
     node.y ||
-    Math.sin(deckAngle) * clusterRadius +
-      (Math.random() - 0.5) * clusterSpread;
+    Math.sin(deckAngle) * clusterRadius + (Math.random() - 0.5) * clusterSpread;
   const pz = node.z || (Math.random() - 0.5) * 150;
 
   nodeMap.set(node.id, { x: px, y: py, z: pz });
@@ -129,51 +127,83 @@ data.nodes.forEach((node, i) => {
 
 scene.add(instancedMesh);
 
-// --- EDGES (O(N+M) CONSTRUCTION) ---
-const edgePositions = [];
-const edgeColorsArray = [];
+// --- EDGES (INSTANCED CYLINDERS FOR VISIBLE THICKNESS) ---
+const edgeRadius = 0.6;
+const edgeCylinderGeo = new THREE.CylinderGeometry(
+  edgeRadius,
+  edgeRadius,
+  1,
+  4,
+  1,
+);
+edgeCylinderGeo.translate(0, 0.5, 0);
+edgeCylinderGeo.rotateX(Math.PI / 2);
 
+const edgeMaterial = new THREE.MeshPhongMaterial({
+  transparent: true,
+  opacity: 0.35,
+  shininess: 80,
+  specular: 0x222222,
+  blending: THREE.AdditiveBlending,
+});
+
+// Collect valid edges
+const validEdges = [];
 const deckColorCache = new Map();
 for (const [deck, hex] of Object.entries(deckColors)) {
-  const c = new THREE.Color(hex);
-  deckColorCache.set(deck, { r: c.r, g: c.g, b: c.b });
+  deckColorCache.set(deck, new THREE.Color(hex));
 }
 const fallbackColor = new THREE.Color("#4facfe");
 
 data.links.forEach((link) => {
   const sourcePos = nodeMap.get(link.source);
   const targetPos = nodeMap.get(link.target);
-
   if (sourcePos && targetPos) {
-    edgePositions.push(sourcePos.x, sourcePos.y, sourcePos.z);
-    edgePositions.push(targetPos.x, targetPos.y, targetPos.z);
-
-    const deck = nodeDeckMap.get(link.source);
-    const c = deckColorCache.get(deck) || fallbackColor;
-    edgeColorsArray.push(c.r, c.g, c.b, 0.3);
-    edgeColorsArray.push(c.r, c.g, c.b, 0.3);
+    validEdges.push({
+      sourcePos,
+      targetPos,
+      deck: nodeDeckMap.get(link.source),
+    });
   }
 });
 
-const edgeGeometry = new THREE.BufferGeometry();
-edgeGeometry.setAttribute(
-  "position",
-  new THREE.Float32BufferAttribute(edgePositions, 3),
+const edgeMesh = new THREE.InstancedMesh(
+  edgeCylinderGeo,
+  edgeMaterial,
+  validEdges.length,
 );
-edgeGeometry.setAttribute(
-  "color",
-  new THREE.Float32BufferAttribute(edgeColorsArray, 4),
-);
+const edgeDummy = new THREE.Object3D();
+const edgeColor = new THREE.Color();
+const up = new THREE.Vector3(0, 0, 1);
 
-const edgeMaterial = new THREE.LineBasicMaterial({
-  vertexColors: true,
-  transparent: true,
-  opacity: 0.5,
-  blending: THREE.AdditiveBlending,
+validEdges.forEach((edge, i) => {
+  const src = new THREE.Vector3(
+    edge.sourcePos.x,
+    edge.sourcePos.y,
+    edge.sourcePos.z,
+  );
+  const tgt = new THREE.Vector3(
+    edge.targetPos.x,
+    edge.targetPos.y,
+    edge.targetPos.z,
+  );
+  const dir = new THREE.Vector3().subVectors(tgt, src);
+  const len = dir.length();
+
+  edgeDummy.position.copy(src);
+  edgeDummy.scale.set(1, 1, len);
+  edgeDummy.quaternion.setFromUnitVectors(up, dir.normalize());
+  edgeDummy.updateMatrix();
+
+  edgeMesh.setMatrixAt(i, edgeDummy.matrix);
+
+  edgeColor.copy(deckColorCache.get(edge.deck) || fallbackColor);
+  edgeMesh.setColorAt(i, edgeColor);
 });
 
-const edges = new THREE.LineSegments(edgeGeometry, edgeMaterial);
-scene.add(edges);
+edgeMesh.instanceMatrix.needsUpdate = true;
+edgeMesh.instanceColor.needsUpdate = true;
+scene.add(edgeMesh);
 
 loading.style.display = "none";
 
@@ -184,7 +214,7 @@ function animate() {
   time += 0.001;
 
   instancedMesh.rotation.y = Math.sin(time) * 0.05;
-  edges.rotation.y = Math.sin(time) * 0.05;
+  edgeMesh.rotation.y = Math.sin(time) * 0.05;
 
   controls.update();
   renderer.render(scene, camera);
