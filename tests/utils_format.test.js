@@ -211,13 +211,9 @@ async function runTests() {
       ],
     },
     GBP: {
-      map: new Map([
-        ["2023-01-01", 0.7],
-      ]),
-      sorted: [
-        { date: "2023-01-01", ts: Date.parse("2023-01-01") }
-      ]
-    }
+      map: new Map([["2023-01-01", 0.7]]),
+      sorted: [{ date: "2023-01-01", ts: Date.parse("2023-01-01") }],
+    },
   });
 
   assert.strictEqual(convertValueToCurrency(100, "2023-01-01", "EUR"), 90);
@@ -248,20 +244,20 @@ async function runTests() {
   // If source currency rate is 0, return amount
   assert.strictEqual(
     convertBetweenCurrencies(100, "EUR", "2023-01-06", "USD"),
-    100
+    100,
   );
 
   // If target currency rate is 0, return usdAmount
   // source is USD (which resolves correctly), target is EUR (which is 0 on 2023-01-06).
   assert.strictEqual(
     convertBetweenCurrencies(100, "USD", "2023-01-06", "EUR"),
-    100
+    100,
   );
   // source is GBP (not USD), target is EUR. GBP rate resolves to 0.7. So USD is 100 / 0.7.
   // Then target EUR rate is 0, so it returns usdAmount.
   assert.strictEqual(
     convertBetweenCurrencies(100, "GBP", "2023-01-06", "EUR"),
-    100 / 0.7
+    100 / 0.7,
   );
 
   // Teardown globals
