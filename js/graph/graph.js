@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { escapeHtml } from "#js/transactions/utils.js";
 
 const loading = document.getElementById("loading");
 
@@ -11,7 +12,7 @@ try {
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   data = await response.json();
 } catch (e) {
-  loading.innerHTML = `<div style="color:#f5576c;font-size:16px;">Failed to load graph data<br><small style="color:#888">${e.message}</small></div>`;
+  loading.innerHTML = `<div style="color:#f5576c;font-size:16px;">Failed to load graph data<br><small style="color:#888">${escapeHtml(e.message)}</small></div>`;
   throw e;
 }
 

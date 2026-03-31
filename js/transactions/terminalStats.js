@@ -990,17 +990,23 @@ export async function getConcentrationText() {
     }))
     .sort((a, b) => b.normalizedWeight - a.normalizedWeight);
 
-  const hhi = normalized.reduce(
-    (sum, item) => sum + item.normalizedWeight * item.normalizedWeight,
-    0,
-  );
+  // Bolt: Single O(N) loop to compute concentration metrics, avoiding .slice()
+  // array allocations and multiple .reduce() passes.
+  let hhi = 0;
+  let top3Weight = 0;
+  let top5Weight = 0;
+  for (let i = 0; i < normalized.length; i += 1) {
+    const w = normalized[i].normalizedWeight;
+    hhi += w * w;
+    if (i < 3) {
+      top3Weight += w;
+    }
+    if (i < 5) {
+      top5Weight += w;
+    }
+  }
+
   const effectiveHoldings = hhi > 0 ? 1 / hhi : null;
-  const top3Weight = normalized
-    .slice(0, 3)
-    .reduce((sum, item) => sum + item.normalizedWeight, 0);
-  const top5Weight = normalized
-    .slice(0, 5)
-    .reduce((sum, item) => sum + item.normalizedWeight, 0);
   const topHolding = normalized[0];
 
   const summaryRows = [
