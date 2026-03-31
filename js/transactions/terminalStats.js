@@ -1227,16 +1227,25 @@ function buildLotSnapshots() {
   const splitHistory = Array.isArray(transactionState.splitHistory)
     ? transactionState.splitHistory
     : [];
-  const sorted = rawTransactions.sort((a, b) => {
-    const timeA = parseDateStrict(a.tradeDate)?.getTime() ?? 0;
-    const timeB = parseDateStrict(b.tradeDate)?.getTime() ?? 0;
-    if (timeA !== timeB) {
-      return timeA - timeB;
+  const decorated = rawTransactions.map((t) => ({
+    t,
+    parsedTime: parseDateStrict(t.tradeDate)?.getTime() ?? 0,
+  }));
+  decorated.sort((a, b) => {
+    if (a.parsedTime !== b.parsedTime) {
+      return a.parsedTime - b.parsedTime;
     }
-    const idA = Number(a.transactionId) || 0;
-    const idB = Number(b.transactionId) || 0;
+    const idA = Number(a.t.transactionId) || 0;
+    const idB = Number(b.t.transactionId) || 0;
     return idA - idB;
   });
+
+  // Update the original array elements to maintain the in-place sorting mutation
+  // semantics expected by any potential upstream consumers of rawTransactions
+  for (let i = 0; i < decorated.length; i++) {
+    rawTransactions[i] = decorated[i].t;
+  }
+  const sorted = rawTransactions;
 
   const lotsByTicker = new Map();
   const closedSales = [];
