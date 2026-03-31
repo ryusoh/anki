@@ -36,7 +36,13 @@ const tests = [
   { name: 'TimeRange Utils', path: 'tests/timeRange.test.cjs' },
   { name: 'Reviews', path: 'tests/reviews.test.cjs' },
   { name: 'Asset Classes', path: 'tests/assetClasses.test.js' },
-  { name: 'Config Utils', path: 'tests/config.test.js' }
+  { name: 'Config Utils', path: 'tests/config.test.js' },
+  { name: 'State', path: 'tests/state.test.js' },
+  { name: 'Utils Format', path: 'tests/utils_format.test.js' },
+  { name: 'Utils CSV', path: 'tests/utils_csv.test.js' },
+  { name: 'Due', path: 'tests/due.test.cjs' },
+  { name: 'Zoom', path: 'tests/zoom.test.js' },
+  { name: 'Retention', path: 'tests/retention.test.cjs' }
 ];
 
 async function runTest(test) {

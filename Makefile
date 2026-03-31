@@ -4,11 +4,11 @@ PYTHON := python3
 NPM := npm
 
 # File patterns for formatters/linters (exclude vendor, data, and node_modules directories)
-JS_FILES := $(shell git ls-files --cached --others --exclude-standard '*.js' 2>/dev/null | grep -v '^js/vendor/' | grep -v '^assets/vendor/' | grep -v '^data/' | grep -v '^coverage/' | grep -v 'node_modules')
-CSS_FILES := $(shell git ls-files --cached --others --exclude-standard '*.css' 2>/dev/null | grep -v '^assets/vendor/' | grep -v '^coverage/')
-MD_FILES := $(shell git ls-files --cached --others --exclude-standard '*.md' 2>/dev/null | grep -v '^coverage/')
-HTML_FILES := $(shell git ls-files --cached --others --exclude-standard '*.html' 2>/dev/null | grep -v '^coverage/')
-JSON_FILES := $(shell git ls-files --cached --others --exclude-standard '*.json' 2>/dev/null | grep -v '^data/' | grep -v '^graph/' | grep -v '^coverage/' | grep -v 'package-lock.json' | grep -v 'custom_stats_data.json' | grep -v 'review_stats_data.json')
+JS_FILES := $(shell git ls-files --cached --others --exclude-standard '*.js' 2>/dev/null | grep -v '^js/vendor/' | grep -v '^assets/vendor/' | grep -v '^data/' | grep -v '^coverage/' | grep -v 'node_modules' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
+CSS_FILES := $(shell git ls-files --cached --others --exclude-standard '*.css' 2>/dev/null | grep -v '^assets/vendor/' | grep -v '^coverage/' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
+MD_FILES := $(shell git ls-files --cached --others --exclude-standard '*.md' 2>/dev/null | grep -v '^coverage/' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
+HTML_FILES := $(shell git ls-files --cached --others --exclude-standard '*.html' 2>/dev/null | grep -v '^coverage/' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
+JSON_FILES := $(shell git ls-files --cached --others --exclude-standard '*.json' 2>/dev/null | grep -v '^data/' | grep -v '^graph/' | grep -v '^coverage/' | grep -v 'package-lock.json' | grep -v 'custom_stats_data.json' | grep -v 'review_stats_data.json' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
 PRETTIER_FILES := $(JS_FILES) $(CSS_FILES) $(MD_FILES) $(HTML_FILES) $(JSON_FILES)
 
 help:
@@ -147,7 +147,7 @@ fetch-prompt:
 		echo "   ⊘ Fetch skipped"; \
 	fi
 
-precommit-fix: $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt-fix) fmt lint-fix check
+precommit-fix: install $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt-fix) fmt lint-fix check
 	@echo ""
 	@echo "🔒 Running EXTREMELY RIGOROUS security check..."
 	@echo "   Scanning ALL files for private Anki data..."
