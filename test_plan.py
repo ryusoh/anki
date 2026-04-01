@@ -1,0 +1,2 @@
+def consolidate():
+    pass
