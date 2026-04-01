@@ -84,3 +84,49 @@ runTests().catch(err => {
     console.log('❌ Retention tests failed:', err);
     process.exitCode = 1;
 });
+
+
+// Add coverage for missing retention.js branches
+async function fixRetentionCoverage() {
+  const { showRetention, renderRetentionChart } = await import('../js/commands/retention.js');
+  const assert = require('assert');
+
+  // Test lines 27-28
+  global.document.getElementById = (id) => null;
+  const missingElResult = renderRetentionChart([]);
+  assert.strictEqual(missingElResult.success, false);
+  assert.strictEqual(missingElResult.error, 'Canvas or section not found');
+
+  // Test line 158, 162-163 (showRetention loading checks)
+  window.reviewStatsData = null;
+  assert.strictEqual(showRetention('1m'), 'Review stats not loaded yet. Please wait a moment and try again.');
+  window.reviewStatsData = { reviews: 'not an array' };
+  assert.strictEqual(showRetention('1m'), 'Review stats not loaded yet. Please wait a moment and try again.');
+
+  // Valid reviewStatsData to run past line 158
+  window.reviewStatsData = { reviews: [{ day: 0, mature_right: 1, young_right: 1, relearn_right: 1, learn_right: 1, mature_wrong: 0, young_wrong: 0, relearn_wrong: 0, learn_wrong: 0 }] };
+
+  // Test rangeKey undefined logic and parseRange returning null for rangeKey (e.g. 'all')
+  global.document.getElementById = (id) => {
+    if (id === 'runningAmountCanvas') return { getContext: () => ({}) };
+    if (id === 'runningAmountSection') return { classList: { remove: () => {}, contains: () => false } };
+    if (id === 'runningAmountEmpty') return { style: {}, textContent: '', classList: { remove: () => {} } };
+    if (id === 'chartLegend') return { style: {}, innerHTML: '', querySelectorAll: () => [] };
+    return null;
+  }
+  showRetention('all');
+  showRetention(undefined);
+
+  // Test rangeLabel where rangeKey is falsey (e.g. "")
+  showRetention("");
+
+  // Test failing render to cover return result.error (line 164 error branch, effectively returning error if success is false)
+  global.document.getElementById = (id) => null; // Will trigger Canvas/section not found failure
+  const errorMsg = showRetention('1m');
+  assert.strictEqual(errorMsg, 'Canvas or section not found');
+}
+
+fixRetentionCoverage().catch(e => {
+  console.error(e);
+  process.exitCode = 1;
+});
