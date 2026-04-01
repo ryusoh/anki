@@ -235,6 +235,10 @@ async function runTests() {
     assert.strictEqual(resCumulative.success, true, "Cumulative time rendering should succeed");
     assert.strictEqual(capturedConfig.data.datasets[0].type, "line", "Cumulative rendering should use line chart dataset type");
 
+    // Also test cumulative without time
+    const resCumulativeCount = renderReviewsChart(getReviewStatsData("all", false), false, false, true);
+    assert.strictEqual(resCumulativeCount.success, true, "Cumulative count rendering should succeed");
+
     passed++;
   } catch (e) {
     console.log(`   ✗ renderReviewsChart global rendering applies configuration: ${e.message}`);
@@ -254,6 +258,16 @@ async function runTests() {
     assert.strictEqual(res.success, true, "ByDeck rendering should succeed");
     assert.strictEqual(capturedConfig.data.datasets.length, 1, "Should populate 1 deck dataset (Math)");
     assert.strictEqual(capturedConfig.data.datasets[0].label, "Math", "Dataset label should match deck name");
+
+    // Also test cumulative byDeck configurations with missing preSliceGlobalTime
+    const data = getReviewStatsData("all", true);
+    data.preSliceGlobalTime = undefined; // Cover line 332
+    const resCumulByDeck = renderReviewsChart(data, false, true, true);
+    assert.strictEqual(resCumulByDeck.success, true, "Cumulative byDeck rendering should succeed");
+
+    // Also test cumulative time byDeck configurations
+    const resCumulTimeByDeck = renderReviewsChart(data, true, true, true);
+    assert.strictEqual(resCumulTimeByDeck.success, true, "Cumulative time byDeck rendering should succeed");
 
     passed++;
   } catch (e) {
@@ -335,6 +349,87 @@ async function runTests() {
     failed++;
   }
 
+  console.log("\n📋 Test 13: Exception handling and catch blocks");
+  try {
+    const originalGetContext = global.document.getElementById;
+    let emptyDisplayState = '';
+
+    global.document.getElementById = (id) => {
+        if (id === 'runningAmountCanvas') return { getContext: () => 'THROW' }; // Triggers catch
+        if (id === 'runningAmountSection') return {
+            classList: {
+                hiddenState: true,
+                remove: function(val) { if(val === 'is-hidden') this.hiddenState = false; }
+            }
+        };
+        if (id === 'runningAmountEmpty') return {
+            style: { display: '' },
+            set textContent(val) { emptyDisplayState = val; },
+            get textContent() { return emptyDisplayState; }
+        };
+        return originalGetContext(id);
+    };
+
+    global.window.reviewStatsData = { reviews: [ { date: "2023-01-01", mature: 10, time: 100 } ] };
+    const res = renderReviewsChart(getReviewStatsData("all", false), false, false, false);
+
+    assert.strictEqual(res.success, false, "Should catch Chart render failure");
+    assert.strictEqual(res.error, "Chart render error", "Error message matches mocked failure");
+    assert.strictEqual(emptyDisplayState, "Chart rendering failed: Chart render error", "Should write to empty element textContent");
+
+    global.document.getElementById = originalGetContext;
+
+    // Test showReviews warning string when reviews is missing
+    const oldStats = global.window.reviewStatsData;
+    global.window.reviewStatsData = { reviews: "not_an_array" };
+    assert.strictEqual(showReviews(), "Review stats not loaded yet. Please wait a moment and try again.", "Should fail gracefully if reviews is not an array");
+    global.window.reviewStatsData = oldStats;
+
+    passed++;
+  } catch (e) {
+    console.log(`   ✗ Exception handling and catch blocks: ${e.message}`);
+    failed++;
+  }
+
+  console.log("\n📋 Test 14: Dense charts and preSumObj logic");
+  try {
+    // Generate > 100 days of data to trigger `isDense = true`
+    const longData = [];
+    const baseDate = new Date("2023-01-01T00:00:00Z");
+    for(let i = 0; i < 150; i++) {
+        const currentDate = new Date(baseDate);
+        currentDate.setUTCDate(baseDate.getUTCDate() + i);
+        longData.push({
+            date: currentDate.toISOString().split('T')[0],
+            mature: 10, young: 5, learn: 2, relearn: 1,
+            time: 60, time_mature: 20, time_young: 20, time_learn: 10, time_relearn: 10
+        });
+    }
+
+    global.window.reviewStatsData = { reviews: longData };
+
+    // Set preSliceSum object so we cover preSumObj branch
+    const dataWithSum = getReviewStatsData("all", false);
+    dataWithSum.preSliceSum = {
+        time: 3600,
+        mature: 100, young: 50, learn: 20, relearn: 10,
+        time_mature: 1200, time_young: 1200, time_learn: 600, time_relearn: 600
+    };
+
+    // Render dense cumulative chart with time to exercise line 448-456 preSumObj handling and preSum additions
+    const resDense = renderReviewsChart(dataWithSum, true, false, true);
+    assert.strictEqual(resDense.success, true, "Should render dense graph successfully");
+    assert.strictEqual(capturedConfig.data.datasets[0].pointRadius, 0, "Radius should be 0 on dense cumulative charts");
+
+    // Test cumulative without time to exercise the other path
+    const resDenseCounts = renderReviewsChart(dataWithSum, false, false, true);
+    assert.strictEqual(resDenseCounts.success, true, "Should render dense cumulative counts graph successfully");
+
+    passed++;
+  } catch (e) {
+    console.log(`   ✗ Dense charts and preSumObj logic: ${e.message}`);
+    failed++;
+  }
 
   console.log("\n" + "=".repeat(60));
   console.log(`\n📊 Results: ${passed} passed, ${failed} failed\n`);
