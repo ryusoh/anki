@@ -54,6 +54,11 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Learning:** Suppressing exceptions indiscriminately without logging conceals application instability from developers and creates confusing silent failures for end users. Even for optional components where a fallback to standard UI is desired, the failure must be logged.
 **Prevention:** Always log exceptions (e.g., using `print(..., file=sys.stderr)`) or explicitly document via code comments why an error is deliberately being ignored inside a catch block to enforce resilient application behaviour.
 
+## 2024-03-26 - Fix nested HTML tag bypass in regex sanitization
+
+**Vulnerability:** A regex-based HTML tag stripper in `js/graph/viz_utils.js` was using consecutive `replace` calls, leaving it vulnerable to nested tag bypasses like `<<script>script>`.
+**Learning:** Sequential `.replace()` calls without a loop are insufficient for sanitization because removing the inner tag can accidentally form a new valid tag from the surrounding characters.
+**Prevention:** To prevent nested HTML tag bypasses in regex-based sanitization routines, apply the replacement inside a `do...while` loop until the string stops changing.
 ## 2026-03-29 - Prevent DOM-based XSS when interpolating error messages in graph loader
 
 **Vulnerability:** In `js/graph/graph.js`, the error message from a failed fetch call (`e.message`) was interpolated directly into the DOM using `innerHTML` without sanitization.
