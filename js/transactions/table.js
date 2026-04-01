@@ -342,9 +342,16 @@ function filterAndSort(searchTerm = "") {
       {
         date: new Date(t.tradeDate).getTime(),
         securityLower: column === "security" ? t.security.toLowerCase() : null,
-        absAmount: column === "netAmount" ? Math.abs(
-          convertValueToCurrency(t.netAmount, t.tradeDate, currentCurrency),
-        ) : null,
+        absAmount:
+          column === "netAmount"
+            ? Math.abs(
+                convertValueToCurrency(
+                  t.netAmount,
+                  t.tradeDate,
+                  currentCurrency,
+                ),
+              )
+            : null,
       },
     ]),
   );

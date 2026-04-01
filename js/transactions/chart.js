@@ -1261,7 +1261,11 @@ export function buildContributionSeriesFromTransactions(
 
   const sortedTransactions = [...transactions]
     .map((t) => ({ t, parsedDate: new Date(t.tradeDate).getTime() }))
-    .sort((a, b) => a.parsedDate - b.parsedDate || (a.t.transactionId ?? 0) - (b.t.transactionId ?? 0))
+    .sort(
+      (a, b) =>
+        a.parsedDate - b.parsedDate ||
+        (a.t.transactionId ?? 0) - (b.t.transactionId ?? 0),
+    )
     .map(({ t }) => t);
 
   const series = [];
@@ -1420,7 +1424,11 @@ export function buildFilteredBalanceSeries(
 
   const sortedTransactions = [...transactions]
     .map((t) => ({ t, parsedDate: new Date(t.tradeDate).getTime() }))
-    .sort((a, b) => a.parsedDate - b.parsedDate || (a.t.transactionId ?? 0) - (b.t.transactionId ?? 0))
+    .sort(
+      (a, b) =>
+        a.parsedDate - b.parsedDate ||
+        (a.t.transactionId ?? 0) - (b.t.transactionId ?? 0),
+    )
     .map(({ t }) => t);
 
   const firstDate = new Date(sortedTransactions[0].tradeDate);
