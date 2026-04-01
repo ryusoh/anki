@@ -141,11 +141,20 @@ async function runTests() {
   await new Promise(resolve => setTimeout(resolve, 50));
 
   // Test render error
+  let caughtDisplay = '';
+  let caughtText = '';
   global.document.getElementById = (id) => {
     if (id === 'runningAmountCanvas') return { getContext: () => 'THROW' };
+    if (id === 'runningAmountSection') return { classList: { remove: () => {}, contains: () => false } };
+    if (id === 'runningAmountEmpty') return {
+        style: { set display(val) { caughtDisplay = val; } },
+        set textContent(val) { caughtText = val; }
+    };
     return originalGetElementById(id);
   };
   assert.strictEqual(renderFutureDueChart(window.customStatsData.futureDue).success, false);
+  assert.strictEqual(caughtDisplay, 'block');
+  assert.strictEqual(caughtText, 'Chart rendering failed: Chart render error');
   global.document.getElementById = originalGetElementById;
 
   // Test missing elements again
@@ -162,6 +171,20 @@ async function runTests() {
   // Test callbacks
   global.document.getElementById = originalGetElementById;
   renderFutureDueChart(window.customStatsData.futureDue);
+
+  // Set futureChart manually to test coverage of destroyChart if branch
+  destroyChart(); // Because renderFutureDueChart sync assigns `futureChart` this calls `.destroy()` properly
+  renderFutureDueChart(window.customStatsData.futureDue);
+
+  // Also explicitly test lines 68-69 logic, restoring early exit
+  const allElMock = global.document.getElementById;
+  global.document.getElementById = (id) => { return {getContext: () => ({}), classList: {remove: () => {}}} };
+  assert.strictEqual(renderFutureDueChart(null).success, false);
+  assert.strictEqual(renderFutureDueChart(undefined).success, false);
+  assert.strictEqual(renderFutureDueChart(false).success, false);
+  assert.strictEqual(renderFutureDueChart('').success, false);
+  assert.strictEqual(renderFutureDueChart(0).success, false);
+  global.document.getElementById = allElMock;
   if (capturedConfig && capturedConfig.options && capturedConfig.options.plugins && capturedConfig.options.plugins.tooltip) {
     const titleCallback = capturedConfig.options.plugins.tooltip.callbacks.title;
     assert.strictEqual(titleCallback([{label: "Title"}]), "Title");
