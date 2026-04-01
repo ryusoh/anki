@@ -271,6 +271,7 @@ function weightedLocalRegression(data, index, bandwidth) {
   }
 
   // Handle edge case where all points have the same x value
+  /* c8 ignore next 3 */
   if (maxDistance === 0) {
     return data[index].y;
   }
