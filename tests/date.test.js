@@ -209,6 +209,14 @@ function runTests() {
     // Thanksgiving Day (4th Thursday of Nov, Nov 28, 2024)
     const thanksgivingDay = new Date("2024-11-28T12:00:00Z");
     assert.strictEqual(isTradingDay(thanksgivingDay), false);
+
+    // Good Friday (Mar 29, 2024)
+    const goodFriday = new Date("2024-03-29T12:00:00Z");
+    assert.strictEqual(isTradingDay(goodFriday), false);
+
+    // Good Friday (Apr 18, 2025)
+    const goodFriday2025 = new Date("2025-04-18T12:00:00Z");
+    assert.strictEqual(isTradingDay(goodFriday2025), false);
   });
 
   runTest("getTradingDayDate handles current NY date", () => {
