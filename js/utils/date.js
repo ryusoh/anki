@@ -32,19 +32,6 @@ export function isTradingDay(date) {
   if (month === 6 && day === 4) return false;
   // Christmas Day (Dec 25)
   if (month === 11 && day === 25) return false;
-  // Juneteenth National Independence Day (Jun 19)
-  if (month === 5 && day === 19) return false;
-
-  // MLK Jr. Day (3rd Monday of Jan)
-  if (month === 0 && dayOfWeek === 1 && day > 14 && day <= 21) return false;
-  // Washington's Birthday (3rd Monday of Feb)
-  if (month === 1 && dayOfWeek === 1 && day > 14 && day <= 21) return false;
-  // Memorial Day (Last Monday of May)
-  if (month === 4 && dayOfWeek === 1 && day > 24) return false;
-  // Labor Day (1st Monday of Sep)
-  if (month === 8 && dayOfWeek === 1 && day <= 7) return false;
-  // Thanksgiving Day (4th Thursday of Nov)
-  if (month === 10 && dayOfWeek === 4 && day > 21 && day <= 28) return false;
 
   return true; // Monday through Friday
 }

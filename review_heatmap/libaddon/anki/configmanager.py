@@ -366,7 +366,8 @@ class ConfigManager(object):
                 # Corner case: Closing Anki after add-on uninstall
                 # -> local config file no longer exists
                 if name == "local":
-                    print(f"Failed to load local config: {e}")
+                    print(e)
+                    pass
                 else:
                     raise
 

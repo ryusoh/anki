@@ -174,14 +174,12 @@ def stage_r2_content(data, output_dir, verbose=True):
                 'deck_id': card.get('did', 0)
             }
     
-    # Add deck info to notes — only keep private fields + bridge key
-    # Public fields (id, mid, mod, usn, csum, flags) are already in the GitHub copy
-    R2_NOTE_KEYS = {'guid', 'flds', 'tags', 'data', 'mid', 'deck', 'deck_id'}
+    # Add deck info to notes
     notes_with_deck = []
     notes_to_process = data.get('notes_full', data['notes'])
     for note in notes_to_process:
+        note_copy = dict(note)
         nid = note.get('id')
-        note_copy = {k: v for k, v in note.items() if k in R2_NOTE_KEYS}
         if nid in note_to_deck:
             note_copy['deck'] = note_to_deck[nid]['deck']
             note_copy['deck_id'] = note_to_deck[nid]['deck_id']

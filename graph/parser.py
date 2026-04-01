@@ -45,11 +45,8 @@ def extract_fields(flds):
     if not flds:
         flds = ""
     
-    # Split by \x1f (Anki's actual field separator) or :: (test fixtures)
-    if '\x1f' in flds:
-        fields = flds.split('\x1f')
-    else:
-        fields = flds.split('::')
+    # Split by :: (Anki's field delimiter)
+    fields = flds.split('::')
     
     result = {
         'front': fields[0] if len(fields) > 0 else '',

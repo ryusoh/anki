@@ -278,8 +278,6 @@ def upload_to_r2(bucket, key, data, creds, verbose=False, max_retries=3, quiet=F
                     'x-amz-content-sha256': content_hash,
                     'x-amz-date': amz_date,
                     'Content-Encoding': 'gzip',
-                    'Content-Length': str(len(content_gz)),
-                    'Content-Type': 'application/octet-stream',
                 }
             )
             

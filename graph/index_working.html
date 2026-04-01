@@ -1,0 +1,178 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Anki Graph - WORKING VERSION</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: #000;
+      }
+      canvas {
+        display: block;
+      }
+      #info {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        color: #fff;
+        font-family: monospace;
+        font-size: 14px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 15px;
+        border-radius: 8px;
+        z-index: 1000;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="info">Loading...</div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
+          "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+
+      const info = document.getElementById("info");
+      info.textContent = "Loading graph data...";
+
+      // Load data
+      const response = await fetch("/graph/graph_data.json");
+      const data = await response.json();
+
+      info.textContent = `Creating ${data.nodes.length} nodes...`;
+
+      // Scene
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x000000);
+
+      // Camera
+      const camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        5000,
+      );
+      camera.position.set(0, 0, 1000);
+
+      // Renderer
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+
+      // Controls
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+
+      // Find node bounds
+      let minX = Infinity,
+        maxX = -Infinity;
+      let minY = Infinity,
+        maxY = -Infinity;
+      let minZ = Infinity,
+        maxZ = -Infinity;
+
+      data.nodes.forEach((node) => {
+        if (!node.x) {
+          node.x = (Math.random() - 0.5) * 400;
+        }
+        if (!node.y) {
+          node.y = (Math.random() - 0.5) * 400;
+        }
+        if (!node.z) {
+          node.z = (Math.random() - 0.5) * 400;
+        }
+
+        minX = Math.min(minX, node.x);
+        maxX = Math.max(maxX, node.x);
+        minY = Math.min(minY, node.y);
+        maxY = Math.max(maxY, node.y);
+        minZ = Math.min(minZ, node.z);
+        maxZ = Math.max(maxZ, node.z);
+      });
+
+      // Center camera on nodes
+      const centerX = (minX + maxX) / 2;
+      const centerY = (minY + maxY) / 2;
+      const centerZ = (minZ + maxZ) / 2;
+      controls.target.set(centerX, centerY, centerZ);
+
+      // Create nodes - SIMPLE SPHERES
+      const deckColors = {};
+      const nodes = [];
+
+      data.nodes.forEach((node) => {
+        // Get or create deck color
+        if (!deckColors[node.deck]) {
+          const hash = node.deck
+            .split("")
+            .reduce((a, b) => (a << 5) - a + b.charCodeAt(0), 0);
+          const hue = ((hash % 360) + 360) % 360;
+          deckColors[node.deck] = `hsl(${hue}, 70%, 50%)`;
+        }
+
+        // Create sphere
+        const geometry = new THREE.SphereGeometry(20, 16, 16);
+        const material = new THREE.MeshBasicMaterial({
+          color: deckColors[node.deck],
+        });
+        const sphere = new THREE.Mesh(geometry, material);
+
+        sphere.position.set(node.x, node.y, node.z);
+        sphere.userData = node;
+
+        scene.add(sphere);
+        nodes.push(sphere);
+      });
+
+      info.innerHTML = `
+      <b>✅ ${nodes.length} nodes loaded</b><br>
+      Decks: ${Object.keys(deckColors).length}<br>
+      Drag to rotate | Scroll to zoom<br>
+      Click node for info
+    `;
+
+      // Click handler
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+
+      window.addEventListener("click", (event) => {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(nodes);
+
+        if (intersects.length > 0) {
+          const node = intersects[0].object.userData;
+          info.innerHTML = `
+          <b>${node.label}</b><br>
+          Deck: ${node.deck}<br>
+          PageRank: ${(node.pagerank * 1000).toFixed(2)}
+        `;
+        }
+      });
+
+      // Animation
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      // Resize handler
+      window.addEventListener("resize", () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    </script>
+  </body>
+</html>

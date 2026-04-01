@@ -17,7 +17,7 @@ import {
   getLODLevel,
   distanceToCamera,
   getGeometryForLOD,
-} from "./lod_utils.js";
+} from "../../graph/lod_utils.js";
 
 /**
  * Main graph visualization class

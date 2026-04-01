@@ -230,20 +230,10 @@ function polynomialFit(points, order, targetIndex) {
 
   // Simple linear regression for order 1, quadratic for order 2
   if (order === 1) {
-    let sumX = 0;
-    let sumY = 0;
-    let sumXY = 0;
-    let sumXX = 0;
-
-    // Bolt: Use a single O(N) loop instead of four chained .reduce() passes
-    // to significantly reduce GC pressure and intermediate allocations.
-    for (let i = 0; i < n; i++) {
-      const p = points[i];
-      sumX += i;
-      sumY += p.y;
-      sumXY += i * p.y;
-      sumXX += i * i;
-    }
+    const sumX = points.reduce((sum, p, i) => sum + i, 0);
+    const sumY = points.reduce((sum, p) => sum + p.y, 0);
+    const sumXY = points.reduce((sum, p, i) => sum + i * p.y, 0);
+    const sumXX = points.reduce((sum, p, i) => sum + i * i, 0);
 
     const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
     const intercept = (sumY - slope * sumX) / n;
@@ -261,35 +251,28 @@ function weightedLocalRegression(data, index, bandwidth) {
   const n = data.length;
   const targetX = data[index].x;
 
-  // Bolt: Pre-calculate maxDistance outside the loop to avoid O(N^2) complexity and excessive GC pressure.
-  let maxDistance = 0;
+  // Calculate weights using tricube function
+  const weights = [];
   for (let i = 0; i < n; i++) {
-    const d = Math.abs(data[i].x - targetX);
-    if (d > maxDistance) {
-      maxDistance = d;
-    }
-  }
+    const distance = Math.abs(data[i].x - targetX);
+    const maxDistance = Math.max(...data.map((p) => Math.abs(p.x - targetX)));
+    const normalizedDistance = distance / (bandwidth * maxDistance);
 
-  // Handle edge case where all points have the same x value
-  if (maxDistance === 0) {
-    return data[index].y;
+    if (normalizedDistance < 1) {
+      const weight = Math.pow(1 - Math.pow(normalizedDistance, 3), 3);
+      weights.push(weight);
+    } else {
+      weights.push(0);
+    }
   }
 
   // Weighted average
   let weightedSum = 0;
   let weightSum = 0;
-  const scale = bandwidth * maxDistance;
 
-  // Bolt: Calculate weights and sum in a single O(N) pass, avoiding intermediate array allocations.
   for (let i = 0; i < n; i++) {
-    const distance = Math.abs(data[i].x - targetX);
-    const normalizedDistance = distance / scale;
-
-    if (normalizedDistance < 1) {
-      const weight = Math.pow(1 - Math.pow(normalizedDistance, 3), 3);
-      weightedSum += weight * data[i].y;
-      weightSum += weight;
-    }
+    weightedSum += weights[i] * data[i].y;
+    weightSum += weights[i];
   }
 
   return weightSum > 0 ? weightedSum / weightSum : data[index].y;

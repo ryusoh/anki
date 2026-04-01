@@ -259,7 +259,7 @@ class ActivityReporter:
             if self._col.v3_scheduler():
                 return 3
         except AttributeError:
-            pass  # Fallback to 2.1 sched_ver()
+            pass
         try:
             return self._col.sched_ver()
         except AttributeError:

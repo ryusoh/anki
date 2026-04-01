@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # codeql[js/unpinned-tag] Pinned to actions/checkout@v4.2.2 SHA: 11bd71901bbe5b1630ceea73d27597364c9af683
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Setup Node.js
         # codeql[js/unpinned-tag] Pinned to actions/setup-node@v4.1.0 SHA: 39370e3970a6d050c480ffad4ff0ed4d3fdee5af
@@ -40,7 +40,7 @@ jobs:
 
       - name: Upload audit results
         # codeql[js/unpinned-tag] Pinned to actions/upload-artifact@v4.6.1 SHA: 4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
         if: always()
         with:
           name: npm-audit-results

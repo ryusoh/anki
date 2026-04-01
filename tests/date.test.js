@@ -185,30 +185,6 @@ function runTests() {
     // Christmas Day (Dec 25, 2024 is a Wednesday)
     const christmas = new Date("2024-12-25T12:00:00Z");
     assert.strictEqual(isTradingDay(christmas), false);
-
-    // Juneteenth (Jun 19, 2024 is a Wednesday)
-    const juneteenth = new Date("2024-06-19T12:00:00Z");
-    assert.strictEqual(isTradingDay(juneteenth), false);
-
-    // MLK Jr. Day (3rd Monday of Jan, Jan 15, 2024)
-    const mlkDay = new Date("2024-01-15T12:00:00Z");
-    assert.strictEqual(isTradingDay(mlkDay), false);
-
-    // Washington's Birthday (3rd Monday of Feb, Feb 19, 2024)
-    const washingtonDay = new Date("2024-02-19T12:00:00Z");
-    assert.strictEqual(isTradingDay(washingtonDay), false);
-
-    // Memorial Day (Last Monday of May, May 27, 2024)
-    const memorialDay = new Date("2024-05-27T12:00:00Z");
-    assert.strictEqual(isTradingDay(memorialDay), false);
-
-    // Labor Day (1st Monday of Sep, Sep 2, 2024)
-    const laborDay = new Date("2024-09-02T12:00:00Z");
-    assert.strictEqual(isTradingDay(laborDay), false);
-
-    // Thanksgiving Day (4th Thursday of Nov, Nov 28, 2024)
-    const thanksgivingDay = new Date("2024-11-28T12:00:00Z");
-    assert.strictEqual(isTradingDay(thanksgivingDay), false);
   });
 
   runTest("getTradingDayDate handles current NY date", () => {

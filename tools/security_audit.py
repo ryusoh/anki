@@ -111,8 +111,8 @@ def check_for_private_data(filepath, content):
                     issues.append("PRIVATE: Contains flds + mid/guid (full note data)")
                 if 'tags' in first and 'flds' in first:
                     issues.append("PRIVATE: Contains tags + flds")
-        except Exception:
-            pass # JSON parsing failure is ignored as file might not be standard JSON.
+        except:
+            pass
     
     return issues
 
@@ -175,8 +175,8 @@ def main():
         try:
             with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
-        except Exception:
-            continue # Skip files that cannot be read.
+        except:
+            continue
         
         # Check for credentials
         cred_issues = check_for_credentials(filepath, content)

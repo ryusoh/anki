@@ -4006,24 +4006,16 @@ async function drawPerformanceChart(ctx, chartManager, timestamp) {
   let normalizedSeriesToDraw = seriesToDraw.map(cloneSeries);
 
   if (filterFrom || filterTo) {
-    const filterFromTime = filterFrom ? filterFrom.getTime() : -Infinity;
-    const filterToTime = filterTo ? filterTo.getTime() : Infinity;
-
     normalizedSeriesToDraw = normalizedSeriesToDraw.map((series) => {
-      // Bolt Optimization: Replace O(N) map+filter chains with a single loop
-      // Avoid creating intermediate Date objects and cloning objects that are filtered out
-      const filteredData = [];
-      for (let i = 0; i < series.data.length; i++) {
-        const d = series.data[i];
-        const pointTime =
-          d.date instanceof Date
-            ? d.date.getTime()
-            : new Date(d.date).getTime();
-
-        if (pointTime >= filterFromTime && pointTime <= filterToTime) {
-          filteredData.push({ ...d, date: new Date(pointTime) });
-        }
-      }
+      const filteredData = series.data
+        .map((d) => ({ ...d, date: new Date(d.date) }))
+        .filter((d) => {
+          const pointDate = d.date;
+          return (
+            (!filterFrom || pointDate >= filterFrom) &&
+            (!filterTo || pointDate <= filterTo)
+          );
+        });
 
       if (filteredData.length === 0) {
         return { ...series, data: [] };
@@ -4801,18 +4793,25 @@ function renderCompositionChartWithMode(ctx, chartManager, data, options = {}) {
   const { chartDateRange } = transactionState;
   const filterFrom = chartDateRange.from ? new Date(chartDateRange.from) : null;
   const filterTo = chartDateRange.to ? new Date(chartDateRange.to) : null;
-  const filterFromTime = filterFrom ? filterFrom.getTime() : -Infinity;
-  const filterToTime = filterTo ? filterTo.getTime() : Infinity;
 
-  // Bolt Optimization: Replace O(N) chained array methods with a single loop
-  // Avoid creating intermediate wrapper objects and avoid GC pressure on date checks
-  const filteredIndices = [];
-  for (let i = 0; i < rawDates.length; i++) {
-    const time = new Date(rawDates[i]).getTime();
-    if (!Number.isNaN(time) && time >= filterFromTime && time <= filterToTime) {
-      filteredIndices.push(i);
-    }
-  }
+  const filteredIndices = rawDates
+    .map((dateStr, index) => {
+      const date = new Date(dateStr);
+      return { index, date };
+    })
+    .filter(({ date }) => {
+      if (Number.isNaN(date.getTime())) {
+        return false;
+      }
+      if (filterFrom && date < filterFrom) {
+        return false;
+      }
+      if (filterTo && date > filterTo) {
+        return false;
+      }
+      return true;
+    })
+    .map(({ index }) => index);
 
   const dates =
     filteredIndices.length > 0
