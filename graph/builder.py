@@ -63,16 +63,11 @@ def build_graph(notes, with_pagerank=False, with_anonymization=False, alpha=0.85
     edges = find_references(notes)
 
     for edge in edges:
-        word = edge['word']
-        if with_anonymization:
-            word = get_hash(word)[:8]
-
         G.add_edge(
             edge['source'],
             edge['target'],
             weight=edge['weight'],
             type=edge['type'],
-            word=word,
             deck=edge.get('deck'),
         )
     

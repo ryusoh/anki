@@ -72,11 +72,10 @@ export function computeRunningTotals(transactions, splitHistory) {
   const runningTotalsById = new Map();
   let cumulativeNetAmount = 0;
 
-  const chronologicalTransactions = [...transactions].sort(
-    (a, b) =>
-      new Date(a.tradeDate) - new Date(b.tradeDate) ||
-      a.transactionId - b.transactionId,
-  );
+  const chronologicalTransactions = [...transactions]
+    .map((t) => ({ t, parsedDate: new Date(t.tradeDate).getTime() }))
+    .sort((a, b) => a.parsedDate - b.parsedDate || a.t.transactionId - b.t.transactionId)
+    .map(({ t }) => t);
 
   chronologicalTransactions.forEach((transaction) => {
     const security = transaction.security;

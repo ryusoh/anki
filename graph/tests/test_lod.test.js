@@ -17,7 +17,7 @@ describe("FrustumCulling", () => {
   });
 
   it("culls nodes outside camera view", () => {
-    const { isVisibleInFrustum } = require("../lod_utils.js");
+    const { isVisibleInFrustum } = require("../../js/graph/lod_utils.js");
 
     const frustum = {
       containsPoint: jest
@@ -34,7 +34,7 @@ describe("FrustumCulling", () => {
   });
 
   it("only processes visible nodes", () => {
-    const { cullNodes } = require("../lod_utils.js");
+    const { cullNodes } = require("../../js/graph/lod_utils.js");
 
     const nodes = Array(1000)
       .fill(null)
@@ -60,7 +60,7 @@ describe("FrustumCulling", () => {
   });
 
   it("handles empty node list", () => {
-    const { cullNodes } = require("../lod_utils.js");
+    const { cullNodes } = require("../../js/graph/lod_utils.js");
 
     const frustum = { containsPoint: jest.fn(() => true) };
     const visible = cullNodes([], frustum);
@@ -70,7 +70,7 @@ describe("FrustumCulling", () => {
 
   // REGRESSION TEST: Ensure all nodes are visible when frustum is large enough
   it("shows all nodes when camera encompasses all positions", () => {
-    const { filterNodesByLOD } = require("../lod_utils.js");
+    const { filterNodesByLOD } = require("../../js/graph/lod_utils.js");
 
     // Create mock camera that sees everything
     const mockCamera = {
@@ -99,7 +99,7 @@ describe("FrustumCulling", () => {
 
 describe("LevelOfDetail", () => {
   it("selects LOD based on distance", () => {
-    const { getLODLevel } = require("../lod_utils.js");
+    const { getLODLevel } = require("../../js/graph/lod_utils.js");
 
     // Close: Full detail
     expect(getLODLevel(50)).toBe("high");
@@ -115,7 +115,7 @@ describe("LevelOfDetail", () => {
   });
 
   it("uses appropriate geometry for each LOD", () => {
-    const { getGeometryForLOD } = require("../lod_utils.js");
+    const { getGeometryForLOD } = require("../../js/graph/lod_utils.js");
 
     // High: 16 segments
     expect(getGeometryForLOD("high").segments).toBe(16);
@@ -128,7 +128,7 @@ describe("LevelOfDetail", () => {
   });
 
   it("reduces draw calls for distant nodes", () => {
-    const { getLODStats } = require("../lod_utils.js");
+    const { getLODStats } = require("../../js/graph/lod_utils.js");
 
     const nodes = Array(10000)
       .fill(null)
@@ -158,7 +158,7 @@ describe("LevelOfDetail", () => {
 
 describe("ProgressiveLoading", () => {
   it("loads nodes in batches", () => {
-    const { loadNodesInBatches } = require("../lod_utils.js");
+    const { loadNodesInBatches } = require("../../js/graph/lod_utils.js");
 
     const nodes = Array(1000)
       .fill(null)
@@ -175,7 +175,7 @@ describe("ProgressiveLoading", () => {
   });
 
   it("prioritizes visible nodes", () => {
-    const { prioritizeNodes } = require("../lod_utils.js");
+    const { prioritizeNodes } = require("../../js/graph/lod_utils.js");
 
     const nodes = Array(1000)
       .fill(null)
@@ -195,7 +195,7 @@ describe("ProgressiveLoading", () => {
   });
 
   it("groups nodes by deck for instancing", () => {
-    const { groupByDeck } = require("../lod_utils.js");
+    const { groupByDeck } = require("../../js/graph/lod_utils.js");
 
     const nodes = [
       { id: "n1", deck: "Deck A" },

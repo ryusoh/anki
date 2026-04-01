@@ -120,25 +120,29 @@ BIOLOGY_NOTES = [
 ALL_NOTES = ENGLISH_NOTES + CALCULUS_NOTES + BIOLOGY_NOTES
 
 # Expected references within English deck only
+# Whole-front-field matching: card A's front appears in card B's content
 ENGLISH_EXPECTED_EDGES = [
-    # eng002 (baroque) references eng001 (flamboyant) in Back field
-    {'source': 'eng001', 'target': 'eng002', 'type': 'field_reference', 'word': 'flamboyant'},
-    # eng002 (baroque) references eng005 (style) in Back field
-    {'source': 'eng005', 'target': 'eng002', 'type': 'field_reference', 'word': 'style'},
-    # eng003 (rococo) references eng004 (ornate) in Back field
-    {'source': 'eng004', 'target': 'eng003', 'type': 'field_reference', 'word': 'ornate'},
-    # eng003 (rococo) references eng005 (style) in Back field
-    {'source': 'eng005', 'target': 'eng003', 'type': 'field_reference', 'word': 'style'},
+    # "flamboyant" (eng001 front) appears in eng002 back
+    {'source': 'eng001', 'target': 'eng002', 'type': 'front_in_back'},
+    # "style" (eng005 front) appears in eng002 back ("A style of...")
+    {'source': 'eng005', 'target': 'eng002', 'type': 'front_in_back'},
+    # "ornate" (eng004 front) appears in eng002 back and eng003 back
+    {'source': 'eng004', 'target': 'eng002', 'type': 'front_in_back'},
+    {'source': 'eng004', 'target': 'eng003', 'type': 'front_in_back'},
+    # "style" (eng005 front) appears in eng003 back ("artistic style")
+    {'source': 'eng005', 'target': 'eng003', 'type': 'front_in_back'},
 ]
 
 # Expected references within Calculus deck only
 CALCULUS_EXPECTED_EDGES = [
-    # calc002 (integral) references calc001 (derivative) in Back field
-    {'source': 'calc001', 'target': 'calc002', 'type': 'field_reference', 'word': 'derivative'},
+    # "derivative" (calc001 front) appears in calc002 back
+    {'source': 'calc001', 'target': 'calc002', 'type': 'front_in_back'},
 ]
 
 # Expected references within Biology deck only
 BIOLOGY_EXPECTED_EDGES = [
-    # bio002 (ATP) references bio001 (mitochondria) in Back field
-    {'source': 'bio001', 'target': 'bio002', 'type': 'field_reference', 'word': 'mitochondria'},
+    # "mitochondria" (bio001 front) appears in bio002 back
+    {'source': 'bio001', 'target': 'bio002', 'type': 'front_in_back'},
+    # "atp" (bio002 front) appears in bio001 back
+    {'source': 'bio002', 'target': 'bio001', 'type': 'front_in_back'},
 ]

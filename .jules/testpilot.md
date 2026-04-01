@@ -1,9 +1,14 @@
-## 2024-03-14 - Flaky async test prevention
+## 2024-03-28 - Testing JS Chart UIs
 
-**Learning:** Raw NodeJS setTimeout based debounce testing requires sufficiently wide timer cushions since the NodeJS event loop might fire closely timed actions out of order due to GC pauses or generic CPU context switches in CI environments.
-**Action:** Always buffer small async wait test times (e.g. going from 10ms wait / 15ms assert to 50ms wait / 100ms assert).
+**Learning:** When testing Chart.js or GSAP UI logic in a headless Node environment without JSDOM, it is essential to mock `global.document` with dummy elements that have simple mock objects representing `classList`, `style`, and `getContext()`. Similarly, `window.Chart` must be stubbed with a class implementation that has the same signature.
+**Prevention:** Avoid rewriting the entire testing environment just for UI functions, and instead use the lightweight global mock pattern already used in `tests/handler_regression.test.mjs`. Use `global.window` and `global.document` initialized BEFORE any dynamic imports using `await import()`.
 
-## 2024-03-24 - Node.js ESM Aliases and Coverage Tracking
+## 2024-03-31 - Proper Import Testing
 
-**Learning:** Testing ESM files using the `@js/` path alias is problematic in Node.js without specific loaders. Node `assert` tests natively fail or bypass alias resolution.
-**Action:** Focus on utilities with minimal dependency trees (e.g. `js/utils/formatting.js`, `js/utils/logger.js`, `js/utils/smoothing.js`). Use `npx c8 node tests/filename.test.js` to see coverage gaps per file before attempting PRs.
+**Learning:** Never copy-paste core application functions into test files to mock or simplify testing. Doing so provides 0% coverage to the actual application code and results in false confidence.
+**Prevention:** Tests must import and execute the actual module functions (e.g., dynamically via `await import()`) to provide valid coverage and accurately verify module behavior.
+
+## 2024-03-31 - Asserting Side Effects
+
+**Learning:** When unit testing UI or DOM-manipulating functions, explicitly assert the resulting DOM side-effects (such as `classList` modifications or `textContent` changes) and return values.
+**Prevention:** Merely executing code to hit coverage lines without asserting output or state violates testing standards.
