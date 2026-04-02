@@ -34,10 +34,14 @@ export function simpleMovingAverage(data, window = 3, preserveEnd = true) {
     // Calculate the average for the window
     const start = Math.max(0, i - Math.floor(window / 2));
     const end = Math.min(data.length, start + window);
-    const windowData = data.slice(start, end);
 
-    const sum = windowData.reduce((acc, point) => acc + point.y, 0);
-    const average = sum / windowData.length;
+    // Bolt: Use a single O(N) loop instead of slice().reduce() pass
+    // to significantly reduce GC pressure and intermediate allocations.
+    let sum = 0;
+    for (let j = start; j < end; j++) {
+      sum += data[j].y;
+    }
+    const average = sum / (end - start);
 
     smoothed.push({
       x: data[i].x,
