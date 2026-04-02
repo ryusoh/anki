@@ -121,6 +121,14 @@
     border-radius: 4px; /* Slight rounding for hover state */
   }
 
+  /* Keyboard Navigation Focus */
+  .container a:focus-visible,
+  .nav-container a:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.8);
+    outline-offset: 2px;
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
   /* Hover Interaction */
   .container a:hover,
   .nav-container a:hover {
@@ -228,6 +236,13 @@
     color: #fff;
     transform: none; /* No scale on mobile */
     text-shadow: none;
+  }
+
+  .container a:focus-visible,
+  .nav-container a:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.8);
+    outline-offset: 2px;
+    background-color: rgba(255, 255, 255, 0.1);
   }
 
   .container .fa-chevron-right::before,
