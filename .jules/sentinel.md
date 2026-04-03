@@ -71,7 +71,9 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Vulnerability:** User-controlled configuration parameters (like terminal inputs) were directly injected into DOM via `insertAdjacentHTML` despite having an `escapeHtml` call.
 **Learning:** It is always safer to use `document.createElement()` and `element.textContent` over `insertAdjacentHTML` or `innerHTML`.
 **Prevention:** When dynamically rendering text content inside an element, use safe DOM methods like `document.createElement()` and `element.textContent = value` instead of template strings assigned to `insertAdjacentHTML`.
+
 ## $(date +%Y-%m-%d) - Fix SQL Injection in Config Schema Updates
+
 **Vulnerability:** Unsanitized string interpolation (`%s`) was used to insert variable table and column names directly into SQLite commands like `PRAGMA table_info`, `ALTER TABLE`, and `UPDATE` in `awesome_tts/awesometts/config.py`.
 **Learning:** SQLite parameterization (`?`) only works for values, not for identifiers like table or column names. Using `%s` for identifiers leaves the application vulnerable to SQL injection if those names originate from untrusted sources.
 **Prevention:** Always quote identifiers by wrapping them in double quotes (`"`) and escaping any internal double quotes with `.replace('"', '""')` before using string interpolation to safely construct dynamic schema modifications.

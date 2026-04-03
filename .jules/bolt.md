@@ -60,5 +60,5 @@
 
 ## 2024-05-24 - [Pre-processing arrays for O(1) lookups in loops]
 
-**Learning:** In `js/transactions/calculations.js`, the `computeRunningTotals` function was scanning the `splitHistory` array iteratively for each transaction processed (via `applyTransactionFIFO` -> `getSplitAdjustment`), which degrades to O(N * M) performance where N is transactions and M is split entries. For large datasets this caused substantial slowdowns and GC pressure.
+**Learning:** In `js/transactions/calculations.js`, the `computeRunningTotals` function was scanning the `splitHistory` array iteratively for each transaction processed (via `applyTransactionFIFO` -> `getSplitAdjustment`), which degrades to O(N \* M) performance where N is transactions and M is split entries. For large datasets this caused substantial slowdowns and GC pressure.
 **Action:** When a function requires repeatedly checking an auxiliary array inside a hot loop, create a pre-processed `Map` grouping items by their key symbol outside the loop, reducing inner lookups from O(M) to O(K) where K is the number of splits for a single symbol (effectively O(1)).
