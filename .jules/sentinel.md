@@ -71,13 +71,14 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Vulnerability:** In `awesome_tts/awesometts/gui/homescreen.py`, user-controlled preset names were directly interpolated into an HTML string for a `<select>` dropdown without escaping, creating a DOM-based XSS risk if the user creates a preset name containing malicious tags.
 **Learning:** Whenever generating HTML strings inside Python (or any backend) to be injected into a WebView (like Anki's deck browser content), any user-controlled input (such as profile configurations or preset names) must be escaped, even if the backend feels "safe".
 **Prevention:** Use Python's `html.escape(variable, quote=True)` when interpolating strings into HTML templates, especially when inserting inside attribute values or text content.
+
 ## 2026-03-31 - Prevent DOM-based XSS when interpolating input in terminal commands
 
 **Vulnerability:** User-controlled configuration parameters (like terminal inputs) were directly injected into DOM via `insertAdjacentHTML` despite having an `escapeHtml` call.
 **Learning:** It is always safer to use `document.createElement()` and `element.textContent` over `insertAdjacentHTML` or `innerHTML`.
 **Prevention:** When dynamically rendering text content inside an element, use safe DOM methods like `document.createElement()` and `element.textContent = value` instead of template strings assigned to `insertAdjacentHTML`.
 
-## $(date +%Y-%m-%d) - Fix SQL Injection in Config Schema Updates
+## 2026-04-02 - Fix SQL Injection in Config Schema Updates
 
 **Vulnerability:** Unsanitized string interpolation (`%s`) was used to insert variable table and column names directly into SQLite commands like `PRAGMA table_info`, `ALTER TABLE`, and `UPDATE` in `awesome_tts/awesometts/config.py`.
 **Learning:** SQLite parameterization (`?`) only works for values, not for identifiers like table or column names. Using `%s` for identifiers leaves the application vulnerable to SQL injection if those names originate from untrusted sources.
