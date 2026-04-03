@@ -52,3 +52,13 @@
 
 **Learning:** Chaining array methods like `.map().filter()` inside rendering or calculation loops creates excessive intermediate array allocations. When combined with object creation inside the `.map()` (such as `{ index, date: new Date(...) }` or `{ ...d, date: new Date(...) }`), these discarded intermediate objects cause severe Garbage Collection pressure and block the main thread.
 **Action:** Replace `O(N)` map+filter chains with a single `for` loop. Compute required values (like timestamps) directly inside the loop and only push to the result array if the condition passes, avoiding intermediate objects and minimizing Date instantiations.
+
+## 2025-04-01 - [Schwartzian Transform for Expensive Sorting]
+
+**Learning:** When sorting large arrays using custom comparator functions that perform expensive calculations (like parsing dates with `new Date(...)`), doing these calculations directly inside the `.sort((a, b) => ...)` comparator creates a massive performance bottleneck. Because `sort` can compare each element multiple times (O(N log N)), these expensive operations are executed repeatedly, causing heavy Garbage Collection pressure and blocking the main thread.
+**Action:** Always use the Schwartzian transform (decorate-sort-undecorate pattern) when sorting by expensive computed values. Pre-calculate the values once per item in a single O(N) pass, sort the decorated array, and then extract the original items.
+
+## 2024-05-24 - [Pre-processing arrays for O(1) lookups in loops]
+
+**Learning:** In `js/transactions/calculations.js`, the `computeRunningTotals` function was scanning the `splitHistory` array iteratively for each transaction processed (via `applyTransactionFIFO` -> `getSplitAdjustment`), which degrades to O(N \* M) performance where N is transactions and M is split entries. For large datasets this caused substantial slowdowns and GC pressure.
+**Action:** When a function requires repeatedly checking an auxiliary array inside a hot loop, create a pre-processed `Map` grouping items by their key symbol outside the loop, reducing inner lookups from O(M) to O(K) where K is the number of splits for a single symbol (effectively O(1)).

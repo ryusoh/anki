@@ -17,11 +17,15 @@ export function stripHtml(text) {
   // nested tags (e.g., <<script>script>) from forming new valid tags after removal.
   // This satisfies CodeQL's incomplete multi-character sanitization rule.
 
-  // Remove dangerous tags/attrs first
-  clean = clean.replace(/<[^>]*?(?:on\w*|style|script|iframe)[^>]*?>/gi, " ");
+  let previous;
+  do {
+    previous = clean;
+    // Remove dangerous tags/attrs first
+    clean = clean.replace(/<[^>]*?(?:on\w*|style|script|iframe)[^>]*?>/gi, " ");
 
-  // Remove remaining tags
-  clean = clean.replace(/<[^>]+>/g, " ");
+    // Remove remaining tags
+    clean = clean.replace(/<[^>]+>/g, " ");
+  } while (clean !== previous);
 
   // Remove Anki field separators
   clean = clean.replace(/::/g, " ");

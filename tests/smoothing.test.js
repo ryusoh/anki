@@ -195,6 +195,17 @@ function runTests() {
     // Hit line 278 (weightSum === 0 logic) by using bandwidth = 0
     const zeroBandwidthResult = lowess(sampleData, 0, false);
     assert.strictEqual(zeroBandwidthResult[2].y, 30);
+
+    // Hit maxDistance === 0 logic (lines 274-276)
+    const sameXData = [
+      { x: 5, y: 10 },
+      { x: 5, y: 20 },
+      { x: 5, y: 30 },
+    ];
+    const sameXResult = lowess(sameXData, 0.5, false);
+    assert.strictEqual(sameXResult[0].y, 10);
+    assert.strictEqual(sameXResult[1].y, 20);
+    assert.strictEqual(sameXResult[2].y, 30);
   });
 
   runTest(

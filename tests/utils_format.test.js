@@ -211,13 +211,9 @@ async function runTests() {
       ],
     },
     GBP: {
-      map: new Map([
-        ["2023-01-01", 0.7],
-      ]),
-      sorted: [
-        { date: "2023-01-01", ts: Date.parse("2023-01-01") }
-      ]
-    }
+      map: new Map([["2023-01-01", 0.7]]),
+      sorted: [{ date: "2023-01-01", ts: Date.parse("2023-01-01") }],
+    },
   });
 
   assert.strictEqual(convertValueToCurrency(100, "2023-01-01", "EUR"), 90);
@@ -248,21 +244,94 @@ async function runTests() {
   // If source currency rate is 0, return amount
   assert.strictEqual(
     convertBetweenCurrencies(100, "EUR", "2023-01-06", "USD"),
-    100
+    100,
   );
 
   // If target currency rate is 0, return usdAmount
   // source is USD (which resolves correctly), target is EUR (which is 0 on 2023-01-06).
   assert.strictEqual(
     convertBetweenCurrencies(100, "USD", "2023-01-06", "EUR"),
-    100
+    100,
   );
   // source is GBP (not USD), target is EUR. GBP rate resolves to 0.7. So USD is 100 / 0.7.
   // Then target EUR rate is 0, so it returns usdAmount.
   assert.strictEqual(
     convertBetweenCurrencies(100, "GBP", "2023-01-06", "EUR"),
-    100 / 0.7
+    100 / 0.7,
   );
+
+  // Hit edge cases in formatCurrencyCompact and getSymbolForCurrency
+  const oldCurrency = transactionState.selectedCurrency;
+  transactionState.selectedCurrency = null; // Forces getSelectedCurrency fallback
+  assert.strictEqual(formatCurrencyCompact(100), "$100");
+  assert.strictEqual(formatCurrencyCompact(100, { currency: 123 }), "$100");
+  assert.strictEqual(
+    formatCurrencyInlineValue(-100, { currency: "ZZZ" }),
+    "-$100",
+  );
+  transactionState.selectedCurrency = oldCurrency;
+
+  assert.strictEqual(
+    convertBetweenCurrencies(100, 123, "2023-01-01", "EUR"),
+    100 * 0.9,
+  );
+  assert.strictEqual(
+    convertBetweenCurrencies(100, "EUR", "2023-01-01", 123),
+    100 / 0.9,
+  );
+
+  // Test with invalid currency mapping
+  assert.strictEqual(formatCurrency(-1500, { currency: "ZZZ" }), "-$1,500.00");
+  assert.strictEqual(
+    formatCurrencyCompact(-1500, { currency: "ZZZ" }),
+    "-$1.5k",
+  );
+
+  // Test non-finite rates
+  // To hit `!Number.isFinite(fromRate)`, we mock findFxRate to return NaN or 0. We can do this by setting a specific rate in the mock.
+  setFxRatesByCurrency({
+    ZERO_CUR: {
+      map: new Map([["2023-01-01", 0]]),
+      sorted: [{ date: "2023-01-01", ts: Date.parse("2023-01-01") }],
+    },
+    NAN_CUR: {
+      map: new Map([["2023-01-01", NaN]]),
+      sorted: [{ date: "2023-01-01", ts: Date.parse("2023-01-01") }],
+    },
+  });
+
+  assert.strictEqual(
+    convertBetweenCurrencies(100, "ZERO_CUR", "2023-01-01", "USD"),
+    100,
+  );
+  assert.strictEqual(
+    convertBetweenCurrencies(100, "NAN_CUR", "2023-01-01", "USD"),
+    100,
+  );
+  assert.strictEqual(
+    convertBetweenCurrencies(100, "USD", "2023-01-01", "ZERO_CUR"),
+    100,
+  );
+  assert.strictEqual(
+    convertBetweenCurrencies(100, "USD", "2023-01-01", "NAN_CUR"),
+    100,
+  );
+
+  assert.strictEqual(
+    convertBetweenCurrencies(100, "BAD_CUR", "2023-01-01", "USD"),
+    100,
+  );
+  assert.strictEqual(
+    convertBetweenCurrencies(100, "USD", "2023-01-01", "BAD_CUR"),
+    100,
+  );
+
+  // Test convertValueToCurrency invalid currency
+  assert.strictEqual(convertValueToCurrency(100, "2023-01-01", "BAD_CUR"), 100);
+
+  // Test missing lines in formatCurrencyCompact
+  assert.strictEqual(formatCurrencyCompact(-1000000000), "-$1B");
+  assert.strictEqual(formatCurrencyCompact(-1000000), "-$1M");
 
   // Teardown globals
   delete global.document;

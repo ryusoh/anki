@@ -54,6 +54,12 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Learning:** Suppressing exceptions indiscriminately without logging conceals application instability from developers and creates confusing silent failures for end users. Even for optional components where a fallback to standard UI is desired, the failure must be logged.
 **Prevention:** Always log exceptions (e.g., using `print(..., file=sys.stderr)`) or explicitly document via code comments why an error is deliberately being ignored inside a catch block to enforce resilient application behaviour.
 
+## 2024-03-26 - Fix nested HTML tag bypass in regex sanitization
+
+**Vulnerability:** A regex-based HTML tag stripper in `js/graph/viz_utils.js` was using consecutive `replace` calls, leaving it vulnerable to nested tag bypasses like `<<script>script>`.
+**Learning:** Sequential `.replace()` calls without a loop are insufficient for sanitization because removing the inner tag can accidentally form a new valid tag from the surrounding characters.
+**Prevention:** To prevent nested HTML tag bypasses in regex-based sanitization routines, apply the replacement inside a `do...while` loop until the string stops changing.
+
 ## 2026-03-29 - Prevent DOM-based XSS when interpolating error messages in graph loader
 
 **Vulnerability:** In `js/graph/graph.js`, the error message from a failed fetch call (`e.message`) was interpolated directly into the DOM using `innerHTML` without sanitization.
@@ -65,3 +71,14 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Vulnerability:** In `awesome_tts/awesometts/gui/homescreen.py`, user-controlled preset names were directly interpolated into an HTML string for a `<select>` dropdown without escaping, creating a DOM-based XSS risk if the user creates a preset name containing malicious tags.
 **Learning:** Whenever generating HTML strings inside Python (or any backend) to be injected into a WebView (like Anki's deck browser content), any user-controlled input (such as profile configurations or preset names) must be escaped, even if the backend feels "safe".
 **Prevention:** Use Python's `html.escape(variable, quote=True)` when interpolating strings into HTML templates, especially when inserting inside attribute values or text content.
+## 2026-03-31 - Prevent DOM-based XSS when interpolating input in terminal commands
+
+**Vulnerability:** User-controlled configuration parameters (like terminal inputs) were directly injected into DOM via `insertAdjacentHTML` despite having an `escapeHtml` call.
+**Learning:** It is always safer to use `document.createElement()` and `element.textContent` over `insertAdjacentHTML` or `innerHTML`.
+**Prevention:** When dynamically rendering text content inside an element, use safe DOM methods like `document.createElement()` and `element.textContent = value` instead of template strings assigned to `insertAdjacentHTML`.
+
+## $(date +%Y-%m-%d) - Fix SQL Injection in Config Schema Updates
+
+**Vulnerability:** Unsanitized string interpolation (`%s`) was used to insert variable table and column names directly into SQLite commands like `PRAGMA table_info`, `ALTER TABLE`, and `UPDATE` in `awesome_tts/awesometts/config.py`.
+**Learning:** SQLite parameterization (`?`) only works for values, not for identifiers like table or column names. Using `%s` for identifiers leaves the application vulnerable to SQL injection if those names originate from untrusted sources.
+**Prevention:** Always quote identifiers by wrapping them in double quotes (`"`) and escaping any internal double quotes with `.replace('"', '""')` before using string interpolation to safely construct dynamic schema modifications.

@@ -334,46 +334,54 @@ function filterAndSort(searchTerm = "") {
     return 0;
   };
 
+  const { column, order } = transactionState.sortState;
+
+  const sortMap = new Map(
+    filtered.map((t) => [
+      t,
+      {
+        date: new Date(t.tradeDate).getTime(),
+        securityLower: column === "security" ? t.security.toLowerCase() : null,
+        absAmount:
+          column === "netAmount"
+            ? Math.abs(
+                convertValueToCurrency(
+                  t.netAmount,
+                  t.tradeDate,
+                  currentCurrency,
+                ),
+              )
+            : null,
+      },
+    ]),
+  );
+
   filtered.sort((a, b) => {
-    const { column, order } = transactionState.sortState;
+    const aData = sortMap.get(a);
+    const bData = sortMap.get(b);
+
     switch (column) {
       case "security": {
         const result = compareValues(
-          a.security.toLowerCase(),
-          b.security.toLowerCase(),
+          aData.securityLower,
+          bData.securityLower,
           order,
         );
         if (result !== 0) {
           return result;
         }
-        return compareValues(
-          new Date(a.tradeDate).getTime(),
-          new Date(b.tradeDate).getTime(),
-          "desc",
-        );
+        return compareValues(aData.date, bData.date, "desc");
       }
       case "netAmount": {
-        const amountA = Math.abs(
-          convertValueToCurrency(a.netAmount, a.tradeDate, currentCurrency),
-        );
-        const amountB = Math.abs(
-          convertValueToCurrency(b.netAmount, b.tradeDate, currentCurrency),
-        );
-        const result = compareValues(amountA, amountB, order);
+        const result = compareValues(aData.absAmount, bData.absAmount, order);
         if (result !== 0) {
           return result;
         }
-        return compareValues(
-          new Date(a.tradeDate).getTime(),
-          new Date(b.tradeDate).getTime(),
-          "desc",
-        );
+        return compareValues(aData.date, bData.date, "desc");
       }
       case "tradeDate":
       default: {
-        const dateA = new Date(a.tradeDate).getTime();
-        const dateB = new Date(b.tradeDate).getTime();
-        const dateComparison = compareValues(dateA, dateB, order);
+        const dateComparison = compareValues(aData.date, bData.date, order);
         if (dateComparison !== 0) {
           return dateComparison;
         }

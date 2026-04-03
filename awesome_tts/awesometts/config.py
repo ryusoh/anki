@@ -163,10 +163,11 @@ class Config(object):
                               'WHERE type=? AND name=?',
                               ('table', self._db.table)).fetchall()):
             # detect existing columns
+            table_name_pragma = self._db.table.replace('"', '""')
             existing_cols = [
                 meta['name'].lower()
                 for meta
-                in cursor.execute('PRAGMA table_info(%s)' % self._db.table)
+                in cursor.execute('PRAGMA table_info("%s")' % table_name_pragma)
             ]
 
             # detect any new columns not present in database
@@ -184,23 +185,30 @@ class Config(object):
 
                 # insert any missing columns
                 for col in missing_cols:
-                    cursor.execute('ALTER TABLE %s ADD COLUMN %s %s' % (
-                        self._db.table,
-                        col[0],
-                        col[1],
+                    # Sanitize table and column names to prevent SQL injection
+                    table_name = self._db.table.replace('"', '""')
+                    col_name = col[0].replace('"', '""')
+                    col_type = col[1].replace('"', '""')
+                    cursor.execute('ALTER TABLE "%s" ADD COLUMN "%s" %s' % (
+                        table_name,
+                        col_name,
+                        col_type,
                     ))
 
                 # set default values for newly-inserted columns
+                table_name = self._db.table.replace('"', '""')
+                update_cols = ', '.join(['"%s"=?' % col[0].replace('"', '""') for col in missing_cols])
                 cursor.execute(
-                    'UPDATE %s SET %s' % (
-                        self._db.table,
-                        ', '.join(["%s=?" % col[0] for col in missing_cols]),
+                    'UPDATE "%s" SET %s' % (
+                        table_name,
+                        update_cols,
                     ),
                     tuple(col[4](col[2]) for col in missing_cols),
                 )
 
             # populate in-memory store of the values from database
-            row = cursor.execute('SELECT * FROM %s' % self._db.table) \
+            table_name = self._db.table.replace('"', '""')
+            row = cursor.execute('SELECT * FROM "%s"' % table_name) \
                 .fetchone()
             for name, col in self._cols.items():
                 # attempt to retrieve value; if it fails, use the default
@@ -215,18 +223,19 @@ class Config(object):
             self._logger.info("Creating new configuration table")
 
             # create the table
-            cursor.execute('CREATE TABLE %s (%s)' % (
-                self._db.table,
+            table_name = self._db.table.replace('"', '""')
+            cursor.execute('CREATE TABLE "%s" (%s)' % (
+                table_name,
                 ', '.join([
-                    '%s %s' % (col[0], col[1])
+                    '"%s" %s' % (col[0].replace('"', '""'), col[1].replace('"', '""'))
                     for col in all_cols
                 ]),
             ))
 
             # set the default values
             cursor.execute(
-                'INSERT INTO %s VALUES(%s)' % (
-                    self._db.table,
+                'INSERT INTO "%s" VALUES(%s)' % (
+                    table_name,
                     ', '.join(['?' for col in all_cols]),
                 ),
                 tuple(col[4](col[2]) for col in all_cols),
@@ -321,13 +330,15 @@ class Config(object):
         cursor.set_logger(self._logger)
 
         # persist to SQLite3 database
+        table_name = self._db.table.replace('"', '""')
+        update_cols = ', '.join([
+            '"%s"=?' % col[0].replace('"', '""')
+            for name, col, value in updates
+        ])
         cursor.execute(
-            'UPDATE %s SET %s' % (
-                self._db.table,
-                ', '.join([
-                    "%s=?" % col[0]
-                    for name, col, value in updates
-                ]),
+            'UPDATE "%s" SET %s' % (
+                table_name,
+                update_cols,
             ),
             tuple(
                 col[4](value)
