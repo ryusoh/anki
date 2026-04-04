@@ -321,24 +321,24 @@ export function buildFxChartSeries(baseCurrency) {
       if (dateSource.length === 0) {
         return;
       }
-      const points = dateSource
-        .map(({ date }) => {
-          const value = convertBetweenCurrencies(
-            1,
-            normalizedBase,
-            date,
-            currency,
-          );
-          if (!Number.isFinite(value)) {
-            return null;
-          }
+      // Bolt: Use a single O(N) loop instead of map().filter() pass
+      // to reduce GC pressure and intermediate allocations.
+      const points = [];
+      for (let i = 0; i < dateSource.length; i++) {
+        const { date } = dateSource[i];
+        const value = convertBetweenCurrencies(
+          1,
+          normalizedBase,
+          date,
+          currency,
+        );
+        if (Number.isFinite(value)) {
           const parsedDate = new Date(date);
-          if (Number.isNaN(parsedDate.getTime())) {
-            return null;
+          if (!Number.isNaN(parsedDate.getTime())) {
+            points.push({ date: parsedDate, value });
           }
-          return { date: parsedDate, value };
-        })
-        .filter(Boolean);
+        }
+      }
       if (!points.length) {
         return;
       }
