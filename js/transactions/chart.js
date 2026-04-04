@@ -4384,29 +4384,43 @@ function drawFxChart(ctx, chartManager, timestamp) {
   const filterFrom = chartDateRange.from ? new Date(chartDateRange.from) : null;
   const filterTo = chartDateRange.to ? new Date(chartDateRange.to) : null;
 
-  const filteredSeries = seriesData
-    .map((series) => {
-      const filtered = series.data.filter((point) => {
-        const date = point.date;
-        return (
-          (!filterFrom || date >= filterFrom) && (!filterTo || date <= filterTo)
-        );
-      });
-      if (!filtered.length) {
-        return { ...series, data: [] };
+  // Bolt Optimization: Replace O(N) chained array methods with a single loop
+  // Avoid creating intermediate filtered arrays and recalculating base constraints
+  const filteredSeries = [];
+  const filterFromTime = filterFrom ? filterFrom.getTime() : -Infinity;
+  const filterToTime = filterTo ? filterTo.getTime() : Infinity;
+
+  for (let i = 0; i < seriesData.length; i++) {
+    const series = seriesData[i];
+    const percentData = [];
+    let safeBase = null;
+
+    for (let j = 0; j < series.data.length; j++) {
+      const point = series.data[j];
+      const pointTime =
+        point.date instanceof Date
+          ? point.date.getTime()
+          : new Date(point.date).getTime();
+
+      if (pointTime >= filterFromTime && pointTime <= filterToTime) {
+        if (safeBase === null) {
+          const baseValue = point.value;
+          safeBase =
+            Number.isFinite(baseValue) && baseValue !== 0 ? baseValue : 1;
+        }
+
+        percentData.push({
+          ...point,
+          percent: ((point.value - safeBase) / safeBase) * 100,
+          rawValue: point.value,
+        });
       }
-      // Normalize to percent change since first point
-      const baseValue = filtered[0].value;
-      const safeBase =
-        Number.isFinite(baseValue) && baseValue !== 0 ? baseValue : 1;
-      const percentData = filtered.map((point) => ({
-        ...point,
-        percent: ((point.value - safeBase) / safeBase) * 100,
-        rawValue: point.value,
-      }));
-      return { ...series, data: percentData };
-    })
-    .filter((series) => series.data.length > 0);
+    }
+
+    if (percentData.length > 0) {
+      filteredSeries.push({ ...series, data: percentData });
+    }
+  }
 
   if (!filteredSeries.length) {
     if (emptyState) {
