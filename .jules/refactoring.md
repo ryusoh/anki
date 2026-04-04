@@ -15,3 +15,6 @@
 - **Cleanup Logic:** Added the Easter Computus logic to accurately identify "Good Friday" as a major fixed US market holiday in `js/utils/date.js` based on pending TODOs related to market calendar logic.
 
 **Action:** Continue to extract complex multi-conditional statements into smaller functions with descriptive names, and always log errors in broad `except` blocks.
+## 2026-04-04 - Code Health & Error Handling
+**Learning:** Avoid bare `except:` blocks as they catch system exceptions like `KeyboardInterrupt`. Use `except Exception:` to restrict error catching to application errors while maintaining the required fallback control flow.
+**Action:** Consistently replace bare `except:` with `except Exception:` and ensure comments or logging exist for fallback logic.
