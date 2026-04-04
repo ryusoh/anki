@@ -14,7 +14,8 @@ try:
     from aqt import gui_hooks, mw
     from aqt.qt import QVBoxLayout, QWidget
     from aqt.webview import AnkiWebView, AnkiWebViewKind
-except Exception:
+except Exception as e:
+    print(f"[tabbed_stats] Anki GUI modules not found: {e}", file=sys.stderr)
     mw = None  # type: ignore
 
 

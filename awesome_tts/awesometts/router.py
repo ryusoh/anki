@@ -453,6 +453,7 @@ class Router(object):
 
             def substitute(match):
                 """Perform variable substitution on filename."""
+                from awesometts import logger
 
                 key = match.group(1).strip()
 
@@ -468,15 +469,15 @@ class Router(object):
 
                     try:
                         return note[key]  # exact field match
-                    except:  # ignore error, pylint:disable=bare-except
-                        pass
+                    except Exception as e:
+                        logger.debug("Silently ignoring error on exact field match: %s", e)
 
                     try:
                         for other_key in note.keys():
                             if other_key.strip().lower() == lower:
                                 return note[other_key]  # fuzzy field match
-                    except:  # ignore error, pylint:disable=bare-except
-                        pass
+                    except Exception as e:
+                        logger.debug("Silently ignoring error on fuzzy field match: %s", e)
 
                 return ''  # invalid key / no such note field
 
