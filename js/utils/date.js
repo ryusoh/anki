@@ -65,7 +65,9 @@ export function isTradingDay(date) {
 
   const easterDate = new Date(year, easterMonth, easterDay);
   // Subtracting 2 days gives us Good Friday
-  const goodFridayDate = new Date(easterDate.getTime() - 2 * 24 * 60 * 60 * 1000);
+  const goodFridayDate = new Date(
+    easterDate.getTime() - 2 * 24 * 60 * 60 * 1000,
+  );
 
   if (month === goodFridayDate.getMonth() && day === goodFridayDate.getDate()) {
     return false;
