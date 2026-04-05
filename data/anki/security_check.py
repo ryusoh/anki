@@ -91,7 +91,51 @@ def get_private_field_patterns():
         '"csum"': 'Field checksum (private)',
     }
 
-def check_file_for_private_data(filepath, content):
+def _check_json_data(filepath, full_path):
+    violations = []
+    try:
+        # Try to parse as JSON
+        if filepath.endswith('.gz'):
+            with gzip.open(full_path, 'rt', encoding='utf-8') as f:
+                data = json.load(f)
+        else:
+            with open(full_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+
+        # Check if this is a list of notes
+        if isinstance(data, list) and len(data) > 0:
+            first_item = data[0] if isinstance(data, list) else data
+
+            if isinstance(first_item, dict):
+                # CRITICAL CHECK: Does this look like private note data?
+                has_flds = 'flds' in first_item
+                has_tags = 'tags' in first_item
+                has_mid = 'mid' in first_item
+                has_guid = 'guid' in first_item
+
+                # If it has flds + other note fields, it's private
+                if has_flds and (has_mid or has_guid):
+                    violations.append({
+                        'type': 'private_notes',
+                        'message': f'File contains private note data with flds field',
+                        'fields': [k for k in first_item.keys() if k in ['flds', 'tags', 'mid', 'guid', 'usn', 'csum']]
+                    })
+
+                # Target specific Git-versioned files for anonymization verification
+                if filepath.endswith('notes.json.gz') and 'cloudflare' not in filepath:
+                    if has_flds or has_tags:
+                        violations.append({
+                            'type': 'data_leak_regression',
+                            'message': f'REGRESSION: {filepath} contains private fields (flds/tags) but must be anonymized for Git.',
+                            'fields': [k for k in first_item.keys() if k in ['flds', 'tags']]
+                        })
+
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        pass
+
+    return violations
+
+def check_file_for_private_data(filepath, content, full_path):
     """
     Check a single file for private data.
     Returns list of violations found.
@@ -119,45 +163,7 @@ def check_file_for_private_data(filepath, content):
     
     # Only check DATA files (JSON, etc.)
     if filepath.endswith('.json') or filepath.endswith('.json.gz'):
-        try:
-            # Try to parse as JSON
-            if filepath.endswith('.gz'):
-                with gzip.open(filepath, 'rt', encoding='utf-8') as f:
-                    data = json.load(f)
-            else:
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-            
-            # Check if this is a list of notes
-            if isinstance(data, list) and len(data) > 0:
-                first_item = data[0] if isinstance(data, list) else data
-                
-                if isinstance(first_item, dict):
-                    # CRITICAL CHECK: Does this look like private note data?
-                    has_flds = 'flds' in first_item
-                    has_tags = 'tags' in first_item
-                    has_mid = 'mid' in first_item
-                    has_guid = 'guid' in first_item
-                    
-                    # If it has flds + other note fields, it's private
-                    if has_flds and (has_mid or has_guid):
-                        violations.append({
-                            'type': 'private_notes',
-                            'message': f'File contains private note data with flds field',
-                            'fields': [k for k in first_item.keys() if k in ['flds', 'tags', 'mid', 'guid', 'usn', 'csum']]
-                        })
-                    
-                    # Target specific Git-versioned files for anonymization verification
-                    if filepath.endswith('notes.json.gz') and 'cloudflare' not in filepath:
-                        if has_flds or has_tags:
-                            violations.append({
-                                'type': 'data_leak_regression',
-                                'message': f'REGRESSION: {filepath} contains private fields (flds/tags) but must be anonymized for Git.',
-                                'fields': [k for k in first_item.keys() if k in ['flds', 'tags']]
-                            })
-                    
-        except (json.JSONDecodeError, UnicodeDecodeError):
-            pass
+        violations.extend(_check_json_data(filepath, full_path))
     
     return violations
 
@@ -206,6 +212,33 @@ def check_r2_staging_directory():
     
     return []
 
+def _scan_tracked_file(filepath, project_root):
+    full_path = project_root / filepath
+
+    if not full_path.exists():
+        return []
+
+    # Skip binary files
+    if filepath.endswith(('.png', '.jpg', '.jpeg', '.gif', '.mp3', '.wav', '.mp4', '.webm')):
+        return []
+
+    # Read file content
+    content = ""
+    try:
+        if filepath.endswith('.gz'):
+            with gzip.open(full_path, 'rt', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
+        else:
+            with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
+    except Exception:
+        return []
+
+    # Check for private data
+    violations = check_file_for_private_data(filepath, content, full_path)
+
+    return [{ 'file': filepath, **v } for v in violations] if violations else []
+
 def main():
     print(f"\n{BOLD}🔒 SECURITY CHECK: Scanning for private Anki data...{RESET}\n")
     
@@ -229,42 +262,9 @@ def main():
     # Check each file
     files_scanned = 0
     for filepath in sorted(tracked_files):
-        full_path = project_root / filepath
-        
-        if not full_path.exists():
-            continue
-        
         files_scanned += 1
-        
-        # Skip binary files
-        try:
-            if filepath.endswith(('.png', '.jpg', '.jpeg', '.gif', '.mp3', '.wav', '.mp4', '.webm')):
-                continue
-            
-            # Read file content
-            if filepath.endswith('.gz'):
-                try:
-                    with gzip.open(full_path, 'rt', encoding='utf-8', errors='ignore') as f:
-                        content = f.read()
-                except:
-                    continue
-            else:
-                with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
-                    content = f.read()
-            
-            # Check for private data
-            violations = check_file_for_private_data(filepath, content)
-            
-            if violations:
-                for violation in violations:
-                    all_violations.append({
-                        'file': filepath,
-                        **violation
-                    })
-        
-        except Exception as e:
-            # Skip files we can't read
-            continue
+        violations = _scan_tracked_file(filepath, project_root)
+        all_violations.extend(violations)
     
     # Report results
     print(f"Scanned {files_scanned} files\n")

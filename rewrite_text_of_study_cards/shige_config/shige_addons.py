@@ -32,7 +32,7 @@ def add_shige_addons_tab(self, tab_widget:"QTabWidget"):
         response = requests.get(url, timeout=3)
         response.raise_for_status()
         html_content = response.text
-    except:
+    except Exception:
         return
 
     tab4 = QWidget(self)

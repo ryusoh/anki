@@ -14,7 +14,7 @@ from anki.utils import pointVersion
 
 try:
     from .settings_dialog_qt6 import Ui_Dialog
-except:
+except ImportError:
     from .settings_dialog import Ui_Dialog
 
 
