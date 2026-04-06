@@ -4,7 +4,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from search import score_front_match, extract_terms, build_tier1_query, sort_tier1_by_score
+from prioritize_front_field_search.search import score_front_match, extract_terms, build_tier1_query, sort_tier1_by_score
 
 def test_score_front_match_empty_term():
     # Covers line 24
