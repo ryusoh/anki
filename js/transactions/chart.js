@@ -2961,19 +2961,32 @@ async function drawContributionChart(ctx, chartManager, timestamp) {
     });
   };
 
-  const rawContributionData = filterDataByDateRange(
-    (contributionSource || [])
-      .map((item) => ({
-        ...item,
-        date: parseLocalDate(item.tradeDate || item.date),
-      }))
-      .filter((item) => item.date && !Number.isNaN(item.date.getTime())),
-  );
-  const mappedBalanceSource = showBalance
-    ? (balanceSource || [])
-        .map((item) => ({ ...item, date: parseLocalDate(item.date) }))
-        .filter((item) => item.date && !Number.isNaN(item.date.getTime()))
-    : [];
+  // ⚡ Bolt: Fuses .map() and .filter() into a single for-loop to prevent
+  // intermediate array allocations during parsing of contribution data, reducing Garbage Collection overhead on render path.
+  const parsedContributionSource = [];
+  if (contributionSource) {
+    for (let i = 0; i < contributionSource.length; i++) {
+      const item = contributionSource[i];
+      const parsedDate = parseLocalDate(item.tradeDate || item.date);
+      if (parsedDate && !Number.isNaN(parsedDate.getTime())) {
+        parsedContributionSource.push({ ...item, date: parsedDate });
+      }
+    }
+  }
+  const rawContributionData = filterDataByDateRange(parsedContributionSource);
+
+  // ⚡ Bolt: Fuses .map() and .filter() into a single for-loop to prevent
+  // intermediate array allocations during parsing of balance data, reducing Garbage Collection overhead on render path.
+  const mappedBalanceSource = [];
+  if (showBalance && balanceSource) {
+    for (let i = 0; i < balanceSource.length; i++) {
+      const item = balanceSource[i];
+      const parsedDate = parseLocalDate(item.date);
+      if (parsedDate && !Number.isNaN(parsedDate.getTime())) {
+        mappedBalanceSource.push({ ...item, date: parsedDate });
+      }
+    }
+  }
   const rawBalanceData = showBalance
     ? injectSyntheticStartPoint(
         filterDataByDateRange(mappedBalanceSource),
@@ -5088,9 +5101,17 @@ function renderCompositionChartWithMode(ctx, chartManager, data, options = {}) {
     };
   };
 
-  const latestHoldings = activeTickerOrder
-    .filter((ticker) => shouldIncludeOthers || ticker !== "Others")
-    .map(buildHoldingInfo)
+  // ⚡ Bolt: Fuses .map() and .filter() chains into a single for-loop to prevent
+  // intermediate array allocations during legend generation, reducing GC pressure.
+  const allValidHoldings = [];
+  for (let i = 0; i < activeTickerOrder.length; i++) {
+    const ticker = activeTickerOrder[i];
+    if (shouldIncludeOthers || ticker !== "Others") {
+      allValidHoldings.push(buildHoldingInfo(ticker));
+    }
+  }
+
+  const latestHoldings = allValidHoldings
     .filter((holding) => holding.percent > 0.1)
     .sort((a, b) => b.percent - a.percent)
     .slice(0, 6);
@@ -5098,11 +5119,7 @@ function renderCompositionChartWithMode(ctx, chartManager, data, options = {}) {
   const holdingsForLegend =
     latestHoldings.length > 0
       ? latestHoldings
-      : activeTickerOrder
-          .filter((ticker) => shouldIncludeOthers || ticker !== "Others")
-          .map(buildHoldingInfo)
-          .sort((a, b) => b.percent - a.percent)
-          .slice(0, 6);
+      : [...allValidHoldings].sort((a, b) => b.percent - a.percent).slice(0, 6);
 
   const legendSeries = holdingsForLegend.map((holding) => {
     const displayName = holding.ticker === "BRKB" ? "BRK-B" : holding.ticker;
