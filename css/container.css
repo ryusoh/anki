@@ -121,6 +121,12 @@
     border-radius: 4px; /* Slight rounding for hover state */
   }
 
+  .container a:focus-visible,
+  .nav-container a:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -2px;
+  }
+
   /* Hover Interaction */
   .container a:hover,
   .nav-container a:hover {
