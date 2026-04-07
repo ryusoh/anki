@@ -36,7 +36,7 @@ import {
   getCompositionFilterTickers,
   getCompositionAssetClassFilter,
 } from "./state.js";
-import { getSplitAdjustment } from "./calculations.js";
+import { getSplitAdjustment, buildSplitDictionary } from "./calculations.js";
 import {
   formatCurrencyCompact,
   formatCurrencyInlineValue,
@@ -1477,6 +1477,10 @@ export function buildFilteredBalanceSeries(
   const iterationStart = new Date(firstDate);
   iterationStart.setDate(iterationStart.getDate() - 1);
 
+  // Bolt: Pre-process split history into a map for O(1) lookups
+  // to avoid O(N*M) scanning inside the hot daily calculation loop.
+  const splitDict = buildSplitDictionary(splitHistory);
+
   const iterDate = new Date(iterationStart);
 
   while (iterDate <= lastDate) {
@@ -1525,7 +1529,7 @@ export function buildFilteredBalanceSeries(
       if (price === null) {
         return;
       }
-      const adjustment = getSplitAdjustment(splitHistory, symbol, dateStr);
+      const adjustment = getSplitAdjustment(splitDict, symbol, dateStr);
       totalValue += qty * price * adjustment;
     });
 
