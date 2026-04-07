@@ -151,7 +151,7 @@ function displayTransactions(transactions) {
   if (!tbody) {
     return;
   }
-  tbody.innerHTML = "";
+  tbody.textContent = "";
   const runningTotalsMap = computeRunningTotals(
     transactions,
     transactionState.splitHistory,
@@ -187,15 +187,39 @@ function displayTransactions(transactions) {
       currency: currentCurrency,
     });
 
-    row.innerHTML = `
-            <td class="date">${escapeHtml(formatDate(transaction.tradeDate))}</td>
-            <td class="${escapeHtml(orderTypeClass)}">${escapeHtml(transaction.orderType)}</td>
-            <td>${escapeHtml(transaction.security)}</td>
-            <td>${escapeHtml(parseFloat(transaction.quantity).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}</td>
-            <td>${escapeHtml(formatCurrency(convertedPrice))}</td>
-            <td class="amount">${escapeHtml(formattedNetAmount)}</td>
-            <td class="amount">${escapeHtml(formattedPortfolio)}</td>
-        `;
+    const tdDate = document.createElement("td");
+    tdDate.className = "date";
+    tdDate.textContent = formatDate(transaction.tradeDate);
+
+    const tdOrderType = document.createElement("td");
+    tdOrderType.className = orderTypeClass;
+    tdOrderType.textContent = transaction.orderType;
+
+    const tdSecurity = document.createElement("td");
+    tdSecurity.textContent = transaction.security;
+
+    const tdQuantity = document.createElement("td");
+    tdQuantity.textContent = parseFloat(transaction.quantity).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const tdPrice = document.createElement("td");
+    tdPrice.textContent = formatCurrency(convertedPrice);
+
+    const tdAmount = document.createElement("td");
+    tdAmount.className = "amount";
+    tdAmount.textContent = formattedNetAmount;
+
+    const tdPortfolio = document.createElement("td");
+    tdPortfolio.className = "amount";
+    tdPortfolio.textContent = formattedPortfolio;
+
+    row.appendChild(tdDate);
+    row.appendChild(tdOrderType);
+    row.appendChild(tdSecurity);
+    row.appendChild(tdQuantity);
+    row.appendChild(tdPrice);
+    row.appendChild(tdAmount);
+    row.appendChild(tdPortfolio);
+
     tbody.appendChild(row);
   });
 

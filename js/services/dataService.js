@@ -239,20 +239,48 @@ function createHoldingRow(
     marketRatiosByTicker,
   );
 
-  row.innerHTML = `
-        <td>${escapeHtml(holding.name)}</td>
-        <td class="allocation">${escapeHtml(allocationPercentage.toFixed(2))}%</td>
-        <td class="price">${escapeHtml(formatCurrency(holding.currentPrice, currentCurrency, exchangeRates, currencySymbols))}</td>
-        <td class="per">${escapeHtml(perDisplayValue)}</td>
-        <td class="cost">${escapeHtml(formatCurrency(holding.cost, currentCurrency, exchangeRates, currencySymbols))}</td>
-        <td class="shares">${escapeHtml(holding.shares.toFixed(2))}</td>
-        <td class="value">${escapeHtml(formatCurrency(holding.currentValue, currentCurrency, exchangeRates, currencySymbols))}</td>
-        <td class="pnl"></td>
-        <td class="pnl-percentage"></td>
-    `;
+  const tdName = document.createElement("td");
+  tdName.textContent = holding.name;
 
-  const pnlCell = row.querySelector("td.pnl");
-  const pnlPercentageCell = row.querySelector("td.pnl-percentage");
+  const tdAllocation = document.createElement("td");
+  tdAllocation.className = "allocation";
+  tdAllocation.textContent = `${allocationPercentage.toFixed(2)}%`;
+
+  const tdPrice = document.createElement("td");
+  tdPrice.className = "price";
+  tdPrice.textContent = formatCurrency(holding.currentPrice, currentCurrency, exchangeRates, currencySymbols);
+
+  const tdPer = document.createElement("td");
+  tdPer.className = "per";
+  tdPer.textContent = perDisplayValue;
+
+  const tdCost = document.createElement("td");
+  tdCost.className = "cost";
+  tdCost.textContent = formatCurrency(holding.cost, currentCurrency, exchangeRates, currencySymbols);
+
+  const tdShares = document.createElement("td");
+  tdShares.className = "shares";
+  tdShares.textContent = holding.shares.toFixed(2);
+
+  const tdValue = document.createElement("td");
+  tdValue.className = "value";
+  tdValue.textContent = formatCurrency(holding.currentValue, currentCurrency, exchangeRates, currencySymbols);
+
+  const pnlCell = document.createElement("td");
+  pnlCell.className = "pnl";
+
+  const pnlPercentageCell = document.createElement("td");
+  pnlPercentageCell.className = "pnl-percentage";
+
+  row.appendChild(tdName);
+  row.appendChild(tdAllocation);
+  row.appendChild(tdPrice);
+  row.appendChild(tdPer);
+  row.appendChild(tdCost);
+  row.appendChild(tdShares);
+  row.appendChild(tdValue);
+  row.appendChild(pnlCell);
+  row.appendChild(pnlPercentageCell);
 
   if (pnlCell && pnlPercentageCell) {
     const formattedAbsolutePnlValueWithSymbol = formatCurrency(
@@ -296,7 +324,7 @@ function updateTableAndPrepareChartData(
   marketRatiosByTicker = new Map(),
 ) {
   const tbody = document.querySelector("table tbody");
-  tbody.innerHTML = "";
+  tbody.textContent = "";
 
   const chartData = {
     labels: [],
@@ -849,7 +877,7 @@ export async function loadAndDisplayPortfolioData(
 
     // Clear previous content and stop any existing thinking effects
     setThinkingHighlight(pnlElement, false);
-    pnlElement.innerHTML = "";
+    pnlElement.textContent = "";
 
     // Create structured spans for PnL display with thinking effect
     const openBracket = document.createElement("span");

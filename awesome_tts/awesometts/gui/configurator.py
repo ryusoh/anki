@@ -742,7 +742,8 @@ class Configurator(Dialog):
             try:
                 os.unlink(os.path.join(self._addon.paths.cache, filename))
                 count_success += 1
-            except:  # capture all exceptions, pylint:disable=W0702
+            except Exception as e:  # capture all exceptions, pylint:disable=W0702
+                print(f"Failed to delete file {filename}: {e}")
                 count_error += 1
 
         if count_error:

@@ -15,6 +15,18 @@
 - **Cleanup Logic:** Added the Easter Computus logic to accurately identify "Good Friday" as a major fixed US market holiday in `js/utils/date.js` based on pending TODOs related to market calendar logic.
 
 **Action:** Continue to extract complex multi-conditional statements into smaller functions with descriptive names, and always log errors in broad `except` blocks.
+
+## 2024-05-15 - Error Handling & Cyclomatic Complexity Health Sweep
+
+**Learnings:**
+
+- **Silent Failures:** Replaced remaining bare `except:` blocks with `except Exception:` (or `except ImportError:`) across `awesome_tts`, `custom_background`, `enhance_main_window`, and `rewrite_text_of_study_cards`. This prevents accidental suppression of system-exiting signals (`KeyboardInterrupt`, `SystemExit`) while keeping intended error fallback paths intact.
+- **Structural Health:** Refactored `data/anki/security_check.py` to extract complex multi-conditional scanning logic (`_scan_tracked_file` and `_check_json_data`). This significantly reduced cyclomatic complexity within the `main` loop and fixed a latent bug where the script attempted to load `.json.gz` files via an un-resolved relative path instead of `full_path`.
+- **Code Hygiene:** Refactored `xxx_todo_changeme` variables in `awesome_tts/awesometts/__init__.py` to use descriptive names (`preset_item`, `group_item`), removing residual technical debt from automated `2to3` migrations.
+
+**Action:** Continue replacing generic `except:` statements across the codebase, always use contextually-aware exceptions like `ImportError` where applicable, and maintain smaller cyclomatic footprints in critical path functions.
+
 ## 2026-04-04 - Code Health & Error Handling
+
 **Learning:** Avoid bare `except:` blocks as they catch system exceptions like `KeyboardInterrupt`. Use `except Exception:` to restrict error catching to application errors while maintaining the required fallback control flow.
 **Action:** Consistently replace bare `except:` with `except Exception:` and ensure comments or logging exist for fallback logic.

@@ -748,9 +748,9 @@ def reviewer_hooks():
                 else:
                     needs_separator = True
 
-                def preset_glue(xxx_todo_changeme):
+                def preset_glue(preset_item):
                     """Closure for callback handler to access `preset`."""
-                    (name, preset) = xxx_todo_changeme
+                    (name, preset) = preset_item
                     submenu.addAction(
                         'Say "%s" w/ %s' % (say_display, name),
                         lambda: say_text_preset_handler(say_text,
@@ -767,9 +767,9 @@ def reviewer_hooks():
                 else:
                     needs_separator = True
 
-                def group_glue(xxx_todo_changeme1):
+                def group_glue(group_item):
                     """Closure for callback handler to access `group`."""
-                    (name, group) = xxx_todo_changeme1
+                    (name, group) = group_item
                     submenu.addAction(
                         'Say "%s" w/ %s' % (say_display, name),
                         lambda: say_text_group_handler(say_text,

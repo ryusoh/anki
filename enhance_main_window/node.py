@@ -31,7 +31,7 @@ def idFromOldNode(node):
     try:
         (_, did, _, _, _, _) = node
         return did
-    except:
+    except Exception:
         return node.deck_id
 
 
