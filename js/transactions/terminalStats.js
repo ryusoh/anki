@@ -714,14 +714,13 @@ export async function getDurationStatsText() {
     ]);
   }
 
-  const totalOpenShareWeight = entries.reduce(
-    (sum, entry) => sum + entry.openShares,
-    0,
-  );
-  const openShareWeightedSum = entries.reduce(
-    (sum, entry) => sum + entry.openShares * entry.avgAgeDays,
-    0,
-  );
+  let totalOpenShareWeight = 0;
+  let openShareWeightedSum = 0;
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
+    totalOpenShareWeight += entry.openShares;
+    openShareWeightedSum += entry.openShares * entry.avgAgeDays;
+  }
   const allDenominator = totalOpenShareWeight + totalClosedQty;
   const weightedAvgAll =
     allDenominator > 0
@@ -875,24 +874,24 @@ export async function getLifespanStatsText() {
     : "";
 
   const summaryRows = [["Snapshot Date", snapshot.dateLabel || "Latest"]];
-  const openShareSum = openEntries.reduce(
-    (sum, entry) => sum + entry.openShares,
-    0,
-  );
-  const openWeightedSpanSum = openEntries.reduce(
-    (sum, entry) => sum + entry.spanDays * entry.openShares,
-    0,
-  );
+
+  let openShareSum = 0;
+  let openWeightedSpanSum = 0;
+  for (let i = 0; i < openEntries.length; i++) {
+    const entry = openEntries[i];
+    openShareSum += entry.openShares;
+    openWeightedSpanSum += entry.spanDays * entry.openShares;
+  }
   const weightedAvgOpen =
     openShareSum > 0 ? openWeightedSpanSum / openShareSum : null;
-  const closedShareSum = closedEntries.reduce(
-    (sum, entry) => sum + entry.shares,
-    0,
-  );
-  const closedWeightedSpanSum = closedEntries.reduce(
-    (sum, entry) => sum + entry.spanDays * entry.shares,
-    0,
-  );
+
+  let closedShareSum = 0;
+  let closedWeightedSpanSum = 0;
+  for (let i = 0; i < closedEntries.length; i++) {
+    const entry = closedEntries[i];
+    closedShareSum += entry.shares;
+    closedWeightedSpanSum += entry.spanDays * entry.shares;
+  }
   const weightedAvgClosed =
     closedShareSum > 0 ? closedWeightedSpanSum / closedShareSum : null;
   const combinedDenominator = openShareSum + closedShareSum;
