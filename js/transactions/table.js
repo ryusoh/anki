@@ -199,7 +199,10 @@ function displayTransactions(transactions) {
     tdSecurity.textContent = transaction.security;
 
     const tdQuantity = document.createElement("td");
-    tdQuantity.textContent = parseFloat(transaction.quantity).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    tdQuantity.textContent = parseFloat(transaction.quantity).toLocaleString(
+      undefined,
+      { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+    );
 
     const tdPrice = document.createElement("td");
     tdPrice.textContent = formatCurrency(convertedPrice);
