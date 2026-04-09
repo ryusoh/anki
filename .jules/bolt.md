@@ -64,5 +64,6 @@
 **Action:** When a function requires repeatedly checking an auxiliary array inside a hot loop, create a pre-processed `Map` grouping items by their key symbol outside the loop, reducing inner lookups from O(M) to O(K) where K is the number of splits for a single symbol (effectively O(1)).
 
 ## 2024-05-30 - [Optimize loop array copying to prevent regressions]
+
 **Learning:** Reverting to generic functionally chained arrays without object construction is not measurable performance, but correctly tracking the memory space via object instantiations inside loops with high frequencies (like charts arrays) does affect Main Thread performance.
 **Action:** When manually fusing `.map().filter()` into `for` loops, correctly memoize and limit object instantiation (like `{ ...item }`) exclusively to elements that pass the filter conditional logic, preserving both rendering performance and original side effects.
