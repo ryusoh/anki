@@ -60,17 +60,42 @@ async function runRegressionTests() {
         { input: 'plot retention', expectedCmd: 'plot-retention' },
         { input: 'show due', expectedCmd: 'due' },
         { input: 'plot reviews time', expectedCmd: 'plot-reviews-time' },
-        { input: 'plot reviews cumulative', expectedCmd: 'plot-reviews-cumulative' }
+        { input: 'plot reviews cumulative', expectedCmd: 'plot-reviews-cumulative' },
+        { input: 'reviews invalidrange', expectError: 'invalid range' },
+        { input: 'retention invalidrange', expectError: 'invalid range' },
+        { input: 'show nonexistent', expectedCmd: 'show', expectError: 'unknown chart' },
+        { input: 'unknowncommand xyz', expectError: 'not in trie' },
+        { input: 'plot nonexistent', expectError: 'not in trie' },
+        { input: 'plot reviews time deck invalidrange', expectError: 'invalid range' },
+        { input: 'plot reviews deck time invalidrange', expectError: 'invalid range' },
+        { input: 'reviews deck invalidrange', expectError: 'invalid range' },
+        { input: 'plot reviews deck invalidrange', expectError: 'invalid range' },
+        { input: 'reviews time invalidrange', expectError: 'invalid range' },
+        { input: 'plot reviews time invalidrange', expectError: 'invalid range' },
+        { input: 'due deck invalidrange', expectError: 'invalid range' },
+        { input: 'plot due deck invalidrange', expectError: 'invalid range' },
+        { input: 'due invalidrange', expectError: 'invalid range' },
+        { input: 'plot due invalidrange', expectError: 'invalid range' },
+        { input: 'reviews time deck invalidrange', expectError: 'invalid range' },
+        { input: 'reviews deck time invalidrange', expectError: 'invalid range' },
+        { input: 'reviews cumulative invalidrange', expectError: 'invalid range' },
+        { input: 'plot reviews cumulative invalidrange', expectError: 'invalid range' },
+        { input: 'plot retention invalidrange', expectError: 'invalid range' },
+        { input: 'reviews deck cumulative invalidrange', expectError: 'invalid range' },
+        { input: 'plot reviews deck cumulative invalidrange', expectError: 'invalid range' },
+        { input: 'reviews time cumulative invalidrange', expectError: 'invalid range' }
     ];
 
     let passed = 0;
     let failed = 0;
 
-    testCases.forEach(({ input, expectedCmd }) => {
+    testCases.forEach(({ input, expectedCmd, expectError }) => {
         try {
             const result = handleCommand(input, appendLine);
             assert.strictEqual(result.handled, true, `"${input}" should be handled`);
-            if (expectedCmd) {
+            if (expectError) {
+               assert.strictEqual(result.error, expectError, `"${input}" should have error: ${expectError}`);
+            } else if (expectedCmd) {
                 assert.strictEqual(result.command, expectedCmd, `"${input}" should map to command: ${expectedCmd}`);
             }
             console.log(`   ✓ "${input}" correctly handled`);

@@ -248,7 +248,12 @@ function createHoldingRow(
 
   const tdPrice = document.createElement("td");
   tdPrice.className = "price";
-  tdPrice.textContent = formatCurrency(holding.currentPrice, currentCurrency, exchangeRates, currencySymbols);
+  tdPrice.textContent = formatCurrency(
+    holding.currentPrice,
+    currentCurrency,
+    exchangeRates,
+    currencySymbols,
+  );
 
   const tdPer = document.createElement("td");
   tdPer.className = "per";
@@ -256,7 +261,12 @@ function createHoldingRow(
 
   const tdCost = document.createElement("td");
   tdCost.className = "cost";
-  tdCost.textContent = formatCurrency(holding.cost, currentCurrency, exchangeRates, currencySymbols);
+  tdCost.textContent = formatCurrency(
+    holding.cost,
+    currentCurrency,
+    exchangeRates,
+    currencySymbols,
+  );
 
   const tdShares = document.createElement("td");
   tdShares.className = "shares";
@@ -264,7 +274,12 @@ function createHoldingRow(
 
   const tdValue = document.createElement("td");
   tdValue.className = "value";
-  tdValue.textContent = formatCurrency(holding.currentValue, currentCurrency, exchangeRates, currencySymbols);
+  tdValue.textContent = formatCurrency(
+    holding.currentValue,
+    currentCurrency,
+    exchangeRates,
+    currencySymbols,
+  );
 
   const pnlCell = document.createElement("td");
   pnlCell.className = "pnl";
