@@ -67,3 +67,8 @@
 
 **Learning:** Reverting to generic functionally chained arrays without object construction is not measurable performance, but correctly tracking the memory space via object instantiations inside loops with high frequencies (like charts arrays) does affect Main Thread performance.
 **Action:** When manually fusing `.map().filter()` into `for` loops, correctly memoize and limit object instantiation (like `{ ...item }`) exclusively to elements that pass the filter conditional logic, preserving both rendering performance and original side effects.
+
+## 2025-04-09 - [Optimizing Dynamic Array allocations and Iterations]
+
+**Learning:** Allocating array iteratively and mapping it sequentially, when working with Object.entries inside loops, can easily lead to memory bloat by redundantly allocating empty arrays or mapping over the entire dimension length. Avoiding conditional Array constructions when `valueMode !== "absolute"` eliminates the allocation inside the loop entirely when disabled.
+**Action:** Always conditionally allocate arrays specifically inside iterations only if the values they capture are required. Avoid unconditional new Array(N) pre-allocations if their values can be derived lazily or discarded.
