@@ -5086,9 +5086,11 @@ function renderCompositionChartWithMode(ctx, chartManager, data, options = {}) {
     ctx.fill();
     ctx.stroke();
 
-    cumulativeValues = cumulativeValues.map(
-      (val, index) => val + values[index],
-    );
+    // ⚡ Bolt: Mutate in-place instead of .map() to prevent creating intermediate
+    // arrays for cumulative values on every ticker, eliminating GC pressure in the render loop.
+    for (let i = 0; i < cumulativeValues.length; i++) {
+      cumulativeValues[i] += values[i];
+    }
   });
 
   const latestIndex = dates.length - 1;
