@@ -43,12 +43,14 @@
       try {
         navigator.serviceWorker
           .register(swPath, { scope })
-          .catch(function () {});
-      } catch {
-        /* no-op */
+          .catch(function (error) {
+            console.warn("Service worker registration promise rejected:", error);
+          });
+      } catch (error) {
+        console.warn("Failed to register service worker:", error);
       }
     });
-  } catch {
-    /* no-op */
+  } catch (error) {
+    console.warn("Service worker registration setup failed:", error);
   }
 })();

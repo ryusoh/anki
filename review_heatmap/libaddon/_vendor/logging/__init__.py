@@ -1952,7 +1952,7 @@ def shutdown(handlerList=_handlerList):
                     pass
                 finally:
                     h.release()
-        except: # ignore everything, as we're shutting down
+        except Exception: # ignore everything, as we're shutting down
             if raiseExceptions:
                 raise
             #else, swallow

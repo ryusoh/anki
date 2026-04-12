@@ -54,6 +54,12 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Learning:** Suppressing exceptions indiscriminately without logging conceals application instability from developers and creates confusing silent failures for end users. Even for optional components where a fallback to standard UI is desired, the failure must be logged.
 **Prevention:** Always log exceptions (e.g., using `print(..., file=sys.stderr)`) or explicitly document via code comments why an error is deliberately being ignored inside a catch block to enforce resilient application behaviour.
 
+## 2024-05-31 - Refactored silent catch blocks to prevent generic error suppression in UI layers
+
+**Vulnerability:** Empty catch blocks were intentionally silencing all exceptions (with `/* no-op */` comments or silent fallbacks) during initialization of optional UI components like `js/ui/reduced_motion.js`, `js/ui/service_worker_register.js`, and data fetching in `js/transactions/terminalStats.js`. This suppresses errors, hiding failures and potential instability.
+**Learning:** Suppressing exceptions indiscriminately without logging conceals application instability from developers and creates confusing silent failures for end users. Even for optional components where a fallback is desired, the failure must be logged.
+**Prevention:** Always log exceptions (e.g., using `console.warn(..., error)`) to ensure resilient application behavior and debugging capabilities.
+
 ## 2024-03-26 - Fix nested HTML tag bypass in regex sanitization
 
 **Vulnerability:** A regex-based HTML tag stripper in `js/graph/viz_utils.js` was using consecutive `replace` calls, leaving it vulnerable to nested tag bypasses like `<<script>script>`.
