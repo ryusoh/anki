@@ -44,7 +44,10 @@
         navigator.serviceWorker
           .register(swPath, { scope })
           .catch(function (error) {
-            console.warn("Service worker registration promise rejected:", error);
+            console.warn(
+              "Service worker registration promise rejected:",
+              error,
+            );
           });
       } catch (error) {
         console.warn("Failed to register service worker:", error);

@@ -158,7 +158,8 @@ export async function getStatsText(currency = "USD") {
       });
       return `\n${table}\n`;
     }
-  } catch (error) { console.warn("Failed to load or process transaction stats JSON:", error);
+  } catch (error) {
+    console.warn("Failed to load or process transaction stats JSON:", error);
     // Fall through to legacy text fallback
   }
 
@@ -168,7 +169,8 @@ export async function getStatsText(currency = "USD") {
       return "Error loading transaction stats.";
     }
     return await response.text();
-  } catch (error) { console.warn("Failed to load transaction stats fallback text:", error);
+  } catch (error) {
+    console.warn("Failed to load transaction stats fallback text:", error);
     return "Error loading transaction stats.";
   }
 }
@@ -217,7 +219,8 @@ export async function getHoldingsText(currency = "USD") {
       });
       return `\n${table}\n`;
     }
-  } catch (error) { console.warn("Failed to load or process holdings summary JSON:", error);
+  } catch (error) {
+    console.warn("Failed to load or process holdings summary JSON:", error);
     // fallback to legacy text
   }
 
@@ -227,7 +230,8 @@ export async function getHoldingsText(currency = "USD") {
       return "Error loading holdings data.";
     }
     return await response.text();
-  } catch (error) { console.warn("Failed to load holdings summary fallback text:", error);
+  } catch (error) {
+    console.warn("Failed to load holdings summary fallback text:", error);
     return "Error loading holdings data.";
   }
 }
@@ -403,7 +407,8 @@ export async function getFinancialStatsText() {
             }),
             formatMarketCap(market.marketCap, currency),
           ];
-        } catch (error) { console.warn("Failed to process financial analysis metric:", error);
+        } catch (error) {
+          console.warn("Failed to process financial analysis metric:", error);
           return null;
         }
       }),
@@ -442,7 +447,8 @@ export async function getFinancialStatsText() {
     });
 
     return `\n${table}\n`;
-  } catch (error) { console.warn("Failed to load or process financial analysis data:", error);
+  } catch (error) {
+    console.warn("Failed to load or process financial analysis data:", error);
     return "Error loading financial analysis data.";
   }
 }
@@ -487,7 +493,8 @@ export async function getTechnicalStatsText() {
               mode: "fraction",
             }),
           ];
-        } catch (error) { console.warn("Failed to process technical analysis metric:", error);
+        } catch (error) {
+          console.warn("Failed to process technical analysis metric:", error);
           return null;
         }
       }),
@@ -526,7 +533,8 @@ export async function getTechnicalStatsText() {
     });
 
     return `\n${table}\n`;
-  } catch (error) { console.warn("Failed to load or process technical analysis data:", error);
+  } catch (error) {
+    console.warn("Failed to load or process technical analysis data:", error);
     return "Error loading technical analysis data.";
   }
 }
@@ -590,7 +598,8 @@ export async function getCagrText() {
       return "Error loading CAGR data.";
     }
     return await response.text();
-  } catch (error) { console.warn("Failed to load CAGR data:", error);
+  } catch (error) {
+    console.warn("Failed to load CAGR data:", error);
     return "Error loading CAGR data.";
   }
 }
@@ -602,7 +611,8 @@ export async function getAnnualReturnText() {
       return "Error loading annual returns.";
     }
     return await response.text();
-  } catch (error) { console.warn("Failed to load annual returns data:", error);
+  } catch (error) {
+    console.warn("Failed to load annual returns data:", error);
     return "Error loading annual returns.";
   }
 }
@@ -614,7 +624,8 @@ export async function getRatioText() {
       return "Error loading Sharpe and Sortino ratios.";
     }
     return await response.text();
-  } catch (error) { console.warn("Failed to load Sharpe and Sortino ratios:", error);
+  } catch (error) {
+    console.warn("Failed to load Sharpe and Sortino ratios:", error);
     return "Error loading Sharpe and Sortino ratios.";
   }
 }
