@@ -137,6 +137,13 @@ export function getHistoricalCurrencyValue(
  * @param {string} valueType Either 'total' or 'dailyChange' (used with entry).
  * @returns {string} The formatted number string.
  */
+function getConvertedNum(num, rates, currency, entry, valueType) {
+  if (entry && (valueType === "total" || valueType === "dailyChange")) {
+    return getHistoricalCurrencyValue(entry, currency, valueType);
+  }
+  return num * (rates[currency] || 1);
+}
+
 export function formatNumber(
   num,
   currencySymbols,
@@ -150,93 +157,59 @@ export function formatNumber(
     return "";
   }
 
-  let convertedNum;
-
-  // If we have historical data entry, use actual historical currency values
-  if (entry && (valueType === "total" || valueType === "dailyChange")) {
-    convertedNum = getHistoricalCurrencyValue(entry, currency, valueType);
-  } else {
-    // Fallback to rate conversion for real-time or non-historical data
-    convertedNum = num * (rates[currency] || 1);
-  }
-
+  const convertedNum = getConvertedNum(num, rates, currency, entry, valueType);
   const sign = convertedNum > 0 ? "+" : convertedNum < 0 ? "-" : "";
   const absNum = Math.abs(convertedNum);
-  let formattedNum;
-
   const symbol = currencySymbols[currency] || "";
 
   if (withSign) {
-    let val;
-    let suffix = "";
-    if (absNum >= 1e9) {
-      val = absNum / 1e9;
-      suffix = "b";
-    } else if (absNum >= 1e6) {
-      val = absNum / 1e6;
-      suffix = "m";
-    } else if (absNum >= 1e3) {
-      val = absNum / 1e3;
-      suffix = "k";
-    } else {
-      val = absNum;
-    }
-
-    let formattedVal;
-    if (val >= 100) {
-      formattedVal = val.toFixed(0);
-    } else if (val >= 10) {
-      formattedVal = val.toFixed(1);
-    } else if (val >= 1) {
-      formattedVal = val.toFixed(2);
-    } else {
-      formattedVal = val.toPrecision(3);
-    }
-
-    formattedNum = symbol + formattedVal + suffix;
-    return sign + formattedNum;
+    return sign + formatNumberWithSign(absNum, symbol);
   }
-  let val;
-  let suffix = "";
-  if (currency === "KRW" && absNum >= 1e6 && absNum < 1e9) {
-    val = absNum / 1e6;
-    suffix = "m";
-    let precision = 3 - Math.floor(Math.log10(val)) - 1;
-    if (precision < 0) {
-      precision = 0;
-    }
-    formattedNum = symbol + val.toFixed(precision) + suffix;
-  } else {
-    if (absNum >= 1e9) {
-      val = absNum / 1e9;
-      suffix = "b";
-    } else if (absNum >= 1e6) {
-      val = absNum / 1e6;
-      suffix = "m";
-    } else if (absNum >= 1e3) {
-      val = absNum / 1e3;
-      suffix = "k";
-    } else {
-      val = absNum;
-    }
+  return formatNumberWithoutSign(absNum, symbol, currency);
+}
 
-    let precision = 0;
-    if (val > 0) {
-      if (suffix === "" && val % 1 === 0) {
-        precision = 0;
-      } else {
-        precision = 4 - Math.floor(Math.log10(val)) - 1;
-        if (precision < 0) {
-          precision = 0;
-        }
-        if (suffix === "k" && precision > 2) {
-          precision = 2;
-        }
+function getMagnitude(num) {
+  if (num >= 1e9) return { val: num / 1e9, suffix: "b" };
+  if (num >= 1e6) return { val: num / 1e6, suffix: "m" };
+  if (num >= 1e3) return { val: num / 1e3, suffix: "k" };
+  return { val: num, suffix: "" };
+}
+
+function formatNumberWithSign(absNum, symbol) {
+  const { val, suffix } = getMagnitude(absNum);
+  let formattedVal;
+  if (val >= 100) {
+    formattedVal = val.toFixed(0);
+  } else if (val >= 10) {
+    formattedVal = val.toFixed(1);
+  } else if (val >= 1) {
+    formattedVal = val.toFixed(2);
+  } else {
+    formattedVal = val.toPrecision(3);
+  }
+  return symbol + formattedVal + suffix;
+}
+
+function formatNumberWithoutSign(absNum, symbol, currency) {
+  if (currency === "KRW" && absNum >= 1e6 && absNum < 1e9) {
+    const val = absNum / 1e6;
+    let precision = Math.max(0, 3 - Math.floor(Math.log10(val)) - 1);
+    return symbol + val.toFixed(precision) + "m";
+  }
+
+  const { val, suffix } = getMagnitude(absNum);
+  let precision = 0;
+  if (val > 0) {
+    if (suffix === "" && val % 1 === 0) {
+      precision = 0;
+    } else {
+      precision = Math.max(0, 4 - Math.floor(Math.log10(val)) - 1);
+      if (suffix === "k" && precision > 2) {
+        precision = 2;
       }
     }
-    formattedNum = symbol + val.toFixed(precision) + suffix;
   }
-  return formattedNum;
+  return symbol + val.toFixed(precision) + suffix;
 }
 
 /**
