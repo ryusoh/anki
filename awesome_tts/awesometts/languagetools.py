@@ -47,7 +47,7 @@ class LanguageTools:
 
     def verify_api_key(self, api_key):
         # first , try to verify API key with vocab API
-        response = requests.get(self.vocab_api_base_url + '/account', headers={'Authorization': f'Api-Key {api_key}'})
+        response = requests.get(self.vocab_api_base_url + '/account', headers={'Authorization': f'Api-Key {api_key}'}, timeout=10)
         if response.status_code == 200:
             # API key is valid on vocab API
             self.api_key = api_key
@@ -60,7 +60,7 @@ class LanguageTools:
         # now check with cloudlanguagetools API
         response = requests.get(self.base_url + '/account', headers={
             'api_key': api_key
-        })
+        }, timeout=10)
         if response.status_code == 200:
             data = response.json()
             if 'error' in data:
@@ -93,9 +93,9 @@ class LanguageTools:
         self.ensure_key_verified()
 
         if self.use_vocabai_api:
-            response = requests.get(self.vocab_api_base_url + '/account', headers={'Authorization': f'Api-Key {self.api_key}'})
+            response = requests.get(self.vocab_api_base_url + '/account', headers={'Authorization': f'Api-Key {self.api_key}'}, timeout=10)
         else:
-            response = requests.get(self.base_url + '/account', headers={'api_key': self.api_key})
+            response = requests.get(self.base_url + '/account', headers={'api_key': self.api_key}, timeout=10)
         data = json.loads(response.content)
         return data
 
@@ -130,12 +130,12 @@ class LanguageTools:
                 'X-Vocab-Addon-ID': self.client_uuid
             }
             full_url = self.vocab_api_base_url + '/audio'         
-            response = requests.post(full_url, json=data, headers=headers)
+            response = requests.post(full_url, json=data, headers=headers, timeout=10)
         else:
             url_path = '/audio_v2'
             full_url = self.base_url + url_path
             self.logger.info(f'request url: {full_url}, data: {data}')
-            response = requests.post(full_url, json=data, headers={'api_key': self.get_api_key(), 'client': 'awesometts', 'client_version': self.client_version})
+            response = requests.post(full_url, json=data, headers={'api_key': self.get_api_key(), 'client': 'awesometts', 'client_version': self.client_version}, timeout=10)
 
         if response.status_code == 200:
             self.logger.info('success, receiving audio')
@@ -196,7 +196,8 @@ class LanguageTools:
             
         response = requests.post(base_url + '/register_trial', 
                                  json=data,
-                                 headers=headers)
+                                 headers=headers,
+                                 timeout=10)
         
         try:
             data = json.loads(response.content)
