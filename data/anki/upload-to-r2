@@ -134,7 +134,8 @@ def fetch_all_private_data(source_db):
         if notetype['config']:
             try:
                 notetype['config'] = json.loads(notetype['config'])
-            except:
+            except Exception as e:
+                print(f"Failed to parse notetype config JSON: {e}")
                 pass
         notetypes.append(notetype)
     

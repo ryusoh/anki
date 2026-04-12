@@ -14,40 +14,53 @@ export function getNyDate() {
  * @param {Date} date The date to check (should be in NY timezone).
  * @returns {boolean} True if it's a trading day.
  */
-export function isTradingDay(date) {
-  const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+export function isWeekend(date) {
+  const dayOfWeek = date.getDay();
+  return dayOfWeek === 0 || dayOfWeek === 6;
+}
 
-  // Check if it's a weekend
-  if (dayOfWeek === 0 || dayOfWeek === 6) {
-    return false; // Sunday or Saturday
-  }
-
-  // Check major US market holidays (fixed dates)
-  const month = date.getMonth(); // 0-indexed
+export function isFixedHoliday(date) {
+  const month = date.getMonth();
   const day = date.getDate();
+  if (month === 0 && day === 1) return true;
+  if (month === 6 && day === 4) return true;
+  if (month === 11 && day === 25) return true;
+  if (month === 5 && day === 19) return true;
+  return false;
+}
 
-  // New Year's Day (Jan 1)
-  if (month === 0 && day === 1) return false;
-  // Independence Day (Jul 4)
-  if (month === 6 && day === 4) return false;
-  // Christmas Day (Dec 25)
-  if (month === 11 && day === 25) return false;
-  // Juneteenth National Independence Day (Jun 19)
-  if (month === 5 && day === 19) return false;
+export function isMLKOrWashington(month, dayOfWeek, day) {
+  if (month === 0 && dayOfWeek === 1 && day > 14 && day <= 21) return true;
+  if (month === 1 && dayOfWeek === 1 && day > 14 && day <= 21) return true;
+  return false;
+}
 
-  // MLK Jr. Day (3rd Monday of Jan)
-  if (month === 0 && dayOfWeek === 1 && day > 14 && day <= 21) return false;
-  // Washington's Birthday (3rd Monday of Feb)
-  if (month === 1 && dayOfWeek === 1 && day > 14 && day <= 21) return false;
-  // Memorial Day (Last Monday of May)
-  if (month === 4 && dayOfWeek === 1 && day > 24) return false;
-  // Labor Day (1st Monday of Sep)
-  if (month === 8 && dayOfWeek === 1 && day <= 7) return false;
-  // Thanksgiving Day (4th Thursday of Nov)
-  if (month === 10 && dayOfWeek === 4 && day > 21 && day <= 28) return false;
+export function isMemorialOrLabor(month, dayOfWeek, day) {
+  if (month === 4 && dayOfWeek === 1 && day > 24) return true;
+  if (month === 8 && dayOfWeek === 1 && day <= 7) return true;
+  return false;
+}
 
-  // Good Friday (2 days before Easter Sunday)
+export function isThanksgiving(month, dayOfWeek, day) {
+  if (month === 10 && dayOfWeek === 4 && day > 21 && day <= 28) return true;
+  return false;
+}
+
+export function isFloatingHoliday(date) {
+  const month = date.getMonth();
+  const day = date.getDate();
+  const dayOfWeek = date.getDay();
+
+  if (isMLKOrWashington(month, dayOfWeek, day)) return true;
+  if (isMemorialOrLabor(month, dayOfWeek, day)) return true;
+  if (isThanksgiving(month, dayOfWeek, day)) return true;
+  return false;
+}
+
+export function isGoodFriday(date) {
   const year = date.getFullYear();
+  const month = date.getMonth();
+  const day = date.getDate();
   const a = year % 19;
   const b = Math.floor(year / 100);
   const c = year % 100;
@@ -64,16 +77,25 @@ export function isTradingDay(date) {
   const easterDay = ((h + l - 7 * m + 114) % 31) + 1;
 
   const easterDate = new Date(year, easterMonth, easterDay);
-  // Subtracting 2 days gives us Good Friday
   const goodFridayDate = new Date(
     easterDate.getTime() - 2 * 24 * 60 * 60 * 1000,
   );
 
-  if (month === goodFridayDate.getMonth() && day === goodFridayDate.getDate()) {
-    return false;
-  }
+  return month === goodFridayDate.getMonth() && day === goodFridayDate.getDate();
+}
 
-  return true; // Monday through Friday
+/**
+ * Checks if a given date (in NY timezone) is a trading day.
+ * Trading days are Monday-Friday, excluding major US holidays.
+ * @param {Date} date The date to check (should be in NY timezone).
+ * @returns {boolean} True if it's a trading day.
+ */
+export function isTradingDay(date) {
+  if (isWeekend(date)) return false;
+  if (isFixedHoliday(date)) return false;
+  if (isFloatingHoliday(date)) return false;
+  if (isGoodFriday(date)) return false;
+  return true;
 }
 
 /**
