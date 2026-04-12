@@ -135,7 +135,7 @@ def fetch_all_private_data(source_db):
             try:
                 notetype['config'] = json.loads(notetype['config'])
             except Exception as e:
-                print(f"Failed to parse notetype config JSON: {e}")
+                print(f"Warning: Failed to parse notetype config JSON for ID {notetype.get('id')}: {e}")
                 pass
         notetypes.append(notetype)
     

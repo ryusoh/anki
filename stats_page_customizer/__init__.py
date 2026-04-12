@@ -105,21 +105,9 @@ def _inject_payload_into_html(html: str, payload: Dict[str, Any]) -> str:
     return f"{html}\n{injection}"
 
 
-def _gather_future_due(days: int = FUTURE_DUE_DAYS) -> List[Dict[str, int]]:
-    """Return daily mature/young counts for the next `days` days."""
-
-    max_days = max(0, int(days))
-    if not mw or not getattr(mw, "col", None):
-        _log("Collection unavailable; future due stats empty.")
-        return []
-
-    try:
-        today = mw.col.sched.today  # type: ignore[attr-defined]
-    except Exception as err:
-        _log(f"Failed to determine scheduler day: {err}")
-        return []
-
-    rows = mw.col.db.all(  # type: ignore[attr-defined]
+def _fetch_future_due_rows(today: int, max_days: int) -> List[Any]:
+    """Helper to fetch due counts from the database."""
+    return mw.col.db.all(  # type: ignore[attr-defined]
         """
         SELECT due - ? AS delta,
                SUM(CASE WHEN ivl >= ? THEN 1 ELSE 0 END) AS mature,
@@ -137,6 +125,8 @@ def _gather_future_due(days: int = FUTURE_DUE_DAYS) -> List[Dict[str, int]]:
         today + max_days,
     )
 
+def _process_future_due_rows(rows: List[Any], max_days: int) -> List[Dict[str, int]]:
+    """Helper to process database rows into the final list of dicts."""
     counts_by_day: Dict[int, Dict[str, int]] = {}
     for delta, mature, young in rows:
         day = int(delta or 0)
@@ -157,6 +147,23 @@ def _gather_future_due(days: int = FUTURE_DUE_DAYS) -> List[Dict[str, int]]:
                 "young": counts["young"] if counts else 0,
             }
         )
+    return future_due
+
+def _gather_future_due(days: int = FUTURE_DUE_DAYS) -> List[Dict[str, int]]:
+    """Return daily mature/young counts for the next `days` days."""
+    max_days = max(0, int(days))
+    if not mw or not getattr(mw, "col", None):
+        _log("Collection unavailable; future due stats empty.")
+        return []
+
+    try:
+        today = mw.col.sched.today  # type: ignore[attr-defined]
+    except Exception as err:
+        _log(f"Failed to determine scheduler day: {err}")
+        return []
+
+    rows = _fetch_future_due_rows(today, max_days)
+    future_due = _process_future_due_rows(rows, max_days)
 
     _log(f"Prepared futureDue data for {len(future_due)} days.")
     return future_due
