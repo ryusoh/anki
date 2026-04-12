@@ -25,3 +25,13 @@
 - **Code Hygiene:** Refactored `xxx_todo_changeme` variables in `awesome_tts/awesometts/__init__.py` to use descriptive names (`preset_item`, `group_item`), removing residual technical debt from automated `2to3` migrations.
 
 **Action:** Continue replacing generic `except:` statements across the codebase, always use contextually-aware exceptions like `ImportError` where applicable, and maintain smaller cyclomatic footprints in critical path functions.
+
+## 2024-06-15 - Cyclomatic Complexity and Error Resilience Audit
+
+**Learnings:**
+
+- **Structural Health:** Refactored complex search logic functions in `prioritize_front_field_search/search.py` (`extract_terms` and `build_tier1_query`) by extracting repetitive conditionals into internal helpers (`_extract_term_from_field`, `_process_query_part`, `_transform_tier1_part`). This significantly lowered their cyclomatic complexity (from C down to B and A grades in radon) and improved their readability without altering test behavior.
+- **Structural Health:** Streamlined `_gather_future_due` in `stats_page_customizer/__init__.py` by breaking out the database fetching and payload mapping logic into helper functions.
+- **Silent Failures:** Replaced remaining bare `except:` blocks in `data/anki/upload-to-r2` and `review_heatmap/libaddon/_vendor/logging/__init__.py` with specific `except Exception` blocks and context-aware error prints to ensure tracebacks are caught securely but not suppressed blindly.
+
+**Action:** Consistently break down query generation loops into discrete sub-functions for filtering logic, and always attach exceptions to logged warnings when patching legacy `except:` clauses.
