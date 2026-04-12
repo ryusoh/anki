@@ -123,7 +123,7 @@ class SAPI5COM(Service):
             try:
                 lang = str(self._voice_map[name].getAttribute('language')).lower().strip()
                 return '%s (%s)' % (name, LANGUAGE_CODES.get(lang, lang))
-            except:
+            except Exception:
                 return name
 
         return [

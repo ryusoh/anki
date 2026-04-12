@@ -172,21 +172,22 @@ class NotificationService(QObject):
         notification.closed.connect(self.close_current_notification)
 
     def close_current_notification(self):
+        from ..debug import logger
         if self._current_instance:
             try:
                 self._current_instance.deleteLater()
-            except Exception:
+            except Exception as e:
                 # already deleted as parent window closed
-                pass
+                logger.debug("Failed to delete notification instance (likely already deleted): %s", e)
             self._current_instance = None
         if self._current_event_filter:
             try:
                 if self._parent:
                     self._parent.removeEventFilter(self._current_event_filter)
                 self._current_event_filter.deleteLater()
-            except Exception:
+            except Exception as e:
                 # already deleted as parent window closed
-                pass
+                logger.debug("Failed to remove/delete event filter (likely already deleted): %s", e)
             self._current_event_filter = None
         if self._current_timer:
             self._current_timer.stop()

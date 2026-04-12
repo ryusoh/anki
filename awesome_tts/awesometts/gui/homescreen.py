@@ -1,5 +1,6 @@
 import aqt
 import anki.hooks
+import html
 import json
 import base64
 import aqt
@@ -65,7 +66,7 @@ def makeDeckBrowserRenderContent(addon):
             # no presets defined
             return
         preset_names.sort()
-        html_select_options = [f'<option value="{preset_name}" {"selected" if preset_name == addon.config["homescreen_last_preset"] else ""}>{preset_name}</option>' for preset_name in preset_names]
+        html_select_options = [f'<option value="{html.escape(preset_name, quote=True)}" {"selected" if preset_name == addon.config["homescreen_last_preset"] else ""}>{html.escape(preset_name, quote=False)}</option>' for preset_name in preset_names]
         html_select_options_str = '\n'.join(html_select_options)
 
         # theme colors are plagiarized from review heatmap

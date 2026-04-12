@@ -31,7 +31,7 @@ import aqt.utils
 try:
     import PyQt6
     QComboBoxType = PyQt6.QtWidgets.QComboBox
-except:
+except ImportError:
     import PyQt5
     QComboBoxType = PyQt5.QtWidgets.QComboBox
 

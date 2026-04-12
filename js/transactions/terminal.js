@@ -425,14 +425,13 @@ async function getCompositionSnapshotLine({
         (holding) => !normalized.has(holding.ticker.toUpperCase()),
       );
       if (remainder.length > 0) {
-        const totalPercent = remainder.reduce(
-          (sum, item) => sum + item.percent,
-          0,
-        );
-        const totalAbsolute = remainder.reduce(
-          (sum, item) => sum + item.absolute,
-          0,
-        );
+        // Bolt: Combine multiple chained .reduce() passes into a single O(N) loop to compute percent and absolute totals simultaneously.
+        let totalPercent = 0;
+        let totalAbsolute = 0;
+        for (let i = 0; i < remainder.length; i++) {
+          totalPercent += remainder[i].percent;
+          totalAbsolute += remainder[i].absolute;
+        }
         selected.push({
           ticker: "Others",
           percent: totalPercent,
@@ -459,14 +458,13 @@ async function getCompositionSnapshotLine({
             : getHoldingAssetClass(holding.ticker) === "etf",
         );
         if (remainder.length > 0) {
-          const totalPercent = remainder.reduce(
-            (sum, item) => sum + item.percent,
-            0,
-          );
-          const totalAbsolute = remainder.reduce(
-            (sum, item) => sum + item.absolute,
-            0,
-          );
+          // Bolt: Combine multiple chained .reduce() passes into a single O(N) loop to compute percent and absolute totals simultaneously.
+          let totalPercent = 0;
+          let totalAbsolute = 0;
+          for (let i = 0; i < remainder.length; i++) {
+            totalPercent += remainder[i].percent;
+            totalAbsolute += remainder[i].absolute;
+          }
           selected.push({
             ticker: "Others",
             percent: totalPercent,
@@ -1073,9 +1071,14 @@ export function initTerminal({
     if (!outputContainer) {
       return;
     }
-    const safeCommand = escapeHtml(command);
-    const prompt = `<div><span class="prompt-user">lz@fund:~$</span> ${safeCommand}</div>`;
-    outputContainer.insertAdjacentHTML("beforeend", prompt);
+
+    const div = document.createElement("div");
+    const span = document.createElement("span");
+    span.className = "prompt-user";
+    span.textContent = "lz@fund:~$";
+    div.appendChild(span);
+    div.appendChild(document.createTextNode(" " + command));
+    outputContainer.appendChild(div);
     requestFadeUpdate();
 
     const parts = command.toLowerCase().split(" ");

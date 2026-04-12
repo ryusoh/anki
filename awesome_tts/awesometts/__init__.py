@@ -53,23 +53,23 @@ def get_platform_info():
 
     try:
         import platform
-    except:  # catch-all, pylint:disable=bare-except
-        pass
+    except Exception as e:
+        logger.debug("Failed to import platform: %s", e)
     else:
         try:
             implementation = platform.python_implementation()
-        except:  # catch-all, pylint:disable=bare-except
-            pass
+        except Exception as e:
+            logger.debug("Failed to get platform.python_implementation(): %s", e)
 
         try:
             python_version = platform.python_version()
-        except:  # catch-all, pylint:disable=bare-except
-            pass
+        except Exception as e:
+            logger.debug("Failed to get platform.python_version(): %s", e)
 
         try:
             system_description = platform.platform().replace('-', ' ')
-        except:  # catch-all, pylint:disable=bare-except
-            pass
+        except Exception as e:
+            logger.debug("Failed to get platform.platform(): %s", e)
 
     return "%s %s; %s" % (implementation, python_version, system_description)
 
@@ -496,7 +496,8 @@ def cache_control():
 
         try:
             filenames = listdir(cache)
-        except:  # allow silent failure, pylint:disable=bare-except
+        except Exception as e:
+            logger.debug("Failed to listdir cache in on_unload_profile: %s", e)
             return
         if not filenames:
             return
@@ -515,8 +516,8 @@ def cache_control():
         for target in targets:
             try:
                 unlink(target)
-            except:  # skip broken files, pylint:disable=bare-except
-                pass
+            except Exception as e:
+                logger.debug("Failed to unlink cache target %s: %s", target, e)
 
     anki.hooks.addHook('unloadProfile', on_unload_profile)
 
@@ -747,9 +748,9 @@ def reviewer_hooks():
                 else:
                     needs_separator = True
 
-                def preset_glue(xxx_todo_changeme):
+                def preset_glue(preset_item):
                     """Closure for callback handler to access `preset`."""
-                    (name, preset) = xxx_todo_changeme
+                    (name, preset) = preset_item
                     submenu.addAction(
                         'Say "%s" w/ %s' % (say_display, name),
                         lambda: say_text_preset_handler(say_text,
@@ -766,9 +767,9 @@ def reviewer_hooks():
                 else:
                     needs_separator = True
 
-                def group_glue(xxx_todo_changeme1):
+                def group_glue(group_item):
                     """Closure for callback handler to access `group`."""
-                    (name, group) = xxx_todo_changeme1
+                    (name, group) = group_item
                     submenu.addAction(
                         'Say "%s" w/ %s' % (say_display, name),
                         lambda: say_text_group_handler(say_text,
@@ -805,7 +806,8 @@ def temp_files():
         try:
             subdirs = [join(temp, filename) for filename in listdir(temp)
                        if filename.startswith('_awesometts_scratch')]
-        except:  # allow silent failure, pylint:disable=bare-except
+        except Exception as e:
+            logger.debug("Failed to listdir temp dir: %s", e)
             return
         if not subdirs:
             return
@@ -815,12 +817,12 @@ def temp_files():
                 for filename in listdir(subdir):
                     try:
                         unlink(join(subdir, filename))
-                    except:  # skip busy files, pylint:disable=bare-except
-                        pass
+                    except Exception as e:
+                        logger.debug("Failed to unlink busy file %s in scratch dir: %s", filename, e)
                 try:
                     rmdir(subdir)
-                except:  # allow silent failure, pylint:disable=bare-except
-                    pass
+                except Exception as e:
+                    logger.debug("Failed to rmdir scratch dir %s: %s", subdir, e)
 
     anki.hooks.addHook('unloadProfile', on_unload_profile)
 

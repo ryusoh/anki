@@ -74,47 +74,51 @@ def check_for_credentials(filepath, content):
     
     return issues
 
+def _should_skip_file_for_private_data(filepath: str) -> bool:
+    """Helper to check if a file should be skipped for private data scanning."""
+    if filepath.endswith('.md') or 'docs/' in filepath:
+        return True
+    if 'vendor/' in filepath or 'node_modules/' in filepath:
+        return True
+    if filepath.endswith('notes.json.gz') or 'reviews/' in filepath:
+        return True
+    return False
+
+def _check_code_file_for_private_data(content: str) -> list:
+    """Check Python/JS files for private data patterns."""
+    issues = []
+    if 'ACCOUNT_ID' in content and len(content) > 1000:
+        if re.search(r"ACCOUNT_ID\s*=\s*['\"][a-f0-9]{32}['\"]", content):
+            issues.append("HARDCODED: ACCOUNT_ID with value")
+    return issues
+
+def _check_json_file_for_private_data(content: str) -> list:
+    """Check JSON files for private data patterns."""
+    issues = []
+    try:
+        data = json.loads(content)
+        if isinstance(data, list) and data:
+            first = data[0] if isinstance(data[0], dict) else {}
+            if 'flds' in first and ('mid' in first or 'guid' in first):
+                issues.append("PRIVATE: Contains flds + mid/guid (full note data)")
+            if 'tags' in first and 'flds' in first:
+                issues.append("PRIVATE: Contains tags + flds")
+    except Exception:
+        pass  # JSON parsing failure is ignored as file might not be standard JSON.
+    return issues
+
 def check_for_private_data(filepath, content):
     """Check for private Anki card data."""
-    issues = []
+    if _should_skip_file_for_private_data(filepath):
+        return []
     
-    # Skip documentation files (they mention field names but don't contain data)
-    if filepath.endswith('.md') or 'docs/' in filepath:
-        return issues
-    
-    # Skip vendor/third-party code
-    if 'vendor/' in filepath or 'node_modules/' in filepath:
-        return issues
-    
-    # Skip code files (they can mention field names)
     if filepath.endswith('.py') or filepath.endswith('.js'):
-        # But check for actual credential patterns in code
-        if 'ACCOUNT_ID' in content and len(content) > 1000:
-            # Check for hardcoded values
-            if re.search(r"ACCOUNT_ID\s*=\s*['\"][a-f0-9]{32}['\"]", content):
-                issues.append("HARDCODED: ACCOUNT_ID with value")
-        return issues
+        return _check_code_file_for_private_data(content)
     
-    # Skip anonymized data files (no flds, no tags)
-    if filepath.endswith('notes.json.gz') or 'reviews/' in filepath:
-        return issues
-    
-    # Check JSON files for private fields
     if filepath.endswith('.json'):
-        try:
-            data = json.loads(content)
-            if isinstance(data, list) and data:
-                first = data[0] if isinstance(data[0], dict) else {}
-                
-                # Dangerous combinations
-                if 'flds' in first and ('mid' in first or 'guid' in first):
-                    issues.append("PRIVATE: Contains flds + mid/guid (full note data)")
-                if 'tags' in first and 'flds' in first:
-                    issues.append("PRIVATE: Contains tags + flds")
-        except Exception:
-            pass # JSON parsing failure is ignored as file might not be standard JSON.
+        return _check_json_file_for_private_data(content)
     
-    return issues
+    return []
 
 def check_gitignore_coverage():
     """Check that sensitive directories are gitignored."""
@@ -136,17 +140,7 @@ def check_gitignore_coverage():
     
     return issues
 
-def main():
-    print(f"\n{BOLD}🔒 SECURITY AUDIT - Full Repository Scan{RESET}\n")
-    print("Scanning for:")
-    print("  • Hardcoded credentials")
-    print("  • Private Anki card data")
-    print("  • Gitignore coverage")
-    print()
-    
-    all_ok = True
-    
-    # Check gitignore coverage
+def _process_gitignore_coverage(all_ok: bool) -> bool:
     print(f"{BOLD}Checking .gitignore coverage...{RESET}")
     gitignore_issues = check_gitignore_coverage()
     for issue in gitignore_issues:
@@ -154,41 +148,38 @@ def main():
     if not gitignore_issues:
         success(".gitignore properly covers sensitive files")
     print()
-    
-    # Scan tracked files
+    return all_ok
+
+def _scan_tracked_files() -> list:
     print(f"{BOLD}Scanning tracked files...{RESET}")
     files = get_tracked_files()
     print(f"Found {len(files)} tracked files\n")
     
     critical_issues = []
-    warnings = []
     
     for filepath in files:
         full_path = Path(filepath)
         if not full_path.exists():
             continue
-        
-        # Skip binary files
         if filepath.endswith(('.png', '.jpg', '.gif', '.mp3', '.mp4', '.webm', '.woff', '.woff2')):
             continue
-        
         try:
             with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
         except Exception:
-            continue # Skip files that cannot be read.
-        
-        # Check for credentials
+            continue  # Skip files that cannot be read.
+
         cred_issues = check_for_credentials(filepath, content)
         for issue in cred_issues:
             critical_issues.append(f"{filepath}: {issue}")
-        
-        # Check for private data
+
         data_issues = check_for_private_data(filepath, content)
         for issue in data_issues:
             critical_issues.append(f"{filepath}: {issue}")
-    
-    # Report results
+
+    return critical_issues
+
+def _report_results(critical_issues: list, all_ok: bool) -> bool:
     print(f"{BOLD}{'='*70}{RESET}")
     print(f"{BOLD}AUDIT RESULTS{RESET}")
     print(f"{BOLD}{'='*70}{RESET}\n")
@@ -203,6 +194,20 @@ def main():
         success("No private card data found in tracked files")
     
     print()
+    return all_ok
+
+def main():
+    print(f"\n{BOLD}🔒 SECURITY AUDIT - Full Repository Scan{RESET}\n")
+    print("Scanning for:")
+    print("  • Hardcoded credentials")
+    print("  • Private Anki card data")
+    print("  • Gitignore coverage")
+    print()
+
+    all_ok = True
+    all_ok = _process_gitignore_coverage(all_ok)
+    critical_issues = _scan_tracked_files()
+    all_ok = _report_results(critical_issues, all_ok)
     
     if all_ok:
         print(f"{GREEN}{BOLD}✅ AUDIT PASSED - Repository appears clean{RESET}\n")

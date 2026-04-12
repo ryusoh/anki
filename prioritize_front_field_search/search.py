@@ -40,6 +40,26 @@ def score_front_match(text: str, term: str) -> int:
 
     return 0
 
+def _extract_term_from_field(field: str, value: str) -> str:
+    """Helper to extract search terms from a specific field match."""
+    if field.lower() not in ("front", "-front"):
+        return ""
+
+    term = value
+    if term.startswith('"') and term.endswith('"'):
+        term = term[1:-1]
+    term = term.replace('*', '')
+    return term
+
+def _process_query_part(part: str) -> str:
+    """Helper to process a non-field query part."""
+    if part.upper() == "OR" or (part.startswith('-') and not part == '-'):
+        return ""
+
+    if part.startswith('"') and part.endswith('"') and len(part) >= 2:
+        return part[1:-1]
+    return part.replace('*', '')
+
 def extract_terms(query: str) -> list[str]:
     """
     Extracts the search terms from a query string that we should use for ranking.
@@ -49,41 +69,34 @@ def extract_terms(query: str) -> list[str]:
         return []
 
     terms = []
-    # Split query string keeping quoted strings as single units
-    # Using possessive-like pattern to avoid catastrophic backtracking
-    # Pattern matches: field:"quoted value" OR "quoted" OR unquoted-terms
     for match in re.finditer(r'[a-zA-Z0-9_-]+:"(?:[^"\\]|\\.)*"|[^"\s]+|"(?:[^"\\]|\\.)*"', query):
         part = match.group(0)
-        if part.upper() == "OR":
-            continue
-        
-        # Check for field-specific search
         field_match = re.match(r'^([^:]+):(.*)$', part)
+
         if field_match:
-            field, value = field_match.groups()
-            # If it's a Front field search, we want the term
-            if field.lower() == "front" or field.lower() == "-front":
-                term = value
-                # Remove quotes and wildcards
-                if term.startswith('"') and term.endswith('"'):
-                    term = term[1:-1]
-                term = term.replace('*', '')
-                if term:
-                    terms.append(term)
-            continue
-            
-        if part.startswith('-') and not part == '-':
-            # Negated term, usually not used for ranking but could be
-            continue
-
-        # Normal search term
-        if part.startswith('"') and part.endswith('"') and len(part) >= 2:
-            terms.append(part[1:-1])
+            term = _extract_term_from_field(*field_match.groups())
+            if term:
+                terms.append(term)
         else:
-            # Remove wildcards for scoring
-            terms.append(part.replace('*', ''))
+            term = _process_query_part(part)
+            if term:
+                terms.append(term)
 
-    return [t for t in terms if t]
+    return terms
+
+
+def _transform_tier1_part(part: str) -> tuple[str, bool]:
+    """Helper to transform a single query part for Tier 1."""
+    if part.upper() == "OR" or re.match(r'^-?[a-zA-Z0-9_]+:', part) or (part.startswith('-') and not part == '-'):
+        return part, False
+
+    if part.startswith('"') and part.endswith('"') and len(part) >= 2:
+        return f'"Front:*{part[1:-1]}*"', True
+
+    if '*' in part:
+        return f'Front:{part}', True
+
+    return f'Front:*{part}*', True
 
 def build_tier1_query(query: str) -> str:
     """
@@ -94,38 +107,14 @@ def build_tier1_query(query: str) -> str:
     if not query:
         return ""
 
-    parts = []
-    # Split query string keeping quoted strings as single units
-    # Using possessive-like pattern to avoid catastrophic backtracking
-    # Pattern matches: field:"quoted value" OR "quoted" OR unquoted-terms
-    for match in re.finditer(r'[a-zA-Z0-9_-]+:"(?:[^"\\]|\\.)*"|[^"\s]+|"(?:[^"\\]|\\.)*"', query):
-        parts.append(match.group(0))
-
     tier_1_parts = []
     has_normal_terms = False
 
-    for part in parts:
-        if part.upper() == "OR":
-            tier_1_parts.append(part)
-        elif re.match(r'^-?[a-zA-Z0-9_]+:', part):
-            # Special field-like prefixes (deck:, is:, tag:, note:, Front:)
-            tier_1_parts.append(part)
-        elif part.startswith('-') and not part == '-':
-            # Negated normal terms
-            tier_1_parts.append(part)
-        else:
-            has_normal_terms = True
-            # Normal search term
-            if part.startswith('"') and part.endswith('"') and len(part) >= 2:
-                inner = part[1:-1]
-                tier_1_parts.append(f'"Front:*{inner}*"')
-            else:
-                if '*' in part:
-                    tier_1_parts.append(f'Front:{part}')
-                else:
-                    tier_1_parts.append(f'Front:*{part}*')
+    for match in re.finditer(r'[a-zA-Z0-9_-]+:"(?:[^"\\]|\\.)*"|[^"\s]+|"(?:[^"\\]|\\.)*"', query):
+        transformed, is_normal = _transform_tier1_part(match.group(0))
+        tier_1_parts.append(transformed)
+        has_normal_terms = has_normal_terms or is_normal
 
-    # If there are no normal terms, we don't need to tier it, return empty.
     if not has_normal_terms:
         return ""
 

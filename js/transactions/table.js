@@ -151,7 +151,7 @@ function displayTransactions(transactions) {
   if (!tbody) {
     return;
   }
-  tbody.innerHTML = "";
+  tbody.textContent = "";
   const runningTotalsMap = computeRunningTotals(
     transactions,
     transactionState.splitHistory,
@@ -187,15 +187,42 @@ function displayTransactions(transactions) {
       currency: currentCurrency,
     });
 
-    row.innerHTML = `
-            <td class="date">${escapeHtml(formatDate(transaction.tradeDate))}</td>
-            <td class="${escapeHtml(orderTypeClass)}">${escapeHtml(transaction.orderType)}</td>
-            <td>${escapeHtml(transaction.security)}</td>
-            <td>${escapeHtml(parseFloat(transaction.quantity).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}</td>
-            <td>${escapeHtml(formatCurrency(convertedPrice))}</td>
-            <td class="amount">${escapeHtml(formattedNetAmount)}</td>
-            <td class="amount">${escapeHtml(formattedPortfolio)}</td>
-        `;
+    const tdDate = document.createElement("td");
+    tdDate.className = "date";
+    tdDate.textContent = formatDate(transaction.tradeDate);
+
+    const tdOrderType = document.createElement("td");
+    tdOrderType.className = orderTypeClass;
+    tdOrderType.textContent = transaction.orderType;
+
+    const tdSecurity = document.createElement("td");
+    tdSecurity.textContent = transaction.security;
+
+    const tdQuantity = document.createElement("td");
+    tdQuantity.textContent = parseFloat(transaction.quantity).toLocaleString(
+      undefined,
+      { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+    );
+
+    const tdPrice = document.createElement("td");
+    tdPrice.textContent = formatCurrency(convertedPrice);
+
+    const tdAmount = document.createElement("td");
+    tdAmount.className = "amount";
+    tdAmount.textContent = formattedNetAmount;
+
+    const tdPortfolio = document.createElement("td");
+    tdPortfolio.className = "amount";
+    tdPortfolio.textContent = formattedPortfolio;
+
+    row.appendChild(tdDate);
+    row.appendChild(tdOrderType);
+    row.appendChild(tdSecurity);
+    row.appendChild(tdQuantity);
+    row.appendChild(tdPrice);
+    row.appendChild(tdAmount);
+    row.appendChild(tdPortfolio);
+
     tbody.appendChild(row);
   });
 
@@ -334,46 +361,54 @@ function filterAndSort(searchTerm = "") {
     return 0;
   };
 
+  const { column, order } = transactionState.sortState;
+
+  const sortMap = new Map(
+    filtered.map((t) => [
+      t,
+      {
+        date: new Date(t.tradeDate).getTime(),
+        securityLower: column === "security" ? t.security.toLowerCase() : null,
+        absAmount:
+          column === "netAmount"
+            ? Math.abs(
+                convertValueToCurrency(
+                  t.netAmount,
+                  t.tradeDate,
+                  currentCurrency,
+                ),
+              )
+            : null,
+      },
+    ]),
+  );
+
   filtered.sort((a, b) => {
-    const { column, order } = transactionState.sortState;
+    const aData = sortMap.get(a);
+    const bData = sortMap.get(b);
+
     switch (column) {
       case "security": {
         const result = compareValues(
-          a.security.toLowerCase(),
-          b.security.toLowerCase(),
+          aData.securityLower,
+          bData.securityLower,
           order,
         );
         if (result !== 0) {
           return result;
         }
-        return compareValues(
-          new Date(a.tradeDate).getTime(),
-          new Date(b.tradeDate).getTime(),
-          "desc",
-        );
+        return compareValues(aData.date, bData.date, "desc");
       }
       case "netAmount": {
-        const amountA = Math.abs(
-          convertValueToCurrency(a.netAmount, a.tradeDate, currentCurrency),
-        );
-        const amountB = Math.abs(
-          convertValueToCurrency(b.netAmount, b.tradeDate, currentCurrency),
-        );
-        const result = compareValues(amountA, amountB, order);
+        const result = compareValues(aData.absAmount, bData.absAmount, order);
         if (result !== 0) {
           return result;
         }
-        return compareValues(
-          new Date(a.tradeDate).getTime(),
-          new Date(b.tradeDate).getTime(),
-          "desc",
-        );
+        return compareValues(aData.date, bData.date, "desc");
       }
       case "tradeDate":
       default: {
-        const dateA = new Date(a.tradeDate).getTime();
-        const dateB = new Date(b.tradeDate).getTime();
-        const dateComparison = compareValues(dateA, dateB, order);
+        const dateComparison = compareValues(aData.date, bData.date, order);
         if (dateComparison !== 0) {
           return dateComparison;
         }

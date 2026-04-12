@@ -36,7 +36,7 @@ jobs:
 
       - name: Create PR if vulnerabilities found
         # codeql[js/unpinned-tag] Tag v7.0.5 pinned to SHA: 5e914681df9dc83aa4e4905692ca88beb2f9e91f
-        uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1
         with:
           commit-message: "security: auto-fix npm vulnerabilities"
           title: "security: fix npm vulnerabilities"

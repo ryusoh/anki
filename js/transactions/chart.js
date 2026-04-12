@@ -36,7 +36,7 @@ import {
   getCompositionFilterTickers,
   getCompositionAssetClassFilter,
 } from "./state.js";
-import { getSplitAdjustment } from "./calculations.js";
+import { getSplitAdjustment, buildSplitDictionary } from "./calculations.js";
 import {
   formatCurrencyCompact,
   formatCurrencyInlineValue,
@@ -321,24 +321,24 @@ export function buildFxChartSeries(baseCurrency) {
       if (dateSource.length === 0) {
         return;
       }
-      const points = dateSource
-        .map(({ date }) => {
-          const value = convertBetweenCurrencies(
-            1,
-            normalizedBase,
-            date,
-            currency,
-          );
-          if (!Number.isFinite(value)) {
-            return null;
-          }
+      // Bolt: Use a single O(N) loop instead of map().filter() pass
+      // to reduce GC pressure and intermediate allocations.
+      const points = [];
+      for (let i = 0; i < dateSource.length; i++) {
+        const { date } = dateSource[i];
+        const value = convertBetweenCurrencies(
+          1,
+          normalizedBase,
+          date,
+          currency,
+        );
+        if (Number.isFinite(value)) {
           const parsedDate = new Date(date);
-          if (Number.isNaN(parsedDate.getTime())) {
-            return null;
+          if (!Number.isNaN(parsedDate.getTime())) {
+            points.push({ date: parsedDate, value });
           }
-          return { date: parsedDate, value };
-        })
-        .filter(Boolean);
+        }
+      }
       if (!points.length) {
         return;
       }
@@ -1259,11 +1259,14 @@ export function buildContributionSeriesFromTransactions(
     return [];
   }
 
-  const sortedTransactions = [...transactions].sort(
-    (a, b) =>
-      new Date(a.tradeDate) - new Date(b.tradeDate) ||
-      (a.transactionId ?? 0) - (b.transactionId ?? 0),
-  );
+  const sortedTransactions = [...transactions]
+    .map((t) => ({ t, parsedDate: new Date(t.tradeDate).getTime() }))
+    .sort(
+      (a, b) =>
+        a.parsedDate - b.parsedDate ||
+        (a.t.transactionId ?? 0) - (b.t.transactionId ?? 0),
+    )
+    .map(({ t }) => t);
 
   const series = [];
   let cumulativeAmount = 0;
@@ -1419,11 +1422,14 @@ export function buildFilteredBalanceSeries(
     return [];
   }
 
-  const sortedTransactions = [...transactions].sort(
-    (a, b) =>
-      new Date(a.tradeDate) - new Date(b.tradeDate) ||
-      (a.transactionId ?? 0) - (b.transactionId ?? 0),
-  );
+  const sortedTransactions = [...transactions]
+    .map((t) => ({ t, parsedDate: new Date(t.tradeDate).getTime() }))
+    .sort(
+      (a, b) =>
+        a.parsedDate - b.parsedDate ||
+        (a.t.transactionId ?? 0) - (b.t.transactionId ?? 0),
+    )
+    .map(({ t }) => t);
 
   const firstDate = new Date(sortedTransactions[0].tradeDate);
   const lastTransactionDate = new Date(
@@ -1470,6 +1476,10 @@ export function buildFilteredBalanceSeries(
   const series = [];
   const iterationStart = new Date(firstDate);
   iterationStart.setDate(iterationStart.getDate() - 1);
+
+  // Bolt: Pre-process split history into a map for O(1) lookups
+  // to avoid O(N*M) scanning inside the hot daily calculation loop.
+  const splitDict = buildSplitDictionary(splitHistory);
 
   const iterDate = new Date(iterationStart);
 
@@ -1519,7 +1529,7 @@ export function buildFilteredBalanceSeries(
       if (price === null) {
         return;
       }
-      const adjustment = getSplitAdjustment(splitHistory, symbol, dateStr);
+      const adjustment = getSplitAdjustment(splitDict, symbol, dateStr);
       totalValue += qty * price * adjustment;
     });
 
@@ -2955,19 +2965,32 @@ async function drawContributionChart(ctx, chartManager, timestamp) {
     });
   };
 
-  const rawContributionData = filterDataByDateRange(
-    (contributionSource || [])
-      .map((item) => ({
-        ...item,
-        date: parseLocalDate(item.tradeDate || item.date),
-      }))
-      .filter((item) => item.date && !Number.isNaN(item.date.getTime())),
-  );
-  const mappedBalanceSource = showBalance
-    ? (balanceSource || [])
-        .map((item) => ({ ...item, date: parseLocalDate(item.date) }))
-        .filter((item) => item.date && !Number.isNaN(item.date.getTime()))
-    : [];
+  // ⚡ Bolt: Fuses .map() and .filter() into a single for-loop to prevent
+  // intermediate array allocations during parsing of contribution data, reducing Garbage Collection overhead on render path.
+  const parsedContributionSource = [];
+  if (contributionSource) {
+    for (let i = 0; i < contributionSource.length; i++) {
+      const item = contributionSource[i];
+      const parsedDate = parseLocalDate(item.tradeDate || item.date);
+      if (parsedDate && !Number.isNaN(parsedDate.getTime())) {
+        parsedContributionSource.push({ ...item, date: parsedDate });
+      }
+    }
+  }
+  const rawContributionData = filterDataByDateRange(parsedContributionSource);
+
+  // ⚡ Bolt: Fuses .map() and .filter() into a single for-loop to prevent
+  // intermediate array allocations during parsing of balance data, reducing Garbage Collection overhead on render path.
+  const mappedBalanceSource = [];
+  if (showBalance && balanceSource) {
+    for (let i = 0; i < balanceSource.length; i++) {
+      const item = balanceSource[i];
+      const parsedDate = parseLocalDate(item.date);
+      if (parsedDate && !Number.isNaN(parsedDate.getTime())) {
+        mappedBalanceSource.push({ ...item, date: parsedDate });
+      }
+    }
+  }
   const rawBalanceData = showBalance
     ? injectSyntheticStartPoint(
         filterDataByDateRange(mappedBalanceSource),
@@ -4378,29 +4401,43 @@ function drawFxChart(ctx, chartManager, timestamp) {
   const filterFrom = chartDateRange.from ? new Date(chartDateRange.from) : null;
   const filterTo = chartDateRange.to ? new Date(chartDateRange.to) : null;
 
-  const filteredSeries = seriesData
-    .map((series) => {
-      const filtered = series.data.filter((point) => {
-        const date = point.date;
-        return (
-          (!filterFrom || date >= filterFrom) && (!filterTo || date <= filterTo)
-        );
-      });
-      if (!filtered.length) {
-        return { ...series, data: [] };
+  // Bolt Optimization: Replace O(N) chained array methods with a single loop
+  // Avoid creating intermediate filtered arrays and recalculating base constraints
+  const filteredSeries = [];
+  const filterFromTime = filterFrom ? filterFrom.getTime() : -Infinity;
+  const filterToTime = filterTo ? filterTo.getTime() : Infinity;
+
+  for (let i = 0; i < seriesData.length; i++) {
+    const series = seriesData[i];
+    const percentData = [];
+    let safeBase = null;
+
+    for (let j = 0; j < series.data.length; j++) {
+      const point = series.data[j];
+      const pointTime =
+        point.date instanceof Date
+          ? point.date.getTime()
+          : new Date(point.date).getTime();
+
+      if (pointTime >= filterFromTime && pointTime <= filterToTime) {
+        if (safeBase === null) {
+          const baseValue = point.value;
+          safeBase =
+            Number.isFinite(baseValue) && baseValue !== 0 ? baseValue : 1;
+        }
+
+        percentData.push({
+          ...point,
+          percent: ((point.value - safeBase) / safeBase) * 100,
+          rawValue: point.value,
+        });
       }
-      // Normalize to percent change since first point
-      const baseValue = filtered[0].value;
-      const safeBase =
-        Number.isFinite(baseValue) && baseValue !== 0 ? baseValue : 1;
-      const percentData = filtered.map((point) => ({
-        ...point,
-        percent: ((point.value - safeBase) / safeBase) * 100,
-        rawValue: point.value,
-      }));
-      return { ...series, data: percentData };
-    })
-    .filter((series) => series.data.length > 0);
+    }
+
+    if (percentData.length > 0) {
+      filteredSeries.push({ ...series, data: percentData });
+    }
+  }
 
   if (!filteredSeries.length) {
     if (emptyState) {
@@ -4835,40 +4872,59 @@ function renderCompositionChartWithMode(ctx, chartManager, data, options = {}) {
   const rawTotalValues = Array.isArray(data.total_values)
     ? data.total_values
     : [];
-  const mappedTotalValues =
-    filteredIndices.length > 0
-      ? filteredIndices.map((index) => Number(rawTotalValues[index] ?? 0))
-      : rawTotalValues.map((value) => Number(value ?? 0));
-  const totalValuesUsd =
-    mappedTotalValues.length === dates.length
-      ? mappedTotalValues
-      : dates.map((_, idx) => Number(mappedTotalValues[idx] ?? 0));
-  const totalValuesConverted = totalValuesUsd.map((value, idx) => {
-    const converted = convertValueToCurrency(
-      value,
-      dates[idx],
-      selectedCurrency,
-    );
-    return Number.isFinite(converted) ? converted : 0;
-  });
+
+  // Bolt Optimization: Replace O(N) chained array methods with a single loop
+  // Fuses .map() calls into a single loop to avoid multiple intermediate array allocations.
+  const totalValuesConverted = new Array(dates.length);
+  if (filteredIndices.length > 0) {
+    for (let i = 0; i < dates.length; i++) {
+      const idx = filteredIndices[i];
+      const val = idx !== undefined ? Number(rawTotalValues[idx] ?? 0) : 0;
+      const converted = convertValueToCurrency(val, dates[i], selectedCurrency);
+      totalValuesConverted[i] = Number.isFinite(converted) ? converted : 0;
+    }
+  } else {
+    for (let i = 0; i < dates.length; i++) {
+      const val =
+        i < rawTotalValues.length ? Number(rawTotalValues[i] ?? 0) : 0;
+      const converted = convertValueToCurrency(val, dates[i], selectedCurrency);
+      totalValuesConverted[i] = Number.isFinite(converted) ? converted : 0;
+    }
+  }
 
   const percentSeriesMap = {};
   const chartData = {};
   Object.entries(rawSeries).forEach(([ticker, values]) => {
     const arr = Array.isArray(values) ? values : [];
-    const mappedPercent =
-      filteredIndices.length > 0
-        ? filteredIndices.map((i) => Number(arr[i] ?? 0))
-        : arr.map((value) => Number(value ?? 0));
-    const percentValues =
-      mappedPercent.length === dates.length
-        ? mappedPercent
-        : dates.map((_, idx) => Number(mappedPercent[idx] ?? 0));
+    const percentValues = new Array(dates.length);
+    let chartDataValues;
+
+    if (valueMode === "absolute") {
+      chartDataValues = new Array(dates.length);
+    }
+
+    if (filteredIndices.length > 0) {
+      for (let i = 0; i < dates.length; i++) {
+        const idx = filteredIndices[i];
+        const pct = idx !== undefined ? Number(arr[idx] ?? 0) : 0;
+        percentValues[i] = pct;
+        if (valueMode === "absolute") {
+          chartDataValues[i] = ((totalValuesConverted[i] ?? 0) * pct) / 100;
+        }
+      }
+    } else {
+      for (let i = 0; i < dates.length; i++) {
+        const pct = i < arr.length ? Number(arr[i] ?? 0) : 0;
+        percentValues[i] = pct;
+        if (valueMode === "absolute") {
+          chartDataValues[i] = ((totalValuesConverted[i] ?? 0) * pct) / 100;
+        }
+      }
+    }
+
     percentSeriesMap[ticker] = percentValues;
     if (valueMode === "absolute") {
-      chartData[ticker] = percentValues.map(
-        (pct, idx) => ((totalValuesConverted[idx] ?? 0) * pct) / 100,
-      );
+      chartData[ticker] = chartDataValues;
     } else {
       chartData[ticker] = percentValues;
     }
@@ -5030,9 +5086,11 @@ function renderCompositionChartWithMode(ctx, chartManager, data, options = {}) {
     ctx.fill();
     ctx.stroke();
 
-    cumulativeValues = cumulativeValues.map(
-      (val, index) => val + values[index],
-    );
+    // ⚡ Bolt: Mutate in-place instead of .map() to prevent creating intermediate
+    // arrays for cumulative values on every ticker, eliminating GC pressure in the render loop.
+    for (let i = 0; i < cumulativeValues.length; i++) {
+      cumulativeValues[i] += values[i];
+    }
   });
 
   const latestIndex = dates.length - 1;
@@ -5068,9 +5126,17 @@ function renderCompositionChartWithMode(ctx, chartManager, data, options = {}) {
     };
   };
 
-  const latestHoldings = activeTickerOrder
-    .filter((ticker) => shouldIncludeOthers || ticker !== "Others")
-    .map(buildHoldingInfo)
+  // ⚡ Bolt: Fuses .map() and .filter() chains into a single for-loop to prevent
+  // intermediate array allocations during legend generation, reducing GC pressure.
+  const allValidHoldings = [];
+  for (let i = 0; i < activeTickerOrder.length; i++) {
+    const ticker = activeTickerOrder[i];
+    if (shouldIncludeOthers || ticker !== "Others") {
+      allValidHoldings.push(buildHoldingInfo(ticker));
+    }
+  }
+
+  const latestHoldings = allValidHoldings
     .filter((holding) => holding.percent > 0.1)
     .sort((a, b) => b.percent - a.percent)
     .slice(0, 6);
@@ -5078,11 +5144,7 @@ function renderCompositionChartWithMode(ctx, chartManager, data, options = {}) {
   const holdingsForLegend =
     latestHoldings.length > 0
       ? latestHoldings
-      : activeTickerOrder
-          .filter((ticker) => shouldIncludeOthers || ticker !== "Others")
-          .map(buildHoldingInfo)
-          .sort((a, b) => b.percent - a.percent)
-          .slice(0, 6);
+      : [...allValidHoldings].sort((a, b) => b.percent - a.percent).slice(0, 6);
 
   const legendSeries = holdingsForLegend.map((holding) => {
     const displayName = holding.ticker === "BRKB" ? "BRK-B" : holding.ticker;
