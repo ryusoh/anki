@@ -26,6 +26,11 @@
 
 **Action:** Continue replacing generic `except:` statements across the codebase, always use contextually-aware exceptions like `ImportError` where applicable, and maintain smaller cyclomatic footprints in critical path functions.
 
+## 2026-04-04 - Code Health & Error Handling
+
+**Learning:** Avoid bare `except:` blocks as they catch system exceptions like `KeyboardInterrupt`. Use `except Exception:` to restrict error catching to application errors while maintaining the required fallback control flow.
+**Action:** Consistently replace bare `except:` with `except Exception:` and ensure comments or logging exist for fallback logic.
+
 ## 2024-06-15 - Cyclomatic Complexity and Error Resilience Audit
 
 **Learnings:**

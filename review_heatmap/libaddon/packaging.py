@@ -214,11 +214,11 @@ def addSubdirPathToModuleLookup(path):
     """
     assert isinstance(path, STRINGTYPES)
     assert os.path.isdir(path)
-    # TODO: refactor
-    for path in [os.path.join(path, subdir) for subdir in LOOKUP_SUBDIRS]:
-        if not os.path.isdir(path):
+
+    for subdir_path in [os.path.join(path, subdir) for subdir in LOOKUP_SUBDIRS]:
+        if not os.path.isdir(subdir_path):
             continue
-        _addPathToModuleLookup(path)
+        _addPathToModuleLookup(subdir_path)
 
 
 # Installing binary dependencies (that are either part of a

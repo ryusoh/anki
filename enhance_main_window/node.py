@@ -93,6 +93,7 @@ class DeckNode:
         try:
             self.name, self.did, self.dueRevCards, self.dueLrnReps, self.newCardsToday, self.oldChildren = oldNode
         except Exception:
+            # Fallback for Anki versions where oldNode is an object, not a tuple
             self.name = oldNode.name; self.did = oldNode.deck_id; self.dueRevCards = oldNode.review_count; self.dueLrnReps = oldNode.learn_count; self.newCardsToday = oldNode.new_count; self.oldChildren = oldNode.children;
         self.deck = mw.col.decks.get(self.did)
 
@@ -653,6 +654,7 @@ def renderDeckTree(self, nodes, depth=0):
         try:
             nodes = [make(node) for node in nodes]
         except Exception:
+            # Fallback for Anki versions where nodes list is wrapped in an object
             nodes = [make(node) for node in nodes.children]
         buf = f"""<style>{css}</style><script>{js}</script>"""
         if not getUserOption("hide header row", False):
