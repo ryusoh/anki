@@ -83,3 +83,9 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Vulnerability:** Unsanitized string interpolation (`%s`) was used to insert variable table and column names directly into SQLite commands like `PRAGMA table_info`, `ALTER TABLE`, and `UPDATE` in `awesome_tts/awesometts/config.py`.
 **Learning:** SQLite parameterization (`?`) only works for values, not for identifiers like table or column names. Using `%s` for identifiers leaves the application vulnerable to SQL injection if those names originate from untrusted sources.
 **Prevention:** Always quote identifiers by wrapping them in double quotes (`"`) and escaping any internal double quotes with `.replace('"', '""')` before using string interpolation to safely construct dynamic schema modifications.
+
+## 2025-04-10 - CRITICAL: Fix exec() vulnerability in awesome_tts
+
+**Vulnerability:** Found `exec()` being used in `awesome_tts/awesometts/languagetools.py` to evaluate base64-encoded strings imported from an obfuscated `trial.py` module.
+**Learning:** This obfuscated approach was used for loading `py-machineid` logic to fingerprint hosts securely, but utilizing `exec()` introduces significant remote code execution (RCE) and code injection risks, while heavily diminishing code readability and audibility.
+**Prevention:** Avoid `exec()` unconditionally. Replace such obfuscation layers with directly imported code. In this case, I created a safe, de-obfuscated `machineid.py` and computed the HMAC directly to remove all base64+exec vulnerabilities.
