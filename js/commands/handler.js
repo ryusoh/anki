@@ -700,11 +700,13 @@ export function handleCommand(input, appendLine) {
   const dynamicPatterns = [
     /^plot\s+(due|reviews\s+time\s+deck|reviews\s+deck\s+time|reviews\s+deck|reviews\s+time|reviews|retention)\s+(.+)$/,
     /^(due|future|reviews\s+time\s+deck|reviews\s+deck\s+time|reviews\s+deck|reviews\s+time|reviews|retention)\s+(.+)$/,
-    /^show\s+(due|future|reviews)\s+(.+)$/,
+    /^show\s+(due|future|reviews|.*)\s*(.*)$/,
   ];
   const isDynamic = dynamicPatterns.some((re) => {
     const match = normalized.match(re);
-    return match && isValidRange(match[match.length - 1]);
+    // Let dynamic pattern pass even if invalid range so we can handle invalid range error msg
+    // The previous check was requiring a VALID range. We just need to know if the pattern matches.
+    return match !== null;
   });
 
   // If command is not valid in trie, not a shortcut, and not dynamic, reject it

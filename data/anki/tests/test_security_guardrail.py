@@ -27,7 +27,7 @@ class TestSecurityGuardrail(unittest.TestCase):
             json.dump(leaked_data, f)
             
         # Run the check
-        violations = check_file_for_private_data(str(self.leaked_file), "")
+        violations = check_file_for_private_data(str(self.leaked_file), "", str(self.leaked_file))
         
         # Verify it caught the leak
         self.assertTrue(any(v['type'] == 'data_leak_regression' for v in violations), 
@@ -48,7 +48,7 @@ class TestSecurityGuardrail(unittest.TestCase):
             json.dump(clean_data, f)
             
         # Run the check
-        violations = check_file_for_private_data(str(self.leaked_file), "")
+        violations = check_file_for_private_data(str(self.leaked_file), "", str(self.leaked_file))
         
         # Verify no regressions found
         regressions = [v for v in violations if v['type'] == 'data_leak_regression']

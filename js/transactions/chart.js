@@ -321,24 +321,24 @@ export function buildFxChartSeries(baseCurrency) {
       if (dateSource.length === 0) {
         return;
       }
-      const points = dateSource
-        .map(({ date }) => {
-          const value = convertBetweenCurrencies(
-            1,
-            normalizedBase,
-            date,
-            currency,
-          );
-          if (!Number.isFinite(value)) {
-            return null;
-          }
+      // Bolt: Use a single O(N) loop instead of map().filter() pass
+      // to reduce GC pressure and intermediate allocations.
+      const points = [];
+      for (let i = 0; i < dateSource.length; i++) {
+        const { date } = dateSource[i];
+        const value = convertBetweenCurrencies(
+          1,
+          normalizedBase,
+          date,
+          currency,
+        );
+        if (Number.isFinite(value)) {
           const parsedDate = new Date(date);
-          if (Number.isNaN(parsedDate.getTime())) {
-            return null;
+          if (!Number.isNaN(parsedDate.getTime())) {
+            points.push({ date: parsedDate, value });
           }
-          return { date: parsedDate, value };
-        })
-        .filter(Boolean);
+        }
+      }
       if (!points.length) {
         return;
       }
@@ -4872,40 +4872,59 @@ function renderCompositionChartWithMode(ctx, chartManager, data, options = {}) {
   const rawTotalValues = Array.isArray(data.total_values)
     ? data.total_values
     : [];
-  const mappedTotalValues =
-    filteredIndices.length > 0
-      ? filteredIndices.map((index) => Number(rawTotalValues[index] ?? 0))
-      : rawTotalValues.map((value) => Number(value ?? 0));
-  const totalValuesUsd =
-    mappedTotalValues.length === dates.length
-      ? mappedTotalValues
-      : dates.map((_, idx) => Number(mappedTotalValues[idx] ?? 0));
-  const totalValuesConverted = totalValuesUsd.map((value, idx) => {
-    const converted = convertValueToCurrency(
-      value,
-      dates[idx],
-      selectedCurrency,
-    );
-    return Number.isFinite(converted) ? converted : 0;
-  });
+
+  // Bolt Optimization: Replace O(N) chained array methods with a single loop
+  // Fuses .map() calls into a single loop to avoid multiple intermediate array allocations.
+  const totalValuesConverted = new Array(dates.length);
+  if (filteredIndices.length > 0) {
+    for (let i = 0; i < dates.length; i++) {
+      const idx = filteredIndices[i];
+      const val = idx !== undefined ? Number(rawTotalValues[idx] ?? 0) : 0;
+      const converted = convertValueToCurrency(val, dates[i], selectedCurrency);
+      totalValuesConverted[i] = Number.isFinite(converted) ? converted : 0;
+    }
+  } else {
+    for (let i = 0; i < dates.length; i++) {
+      const val =
+        i < rawTotalValues.length ? Number(rawTotalValues[i] ?? 0) : 0;
+      const converted = convertValueToCurrency(val, dates[i], selectedCurrency);
+      totalValuesConverted[i] = Number.isFinite(converted) ? converted : 0;
+    }
+  }
 
   const percentSeriesMap = {};
   const chartData = {};
   Object.entries(rawSeries).forEach(([ticker, values]) => {
     const arr = Array.isArray(values) ? values : [];
-    const mappedPercent =
-      filteredIndices.length > 0
-        ? filteredIndices.map((i) => Number(arr[i] ?? 0))
-        : arr.map((value) => Number(value ?? 0));
-    const percentValues =
-      mappedPercent.length === dates.length
-        ? mappedPercent
-        : dates.map((_, idx) => Number(mappedPercent[idx] ?? 0));
+    const percentValues = new Array(dates.length);
+    let chartDataValues;
+
+    if (valueMode === "absolute") {
+      chartDataValues = new Array(dates.length);
+    }
+
+    if (filteredIndices.length > 0) {
+      for (let i = 0; i < dates.length; i++) {
+        const idx = filteredIndices[i];
+        const pct = idx !== undefined ? Number(arr[idx] ?? 0) : 0;
+        percentValues[i] = pct;
+        if (valueMode === "absolute") {
+          chartDataValues[i] = ((totalValuesConverted[i] ?? 0) * pct) / 100;
+        }
+      }
+    } else {
+      for (let i = 0; i < dates.length; i++) {
+        const pct = i < arr.length ? Number(arr[i] ?? 0) : 0;
+        percentValues[i] = pct;
+        if (valueMode === "absolute") {
+          chartDataValues[i] = ((totalValuesConverted[i] ?? 0) * pct) / 100;
+        }
+      }
+    }
+
     percentSeriesMap[ticker] = percentValues;
     if (valueMode === "absolute") {
-      chartData[ticker] = percentValues.map(
-        (pct, idx) => ((totalValuesConverted[idx] ?? 0) * pct) / 100,
-      );
+      chartData[ticker] = chartDataValues;
     } else {
       chartData[ticker] = percentValues;
     }
@@ -5067,9 +5086,11 @@ function renderCompositionChartWithMode(ctx, chartManager, data, options = {}) {
     ctx.fill();
     ctx.stroke();
 
-    cumulativeValues = cumulativeValues.map(
-      (val, index) => val + values[index],
-    );
+    // ⚡ Bolt: Mutate in-place instead of .map() to prevent creating intermediate
+    // arrays for cumulative values on every ticker, eliminating GC pressure in the render loop.
+    for (let i = 0; i < cumulativeValues.length; i++) {
+      cumulativeValues[i] += values[i];
+    }
   });
 
   const latestIndex = dates.length - 1;

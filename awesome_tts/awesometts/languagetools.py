@@ -2,10 +2,12 @@ import os
 import requests
 import json
 import base64
+import hashlib
+import hmac
 from typing import Optional
 from dataclasses import dataclass
 
-from . import trial
+from . import machineid
 
 @dataclass
 class TrialRequestReponse:
@@ -145,11 +147,28 @@ class LanguageTools:
             raise ValueError(error_message)                    
 
 
+    def compute_hmac_signature(self, email, client_uuid, machine_id):
+        secret_key = os.environ.get('ANKI_LANGUAGE_TOOLS_TRIAL_SECRET_KEY', 'kXpZuHms9Rv0Y4wqlcze')
+
+        message = f"{email}:{client_uuid}:{machine_id}".encode('utf-8')
+        signature = hmac.new(
+            secret_key.encode('utf-8'),
+            message,
+            hashlib.sha256
+        ).hexdigest()
+
+        return signature
+
     def build_trial_key_request_data(self, email, password, client_uuid):
-        namespace = {}
-        exec(base64.b64decode(trial.TRIAL_CHECK_1).decode('utf-8'), namespace)        
-        exec(base64.b64decode(trial.REQUEST_TRIAL_PAYLOAD).decode('utf-8'), namespace)
-        data = namespace['build_trial_request_payload'](email, client_uuid)
+        machine_id = machineid.id()
+
+        hmac_signature = self.compute_hmac_signature(email, client_uuid, machine_id)
+
+        data = {
+            'id_1': client_uuid,
+            'id_2': machine_id,
+            'id_3': hmac_signature
+        }
         data['email'] = email
         data['password'] = password
         return data

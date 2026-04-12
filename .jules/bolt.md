@@ -67,3 +67,13 @@
 
 **Learning:** Reverting to generic functionally chained arrays without object construction is not measurable performance, but correctly tracking the memory space via object instantiations inside loops with high frequencies (like charts arrays) does affect Main Thread performance.
 **Action:** When manually fusing `.map().filter()` into `for` loops, correctly memoize and limit object instantiation (like `{ ...item }`) exclusively to elements that pass the filter conditional logic, preserving both rendering performance and original side effects.
+
+## 2025-04-09 - [Optimizing Dynamic Array allocations and Iterations]
+
+**Learning:** Allocating array iteratively and mapping it sequentially, when working with Object.entries inside loops, can easily lead to memory bloat by redundantly allocating empty arrays or mapping over the entire dimension length. Avoiding conditional Array constructions when `valueMode !== "absolute"` eliminates the allocation inside the loop entirely when disabled.
+**Action:** Always conditionally allocate arrays specifically inside iterations only if the values they capture are required. Avoid unconditional new Array(N) pre-allocations if their values can be derived lazily or discarded.
+
+## 2025-05-18 - [Optimizing Hot Path Array Copying inside Canvas Rendering Loop]
+
+**Learning:** Re-instantiating `cumulativeValues` using `.map()` on every single ticker iteration during the `renderCompositionChartWithMode` Canvas render frame creates tremendous Garbage Collection pressure. For a chart with 100 tickers and 500 dates, `cumulativeValues = cumulativeValues.map(...)` instantiates 100 arrays of 500 items on _every single frame_ the chart renders, leading to heavy GC stalls.
+**Action:** When calculating running totals inside rendering loops or hot paths, mutate the accumulator arrays in-place using a single O(N) `for` loop instead of creating entirely new array references.
