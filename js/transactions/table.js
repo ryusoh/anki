@@ -253,30 +253,16 @@ function filterAndSort(searchTerm = "") {
     typeof searchTerm === "string" ? searchTerm.trim() : getActiveFilterTerm();
   setActiveFilterTerm(normalizedSearchTerm);
 
-  let filtered = [...transactionState.allTransactions];
   const currentCurrency = transactionState.selectedCurrency;
   const range = transactionState.chartDateRange || { from: null, to: null };
   const rangeStart = range.from ? Date.parse(range.from) : null;
   const rangeEnd = range.to ? Date.parse(range.to) : null;
   const shouldApplyDateRange = isTransactionTableVisible();
-  if (shouldApplyDateRange && (rangeStart !== null || rangeEnd !== null)) {
-    filtered = filtered.filter((transaction) => {
-      const normalized = normalizeDateOnly(transaction.tradeDate);
-      const tradeTime = Date.parse(normalized || transaction.tradeDate);
-      if (!Number.isFinite(tradeTime)) {
-        return false;
-      }
-      if (rangeStart !== null && tradeTime < rangeStart) {
-        return false;
-      }
-      if (rangeEnd !== null && tradeTime > rangeEnd) {
-        return false;
-      }
-      return true;
-    });
-  }
 
   let parsedCommands = { assetClass: null };
+  let term = "";
+  let upcaseSecurity = null;
+  let multiTickerSet = null;
 
   if (normalizedSearchTerm) {
     const parsed = parseCommandPalette(normalizedSearchTerm);
@@ -285,68 +271,85 @@ function filterAndSort(searchTerm = "") {
       ? parsed.commands.tickers
       : deriveCompositionTickerFilters(parsed.text, parsed.commands);
     setCompositionFilterTickers(compositionFilters);
-    const term = parsed.text.toLowerCase();
+    term = parsed.text.toLowerCase();
 
-    const upcaseSecurity = parsed.commands.security
+    upcaseSecurity = parsed.commands.security
       ? normalizeTickerToken(parsed.commands.security) ||
         parsed.commands.security.toUpperCase()
       : null;
-    const multiTickerSet =
+    multiTickerSet =
       parsed.commands.tickers.length > 0
         ? new Set(parsed.commands.tickers)
         : null;
-
-    if (upcaseSecurity || multiTickerSet) {
-      filtered = filtered.filter((t) => {
-        const normalizedParams = normalizeTickerToken(t.security);
-        const ticker = normalizedParams || t.security.toUpperCase();
-
-        if (upcaseSecurity && ticker === upcaseSecurity) {
-          return true;
-        }
-        if (multiTickerSet && multiTickerSet.has(ticker)) {
-          return true;
-        }
-        return false;
-      });
-    }
-    if (parsed.commands.type) {
-      filtered = filtered.filter(
-        (t) => t.orderType.toLowerCase() === parsed.commands.type.toLowerCase(),
-      );
-    }
-    if (parsed.commands.min !== null && !Number.isNaN(parsed.commands.min)) {
-      filtered = filtered.filter(
-        (t) =>
-          Math.abs(
-            convertValueToCurrency(t.netAmount, t.tradeDate, currentCurrency),
-          ) >= parsed.commands.min,
-      );
-    }
-    if (parsed.commands.max !== null && !Number.isNaN(parsed.commands.max)) {
-      filtered = filtered.filter(
-        (t) =>
-          Math.abs(
-            convertValueToCurrency(t.netAmount, t.tradeDate, currentCurrency),
-          ) <= parsed.commands.max,
-      );
-    }
-    if (parsed.commands.assetClass) {
-      filtered = filtered.filter((t) =>
-        matchesAssetClass(t.security, parsed.commands.assetClass),
-      );
-    }
-    if (term) {
-      filtered = filtered.filter(
-        (t) =>
-          t.security.toLowerCase().includes(term) ||
-          t.orderType.toLowerCase().includes(term) ||
-          t.tradeDate.includes(term),
-      );
-    }
   } else {
     setCompositionFilterTickers([]);
     setCompositionAssetClassFilter(null);
+  }
+
+  // Bolt: Use a single O(N) loop to process all filters to prevent
+  // intermediate array allocations and reduce GC pressure.
+  const filtered = [];
+  const allTx = transactionState.allTransactions;
+  for (let i = 0; i < allTx.length; i++) {
+    const t = allTx[i];
+
+    if (shouldApplyDateRange && (rangeStart !== null || rangeEnd !== null)) {
+      const normalized = normalizeDateOnly(t.tradeDate);
+      const tradeTime = Date.parse(normalized || t.tradeDate);
+      if (!Number.isFinite(tradeTime)) continue;
+      if (rangeStart !== null && tradeTime < rangeStart) continue;
+      if (rangeEnd !== null && tradeTime > rangeEnd) continue;
+    }
+
+    if (normalizedSearchTerm) {
+      if (upcaseSecurity || multiTickerSet) {
+        const normalizedParams = normalizeTickerToken(t.security);
+        const ticker = normalizedParams || t.security.toUpperCase();
+        let matchesTicker = false;
+        if (upcaseSecurity && ticker === upcaseSecurity) {
+          matchesTicker = true;
+        } else if (multiTickerSet && multiTickerSet.has(ticker)) {
+          matchesTicker = true;
+        }
+        if (!matchesTicker) continue;
+      }
+
+      if (parsedCommands.type) {
+        if (t.orderType.toLowerCase() !== parsedCommands.type.toLowerCase()) continue;
+      }
+
+      if (parsedCommands.min !== null && !Number.isNaN(parsedCommands.min)) {
+        if (
+          Math.abs(
+            convertValueToCurrency(t.netAmount, t.tradeDate, currentCurrency),
+          ) < parsedCommands.min
+        ) continue;
+      }
+
+      if (parsedCommands.max !== null && !Number.isNaN(parsedCommands.max)) {
+        if (
+          Math.abs(
+            convertValueToCurrency(t.netAmount, t.tradeDate, currentCurrency),
+          ) > parsedCommands.max
+        ) continue;
+      }
+
+      if (parsedCommands.assetClass) {
+        if (!matchesAssetClass(t.security, parsedCommands.assetClass)) continue;
+      }
+
+      if (term) {
+        if (
+          !(
+            t.security.toLowerCase().includes(term) ||
+            t.orderType.toLowerCase().includes(term) ||
+            t.tradeDate.includes(term)
+          )
+        ) continue;
+      }
+    }
+
+    filtered.push(t);
   }
 
   setCompositionAssetClassFilter(parsedCommands.assetClass || null);

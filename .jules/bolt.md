@@ -77,3 +77,7 @@
 
 **Learning:** Re-instantiating `cumulativeValues` using `.map()` on every single ticker iteration during the `renderCompositionChartWithMode` Canvas render frame creates tremendous Garbage Collection pressure. For a chart with 100 tickers and 500 dates, `cumulativeValues = cumulativeValues.map(...)` instantiates 100 arrays of 500 items on _every single frame_ the chart renders, leading to heavy GC stalls.
 **Action:** When calculating running totals inside rendering loops or hot paths, mutate the accumulator arrays in-place using a single O(N) `for` loop instead of creating entirely new array references.
+## 2025-05-18 - [Optimizing Hot Path Filters in Table Render Loops]
+
+**Learning:** Chaining `.filter()` array methods to process search and command-palette tokens in a table render loop (`filterAndSort` in `js/transactions/table.js`) creates significant Garbage Collection pressure and slows down layout calculations due to intermediate array allocations on every pass. For large datasets with frequent user input, this causes main-thread blocking and UI jank.
+**Action:** Replace `O(N)` chained filter array passes with a single `for` loop. Apply the filter conditionals with early `continue` statements to bypass items, only pushing to the final result array once, which prevents intermediate array instantiations and minimizes overhead.
