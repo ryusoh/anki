@@ -71,15 +71,18 @@
 
       import { TableGlassEffect } from "#ui/tableGlassEffect.js?v=20240223";
       import { TABLE_GLASS_EFFECT } from "#js/config.js?v=20240223";
+      import { initMagneticNav } from "#ui/magnetic_nav.js?v=20240223";
 
       console.log("Imports successful:", {
         TableGlassEffect,
         TABLE_GLASS_EFFECT,
+        initMagneticNav,
       });
 
       window.addEventListener("DOMContentLoaded", () => {
         console.log("DOMContentLoaded fired");
         try {
+          initMagneticNav();
           console.log("Initializing TableGlassEffect...");
           const glass = new TableGlassEffect(".terminal", {
             ...TABLE_GLASS_EFFECT,
