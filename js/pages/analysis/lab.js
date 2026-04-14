@@ -421,16 +421,17 @@ function computeMetrics(config) {
   const exitYear = computeExitYear(config, horizon);
   const sharesOutstanding = getSharesOutstanding(config);
 
-  const normalizedScenarios = scenarios.map((scenario) =>
-    normalizeScenario(scenario),
-  );
-  const outcomes = normalizedScenarios.map((scenario) =>
-    computeScenarioOutcome(scenario, { price, eps, horizon }),
-  );
-  const expectedMultiple = outcomes.reduce(
-    (sum, outcome) => sum + outcome.prob * outcome.multiple,
-    0,
-  );
+  const normalizedScenarios = [];
+  const outcomes = [];
+  let expectedMultiple = 0;
+
+  for (let i = 0; i < scenarios.length; i++) {
+    const norm = normalizeScenario(scenarios[i]);
+    normalizedScenarios.push(norm);
+    const outcome = computeScenarioOutcome(norm, { price, eps, horizon });
+    outcomes.push(outcome);
+    expectedMultiple += outcome.prob * outcome.multiple;
+  }
   const expectedCagr =
     expectedMultiple > 0 ? expectedMultiple ** (1 / horizon) - 1 : 0;
   const edge = expectedCagr - benchmark;
@@ -961,25 +962,29 @@ function buildPortfolioConfig(configs) {
   if (!(totalValue > 0)) {
     return null;
   }
-  const weighted = (selector) =>
-    configs.reduce((sum, cfg) => sum + cfg.weight * selector(cfg), 0);
   const basePreferences = getPreferences(configs[0]);
   const horizonRaw = Number(basePreferences.horizon ?? 1);
   const horizon =
     Number.isFinite(horizonRaw) && horizonRaw > 0 ? horizonRaw : 1;
   const price = totalValue;
   const eps = 1;
-  const benchmarkValue = weighted(
-    (cfg) => getBenchmarkDescriptor(getPreferences(cfg)).value,
-  );
-  const kellyScale = weighted((cfg) => getPreferences(cfg).kellyScale ?? 0.5);
-  const targetCagr = weighted((cfg) => getPreferences(cfg).targetCagr ?? 0.1);
-  const volatility = Math.sqrt(
-    configs.reduce((sum, cfg) => {
-      const vol = getEffectiveVolatility(cfg);
-      return sum + Math.pow(cfg.weight, 2) * Math.pow(vol, 2);
-    }, 0),
-  );
+
+  let benchmarkValue = 0;
+  let kellyScale = 0;
+  let targetCagr = 0;
+  let volSum = 0;
+
+  for (let i = 0; i < configs.length; i++) {
+    const cfg = configs[i];
+    const w = cfg.weight;
+    const prefs = getPreferences(cfg);
+    benchmarkValue += w * getBenchmarkDescriptor(prefs).value;
+    kellyScale += w * (prefs.kellyScale ?? 0.5);
+    targetCagr += w * (prefs.targetCagr ?? 0.1);
+    const vol = getEffectiveVolatility(cfg);
+    volSum += w * w * vol * vol;
+  }
+  const volatility = Math.sqrt(volSum);
   const overrides = {
     price,
     eps,

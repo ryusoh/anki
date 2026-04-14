@@ -77,7 +77,13 @@
 
 **Learning:** Re-instantiating `cumulativeValues` using `.map()` on every single ticker iteration during the `renderCompositionChartWithMode` Canvas render frame creates tremendous Garbage Collection pressure. For a chart with 100 tickers and 500 dates, `cumulativeValues = cumulativeValues.map(...)` instantiates 100 arrays of 500 items on _every single frame_ the chart renders, leading to heavy GC stalls.
 **Action:** When calculating running totals inside rendering loops or hot paths, mutate the accumulator arrays in-place using a single O(N) `for` loop instead of creating entirely new array references.
+
 ## 2025-05-18 - [Optimizing Hot Path Filters in Table Render Loops]
 
 **Learning:** Chaining `.filter()` array methods to process search and command-palette tokens in a table render loop (`filterAndSort` in `js/transactions/table.js`) creates significant Garbage Collection pressure and slows down layout calculations due to intermediate array allocations on every pass. For large datasets with frequent user input, this causes main-thread blocking and UI jank.
 **Action:** Replace `O(N)` chained filter array passes with a single `for` loop. Apply the filter conditionals with early `continue` statements to bypass items, only pushing to the final result array once, which prevents intermediate array instantiations and minimizes overhead.
+
+## 2025-05-20 - [Optimizing Metric Aggregation with Single Loop Passes]
+
+**Learning:** Utilizing chained array methods such as `.map().filter().sort().reduce()` (as found in utility functions like `computeWeightedMedian` or when assembling `buildPortfolioConfig` inputs) to process thousands of inputs creates severe array allocations inside frequently-rendered modules. The chained iteration creates O(k*N) complexity and significantly taxes the browser's Garbage Collection pipeline over each consecutive array instantiation.
+**Action:** Refactor sequential map-filter-reduce iterations into a single O(N) `for` loop. Perform the conditional validations and mapping extractions inline, accumulate aggregates simultaneously, and sort only the minimal viable valid subset array right before returning, eliminating all intermediate allocation arrays.
