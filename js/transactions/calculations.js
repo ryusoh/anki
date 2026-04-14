@@ -117,13 +117,25 @@ export function computeRunningTotals(transactions, splitHistory) {
       ? splitHistory
       : buildSplitDictionary(splitHistory);
 
-  const chronologicalTransactions = [...transactions]
-    .map((t) => ({ t, parsedDate: new Date(t.tradeDate).getTime() }))
-    .sort(
-      (a, b) =>
-        a.parsedDate - b.parsedDate || a.t.transactionId - b.t.transactionId,
-    )
-    .map(({ t }) => t);
+  // Bolt: Replace chained array methods (.map().sort().map()) with a pre-allocated array loop and in-place .sort()
+  // to minimize intermediate object allocations and Garbage Collection (GC) pressure.
+  const transactionsWithDates = new Array(transactions.length);
+  for (let i = 0; i < transactions.length; i++) {
+    transactionsWithDates[i] = {
+      t: transactions[i],
+      parsedDate: new Date(transactions[i].tradeDate).getTime(),
+    };
+  }
+
+  transactionsWithDates.sort(
+    (a, b) =>
+      a.parsedDate - b.parsedDate || a.t.transactionId - b.t.transactionId,
+  );
+
+  const chronologicalTransactions = new Array(transactions.length);
+  for (let i = 0; i < transactionsWithDates.length; i++) {
+    chronologicalTransactions[i] = transactionsWithDates[i].t;
+  }
 
   chronologicalTransactions.forEach((transaction) => {
     const security = transaction.security;
@@ -159,10 +171,13 @@ export function computeRunningTotals(transactions, splitHistory) {
     });
   });
 
-  const totalRealizedGain = Array.from(securityStates.values()).reduce(
-    (sum, s) => sum + s.totalRealizedGain,
-    0,
-  );
+  // Bolt: Replace Array.from().reduce() with a for...of loop to minimize
+  // intermediate object allocations and Garbage Collection (GC) pressure.
+  let totalRealizedGain = 0;
+  for (const s of securityStates.values()) {
+    totalRealizedGain += s.totalRealizedGain;
+  }
+
   runningTotalsById.totalRealizedGain = totalRealizedGain;
 
   return runningTotalsById;
