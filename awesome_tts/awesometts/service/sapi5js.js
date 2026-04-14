@@ -157,12 +157,16 @@ if (command === "voice-list") {
     var name;
     try {
       name = voices.item(i).getAttribute("name");
-    } catch (e) { WScript.echo("Warning: Attribute extraction failed: " + e.message); }
+    } catch (e) {
+      WScript.echo("Warning: Attribute extraction failed: " + e.message);
+    }
 
     var language;
     try {
       language = voices.item(i).getAttribute("language");
-    } catch (e) { WScript.echo("Warning: Attribute extraction failed: " + e.message); }
+    } catch (e) {
+      WScript.echo("Warning: Attribute extraction failed: " + e.message);
+    }
 
     if (typeof name == "string" && name.length > 0) {
       WScript.echo(

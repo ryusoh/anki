@@ -57,6 +57,21 @@ async function runCoverage() {
     // Hit zoom catch
     handleCommand('zoom', appendLine);
 
+    // Check lines 644-651
+    handleCommand('retention 1m', appendLine);
+
+    // Check lines 668-679
+    handleCommand('show reviews 1m', appendLine);
+
+    // Check lines 691-692
+    handleCommand('', appendLine);
+
+    // Check lines 716 and 726
+    handleCommand('plo', appendLine);
+
+    // Check standalone reviews command with invalid range
+    handleCommand('reviews xyz', appendLine);
+
     console.log("✅ handler extra coverage handled");
 }
 
