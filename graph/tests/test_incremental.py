@@ -12,7 +12,7 @@ import os
 import sys
 sys.path.insert(0, '/Users/lz/Library/Application Support/Anki2/addons21/graph')
 
-from incremental_export import load_config, save_config, strip_html
+from graph.incremental_export import load_config, save_config, strip_html
 
 
 class TestConfigManagement:
@@ -21,7 +21,7 @@ class TestConfigManagement:
     def test_load_default_config(self, tmp_path):
         """Test loading non-existent config returns defaults."""
         # Temporarily change config file location
-        import incremental_export
+        from graph import incremental_export
         original = incremental_export.CONFIG_FILE
         incremental_export.CONFIG_FILE = tmp_path / "nonexistent.json"
         
@@ -34,7 +34,7 @@ class TestConfigManagement:
     
     def test_save_and_load_config(self, tmp_path):
         """Test saving and loading config."""
-        import incremental_export
+        from graph import incremental_export
         original = incremental_export.CONFIG_FILE
         incremental_export.CONFIG_FILE = tmp_path / "test_config.json"
         
@@ -50,7 +50,7 @@ class TestConfigManagement:
     
     def test_config_persists(self, tmp_path):
         """Test that config persists across calls."""
-        import incremental_export
+        from graph import incremental_export
         original = incremental_export.CONFIG_FILE
         incremental_export.CONFIG_FILE = tmp_path / "test_config.json"
         
