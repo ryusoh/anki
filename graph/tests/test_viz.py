@@ -202,3 +202,9 @@ class TestVisualizationSettings:
 def scale_node_size(pagerank):
     """Helper function for testing node scaling."""
     return min(3, max(0.5, pagerank * 100))
+
+class TestScaleNodeSize:
+    def test_scale_node_size(self):
+        from graph.quick_3d import scale_node_size
+        assert scale_node_size(0) == 0.5
+        assert scale_node_size(10) == 3

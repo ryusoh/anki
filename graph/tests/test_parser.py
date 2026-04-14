@@ -169,3 +169,20 @@ class TestGroupByDeck:
         
         grouped = group_by_deck([])
         assert grouped == {}
+
+class TestGetFrontField:
+    def test_get_front_field(self):
+        from graph.parser import get_front_field
+        note = {'flds': 'front\x1fback'}
+        assert get_front_field(note) == 'front'
+
+class TestGetOtherFieldsText:
+    def test_get_other_fields_text(self):
+        from graph.parser import get_other_fields_text
+        note = {'flds': 'front\x1fback\x1fextra'}
+        assert get_other_fields_text(note) == 'back extra'
+
+class TestEmptyTokenize:
+    def test_empty_tokenize(self):
+        from graph.parser import tokenize
+        assert tokenize("") == []

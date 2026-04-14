@@ -5,7 +5,7 @@ import sys, json, gzip, re
 from pathlib import Path
 from datetime import datetime
 
-sys.path.insert(0, '/Users/lz/Library/Application Support/Anki2/addons21')
+sys.path.insert(0, '.')
 from graph.builder import build_graph
 
 def strip_html(text):
@@ -26,7 +26,7 @@ def scale_node_size(pagerank):
     return min(3, max(0.5, pagerank * 100))
 
 # Load and take only 100
-notes_file = "/Users/lz/Library/Application Support/Anki2/addons21/data/cloudflare/collection/notes.json.gz"
+notes_file = "./data/cloudflare/collection/notes.json.gz"
 with gzip.open(notes_file, 'rt') as f:
     all_notes = json.load(f)
 
@@ -235,7 +235,7 @@ window.addEventListener('resize',()=>{{
 </body>
 </html>'''
 
-output_file = Path("/Users/lz/Library/Application Support/Anki2/addons21/graph/index.html")
+output_file = Path("./graph/index.html")
 with open(output_file, 'w', encoding='utf-8') as f:
     f.write(html)
 

@@ -5,11 +5,11 @@ import sys, os, json, gzip
 from pathlib import Path
 from datetime import datetime
 
-sys.path.insert(0, '/Users/lz/Library/Application Support/Anki2/addons21')
+sys.path.insert(0, '.')
 from graph.builder import build_graph
 
 # Load staged notes
-notes_file = "/Users/lz/Library/Application Support/Anki2/addons21/data/cloudflare/collection/notes.json.gz"
+notes_file = "./data/cloudflare/collection/notes.json.gz"
 print("Loading notes...")
 with gzip.open(notes_file, 'rt') as f:
     all_notes = json.load(f)
@@ -167,7 +167,7 @@ function dragended(e,d){{if(!e.active)simulation.alphaTarget(0);d.fx=null;d.fy=n
 </html>'''
 
 # Save
-output_file = Path("/Users/lz/Library/Application Support/Anki2/addons21/graph/index.html")
+output_file = Path("./graph/index.html")
 with open(output_file, 'w', encoding='utf-8') as f:
     f.write(html)
 
