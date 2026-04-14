@@ -70,7 +70,7 @@ export function clearCurrentChart() {
   }
 
   if (legend) {
-    legend.innerHTML = "";
+    legend.textContent = "";
     legend.style.display = "none";
   }
 

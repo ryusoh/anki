@@ -48,7 +48,7 @@ function printPrompt(command) {
 function clearTerminal() {
   const terminalOutput = document.getElementById("terminalOutput");
   if (terminalOutput) {
-    terminalOutput.innerHTML = "";
+    terminalOutput.textContent = "";
   }
 }
 

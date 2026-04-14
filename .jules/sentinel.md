@@ -95,3 +95,9 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Vulnerability:** Found `exec()` being used in `awesome_tts/awesometts/languagetools.py` to evaluate base64-encoded strings imported from an obfuscated `trial.py` module.
 **Learning:** This obfuscated approach was used for loading `py-machineid` logic to fingerprint hosts securely, but utilizing `exec()` introduces significant remote code execution (RCE) and code injection risks, while heavily diminishing code readability and audibility.
 **Prevention:** Avoid `exec()` unconditionally. Replace such obfuscation layers with directly imported code. In this case, I created a safe, de-obfuscated `machineid.py` and computed the HMAC directly to remove all base64+exec vulnerabilities.
+
+## 2024-05-31 - Prevent DOM-based XSS by removing `innerHTML` in chart cleanup and terminal reset
+
+**Vulnerability:** Emptying DOM elements using `element.innerHTML = ""` in `js/terminal.js` and `js/commands/handler.js` to clear output.
+**Learning:** While assigning an empty string to `innerHTML` is not actively exploitable as an XSS vector itself, retaining `.innerHTML` setters in the codebase violates strict defense-in-depth secure coding standards. It trains developers to reach for unsafe DOM manipulation APIs, keeps the codebase non-compliant with modern SAST linters (like `no-inner-html`), and risks accidental introduction of XSS if the string assignment is later modified to include untrusted variables.
+**Prevention:** Always use safe DOM APIs like `element.textContent = ""` or `element.replaceChildren()` when clearing element contents to maintain robust defense-in-depth and avoid security regressions.
