@@ -315,7 +315,8 @@ function filterAndSort(searchTerm = "") {
       }
 
       if (parsedCommands.type) {
-        if (t.orderType.toLowerCase() !== parsedCommands.type.toLowerCase()) continue;
+        if (t.orderType.toLowerCase() !== parsedCommands.type.toLowerCase())
+          continue;
       }
 
       if (parsedCommands.min !== null && !Number.isNaN(parsedCommands.min)) {
@@ -323,7 +324,8 @@ function filterAndSort(searchTerm = "") {
           Math.abs(
             convertValueToCurrency(t.netAmount, t.tradeDate, currentCurrency),
           ) < parsedCommands.min
-        ) continue;
+        )
+          continue;
       }
 
       if (parsedCommands.max !== null && !Number.isNaN(parsedCommands.max)) {
@@ -331,7 +333,8 @@ function filterAndSort(searchTerm = "") {
           Math.abs(
             convertValueToCurrency(t.netAmount, t.tradeDate, currentCurrency),
           ) > parsedCommands.max
-        ) continue;
+        )
+          continue;
       }
 
       if (parsedCommands.assetClass) {
@@ -345,7 +348,8 @@ function filterAndSort(searchTerm = "") {
             t.orderType.toLowerCase().includes(term) ||
             t.tradeDate.includes(term)
           )
-        ) continue;
+        )
+          continue;
       }
     }
 

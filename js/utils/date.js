@@ -81,7 +81,9 @@ export function isGoodFriday(date) {
     easterDate.getTime() - 2 * 24 * 60 * 60 * 1000,
   );
 
-  return month === goodFridayDate.getMonth() && day === goodFridayDate.getDate();
+  return (
+    month === goodFridayDate.getMonth() && day === goodFridayDate.getDate()
+  );
 }
 
 /**
