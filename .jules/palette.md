@@ -35,3 +35,8 @@
 
 **Learning:** Terminal emulators or command-line interfaces built with web technologies that dynamically append command output and results using JavaScript are entirely invisible to assistive technologies like screen readers if no ARIA live regions are used. Without explicit indication, screen reader users input a command, hit enter, and receive absolutely no feedback.
 **Action:** When building custom web-based terminal interfaces or logs, always ensure the container holding the output stream uses `role="log"` and `aria-live="polite"` so new lines are announced without interrupting the user. Additionally, route dedicated command error messages to a container with `aria-live="assertive" role="alert"` to immediately interrupt and alert the user of failure.
+
+## 2025-03-24 - Focus Visibility for Dynamically Generated Components
+
+**Learning:** When generating custom UI components like dropdown menus via JavaScript, elements configured to receive focus using `tabindex="0"` will lack visual indications of focus by default unless styling rules explicitly handle it. This degrades keyboard accessibility for users expecting visual feedback.
+**Action:** When adding `tabindex="0"` to custom interactive components, always include equivalent `:focus-visible` CSS rules, reusing existing hover states and global outline tokens (like `var(--primary-color)`) to guarantee clear visual focus.
