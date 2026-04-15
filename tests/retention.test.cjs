@@ -130,3 +130,64 @@ fixRetentionCoverage().catch(e => {
   console.error(e);
   process.exitCode = 1;
 });
+
+async function fixTooltipCoverage() {
+  const { renderRetentionChart } = await import('../js/commands/retention.js');
+  const assert = require('assert');
+
+  global.document.getElementById = (id) => {
+    if (id === 'runningAmountCanvas') return { getContext: () => ({}) };
+    if (id === 'runningAmountSection') return { classList: { remove: () => {} } };
+    if (id === 'chartLegend') return { style: {}, innerHTML: '', querySelectorAll: () => [] };
+    if (id === 'runningAmountEmpty') return { style: {}, textContent: '' };
+    return null;
+  };
+
+  const validData = [
+    { date: '2023-01-01', retention: 0.8 },
+    { date: '2023-01-02', retention: 0.9 }
+  ];
+  renderRetentionChart(validData);
+
+  // Call tooltip callbacks to get coverage
+  const titleCallback = capturedConfig.options.plugins.tooltip.callbacks.title;
+  const labelCallback = capturedConfig.options.plugins.tooltip.callbacks.label;
+
+  assert.strictEqual(titleCallback([{ label: 'Test Label' }]), 'Test Label');
+  assert.strictEqual(labelCallback({ raw: 80 }), 'Retention: 80%');
+  console.log("✅ Tooltip tests passed");
+}
+
+fixTooltipCoverage().catch(e => {
+  console.error(e);
+  process.exitCode = 1;
+});
+
+async function fixYAxisTickCoverage() {
+  const { renderRetentionChart } = await import('../js/commands/retention.js');
+  const assert = require('assert');
+
+  global.document.getElementById = (id) => {
+    if (id === 'runningAmountCanvas') return { getContext: () => ({}) };
+    if (id === 'runningAmountSection') return { classList: { remove: () => {} } };
+    if (id === 'chartLegend') return { style: {}, innerHTML: '', querySelectorAll: () => [] };
+    if (id === 'runningAmountEmpty') return { style: {}, textContent: '' };
+    return null;
+  };
+
+  const validData = [
+    { date: '2023-01-01', retention: 0.8 },
+    { date: '2023-01-02', retention: 0.9 }
+  ];
+  renderRetentionChart(validData);
+
+  // Call y-axis tick callback to get coverage
+  const yAxisTickCallback = capturedConfig.options.scales.y.ticks.callback;
+  assert.strictEqual(yAxisTickCallback(50), '50%');
+  console.log("✅ Y-Axis Tick tests passed");
+}
+
+fixYAxisTickCoverage().catch(e => {
+  console.error(e);
+  process.exitCode = 1;
+});
