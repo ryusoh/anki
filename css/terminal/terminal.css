@@ -66,9 +66,15 @@
   overflow: hidden;
 }
 
-.terminal-input:focus,
-.terminal-input:focus-visible {
+.terminal-input:focus {
   outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.terminal-input:focus-visible {
+  outline: 2px solid var(--primary-color) !important;
+  outline-offset: 2px;
   box-shadow: none !important;
   border: none !important;
 }
