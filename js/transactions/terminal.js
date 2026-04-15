@@ -642,7 +642,7 @@ export function updateTerminalCrosshair(snapshot, rangeSummary) {
   if (details.range) {
     if (!rangeSummary) {
       details.range.hidden = true;
-      details.range.innerHTML = "";
+      details.range.textContent = "";
     } else {
       const durationLabel =
         rangeSummary.durationDays >= 1
@@ -1253,7 +1253,7 @@ export function initTerminal({
         requestFadeUpdate();
         break;
       case "clear":
-        outputContainer.innerHTML = "";
+        outputContainer.textContent = "";
         closeAllFilterDropdowns();
         resetSortState();
         setChartDateRange({ from: null, to: null }); // Reset date range
