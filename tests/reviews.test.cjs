@@ -591,3 +591,58 @@ fixReviewsCoverage().catch(e => {
   console.error(e);
   process.exit(1);
 });
+
+async function fixReviewsTooltipCoverage() {
+  const { renderReviewsChart, getReviewStatsData } = await import('../js/commands/reviews.js');
+  const assert = require('assert');
+
+  // Create a clean mock for Chart without the THROW behavior
+  global.window.Chart = class {
+        constructor(ctx, config) {
+            this.config = config || {};
+            this.data = this.config.data || { datasets: [] };
+            capturedConfig = config;
+        }
+        destroy() {}
+        update() {}
+        setDatasetVisibility() {}
+        isDatasetVisible() { return true; }
+  };
+
+  global.document.getElementById = (id) => {
+    if (id === 'runningAmountCanvas') return { getContext: () => ({}) };
+    if (id === 'runningAmountSection') return { classList: { remove: () => {} } };
+    if (id === 'chartLegend') return { style: {}, innerHTML: '', querySelectorAll: () => [] };
+    if (id === 'runningAmountEmpty') return { style: {}, textContent: '' };
+    return null;
+  };
+
+  global.window.reviewStatsData = {
+    reviews: [
+      { date: "2023-01-01", mature: 10, time: 100 }
+    ],
+    reviewsByDeck: {}
+  };
+
+  // Render chart to set capturedConfig
+  renderReviewsChart(getReviewStatsData("all", false), false, false, false);
+
+  // Call tooltip callbacks
+  const titleCallback = capturedConfig.options.plugins.tooltip.callbacks.title;
+  assert.strictEqual(titleCallback([{ label: 'Test Title' }]), 'Test Title');
+
+  const labelCallback = capturedConfig.options.plugins.tooltip.callbacks.label;
+  assert.strictEqual(labelCallback({ dataset: { label: 'Mature' }, raw: 10, dataIndex: 0 }), 'Mature: 10 (2 min total)');
+
+  // Test time version of tooltip
+  renderReviewsChart(getReviewStatsData("all", false), true, false, false);
+  const labelCallbackTime = capturedConfig.options.plugins.tooltip.callbacks.label;
+  assert.strictEqual(labelCallbackTime({ dataset: { label: 'Mature' }, raw: 10, dataIndex: 0 }), 'Mature: 10 min');
+
+  console.log("✅ Reviews Tooltip tests passed");
+}
+
+fixReviewsTooltipCoverage().catch(e => {
+  console.error(e);
+  process.exitCode = 1;
+});
