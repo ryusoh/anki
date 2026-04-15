@@ -60,9 +60,13 @@ export class TableGlassEffect {
 
     // Handle header exclusion
     if (this.options.excludeHeader) {
-      // Try to find the header height
+      // Try to find the header height (thead for tables, h2 or header for cards)
       const thead = this.container.querySelector("thead");
-      const headerHeight = thead ? thead.offsetHeight : 0;
+      const h2 = this.container.querySelector("h2");
+      const header = this.container.querySelector("header");
+      const headerElement = thead || h2 || header;
+
+      const headerHeight = headerElement ? headerElement.offsetHeight : 0;
       this.canvas.style.top = `${headerHeight}px`;
       this.canvas.style.height = `calc(100% - ${headerHeight}px)`;
       this.canvas.style.borderRadius = "0"; // Sharp corners when confined to body
@@ -134,7 +138,11 @@ export class TableGlassEffect {
     // Re-check header height on resize if needed
     if (this.options.excludeHeader) {
       const thead = this.container.querySelector("thead");
-      const headerHeight = thead ? thead.offsetHeight : 0;
+      const h2 = this.container.querySelector("h2");
+      const header = this.container.querySelector("header");
+      const headerElement = thead || h2 || header;
+
+      const headerHeight = headerElement ? headerElement.offsetHeight : 0;
       this.canvas.style.top = `${headerHeight}px`;
       this.canvas.style.height = `calc(100% - ${headerHeight}px)`;
     }

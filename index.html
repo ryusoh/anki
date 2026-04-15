@@ -84,12 +84,18 @@
         try {
           initMagneticNav();
           console.log("Initializing TableGlassEffect...");
-          const glass = new TableGlassEffect(".terminal", {
+          const terminalGlass = new TableGlassEffect(".terminal", {
             ...TABLE_GLASS_EFFECT,
             excludeHeader: false,
           });
-          console.log("TableGlassEffect initialized:", glass);
-          console.log("Canvas element:", glass?.canvas);
+          const chartGlass = new TableGlassEffect(".chart-card", {
+            ...TABLE_GLASS_EFFECT,
+            excludeHeader: true,
+          });
+          console.log("TableGlassEffect initialized:", {
+            terminalGlass,
+            chartGlass,
+          });
         } catch (err) {
           console.error("Failed to init glass effect", err);
         }
