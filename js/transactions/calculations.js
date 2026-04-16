@@ -117,15 +117,21 @@ export function computeRunningTotals(transactions, splitHistory) {
       ? splitHistory
       : buildSplitDictionary(splitHistory);
 
-  const chronologicalTransactions = [...transactions]
-    .map((t) => ({ t, parsedDate: new Date(t.tradeDate).getTime() }))
-    .sort(
-      (a, b) =>
-        a.parsedDate - b.parsedDate || a.t.transactionId - b.t.transactionId,
-    )
-    .map(({ t }) => t);
+  // Bolt Optimization: Replace .map().sort().map() chain with a single pre-allocated array loop
+  // and in-place .sort() to minimize intermediate object allocations and GC pressure.
+  const len = transactions.length;
+  const chronologicalTransactions = new Array(len);
+  for (let i = 0; i < len; i++) {
+    const t = transactions[i];
+    chronologicalTransactions[i] = { t, parsedDate: new Date(t.tradeDate).getTime() };
+  }
+  chronologicalTransactions.sort((a, b) => a.parsedDate - b.parsedDate || a.t.transactionId - b.t.transactionId);
+  for (let i = 0; i < len; i++) {
+    chronologicalTransactions[i] = chronologicalTransactions[i].t;
+  }
 
-  chronologicalTransactions.forEach((transaction) => {
+  for (let idx = 0; idx < len; idx++) {
+    const transaction = chronologicalTransactions[idx];
     const security = transaction.security;
     const currentState = securityStates.get(security) || {
       lots: [],
@@ -157,12 +163,14 @@ export function computeRunningTotals(transactions, splitHistory) {
       amount: cumulativeNetAmount,
       portfolio: cumulativeNetAmount,
     });
-  });
+  }
 
-  const totalRealizedGain = Array.from(securityStates.values()).reduce(
-    (sum, s) => sum + s.totalRealizedGain,
-    0,
-  );
+  // Bolt Optimization: Replace Array.from().reduce() with a for...of loop
+  // to avoid intermediate array allocations and GC pressure.
+  let totalRealizedGain = 0;
+  for (const s of securityStates.values()) {
+    totalRealizedGain += s.totalRealizedGain;
+  }
   runningTotalsById.totalRealizedGain = totalRealizedGain;
 
   return runningTotalsById;

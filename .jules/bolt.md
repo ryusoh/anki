@@ -82,3 +82,8 @@
 
 **Learning:** Chaining `.filter()` array methods to process search and command-palette tokens in a table render loop (`filterAndSort` in `js/transactions/table.js`) creates significant Garbage Collection pressure and slows down layout calculations due to intermediate array allocations on every pass. For large datasets with frequent user input, this causes main-thread blocking and UI jank.
 **Action:** Replace `O(N)` chained filter array passes with a single `for` loop. Apply the filter conditionals with early `continue` statements to bypass items, only pushing to the final result array once, which prevents intermediate array instantiations and minimizes overhead.
+
+## 2025-05-18 - [Optimizing Hot Path Array Copying inside Loop]
+
+**Learning:** Re-instantiating `chronologicalTransactions` using `.map().sort().map()` chaining creates significant Garbage Collection pressure and slows down layout calculations due to intermediate array allocations on every pass. For large datasets with frequent user input, this causes main-thread blocking and UI jank.
+**Action:** Replace `O(N)` chained array passes with a single `for` loop. Pre-allocate the array and use in-place `.sort()` to bypass intermediate array instantiations and minimize overhead.
