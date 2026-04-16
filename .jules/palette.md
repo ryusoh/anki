@@ -35,3 +35,8 @@
 
 **Learning:** Terminal emulators or command-line interfaces built with web technologies that dynamically append command output and results using JavaScript are entirely invisible to assistive technologies like screen readers if no ARIA live regions are used. Without explicit indication, screen reader users input a command, hit enter, and receive absolutely no feedback.
 **Action:** When building custom web-based terminal interfaces or logs, always ensure the container holding the output stream uses `role="log"` and `aria-live="polite"` so new lines are announced without interrupting the user. Additionally, route dedicated command error messages to a container with `aria-live="assertive" role="alert"` to immediately interrupt and alert the user of failure.
+
+## 2026-04-16 - Terminal Input Focus Rings
+
+**Learning:** When custom styling text inputs (like in terminal emulators), developers often remove the default browser outline (`outline: none`) to achieve a specific aesthetic. If this is done globally for all focus states, it destroys keyboard accessibility, preventing users from seeing where their focus is.
+**Action:** When removing default browser outlines, always separate mouse focus from keyboard focus. Keep `:focus { outline: none; }` for mouse interactions if desired, but explicitly restore visibility using the `:focus-visible` pseudo-class with a distinct outline (e.g., `outline: 2px solid var(--primary-color)`) so keyboard users can navigate effectively.
