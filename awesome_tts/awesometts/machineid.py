@@ -48,12 +48,12 @@ def __sanitize__(id: str) -> str:
   return re.sub(r'[\x00-\x1f\x7f-\x9f\s]', '', id) \
            .strip()
 
-def __exec__(cmd: str) -> str:
+def __exec__(cmd: list) -> str:
   try:
-    return subprocess.run(cmd, shell=True, capture_output=True, check=True, encoding='utf-8') \
+    return subprocess.run(cmd, shell=False, capture_output=True, check=True, encoding='utf-8') \
                      .stdout \
                      .strip()
-  except subprocess.SubprocessError:
+  except (subprocess.SubprocessError, OSError):
     return None
 
 def __read__(path: str) -> str:
@@ -82,15 +82,23 @@ def id(winregistry: bool = True) -> str:
 
   id = None
   if platform == 'darwin':
-    id = __exec__("ioreg -d2 -c IOPlatformExpertDevice | awk -F\\\" '/IOPlatformUUID/{print $(NF-1)}'")
+    out = __exec__(["ioreg", "-d2", "-c", "IOPlatformExpertDevice"])
+    if out:
+      for line in out.splitlines():
+        if "IOPlatformUUID" in line:
+          parts = line.split('"')
+          if len(parts) >= 2:
+            id = parts[-2]
+            break
   elif platform in ('win32', 'cygwin', 'msys'):
     if winregistry:
       id = __reg__(r'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Cryptography', 'MachineGuid')
     else:
-      id = __exec__("powershell.exe -ExecutionPolicy bypass -command (Get-CimInstance -Class Win32_ComputerSystemProduct).UUID")
+      id = __exec__(["powershell.exe", "-ExecutionPolicy", "bypass", "-command", "(Get-CimInstance -Class Win32_ComputerSystemProduct).UUID"])
     if not id:
-      id = __exec__('wmic csproduct get uuid').split('\n')[2] \
-                                              .strip()
+      out = __exec__(["wmic", "csproduct", "get", "uuid"])
+      if out:
+        id = out.split('\n')[2].strip()
   elif platform.startswith('linux'):
     id = __read__('/var/lib/dbus/machine-id')
     if not id:
@@ -98,17 +106,23 @@ def id(winregistry: bool = True) -> str:
     if not id:
       cgroup = __read__('/proc/self/cgroup')
       if cgroup and 'docker' in cgroup:
-        id = __exec__('head -1 /proc/self/cgroup | cut -d/ -f3')
+        lines = cgroup.splitlines()
+        if lines:
+          parts = lines[0].split('/')
+          if len(parts) >= 3:
+            id = parts[2]
     if not id:
       mountinfo = __read__('/proc/self/mountinfo')
       if mountinfo and 'docker' in mountinfo:
-        id = __exec__("grep -oP '(?<=docker/containers/)([a-f0-9]+)(?=/hostname)' /proc/self/mountinfo")
+        match = re.search(r'docker/containers/([a-f0-9]+)/hostname', mountinfo)
+        if match:
+          id = match.group(1)
     if not id and 'microsoft' in uname().release: # wsl
-      id = __exec__("powershell.exe -ExecutionPolicy bypass -command '(Get-CimInstance -Class Win32_ComputerSystemProduct).UUID'")
+      id = __exec__(["powershell.exe", "-ExecutionPolicy", "bypass", "-command", "(Get-CimInstance -Class Win32_ComputerSystemProduct).UUID"])
   elif platform.startswith(('openbsd', 'freebsd')):
     id = __read__('/etc/hostid')
     if not id:
-      id = __exec__('kenv -q smbios.system.uuid')
+      id = __exec__(["kenv", "-q", "smbios.system.uuid"])
 
   if not id:
     raise MachineIdNotFound('failed to obtain id on platform {}'.format(platform))
