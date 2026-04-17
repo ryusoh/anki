@@ -395,3 +395,19 @@ fixHandlerFinalZoomCoverage().catch(e => {
     console.error(e);
     process.exitCode = 1;
 });
+
+async function fixHandlerFallbackCoverage() {
+    console.log("\nTestPilot: handleCommand correctly falls through for invalid partial matches");
+    const assert = require('assert');
+    const { handleCommand } = await import('../js/commands/handler.js');
+    let mutedLines = [];
+    const mockAppendLine = (text, variant) => { if (variant === 'muted') mutedLines.push(text); };
+
+    const result = handleCommand("rev", mockAppendLine);
+    assert.strictEqual(result.handled, false, "Should return handled: false for unhandled/partial commands");
+    console.log("   handleCommand correctly returns handled: false for 'rev'");
+}
+fixHandlerFallbackCoverage().catch(e => {
+    console.error("TestPilot handler coverage failed:", e);
+    process.exitCode = 1;
+});
