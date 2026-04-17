@@ -151,8 +151,9 @@ class ISpeech(Service):
             try:
                 from urllib.parse import parse_qs
                 error = ValueError(parse_qs(error.payload)['message'][0])
-            except Exception:
-                pass
+            except Exception as e:
+                import logging
+                logging.getLogger('AwesomeTTS').debug("Failed to parse iSpeech error payload: %s", e)
             raise error
 
         self.net_reset()  # no throttle; FIXME should be controlled by trait

@@ -534,8 +534,8 @@ class Service(object, metaclass=abc.ABCMeta):
                 try:
                     value_error.payload = response.content
                     response.close()
-                except Exception:
-                    pass
+                except Exception as e:
+                    self.logger.debug("Failed to set error payload or close response: %s", e)
                 raise value_error
 
             got_mime = response.headers['Content-Type']

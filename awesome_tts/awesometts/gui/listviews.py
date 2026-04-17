@@ -246,8 +246,9 @@ class _SubRuleDelegate(_Delegate):
 
         try:
             obj['compiled'] = self._sul_compiler(obj)
-        except Exception:  # sre_constants.error, pylint:disable=W0703
-            pass
+        except Exception as e:  # sre_constants.error, pylint:disable=W0703
+            import logging
+            logging.getLogger('AwesomeTTS').debug("Failed to compile substitution rule: %s", e)
 
         if obj['compiled'] and obj['regex']:
             groups = obj['compiled'].groups

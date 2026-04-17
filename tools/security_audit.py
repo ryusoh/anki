@@ -103,8 +103,8 @@ def _check_json_file_for_private_data(content: str) -> list:
                 issues.append("PRIVATE: Contains flds + mid/guid (full note data)")
             if 'tags' in first and 'flds' in first:
                 issues.append("PRIVATE: Contains tags + flds")
-    except Exception:
-        pass  # JSON parsing failure is ignored as file might not be standard JSON.
+    except Exception as e:
+        warning(f"Failed to parse JSON file {filepath}: {e}")  # JSON parsing failure is ignored as file might not be standard JSON.
     return issues
 
 def check_for_private_data(filepath, content):
@@ -116,7 +116,7 @@ def check_for_private_data(filepath, content):
         return _check_code_file_for_private_data(content)
     
     if filepath.endswith('.json'):
-        return _check_json_file_for_private_data(content)
+        return _check_json_file_for_private_data(filepath, content)
     
     return []
 
@@ -166,7 +166,8 @@ def _scan_tracked_files() -> list:
         try:
             with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
-        except Exception:
+        except Exception as e:
+            warning(f"Failed to read file {filepath}: {e}")
             continue  # Skip files that cannot be read.
 
         cred_issues = check_for_credentials(filepath, content)
