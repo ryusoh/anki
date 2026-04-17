@@ -101,6 +101,7 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Vulnerability:** Emptying DOM elements using `element.innerHTML = ""` in `js/terminal.js` and `js/commands/handler.js` to clear output.
 **Learning:** While assigning an empty string to `innerHTML` is not actively exploitable as an XSS vector itself, retaining `.innerHTML` setters in the codebase violates strict defense-in-depth secure coding standards. It trains developers to reach for unsafe DOM manipulation APIs, keeps the codebase non-compliant with modern SAST linters (like `no-inner-html`), and risks accidental introduction of XSS if the string assignment is later modified to include untrusted variables.
 **Prevention:** Always use safe DOM APIs like `element.textContent = ""` or `element.replaceChildren()` when clearing element contents to maintain robust defense-in-depth and avoid security regressions.
+
 ## 2026-04-16 - Prevent command injection by replacing shell=True with native Python pipelines
 
 **Vulnerability:** The `subprocess.run` call inside `__exec__` in `awesome_tts/awesometts/machineid.py` used `shell=True` with string arguments containing pipes, introducing a command injection risk.
