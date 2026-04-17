@@ -646,3 +646,46 @@ fixReviewsTooltipCoverage().catch(e => {
   console.error(e);
   process.exitCode = 1;
 });
+
+async function fixReviewsMissingCoverage() {
+  console.log("\nTestPilot: groupAndSortDecks ignores Unknown decks");
+  const assert = require('assert');
+  const { groupAndSortDecks } = await import('../js/commands/reviews.js');
+
+  const byDeckData = {
+      "Default": [{ young: 5, mature: 5 }],
+      "Unknown": [{ young: 10, mature: 10 }],
+      "Math": [{ young: 2, mature: 2 }]
+  };
+  global.window.customStatsData = {
+      decks: [
+          { name: "Default", total: 100 },
+          { name: "Math", total: 50 },
+          { name: "Unknown", total: 10 }
+      ]
+  };
+  const result = groupAndSortDecks(byDeckData, false);
+  assert.ok(result.find(g => g.deckName === "Default"), "Should contain Default deck");
+  assert.ok(result.find(g => g.deckName === "Math"), "Should contain Math deck");
+  assert.strictEqual(result.find(g => g.deckName === "Unknown"), undefined, "Should ignore Unknown deck");
+  console.log("   groupAndSortDecks correctly filters out 'Unknown' decks");
+
+  console.log("\nTestPilot: getReviewStatsData calculates preSliceSum");
+  const { getReviewStatsData } = await import('../js/commands/reviews.js');
+  global.window.reviewStatsData = {
+      reviews: [
+          { date: "2023-10-01", time: 100, mature: 5, young: 5 },
+          { date: "2023-10-02", time: 100, mature: 5, young: 5 },
+          { date: "2023-10-03", time: 150, mature: 10, young: 2 }
+      ],
+      reviewsByDeck: {}
+  };
+  const statsResult = getReviewStatsData("1d", false);
+  assert.ok(statsResult.preSliceSum, "Should have a preSliceSum object");
+  assert.strictEqual(statsResult.preSliceSum.time, 200, "Should sum time for previous dates");
+  console.log("   getReviewStatsData correctly calculates preSliceSum");
+}
+fixReviewsMissingCoverage().catch(e => {
+  console.error("TestPilot tests failed:", e);
+  process.exit(1);
+});

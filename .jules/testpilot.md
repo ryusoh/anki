@@ -12,3 +12,8 @@
 
 **Learning:** When unit testing UI or DOM-manipulating functions, explicitly assert the resulting DOM side-effects (such as `classList` modifications or `textContent` changes) and return values.
 **Prevention:** Merely executing code to hit coverage lines without asserting output or state violates testing standards.
+## 2024-05-18 - handleCommand fallback and Reviews Data edge cases
+**Learning:** `handleCommand` correctly drops unhandled or partially matched commands by returning `{ handled: false }` rather than throwing or auto-suggesting if the prefix doesn't definitively map to a valid end state. Test coverage must ensure it falls through.
+**Action:** When testing partial commands, check for `handled: false`.
+**Learning:** `getReviewStatsData` calculates a `preSliceSum` object internally when `byDeck` is false, which accumulates historic time metrics needed for accurate rendering.
+**Action:** Ensure that mock data injected into `global.window.reviewStatsData` has sufficient prior history items before the sliced time window to trigger `preSliceSum` logic.
