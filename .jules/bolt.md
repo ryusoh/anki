@@ -87,3 +87,6 @@
 
 **Learning:** Re-instantiating `chronologicalTransactions` using `.map().sort().map()` chaining creates significant Garbage Collection pressure and slows down layout calculations due to intermediate array allocations on every pass. For large datasets with frequent user input, this causes main-thread blocking and UI jank.
 **Action:** Replace `O(N)` chained array passes with a single `for` loop. Pre-allocate the array and use in-place `.sort()` to bypass intermediate array instantiations and minimize overhead.
+## 2026-04-17 - Prevent Intermediate Array Allocation in Maps
+**Learning:** Chaining `.map()` directly inside `new Map()` (e.g., `new Map(arr.map(x => [k, v]))`) creates an intermediate array of tuples, causing unnecessary O(N) memory allocation and Garbage Collection pressure in hot rendering loops.
+**Action:** Replace the `.map()` wrapper with a direct `for` loop and `Map.prototype.set()` to avoid creating the intermediate tuple array.

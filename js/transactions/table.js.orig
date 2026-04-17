@@ -370,22 +370,25 @@ function filterAndSort(searchTerm = "") {
 
   const { column, order } = transactionState.sortState;
 
-  // Bolt: Use a direct loop to populate sortMap instead of Array.prototype.map.
-  // This avoids allocating a large intermediate array of key-value tuples and reduces Garbage Collection pressure.
-  const sortMap = new Map();
-  for (let i = 0; i < filtered.length; i++) {
-    const t = filtered[i];
-    sortMap.set(t, {
-      date: new Date(t.tradeDate).getTime(),
-      securityLower: column === "security" ? t.security.toLowerCase() : null,
-      absAmount:
-        column === "netAmount"
-          ? Math.abs(
-              convertValueToCurrency(t.netAmount, t.tradeDate, currentCurrency),
-            )
-          : null,
-    });
-  }
+  const sortMap = new Map(
+    filtered.map((t) => [
+      t,
+      {
+        date: new Date(t.tradeDate).getTime(),
+        securityLower: column === "security" ? t.security.toLowerCase() : null,
+        absAmount:
+          column === "netAmount"
+            ? Math.abs(
+                convertValueToCurrency(
+                  t.netAmount,
+                  t.tradeDate,
+                  currentCurrency,
+                ),
+              )
+            : null,
+      },
+    ]),
+  );
 
   filtered.sort((a, b) => {
     const aData = sortMap.get(a);
