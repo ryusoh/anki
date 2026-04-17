@@ -40,3 +40,6 @@
 - **Silent Failures:** Replaced remaining bare `except:` blocks in `data/anki/upload-to-r2` and `review_heatmap/libaddon/_vendor/logging/__init__.py` with specific `except Exception` blocks and context-aware error prints to ensure tracebacks are caught securely but not suppressed blindly.
 
 **Action:** Consistently break down query generation loops into discrete sub-functions for filtering logic, and always attach exceptions to logged warnings when patching legacy `except:` clauses.
+
+- **Structural Health:** Refactored `enhance_main_window/node.py` methods `renderDeckTree`, `_columnDisplayData`, and `setEmpty` by extracting header rendering, data resolution, and child state checking logic. These functions were extremely long and nested but are now broken down into simple, composable helper methods that achieve radon B and A grades.
+- **Silent Failures:** Fixed remaining bare `except Exception:` blocks in `tools/security_audit.py` (JSON/file reading), `awesome_tts/awesometts/service/ispeech.py` (error parsing), `awesome_tts/awesometts/service/base.py` (response payload setup), and `awesome_tts/awesometts/gui/listviews.py` (rule regex compilation). By passing these exceptions to our standard loggers (`print/logging.getLogger`), we ensure debugging context is retained while maintaining necessary fallback behaviors.

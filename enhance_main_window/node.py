@@ -309,6 +309,12 @@ class DeckNode:
             else:
                 self.timeDue["subdeck"] = child.timeDue["subdeck"]
 
+    def _has_active_empty_child(self):
+        for child in self.children:
+            if (child.hasEmptyDescendant and not child.ended and not child.givenUp and not child.pause):
+                return True
+        return False
+
     def setEmpty(self):
         """Set value of isEmpty and hasEmptyDescendant. Set the colors appropriately."""
         if not getUserOption("do color empty"):
@@ -320,12 +326,12 @@ class DeckNode:
             if not self.ended and not self.givenUp and not self.pause:
                 self.style["color"] = getUserOption("color empty", "black")
             return
-        for child in self.children:
-            if (child.hasEmptyDescendant and (not child.ended) and (not child.givenUp) and (not child.pause)):
-                self.hasEmptyDescendant = True
-                self.style['color'] = getUserOption(
-                    "color empty descendant", "black")
-                return
+
+        if self._has_active_empty_child():
+            self.hasEmptyDescendant = True
+            self.style['color'] = getUserOption(
+                "color empty descendant", "black")
+            return
 
     def _setPercentAndBoth(self, kind, column, base):
         """Set percent and both count values for this kind and column. In theory, column is a subset of base.
@@ -539,6 +545,29 @@ class DeckNode:
     def getName(self, depth):
         return deck_name(depth, self.getCollapse(), self.getExtraClass(), self.did, self.getCss(), self.name)
 
+    def _get_number_type(self, conf):
+        if conf.get("percent", False):
+            if conf.get("absolute", False):
+                return "both"
+            return "percent"
+        return "absolute"
+
+    def _get_column_contents(self, name, kind, number, conf):
+        if name == "bar":
+            if "names" not in conf:
+                print("""A configuration whose name is "bar", should have a field "names".""", file=sys.stderr)
+                return None, False
+            return self.makeBar(kind, conf["names"]), True
+
+        countNumberKind = self.count[number][kind][True]
+        if name not in countNumberKind:
+            if name not in warned:
+                warned.add(name)
+                debug(
+                    f"The add-on enhance main window does not know any column whose name is {name}. It thus won't be displayed. Please correct your add-on's configuration.", file=sys.stderr)
+            return None, False
+        return countNumberKind[name], True
+
     def _columnDisplayData(self, conf):
         name = conf["name"]
         if name == "new":
@@ -546,30 +575,16 @@ class DeckNode:
             name = "new today"
             conf["name"] = "new today"
             writeConfig()
-        if conf.get("percent", False):
-            if conf.get("absolute", False):
-                number = "both"
-            else:
-                number = "percent"
-        else:
-            number = "absolute"
+
+        number = self._get_number_type(conf)
         kind = "subdeck" if conf.get("subdeck", False) else "deck"
         colour = getColor(conf)
         overlay = getOverlay(conf)
-        if name == "bar":
-            if "names" not in conf:
-                print("""A configuration whose name is "bar", should have a field "names".""", file=sys.stderr)
-                return None
-            contents = self.makeBar(kind, conf["names"])
-        else:
-            countNumberKind = self.count[number][kind][True]
-            if name not in countNumberKind:
-                if name not in warned:
-                    warned.add(name)
-                    debug(
-                        f"The add-on enhance main window does not know any column whose name is {name}. It thus won't be displayed. Please correct your add-on's configuration.", file=sys.stderr)
-                return None
-            contents = countNumberKind[name]
+
+        contents, success = self._get_column_contents(name, kind, number, conf)
+        if not success:
+            return None
+
         # In some cases, we decided contents is empty. Instead of having complex value such as "0/0%" or "0(0)". Then we set it back to 0, which nicely summarize everything.
         if contents == "":
             contents = 0
@@ -643,6 +658,22 @@ def _column_has_data(nodes, conf):
 # based on Anki 2.0.36 aqt/deckbrowser.py DeckBrowser._renderDeckTree
 
 
+def _render_deck_tree_header(nodes):
+    buf = f"""<style>{css}</style><script>{js}</script>"""
+    if not getUserOption("hide header row", False):
+        buf += f"""{start_header}{deck_header}"""
+        for colpos, conf in enumerate(getUserOption("columns")):
+            if conf.get("present", True):
+                heading = getHeader(conf)
+                if not _column_has_data(nodes, conf):
+                    heading = ""
+                buf += column_header(heading, colpos)
+        buf += option_header  # for deck's option
+        if getUserOption("option"):
+            buf += option_name_header
+        buf += end_header
+    return buf
+
 def renderDeckTree(self, nodes, depth=0):
     # Look at aqt/deckbrowser.py for a description of oldNode
     if not nodes:
@@ -656,19 +687,7 @@ def renderDeckTree(self, nodes, depth=0):
         except Exception:
             # Fallback for Anki versions where nodes list is wrapped in an object
             nodes = [make(node) for node in nodes.children]
-        buf = f"""<style>{css}</style><script>{js}</script>"""
-        if not getUserOption("hide header row", False):
-            buf += f"""{start_header}{deck_header}"""
-            for colpos, conf in enumerate(getUserOption("columns")):
-                if conf.get("present", True):
-                    heading = getHeader(conf)
-                    if not _column_has_data(nodes, conf):
-                        heading = ""
-                    buf += column_header(heading, colpos)
-            buf += option_header  # for deck's option
-            if getUserOption("option"):
-                buf += option_name_header
-            buf += end_header
+        buf = _render_deck_tree_header(nodes)
         buf += self._topLevelDragRow()
     else:
         buf = ""
