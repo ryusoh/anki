@@ -1,11 +1,13 @@
 import pytest
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 # Add parent to sys.path so we can import the modules
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from generate_custom_stats import calculate_future_due
+import generate_custom_stats
 
 def test_calculate_future_due_basic():
     """Test with a mix of mature and young cards."""
@@ -104,13 +106,13 @@ def test_calculate_future_due_auto_max_days():
     assert result[2]["day"] == 2
     assert result[2]["mature"] == 1
 
-def test_calculate_future_due_fallback_today(monkeypatch):
+def test_calculate_future_due_fallback_today():
     """Test that it falls back to get_anki_today() if anki_today is None."""
-    monkeypatch.setattr("generate_custom_stats.get_anki_today", lambda: 500)
-    cards_data = [{"id": 1, "due": 500, "ivl": 10, "queue": 2}]
-    result, result_by_deck = calculate_future_due(cards_data, cid_to_deck={}, max_days=1, anki_today=None)
-    assert len(result) == 1
-    assert result[0] == {"day": 0, "mature": 0, "young": 1}
+    with patch.object(generate_custom_stats, 'get_anki_today', return_value=500):
+        cards_data = [{"id": 1, "due": 500, "ivl": 10, "queue": 2}]
+        result, result_by_deck = calculate_future_due(cards_data, cid_to_deck={}, max_days=1, anki_today=None)
+        assert len(result) == 1
+        assert result[0] == {"day": 0, "mature": 0, "young": 1}
 
 def test_calculate_future_due_by_deck():
     """Test that result_by_deck correctly splits data by deck."""
@@ -193,23 +195,23 @@ def test_calculate_future_due_missing_keys():
     assert "C" not in result_by_deck
 
 
-def test_calculate_future_due_all_overdue_auto_max_days(monkeypatch):
+def test_calculate_future_due_all_overdue_auto_max_days():
     """Test when max_days=None and all review cards are overdue."""
-    monkeypatch.setattr("generate_custom_stats.get_anki_today", lambda: 100)
-    cards_data = [
-        {"id": 1, "due": 95, "ivl": 21, "queue": 2}, # Overdue
-        {"id": 2, "due": 98, "ivl": 10, "queue": 2}, # Overdue
-    ]
-    result, result_by_deck = calculate_future_due(cards_data, max_days=None)
-    assert result == []
-    assert result_by_deck == {}
+    with patch.object(generate_custom_stats, 'get_anki_today', return_value=100):
+        cards_data = [
+            {"id": 1, "due": 95, "ivl": 21, "queue": 2}, # Overdue
+            {"id": 2, "due": 98, "ivl": 10, "queue": 2}, # Overdue
+        ]
+        result, result_by_deck = calculate_future_due(cards_data, max_days=None)
+        assert result == []
+        assert result_by_deck == {}
 
-def test_calculate_future_due_negative_max_days(monkeypatch):
+def test_calculate_future_due_negative_max_days():
     """Test explicitly passing a negative max_days."""
-    monkeypatch.setattr("generate_custom_stats.get_anki_today", lambda: 100)
-    cards_data = [
-        {"id": 1, "due": 105, "ivl": 21, "queue": 2},
-    ]
-    result, result_by_deck = calculate_future_due(cards_data, max_days=-5)
-    assert result == []
-    assert result_by_deck == {}
+    with patch.object(generate_custom_stats, 'get_anki_today', return_value=100):
+        cards_data = [
+            {"id": 1, "due": 105, "ivl": 21, "queue": 2},
+        ]
+        result, result_by_deck = calculate_future_due(cards_data, max_days=-5)
+        assert result == []
+        assert result_by_deck == {}
