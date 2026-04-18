@@ -652,15 +652,21 @@ export async function getDurationStatsText() {
       if (!lots || lots.length === 0) {
         return null;
       }
-      const totalQty = lots.reduce((sum, lot) => sum + lot.qty, 0);
+      // Bolt: Replace multiple chained .reduce() passes with a single O(N) loop
+      // to compute total quantity and weighted age simultaneously, reducing GC pressure.
+      let totalQty = 0;
+      let weightedAgeSum = 0;
+      for (let i = 0; i < lots.length; i++) {
+        const lot = lots[i];
+        totalQty += lot.qty;
+        const diffMs = Math.max(0, baselineDate - lot.date);
+        weightedAgeSum += lot.qty * (diffMs / MS_IN_DAY);
+      }
+
       if (totalQty <= 0) {
         return null;
       }
-      const avgAgeDays =
-        lots.reduce((sum, lot) => {
-          const diffMs = Math.max(0, baselineDate - lot.date);
-          return sum + lot.qty * (diffMs / MS_IN_DAY);
-        }, 0) / totalQty;
+      const avgAgeDays = weightedAgeSum / totalQty;
       return {
         ticker: formatTicker(holding.ticker),
         weight: holding.weight,
