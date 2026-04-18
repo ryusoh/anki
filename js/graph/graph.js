@@ -12,7 +12,18 @@ try {
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   data = await response.json();
 } catch (e) {
-  loading.innerHTML = `<div style="color:#f5576c;font-size:16px;">Failed to load graph data<br><small style="color:#888">${escapeHtml(e.message)}</small></div>`;
+  loading.textContent = "";
+  const errorDiv = document.createElement("div");
+  errorDiv.style.color = "#f5576c";
+  errorDiv.style.fontSize = "16px";
+  errorDiv.textContent = "Failed to load graph data";
+  const errorBr = document.createElement("br");
+  const errorSmall = document.createElement("small");
+  errorSmall.style.color = "#888";
+  errorSmall.textContent = e.message;
+  errorDiv.appendChild(errorBr);
+  errorDiv.appendChild(errorSmall);
+  loading.appendChild(errorDiv);
   throw e;
 }
 
