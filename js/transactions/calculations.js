@@ -123,9 +123,15 @@ export function computeRunningTotals(transactions, splitHistory) {
   const chronologicalTransactions = new Array(len);
   for (let i = 0; i < len; i++) {
     const t = transactions[i];
-    chronologicalTransactions[i] = { t, parsedDate: new Date(t.tradeDate).getTime() };
+    chronologicalTransactions[i] = {
+      t,
+      parsedDate: new Date(t.tradeDate).getTime(),
+    };
   }
-  chronologicalTransactions.sort((a, b) => a.parsedDate - b.parsedDate || a.t.transactionId - b.t.transactionId);
+  chronologicalTransactions.sort(
+    (a, b) =>
+      a.parsedDate - b.parsedDate || a.t.transactionId - b.t.transactionId,
+  );
   for (let i = 0; i < len; i++) {
     chronologicalTransactions[i] = chronologicalTransactions[i].t;
   }
