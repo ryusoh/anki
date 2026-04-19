@@ -35,3 +35,8 @@
 
 **Learning:** Terminal emulators or command-line interfaces built with web technologies that dynamically append command output and results using JavaScript are entirely invisible to assistive technologies like screen readers if no ARIA live regions are used. Without explicit indication, screen reader users input a command, hit enter, and receive absolutely no feedback.
 **Action:** When building custom web-based terminal interfaces or logs, always ensure the container holding the output stream uses `role="log"` and `aria-live="polite"` so new lines are announced without interrupting the user. Additionally, route dedicated command error messages to a container with `aria-live="assertive" role="alert"` to immediately interrupt and alert the user of failure.
+
+## 2025-04-19 - Screen Reader Accessibility for Sortable Table Headers
+
+**Learning:** Sortable table headers (`th` elements) lack accessibility context unless an `aria-sort` attribute is provided. Without it, screen readers cannot inform users whether the column is sortable and what its current sort order is.
+**Action:** Always provide `aria-sort="none"` on sortable table headers by default. When the sorting changes, dynamically update the `aria-sort` attribute to `ascending` or `descending` to convey the current state to screen reader users.

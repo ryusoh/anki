@@ -232,12 +232,19 @@ function displayTransactions(transactions) {
 function updateSortIndicators() {
   document
     .querySelectorAll("th.sortable")
-    .forEach((th) => th.removeAttribute("data-sort"));
+    .forEach((th) => {
+      th.removeAttribute("data-sort");
+      th.setAttribute("aria-sort", "none");
+    });
   const activeSorter = document.getElementById(
     `header-${transactionState.sortState.column}`,
   );
   if (activeSorter) {
     activeSorter.setAttribute("data-sort", transactionState.sortState.order);
+    activeSorter.setAttribute(
+      "aria-sort",
+      transactionState.sortState.order === "asc" ? "ascending" : "descending"
+    );
   }
 }
 
