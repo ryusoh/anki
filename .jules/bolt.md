@@ -92,3 +92,8 @@
 
 **Learning:** When calculating two or more aggregated values (like total quantity and weighted sum) over the same array using separate chained `.reduce()` passes, it forces the runtime to iterate the array multiple times and allocate callbacks for each item. This increases CPU cycles and creates unnecessary garbage collection pressure on frequently computed stats.
 **Action:** Replace multiple chained `.reduce()` passes over the same array with a single standard `for` loop to compute all needed aggregates simultaneously, optimizing O(2N) down to O(N) and eliminating closure allocation overhead.
+
+## 2024-05-30 - [Optimize .map().sort().map() chaining]
+
+**Learning:** Repeatedly chaining `.map().sort().map()` to decorate, sort, and undecorate an array creates massive Garbage Collection pressure. Each `.map()` call creates a new array of the same length, leading to memory bloat and UI jank in hot paths like chart processing.
+**Action:** Replace `O(N)` chained array passes with a pre-allocated `for` loop and an in-place `.sort()` to bypass intermediate array instantiations and minimize GC overhead.
