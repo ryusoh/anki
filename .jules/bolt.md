@@ -92,3 +92,7 @@
 
 **Learning:** When calculating two or more aggregated values (like total quantity and weighted sum) over the same array using separate chained `.reduce()` passes, it forces the runtime to iterate the array multiple times and allocate callbacks for each item. This increases CPU cycles and creates unnecessary garbage collection pressure on frequently computed stats.
 **Action:** Replace multiple chained `.reduce()` passes over the same array with a single standard `for` loop to compute all needed aggregates simultaneously, optimizing O(2N) down to O(N) and eliminating closure allocation overhead.
+
+## 2024-05-30 - [Optimizing chained .map().sort().map() in charting series logic]
+**Learning:** Re-instantiating arrays using chained `.map().sort().map()` inside charting processing paths (like `buildContributionSeriesFromTransactions`) creates unnecessary garbage collection pressure due to multiple intermediate allocations, especially when handling thousands of transaction records.
+**Action:** Replace `.map().sort().map()` chains with a single pre-allocated array (using `new Array(len)`) and an in-place `.sort()` loop to bypass multiple allocations and reduce main thread blocking.

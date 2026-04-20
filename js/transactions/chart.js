@@ -1259,14 +1259,26 @@ export function buildContributionSeriesFromTransactions(
     return [];
   }
 
-  const sortedTransactions = [...transactions]
-    .map((t) => ({ t, parsedDate: new Date(t.tradeDate).getTime() }))
-    .sort(
-      (a, b) =>
-        a.parsedDate - b.parsedDate ||
-        (a.t.transactionId ?? 0) - (b.t.transactionId ?? 0),
-    )
-    .map(({ t }) => t);
+  // Bolt Optimization: Replace .map().sort().map() chain with a single pre-allocated
+  // array loop and in-place .sort() to prevent multiple intermediate array allocations
+  // and GC pressure in hot code paths.
+  const len = transactions.length;
+  const sortedTransactions = new Array(len);
+  for (let i = 0; i < len; i++) {
+    const t = transactions[i];
+    sortedTransactions[i] = {
+      t,
+      parsedDate: new Date(t.tradeDate).getTime(),
+    };
+  }
+  sortedTransactions.sort(
+    (a, b) =>
+      a.parsedDate - b.parsedDate ||
+      (a.t.transactionId ?? 0) - (b.t.transactionId ?? 0),
+  );
+  for (let i = 0; i < len; i++) {
+    sortedTransactions[i] = sortedTransactions[i].t;
+  }
 
   const series = [];
   let cumulativeAmount = 0;
@@ -1422,14 +1434,26 @@ export function buildFilteredBalanceSeries(
     return [];
   }
 
-  const sortedTransactions = [...transactions]
-    .map((t) => ({ t, parsedDate: new Date(t.tradeDate).getTime() }))
-    .sort(
-      (a, b) =>
-        a.parsedDate - b.parsedDate ||
-        (a.t.transactionId ?? 0) - (b.t.transactionId ?? 0),
-    )
-    .map(({ t }) => t);
+  // Bolt Optimization: Replace .map().sort().map() chain with a single pre-allocated
+  // array loop and in-place .sort() to prevent multiple intermediate array allocations
+  // and GC pressure in hot code paths.
+  const len = transactions.length;
+  const sortedTransactions = new Array(len);
+  for (let i = 0; i < len; i++) {
+    const t = transactions[i];
+    sortedTransactions[i] = {
+      t,
+      parsedDate: new Date(t.tradeDate).getTime(),
+    };
+  }
+  sortedTransactions.sort(
+    (a, b) =>
+      a.parsedDate - b.parsedDate ||
+      (a.t.transactionId ?? 0) - (b.t.transactionId ?? 0),
+  );
+  for (let i = 0; i < len; i++) {
+    sortedTransactions[i] = sortedTransactions[i].t;
+  }
 
   const firstDate = new Date(sortedTransactions[0].tradeDate);
   const lastTransactionDate = new Date(
