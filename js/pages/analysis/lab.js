@@ -470,11 +470,14 @@ function renderSummary(config) {
   if (!summaryStatsEl) {
     return;
   }
-  summaryStatsEl.innerHTML = "";
+  summaryStatsEl.textContent = "";
 
   if (!config || !config.metrics) {
-    summaryStatsEl.innerHTML =
-      '<div style="color:var(--text-muted); padding:0 10px;">No metrics available</div>';
+    const noMetrics = document.createElement("div");
+    noMetrics.style.color = "var(--text-muted)";
+    noMetrics.style.padding = "0 10px";
+    noMetrics.textContent = "No metrics available";
+    summaryStatsEl.appendChild(noMetrics);
     return;
   }
 
@@ -508,7 +511,7 @@ function renderSummary(config) {
 
 function renderScenarioCards(config) {
   const outcomes = (config.metrics && config.metrics.outcomes) || [];
-  scenarioResultsEl.innerHTML = "";
+  scenarioResultsEl.textContent = "";
   const sharesOutstanding =
     config.metrics && Number.isFinite(config.metrics.sharesOutstanding)
       ? config.metrics.sharesOutstanding
@@ -565,7 +568,7 @@ function renderValueBands(config) {
   const exitYearValue = Number.isFinite(metrics.exitYear)
     ? metrics.exitYear
     : null;
-  valueBandsEl.innerHTML = "";
+  valueBandsEl.textContent = "";
   [
     {
       label: "Expected Terminal Price",
@@ -596,11 +599,14 @@ function renderTickerList() {
   if (!tickerListEl) {
     return;
   }
-  tickerListEl.innerHTML = "";
+  tickerListEl.textContent = "";
 
   if (!state.configs || !state.configs.length) {
-    tickerListEl.innerHTML =
-      '<span style="color:var(--text-muted); padding:0 10px;">No tickers loaded</span>';
+    const noTickers = document.createElement("span");
+    noTickers.style.color = "var(--text-muted)";
+    noTickers.style.padding = "0 10px";
+    noTickers.textContent = "No tickers loaded";
+    tickerListEl.appendChild(noTickers);
     return;
   }
 
@@ -655,7 +661,10 @@ function renderActiveTicker() {
   // Reset Risk UI
   const ctx = monteCarloCanvas.getContext("2d");
   ctx.clearRect(0, 0, monteCarloCanvas.width, monteCarloCanvas.height);
-  riskMetricsEl.innerHTML = "<p>Run simulation to see metrics.</p>";
+  riskMetricsEl.textContent = "";
+  const initialText = document.createElement("p");
+  initialText.textContent = "Run simulation to see metrics.";
+  riskMetricsEl.appendChild(initialText);
 }
 
 // --- Bayesian Handlers ---

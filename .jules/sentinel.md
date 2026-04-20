@@ -113,3 +113,9 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Vulnerability:** Emptying DOM elements using `loading.innerHTML = ...` in `js/graph/graph.js` to render graph fetch error messages, which injects `e.message` into the DOM.
 **Learning:** Even internal error objects should be treated as potentially unsafe input. Assigning variables to `innerHTML` without sanitization is a recurrent pattern in vanilla JS development that bypasses modern framework protections.
 **Prevention:** When dynamically rendering text content inside an element, use safe DOM methods like `document.createElement()` and `element.textContent = value` instead of template strings assigned to `innerHTML`.
+
+## 2024-06-25 - Prevent DOM-based XSS when clearing/setting UI elements in Lab Analysis
+
+**Vulnerability:** Emptying DOM elements using `element.innerHTML = ""` or setting HTML strings like `<span style="color:var(--text-muted); padding:0 10px;">No tickers loaded</span>` directly in `js/pages/analysis/lab.js` using `innerHTML`.
+**Learning:** Assigning an empty string or seemingly safe HTML strings to `innerHTML` violates strict defense-in-depth secure coding standards and risks accidental introduction of XSS if the string assignment is later modified to include untrusted variables.
+**Prevention:** Always use safe DOM APIs like `element.textContent = ""` when clearing element contents, and use `document.createElement()` along with `.textContent` to safely construct and append UI elements dynamically.
