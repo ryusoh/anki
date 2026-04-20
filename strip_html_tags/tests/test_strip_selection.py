@@ -64,3 +64,12 @@ def test_unicode_space_normalization():
     res = _strip_selection(html, selected)
     expected = '<div><div>1.3 Section Title</div></div>'
     assert res == expected
+
+# Test Case 7: Block tag boundaries produce spaces in browser selection
+def test_block_boundary_space():
+    html = '<p>What are the alternatives and Trade-Offs for each?</p><p>We\'ll introduce some components.</p>'
+    # Browser getSelection().toString() produces a space at the </p><p> boundary
+    selected = "What are the alternatives and Trade-Offs for each? We'll introduce some components."
+
+    res = _strip_selection(html, selected)
+    assert res is not None

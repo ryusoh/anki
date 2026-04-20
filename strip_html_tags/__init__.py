@@ -34,8 +34,14 @@ GET_SELECTION_JS = """
 
 def _render_text(html_str):
     """Convert HTML to plain text by removing tags and unescaping entities."""
-    text = re.sub(r'<[^>]+>', '', html_str)
-    return html_module.unescape(text)
+    # Insert a space for block-level tags so text doesn't merge across blocks
+    block_re = r'</?(?:p|div|br|hr|li|ul|ol|tr|td|th|blockquote|h[1-6]|pre|table|thead|tbody|tfoot|dl|dt|dd)\b[^>]*>'
+    text = re.sub(block_re, ' ', html_str, flags=re.IGNORECASE)
+    text = re.sub(r'<[^>]+>', '', text)
+    text = html_module.unescape(text)
+    # Collapse runs of whitespace
+    text = re.sub(r' {2,}', ' ', text)
+    return text.strip()
 
 
 def _strip_selection(html_str, selected_text):
@@ -51,24 +57,41 @@ def _strip_selection(html_str, selected_text):
     if not sel_normalized:
         return None
 
+    # Block-level tags that produce whitespace in browser selection
+    BLOCK_TAGS = {'p', 'div', 'br', 'hr', 'li', 'ul', 'ol', 'tr', 'td', 'th',
+                  'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre',
+                  'table', 'thead', 'tbody', 'tfoot', 'dl', 'dt', 'dd'}
+
     # We need to map from "unescaped, rendered character position" -> "HTML string offset"
     text_pos = 0
     text_to_html = {}
     in_tag = False
+    tag_buf = ''
     i = 0
     rendered_chars = []
 
     while i < len(html_str):
         if html_str[i] == '<':
             in_tag = True
+            tag_buf = ''
             i += 1
             continue
         elif html_str[i] == '>':
             in_tag = False
+            # Check if this was a block-level tag — insert a space so rendered
+            # text matches what the browser's getSelection().toString() produces
+            tag_match = re.match(r'/?\s*([a-zA-Z0-9]+)', tag_buf)
+            if tag_match and tag_match.group(1).lower() in BLOCK_TAGS:
+                # Only add space if last rendered char isn't already whitespace
+                if rendered_chars and not re.match(r'[\s\xa0]', rendered_chars[-1]):
+                    text_to_html[text_pos] = i + 1  # map to position after '>'
+                    rendered_chars.append(' ')
+                    text_pos += 1
             i += 1
             continue
-            
+
         if in_tag:
+            tag_buf += html_str[i]
             i += 1
             continue
             
