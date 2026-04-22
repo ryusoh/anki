@@ -35,3 +35,9 @@
 
 **Learning:** Terminal emulators or command-line interfaces built with web technologies that dynamically append command output and results using JavaScript are entirely invisible to assistive technologies like screen readers if no ARIA live regions are used. Without explicit indication, screen reader users input a command, hit enter, and receive absolutely no feedback.
 **Action:** When building custom web-based terminal interfaces or logs, always ensure the container holding the output stream uses `role="log"` and `aria-live="polite"` so new lines are announced without interrupting the user. Additionally, route dedicated command error messages to a container with `aria-live="assertive" role="alert"` to immediately interrupt and alert the user of failure.
+
+
+## 2026-04-22 - aria-sort Constraint Conflict
+
+**Learning:** When adding `aria-sort` to table headers (`th`) to indicate sort states for screen readers, it directly conflicts with explicitly setting `role="button"`. The `aria-sort` attribute is only valid on `columnheader` or `rowheader` roles (which `th` has by default). If a `th` is given `role="button"` to satisfy a different rule, adding `aria-sort` creates invalid ARIA, rendering the sort state feedback completely broken for screen readers.
+**Action:** When implementing sortable table headers, prioritize the native `columnheader` role of `th` and apply `aria-sort` to it. If interactive button behavior is strictly required, either wrap the content in a real `<button>` element inside the `th`, or remove the overriding `role="button"` on the `th` while ensuring keyboard event listeners still exist. Never combine `role="button"` and `aria-sort` on the same `th` element.
