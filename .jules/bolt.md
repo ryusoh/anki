@@ -92,3 +92,8 @@
 
 **Learning:** When calculating two or more aggregated values (like total quantity and weighted sum) over the same array using separate chained `.reduce()` passes, it forces the runtime to iterate the array multiple times and allocate callbacks for each item. This increases CPU cycles and creates unnecessary garbage collection pressure on frequently computed stats.
 **Action:** Replace multiple chained `.reduce()` passes over the same array with a single standard `for` loop to compute all needed aggregates simultaneously, optimizing O(2N) down to O(N) and eliminating closure allocation overhead.
+
+## 2024-04-22 - [Optimizing Map/Filter/Reduce Chains in Aggregations]
+
+**Learning:** When calculating aggregates over an array (like weighted median), using chained array methods (`.map().filter()`) and a subsequent `.reduce()` creates intermediate array allocations and forces multiple iterations over the data.
+**Action:** Replace `.map().filter().reduce()` chains with a single `for` loop to build the filtered array and compute the aggregate sums simultaneously, saving multiple iteration passes and reducing GC pressure.

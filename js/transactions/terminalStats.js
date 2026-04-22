@@ -1149,19 +1149,21 @@ function formatYearsValue(days) {
 }
 
 function computeWeightedMedian(entries, weightGetter, valueGetter) {
-  const normalized = entries
-    .map((entry) => {
-      const weight = weightGetter(entry);
-      const value = valueGetter(entry);
-      if (!Number.isFinite(weight) || weight <= 0 || !Number.isFinite(value)) {
-        return null;
-      }
-      return { weight, value };
-    })
-    .filter(Boolean)
-    .sort((a, b) => a.value - b.value);
+  // Bolt: Replace .map().filter().reduce() chains with a single O(N) loop
+  // to avoid intermediate array allocations and multiple iteration passes.
+  const normalized = [];
+  let totalWeight = 0;
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
+    const weight = weightGetter(entry);
+    const value = valueGetter(entry);
+    if (Number.isFinite(weight) && weight > 0 && Number.isFinite(value)) {
+      normalized.push({ weight, value });
+      totalWeight += weight;
+    }
+  }
+  normalized.sort((a, b) => a.value - b.value);
 
-  const totalWeight = normalized.reduce((sum, item) => sum + item.weight, 0);
   if (totalWeight <= 0) {
     return null;
   }
