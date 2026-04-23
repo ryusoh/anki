@@ -312,7 +312,7 @@ function updateTimeline() {
         r = c.r;
         g = c.g;
         b = c.b;
-        a = 0.8;
+        a = 0.6;
       } else {
         // Neutral grey outgoing links
         r = 0.4;
@@ -350,8 +350,8 @@ let maxD = 0;
 for (let i = 0; i < nodeCount; i++) {
   const d = Math.sqrt(
     positions[i * 3] ** 2 +
-      positions[i * 3 + 1] ** 2 +
-      positions[i * 3 + 2] ** 2,
+    positions[i * 3 + 1] ** 2 +
+    positions[i * 3 + 2] ** 2,
   );
   if (d > maxD) maxD = d;
 }
