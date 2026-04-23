@@ -24,28 +24,18 @@ try {
 
 const nodeCount = data.nodes.length;
 const uniqueDecks = [...new Set(data.nodes.map((n) => n.deck))];
-const colorPalette = [
-  "#00C7BE",
-  "#32ADE6",
-  "#0A84FF",
-  "#5E5CE6",
-  "#AF52DE",
-  "#BF5AF2",
-  "#FF2D55",
-  "#FF375F",
-  "#FF3B30",
-  "#FF9500",
-  "#FFCC00",
-  "#8E8E93",
-];
 const deckColorCache = new Map();
 const fallbackColor = new THREE.Color("#4facfe");
-uniqueDecks.forEach((deck, i) =>
-  deckColorCache.set(
-    deck,
-    new THREE.Color(colorPalette[i % colorPalette.length]),
-  ),
-);
+
+// GOLDEN RATIO COLOR GENERATION (MAXIMUM PERCEPTUAL DISTANCE)
+const goldenRatioConjugate = 0.618033988749895;
+let hue = Math.random(); // Start at a random point
+uniqueDecks.forEach((deck) => {
+  hue += goldenRatioConjugate;
+  hue %= 1;
+  const color = new THREE.Color().setHSL(hue, 0.9, 0.6);
+  deckColorCache.set(deck, color);
+});
 
 // Build adjacency
 const adjacency = new Map();
