@@ -155,7 +155,7 @@ function updateTimeline() {
   const degree1 = new Set();
   activeSet.forEach(id => (adjacency.get(id) || []).forEach(n => { if (!activeSet.has(n.target)) degree1.add(n.target); }));
 
-  dateDisplay.textContent = `${dateStr} | ${activeSet.size} studied`;
+  dateDisplay.innerHTML = `<div>${dateStr}</div><div>${activeSet.size}</div>`;
 
   // Update Highlight Nodes
   let hiIdx = 0;
