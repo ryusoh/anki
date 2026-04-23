@@ -690,5 +690,5 @@ export const PERLIN_BACKGROUND_SETTINGS = {
 };
 
 export const GRAPH_BACKGROUND_IMAGE = {
-  enabled: false,
+  enabled: true,
 };
