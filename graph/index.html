@@ -36,8 +36,19 @@
     </script>
     <script type="module" data-cfasync="false">
       import { initMagneticNav } from "#ui/magnetic_nav.js?v=20240223";
+      import { TableGlassEffect } from "#ui/tableGlassEffect.js?v=20240223";
+      import { TABLE_GLASS_EFFECT } from "#js/config.js?v=20240223";
+
       window.addEventListener("DOMContentLoaded", () => {
         initMagneticNav();
+        try {
+          new TableGlassEffect("#timeline", {
+            ...TABLE_GLASS_EFFECT,
+            excludeHeader: false,
+          });
+        } catch (e) {
+          console.error("Glass effect failed:", e);
+        }
       });
     </script>
   </head>

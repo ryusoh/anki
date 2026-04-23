@@ -140,12 +140,12 @@ canvas {
   transform: translate(-50%, -20px);
   width: 85%;
   max-width: 800px;
-  background: rgba(10, 10, 15, 0.4);
-  backdrop-filter: blur(30px) saturate(180%);
-  padding: 20px 30px;
-  border-radius: 100px;
-  border: 0.5px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+  background: rgba(17, 17, 17, 0.5);
+  backdrop-filter: blur(18px);
+  padding: 16px 24px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 24px 34px rgba(0, 0, 0, 0.35);
   z-index: 1000;
   opacity: 0;
   pointer-events: auto;
