@@ -9,16 +9,17 @@ from graph.parser import extract_fields, tokenize, get_front_field, group_by_dec
 from graph.references import find_references, find_references_for_deck_only
 
 
-def build_graph(notes, with_pagerank=False, with_anonymization=False, alpha=0.85):
+def build_graph(notes, with_pagerank=False, with_anonymization=False, alpha=0.85, progress_callback=None):
     """
     Build a directed graph from notes.
-    
+
     Args:
         notes: List of note dicts
         with_pagerank: Whether to compute PageRank (default: False)
         with_anonymization: Whether to hash sensitive fields (default: False)
         alpha: Damping factor for PageRank (default: 0.85)
-    
+        progress_callback: Optional callable for reference-finding progress
+
     Returns:
         networkx.DiGraph with nodes and weighted edges
     """
@@ -30,23 +31,23 @@ def build_graph(notes, with_pagerank=False, with_anonymization=False, alpha=0.85
         if text not in hash_cache:
             hash_cache[text] = hashlib.sha256(text.encode('utf-8')).hexdigest()
         return hash_cache[text]
-    
+
     # Add all notes as nodes
     for note in notes:
         guid = note['guid']
         front = get_front_field(note)
         tags = note.get('tags', '')
-        
+
         if with_anonymization:
             # Hash front and tags to prevent clear-text exposure
             front_hash = get_hash(front)[:12]
             front = f"Note_{front_hash}"
-            
+
             if tags:
                 tag_list = tags.split()
                 hashed_tags = [get_hash(t)[:8] for t in tag_list]
                 tags = ' '.join(hashed_tags)
-        
+
         G.add_node(
             guid,
             guid=guid,
@@ -58,9 +59,9 @@ def build_graph(notes, with_pagerank=False, with_anonymization=False, alpha=0.85
             mid=note.get('mid'),
             mod=note.get('mod'),
         )
-    
+
     # Find and add edges (references)
-    edges = find_references(notes)
+    edges = find_references(notes, progress_callback=progress_callback)
 
     for edge in edges:
         G.add_edge(
