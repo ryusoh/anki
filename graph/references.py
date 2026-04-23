@@ -8,12 +8,17 @@ one card's entire front field appears in another card's content.
 Optimizations:
 - Aho-Corasick automaton for O(n + m) multi-pattern substring matching
   instead of O(n²) pairwise comparison
-- Multiprocessing across decks for parallel execution
+- Multiprocessing to split large decks into parallel chunks
 """
 
 import re
-from multiprocessing import Pool, cpu_count
+import multiprocessing
 from graph.parser import extract_fields, get_front_field, get_other_fields_text
+
+def _get_pool(workers):
+    """Create a Pool using fork context (safe on macOS with spawn default)."""
+    ctx = multiprocessing.get_context("fork")
+    return ctx.Pool(workers)
 
 try:
     import ahocorasick
@@ -30,6 +35,9 @@ EDGE_WEIGHTS = {
 # Minimum front field length to consider for matching
 MIN_FRONT_LENGTH = 2
 
+# Decks larger than this get parallelized internally
+_LARGE_DECK_THRESHOLD = 2000
+
 
 def _normalize(text):
     """Normalize text for matching: strip HTML, lowercase, collapse whitespace."""
@@ -42,12 +50,24 @@ def _normalize(text):
     return text
 
 
+def _prepare_note_fields(notes):
+    """Pre-compute normalized fields for a list of notes."""
+    result = []
+    for note in notes:
+        front_norm = _normalize(get_front_field(note))
+        other_norm = _normalize(get_other_fields_text(note))
+        result.append({
+            'guid': note['guid'],
+            'front': front_norm,
+            'front_len': len(front_norm),
+            'other': other_norm,
+        })
+    return result
+
+
 def find_references(notes, progress_callback=None):
     """
     Find all cross-references between notes within the same deck.
-
-    Uses multiprocessing for parallel deck processing when there are
-    multiple decks with enough notes to benefit.
 
     Args:
         notes: List of note dicts with guid, deck, flds fields
@@ -63,21 +83,6 @@ def find_references(notes, progress_callback=None):
     grouped = group_by_deck(notes)
     total_decks = len(grouped)
 
-    # Use multiprocessing when there are multiple decks
-    use_mp = total_decks > 1 and len(notes) > 1000
-
-    if use_mp and not progress_callback:
-        # Parallel: process all decks across cores
-        tasks = list(grouped.items())
-        workers = min(cpu_count(), total_decks, 8)
-        with Pool(workers) as pool:
-            results = pool.starmap(_process_deck_mp, tasks)
-        all_edges = []
-        for edges in results:
-            all_edges.extend(edges)
-        return all_edges
-
-    # Sequential (with progress reporting, or small dataset)
     all_edges = []
     for i, (deck, deck_notes) in enumerate(grouped.items()):
         if progress_callback:
@@ -86,11 +91,6 @@ def find_references(notes, progress_callback=None):
         all_edges.extend(deck_edges)
 
     return all_edges
-
-
-def _process_deck_mp(deck_name, deck_notes):
-    """Wrapper for multiprocessing — must be top-level function."""
-    return find_references_for_deck_only(deck_notes, deck_name)
 
 
 def find_references_for_deck(notes, deck_name):
@@ -112,8 +112,8 @@ def find_references_for_deck_only(deck_notes, deck_name):
     """
     Find references within a single deck using whole-front-field matching.
 
-    Uses Aho-Corasick automaton when available for O(n + m) matching,
-    falling back to optimized pairwise comparison otherwise.
+    For large decks, parallelizes by splitting target notes into chunks
+    and scanning each chunk against the full Aho-Corasick automaton.
 
     Args:
         deck_notes: List of notes from one deck
@@ -125,35 +125,19 @@ def find_references_for_deck_only(deck_notes, deck_name):
     if len(deck_notes) < 2:
         return []
 
-    # Pre-compute normalized fields for each note
-    note_fields = []
-    for note in deck_notes:
-        front_raw = get_front_field(note)
-        other_raw = get_other_fields_text(note)
-        front_norm = _normalize(front_raw)
-        other_norm = _normalize(other_raw)
-        note_fields.append({
-            'guid': note['guid'],
-            'front': front_norm,
-            'front_len': len(front_norm),
-            'other': other_norm,
-        })
+    note_fields = _prepare_note_fields(deck_notes)
 
     if HAS_AHO and len(note_fields) > 50:
+        if len(note_fields) > _LARGE_DECK_THRESHOLD:
+            return _find_refs_aho_parallel(note_fields, deck_name)
         return _find_refs_aho(note_fields, deck_name)
     return _find_refs_bruteforce(note_fields, deck_name)
 
 
-def _find_refs_aho(note_fields, deck_name):
-    """
-    Aho-Corasick approach: build an automaton from all front fields,
-    then scan each note's text once to find all matches.
-
-    Complexity: O(total_text_length + num_matches) instead of O(n²).
-    """
-    # Build automaton from front fields that meet minimum length
+def _build_automaton(note_fields):
+    """Build Aho-Corasick automaton and guid lookup from note fields."""
     automaton = ahocorasick.Automaton()
-    guid_by_front = {}  # front_text -> list of guids with that front
+    guid_by_front = {}
 
     for nf in note_fields:
         if nf['front_len'] < MIN_FRONT_LENGTH:
@@ -164,18 +148,26 @@ def _find_refs_aho(note_fields, deck_name):
             automaton.add_word(front, front)
         guid_by_front[front].append(nf['guid'])
 
+    if guid_by_front:
+        automaton.make_automaton()
+
+    return automaton, guid_by_front
+
+
+def _scan_chunk(args):
+    """Scan a chunk of target notes against a pre-built automaton. For multiprocessing."""
+    chunk, all_note_fields, deck_name = args
+
+    automaton, guid_by_front = _build_automaton(all_note_fields)
     if not guid_by_front:
         return []
-
-    automaton.make_automaton()
 
     edges = []
     seen_edges = set()
 
-    for tgt in note_fields:
+    for tgt in chunk:
         tgt_guid = tgt['guid']
 
-        # Scan front field for matches
         for end_idx, matched_front in automaton.iter(tgt['front']):
             for src_guid in guid_by_front[matched_front]:
                 if src_guid == tgt_guid:
@@ -191,7 +183,82 @@ def _find_refs_aho(note_fields, deck_name):
                         'deck': deck_name,
                     })
 
-        # Scan other fields — skip src_guids already matched in front
+        matched_in_front = {ek[0] for ek in seen_edges if ek[1] == tgt_guid}
+        for end_idx, matched_front in automaton.iter(tgt['other']):
+            for src_guid in guid_by_front[matched_front]:
+                if src_guid == tgt_guid or src_guid in matched_in_front:
+                    continue
+                edge_key = (src_guid, tgt_guid)
+                if edge_key not in seen_edges:
+                    seen_edges.add(edge_key)
+                    edges.append({
+                        'source': src_guid,
+                        'target': tgt_guid,
+                        'type': 'front_in_back',
+                        'weight': EDGE_WEIGHTS['front_in_back'],
+                        'deck': deck_name,
+                    })
+
+    return edges
+
+
+def _find_refs_aho_parallel(note_fields, deck_name):
+    """
+    Parallel Aho-Corasick: each worker builds its own automaton from ALL
+    source fronts, but only scans a chunk of target notes.
+    """
+    workers = min(multiprocessing.cpu_count(), 8)
+    chunk_size = max(1, len(note_fields) // workers)
+    chunks = []
+    for i in range(0, len(note_fields), chunk_size):
+        chunks.append((note_fields[i:i + chunk_size], note_fields, deck_name))
+
+    with _get_pool(workers) as pool:
+        results = pool.map(_scan_chunk, chunks)
+
+    # Merge and deduplicate edges across chunks
+    seen = set()
+    edges = []
+    for chunk_edges in results:
+        for e in chunk_edges:
+            key = (e['source'], e['target'])
+            if key not in seen:
+                seen.add(key)
+                edges.append(e)
+
+    return edges
+
+
+def _find_refs_aho(note_fields, deck_name):
+    """
+    Single-threaded Aho-Corasick: build automaton from all front fields,
+    then scan each note's text once.
+    """
+    automaton, guid_by_front = _build_automaton(note_fields)
+    if not guid_by_front:
+        return []
+
+    edges = []
+    seen_edges = set()
+
+    for tgt in note_fields:
+        tgt_guid = tgt['guid']
+
+        for end_idx, matched_front in automaton.iter(tgt['front']):
+            for src_guid in guid_by_front[matched_front]:
+                if src_guid == tgt_guid:
+                    continue
+                edge_key = (src_guid, tgt_guid)
+                if edge_key not in seen_edges:
+                    seen_edges.add(edge_key)
+                    edges.append({
+                        'source': src_guid,
+                        'target': tgt_guid,
+                        'type': 'front_in_front',
+                        'weight': EDGE_WEIGHTS['front_in_front'],
+                        'deck': deck_name,
+                    })
+
         matched_in_front = {ek[0] for ek in seen_edges if ek[1] == tgt_guid}
         for end_idx, matched_front in automaton.iter(tgt['other']):
             for src_guid in guid_by_front[matched_front]:
@@ -230,7 +297,6 @@ def _find_refs_bruteforce(note_fields, deck_name):
             if edge_key in seen_edges:
                 continue
 
-            # Length pre-filter: src_front can't be substring of shorter text
             if src_len <= len(tgt['front']) and src_front in tgt['front']:
                 seen_edges.add(edge_key)
                 edges.append({

@@ -65,7 +65,7 @@ def load_cache():
 
 
 def save_cache(notes, node_count, link_count):
-    """Save cache with note fingerprints grouped by deck."""
+    """Save cache with note fingerprints as sets per deck."""
     deck_fingerprints = {}
     for note in notes:
         deck = note.get('deck', 'Unknown')
@@ -74,7 +74,7 @@ def save_cache(notes, node_count, link_count):
         deck_fingerprints[deck].append(note_fingerprint(note))
 
     cache = {
-        'version': 2,
+        'version': 3,
         'note_count': len(notes),
         'node_count': node_count,
         'link_count': link_count,
@@ -86,7 +86,7 @@ def save_cache(notes, node_count, link_count):
 
 def find_changed_decks(notes, cache):
     """Compare current notes against cache to find which decks changed."""
-    if not cache or cache.get('version') != 2:
+    if not cache or cache.get('version') != 3:
         return None  # full rebuild
 
     # Build current fingerprints by deck
@@ -94,19 +94,20 @@ def find_changed_decks(notes, cache):
     for note in notes:
         deck = note.get('deck', 'Unknown')
         if deck not in current:
-            current[deck] = []
-        current[deck].append(note_fingerprint(note))
+            current[deck] = set()
+        current[deck].add(note_fingerprint(note))
 
     cached_decks = cache.get('decks', {})
     changed = set()
 
-    # Check for new/modified decks
     for deck, fps in current.items():
-        cached_fps = cached_decks.get(deck, [])
-        if sorted(fps) != sorted(cached_fps):
+        cached_fps = set(cached_decks.get(deck, []))
+        if fps != cached_fps:
+            new_count = len(fps - cached_fps)
+            removed_count = len(cached_fps - fps)
+            print(f'  Deck "{deck}": +{new_count} new, -{removed_count} removed')
             changed.add(deck)
 
-    # Check for deleted decks
     for deck in cached_decks:
         if deck not in current:
             changed.add(deck)
