@@ -169,6 +169,7 @@ data.nodes.forEach((node, i) => {
     x: positions[i * 3],
     y: positions[i * 3 + 1],
     z: positions[i * 3 + 2],
+    size: node.s || node.size || 1,
   });
 
   // PRE-CACHE COLORS FOR MAX SPEED
@@ -422,7 +423,7 @@ function updateTimeline() {
     hiCol[hiIdx * 3] = c.r;
     hiCol[hiIdx * 3 + 1] = c.g;
     hiCol[hiIdx * 3 + 2] = c.b;
-    hiSiz[hiIdx] = 80;
+    hiSiz[hiIdx] = p.size * 65; // Proportional to PageRank
     hiAlp[hiIdx] = 1.0;
     hiIdx++;
   });
@@ -439,7 +440,7 @@ function updateTimeline() {
     hiCol[hiIdx * 3] = c.r * 0.7;
     hiCol[hiIdx * 3 + 1] = c.g * 0.7;
     hiCol[hiIdx * 3 + 2] = c.b * 0.7;
-    hiSiz[hiIdx] = 35;
+    hiSiz[hiIdx] = p.size * 25; // Sub-highlights also proportional
     hiAlp[hiIdx] = 0.4;
     hiIdx++;
   });
