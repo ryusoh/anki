@@ -133,8 +133,13 @@ const commonShaderMat = {
   fragmentShader: `
     varying vec3 vColor; varying float vAlpha;
     void main() {
-      if (length(gl_PointCoord - 0.5) > 0.5) discard;
-      gl_FragColor = vec4(vColor * vAlpha, vAlpha);
+      float r = length(gl_PointCoord - 0.5);
+      if (r > 0.5) discard;
+      // Radiant Core + Soft Bloom Aura
+      float bloom = pow(max(0.0, 1.0 - r * 2.0), 3.0);
+      float core = smoothstep(0.5, 0.4, r);
+      vec3 finalColor = vColor + (vColor * bloom * 0.6);
+      gl_FragColor = vec4(finalColor * vAlpha, vAlpha * (core + bloom * 0.3));
     }
   `,
   transparent: true,
@@ -239,6 +244,14 @@ scene.add(hiEdges);
 const slider = document.getElementById("timeline-slider");
 const dateDisplay = document.getElementById("date-display");
 
+function createLabel(id, parent, beforeEl) {
+  const el = document.createElement("div");
+  el.id = id;
+  if (beforeEl) parent.insertBefore(el, beforeEl);
+  else parent.appendChild(el);
+  return el;
+}
+
 function updateTimeline() {
   if (!historyData) return;
   const dateStr = historyData.dates[parseInt(slider.value)];
@@ -258,7 +271,16 @@ function updateTimeline() {
     }
   });
 
-  dateDisplay.innerHTML = `<div>${dateStr}</div><div>${activeSet.size}</div>`;
+  const dateTop =
+    document.getElementById("date-top") ||
+    createLabel("date-top", dateDisplay.parentNode, slider);
+  const countBottom =
+    document.getElementById("count-bottom") ||
+    createLabel("count-bottom", dateDisplay.parentNode, null);
+
+  dateTop.textContent = dateStr;
+  countBottom.textContent = activeSet.size;
+  dateDisplay.style.display = "none"; // Hide original
 
   // Update Highlight Nodes (Now O(1) Lookups)
   let hiIdx = 0;
@@ -395,6 +417,13 @@ window.addEventListener("keyup", (e) => (keyState[e.key] = false));
 
 function animate() {
   requestAnimationFrame(animate);
+  const time = Date.now() * 0.001;
+
+  // Ambient Breathing (Sub-Perceptual Parallax)
+  const breathX = Math.sin(time * 0.4) * 20;
+  const breathY = Math.cos(time * 0.3) * 15;
+  camera.position.x += (breathX - camera.position.x) * 0.005;
+  camera.position.y += (breathY - camera.position.y) * 0.005;
 
   // WASD Camera Move
   const speed = 25;

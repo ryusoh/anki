@@ -138,20 +138,18 @@ canvas {
   top: 40px;
   left: 50%;
   transform: translateX(-50%) translateY(-20px);
-  width: 80%;
+  width: 85%;
   max-width: 800px;
-  background: rgba(15, 15, 20, 0.7);
-  backdrop-filter: blur(20px);
+  background: rgba(10, 10, 15, 0.4);
+  backdrop-filter: blur(30px) saturate(180%);
   padding: 20px 30px;
-  border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow:
-    0 10px 40px rgba(0, 0, 0, 0.5),
-    inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  border-radius: 100px;
+  border: 0.5px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
   z-index: 1000;
   opacity: 0;
   pointer-events: none;
-  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 #timeline:hover {
@@ -162,20 +160,27 @@ canvas {
 #timeline-controls {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0;
   align-items: center;
 }
 
-#date-display {
+#date-top,
+#count-bottom {
   color: #8e8e93;
   font-size: 13px;
   font-weight: 500;
   letter-spacing: 0.5px;
   text-align: center;
   font-family: "JetBrainsMono", monospace;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  line-height: 1;
+}
+
+#date-top {
+  margin-bottom: 10px;
+}
+
+#count-bottom {
+  margin-top: 10px;
 }
 
 #timeline-slider {
@@ -194,7 +199,8 @@ canvas {
   appearance: none;
   width: 20px;
   height: 20px;
-  background: #8e8e93; /* Neutral Grey */
+  background: #8e8e93;
+  /* Neutral Grey */
   border: 3px solid #fff;
   border-radius: 50%;
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
