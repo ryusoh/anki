@@ -5,6 +5,7 @@ Usage:
     python3 graph/export_data.py           # default 2000 nodes
     python3 graph/export_data.py 500       # 500 nodes
     python3 graph/export_data.py all       # all nodes
+    python3 graph/export_data.py --public    # strip sensitive content
     python3 graph/export_data.py --full    # force full rebuild (skip cache)
 """
 
@@ -246,11 +247,16 @@ def compute_layout(graph, iterations=50):
 
 
 if __name__ == '__main__':
-    # --- Main ---
+    # Parse arguments
     force_full = '--full' in sys.argv
+    is_public = '--public' in sys.argv
     relayout_only = '--relayout' in sys.argv
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     arg = args[0] if args else '2000'
+
+    if is_public:
+        OUTPUT_FILE = BASE / 'graph/graph_data_public.json'
+        print("💡 Public Mode: Stripping sensitive card content (labels)")
 
     if relayout_only:
         print(f"Loading existing {OUTPUT_FILE} for layout recalculation...")
@@ -291,7 +297,7 @@ if __name__ == '__main__':
         print(f"Saving to {OUTPUT_FILE}...")
         t2 = time.time()
         with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-            json.dump({'nodes': nodes, 'links': links}, f, ensure_ascii=False)
+            json.dump({'nodes': nodes, 'links': links}, f, ensure_ascii=False, separators=(',', ':'))
         print(f"  Written in {time.time() - t2:.1f}s")
         print("Done!")
         sys.exit(0)
@@ -314,13 +320,13 @@ if __name__ == '__main__':
     cache = load_cache() if not force_full else None
     changed_decks = find_changed_decks(sample_notes, cache) if cache else None
     
-    if changed_decks is not None and len(changed_decks) == 0:
-        print('No changes detected — graph_data.json is up to date.')
+    if changed_decks is not None and len(changed_decks) == 0 and OUTPUT_FILE.exists():
+        print(f'No changes detected — {OUTPUT_FILE.name} is up to date.')
         print(f'  ({cache["node_count"]} nodes, {cache["link_count"]} links)')
         print('  Use --full to force rebuild.')
         sys.exit(0)
     
-    if changed_decks is not None:
+    if changed_decks is not None and OUTPUT_FILE.exists():
         print(f'Incremental: {len(changed_decks)} deck(s) changed, rebuilding those')
         # Load existing output
         with open(OUTPUT_FILE, 'r') as f:
@@ -358,21 +364,33 @@ if __name__ == '__main__':
         # Merge
         for node_id, ndata in graph.nodes(data=True):
             x, y, z = layout.get(node_id, (0, 0, 0))
-            kept_nodes.append({
-                'id': node_id,
-                'label': strip_html(ndata.get('front', 'Unknown')),
-                'deck': ndata.get('deck', 'Unknown'),
-                'pagerank': round(ndata.get('pagerank', 0), 6),
-                'size': min(3, max(0.5, ndata.get('pagerank', 0) * 100)),
-                'x': round(x, 2),
-                'y': round(y, 2),
-                'z': round(z, 2),
-            })
+            label = "" if is_public else strip_html(ndata.get('front', 'Unknown'))
+            
+            # Short keys for public mode to save space
+            if is_public:
+                kept_nodes.append({
+                    'id': node_id, 'l': label, 'd': ndata.get('deck', 'Unknown'),
+                    'p': round(ndata.get('pagerank', 0), 6),
+                    's': round(min(3, max(0.5, ndata.get('pagerank', 0) * 100)), 2),
+                    'x': int(x), 'y': int(y), 'z': int(z),
+                })
+            else:
+                kept_nodes.append({
+                    'id': node_id,
+                    'label': label,
+                    'deck': ndata.get('deck', 'Unknown'),
+                    'pagerank': round(ndata.get('pagerank', 0), 6),
+                    'size': min(3, max(0.5, ndata.get('pagerank', 0) * 100)),
+                    'x': round(x, 2), 'y': round(y, 2), 'z': round(z, 2),
+                })
         for s, t, d in graph.edges(data=True):
-            kept_links.append({
-                'source': s, 'target': t,
-                'weight': round(d.get('weight', 1), 2),
-            })
+            if is_public:
+                kept_links.append({'s': s, 't': t, 'w': round(d.get('weight', 1), 1)})
+            else:
+                kept_links.append({
+                    'source': s, 'target': t,
+                    'weight': round(d.get('weight', 1), 2),
+                })
     
         nodes = kept_nodes
         links = kept_links
@@ -398,29 +416,45 @@ if __name__ == '__main__':
             if (i + 1) % 5000 == 0 or i + 1 == len(graph.nodes()):
                 progress_bar(i + 1, len(graph.nodes()), 'Nodes')
             x, y, z = layout.get(node_id, (0, 0, 0))
-            nodes.append({
-                'id': node_id,
-                'label': strip_html(ndata.get('front', 'Unknown')),
-                'deck': ndata.get('deck', 'Unknown'),
-                'pagerank': round(ndata.get('pagerank', 0), 6),
-                'size': min(3, max(0.5, ndata.get('pagerank', 0) * 100)),
-                'x': round(x, 2),
-                'y': round(y, 2),
-                'z': round(z, 2),
-            })
+            label = "" if is_public else strip_html(ndata.get('front', 'Unknown'))
+            if is_public:
+                nodes.append({
+                    'id': node_id, 'l': label, 'd': ndata.get('deck', 'Unknown'),
+                    'p': round(ndata.get('pagerank', 0), 6),
+                    's': round(min(3, max(0.5, ndata.get('pagerank', 0) * 100)), 2),
+                    'x': int(x), 'y': int(y), 'z': int(z),
+                })
+            else:
+                nodes.append({
+                    'id': node_id,
+                    'label': label,
+                    'deck': ndata.get('deck', 'Unknown'),
+                    'pagerank': round(ndata.get('pagerank', 0), 6),
+                    'size': min(3, max(0.5, ndata.get('pagerank', 0) * 100)),
+                    'x': round(x, 2),
+                    'y': round(y, 2),
+                    'z': round(z, 2),
+                })
     
-        links = [
-            {'source': s, 'target': t, 'weight': round(d.get('weight', 1), 2)}
-            for s, t, d in graph.edges(data=True)
-        ]
+        if is_public:
+            links = [
+                {'s': s, 't': t, 'w': round(d.get('weight', 1), 1)}
+                for s, t, d in graph.edges(data=True)
+            ]
+        else:
+            links = [
+                {'source': s, 'target': t, 'weight': round(d.get('weight', 1), 2)}
+                for s, t, d in graph.edges(data=True)
+            ]
     
     print(f'Writing {len(nodes)} nodes, {len(links)} links...')
     t2 = time.time()
     with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-        json.dump({'nodes': nodes, 'links': links}, f, ensure_ascii=False)
+        json.dump({'nodes': nodes, 'links': links}, f, ensure_ascii=False, separators=(',', ':'))
     print(f'  Written in {time.time() - t2:.1f}s')
     
-    save_cache(sample_notes, len(nodes), len(links))
+    if not is_public:
+        save_cache(sample_notes, len(nodes), len(links))
     
     print(f'Done — {OUTPUT_FILE}')
     print(f'  {len(nodes)} nodes, {len(links)} links')

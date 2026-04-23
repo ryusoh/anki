@@ -86,6 +86,15 @@ graph-export:
 graph-history:
 	@python3 graph/export_history.py
 
+graph-public:
+	@echo "🌐 Exporting public anonymized graph data..."
+	@python3 graph/export_data.py all --public
+	@python3 graph/export_history.py --public
+	@echo "✅ Public data created at graph/*_public.json"
+
+graph-push: graph-public
+	@python3 graph/upload_public.py
+
 
 graph-viz:
 	@mkdir -p graph_output

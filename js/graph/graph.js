@@ -9,13 +9,44 @@ const loading = document.getElementById("loading");
 let data;
 let historyData;
 try {
+  let graphUrl = "/graph/graph_data.json";
+  let historyUrl = "/graph/history_data.json";
+
+  // First check if private data exists, otherwise fallback to public
+  const privateGraph = await fetch(graphUrl, { method: "HEAD" });
+  if (!privateGraph.ok) {
+    graphUrl = "/graph/graph_data_public.json";
+    historyUrl = "/graph/history_data_public.json";
+    console.log("🌐 Loading Public Anonymized Data");
+  }
+
   const [graphRes, historyRes] = await Promise.all([
-    fetch("/graph/graph_data.json"),
-    fetch("/graph/history_data.json"),
+    fetch(graphUrl),
+    fetch(historyUrl),
   ]);
   if (!graphRes.ok)
     throw new Error(`HTTP ${graphRes.status}: ${graphRes.statusText}`);
   data = await graphRes.json();
+
+  // Map short keys if public data is detected
+  if (data.nodes && data.nodes.length > 0 && data.nodes[0].l !== undefined) {
+    data.nodes = data.nodes.map((n) => ({
+      id: n.id,
+      label: n.l,
+      deck: n.d,
+      pagerank: n.p,
+      size: n.s,
+      x: n.x,
+      y: n.y,
+      z: n.z,
+    }));
+    data.links = data.links.map((l) => ({
+      source: l.s,
+      target: l.t,
+      weight: l.w,
+    }));
+  }
+
   if (historyRes.ok) historyData = await historyRes.json();
 } catch (e) {
   loading.innerHTML = `<div style="color:#f5576c;">Failed to load graph data<br><small>${e.message}</small></div>`;
@@ -479,7 +510,7 @@ for (let i = 0; i < nodeCount; i++) {
   );
   if (d > maxD) maxD = d;
 }
-camera.position.set(0, 0, maxD * 0.6);
+camera.position.set(0, 0, maxD * 0.42);
 
 const timeline = document.getElementById("timeline");
 

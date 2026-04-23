@@ -68,9 +68,15 @@ def export_history():
         "history": {d: list(history[d]) for d in sorted_dates}
     }
     
+    import sys
+    is_public = '--public' in sys.argv
+    if is_public:
+        OUTPUT_FILE = BASE / 'graph/history_data_public.json'
+        print("💡 Public Mode: Saving to history_data_public.json")
+
     print(f"💾 Saving to {OUTPUT_FILE}...")
     with open(OUTPUT_FILE, 'w') as f:
-        json.dump(export_data, f)
+        json.dump(export_data, f, separators=(',', ':'))
     print("✅ Done!")
 
 if __name__ == "__main__":

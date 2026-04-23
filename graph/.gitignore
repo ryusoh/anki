@@ -1,3 +1,2 @@
-# Never commit graph data (contains card content)
 *.json
 !package.json
