@@ -83,6 +83,10 @@ graph-export:
 	@mkdir -p graph_output
 	@python3 graph/analyze.py --all-decks --export graph_output --format json
 
+graph-history:
+	@python3 graph/export_history.py
+
+
 graph-viz:
 	@mkdir -p graph_output
 	@python3 graph/export_viz.py --format html --output graph_output
