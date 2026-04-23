@@ -11,13 +11,14 @@ let historyData;
 try {
   let graphUrl = "/graph/graph_data.json";
   let historyUrl = "/graph/history_data.json";
+  const R2_DOMAIN = "https://anki-graph.lyeutsaon.com";
 
-  // First check if private data exists, otherwise fallback to public
+  // First check if private data exists, otherwise fallback to public R2
   const privateGraph = await fetch(graphUrl, { method: "HEAD" });
   if (!privateGraph.ok) {
-    graphUrl = "/graph/graph_data_public.json";
-    historyUrl = "/graph/history_data_public.json";
-    console.log("🌐 Loading Public Anonymized Data");
+    graphUrl = `${R2_DOMAIN}/graph/graph_data_public.json`;
+    historyUrl = `${R2_DOMAIN}/graph/history_data_public.json`;
+    console.log("🌐 Loading Public Anonymized Data from R2");
   }
 
   const [graphRes, historyRes] = await Promise.all([
