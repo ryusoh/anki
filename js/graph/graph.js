@@ -199,6 +199,7 @@ const MAX_HI = 8000;
 const hiPos = new Float32Array(MAX_HI * 3);
 const hiCol = new Float32Array(MAX_HI * 3);
 const hiSiz = new Float32Array(MAX_HI);
+const hiAlp = new Float32Array(MAX_HI);
 const hiGeom = new THREE.BufferGeometry();
 hiGeom.setAttribute(
   "position",
@@ -211,6 +212,10 @@ hiGeom.setAttribute(
 hiGeom.setAttribute(
   "aSize",
   new THREE.BufferAttribute(hiSiz, 1).setUsage(THREE.DynamicDrawUsage),
+);
+hiGeom.setAttribute(
+  "aAlpha",
+  new THREE.BufferAttribute(hiAlp, 1).setUsage(THREE.DynamicDrawUsage),
 );
 
 const hiMat = new THREE.ShaderMaterial({
@@ -307,6 +312,7 @@ function updateTimeline() {
     hiCol[hiIdx * 3 + 1] = c.g;
     hiCol[hiIdx * 3 + 2] = c.b;
     hiSiz[hiIdx] = 80;
+    hiAlp[hiIdx] = 1.0;
     hiIdx++;
   });
 
@@ -323,13 +329,21 @@ function updateTimeline() {
     hiCol[hiIdx * 3 + 1] = c.g * 0.7;
     hiCol[hiIdx * 3 + 2] = c.b * 0.7;
     hiSiz[hiIdx] = 35;
+    hiAlp[hiIdx] = 0.4;
     hiIdx++;
   });
+
+  // Zero out rest to hide them
+  for (let i = hiIdx; i < MAX_HI; i++) {
+    hiSiz[i] = 0;
+    hiAlp[i] = 0;
+  }
 
   hiGeom.setDrawRange(0, hiIdx);
   hiGeom.attributes.position.needsUpdate = true;
   hiGeom.attributes.aColor.needsUpdate = true;
   hiGeom.attributes.aSize.needsUpdate = true;
+  hiGeom.attributes.aAlpha.needsUpdate = true;
 
   // Update Highlight Edges
   let hiEIdx = 0;
