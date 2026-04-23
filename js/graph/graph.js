@@ -219,18 +219,37 @@ hiGeom.setAttribute(
 );
 
 const hiMat = new THREE.ShaderMaterial({
-  ...commonShaderMat,
+  uniforms: {
+    uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+    uTime: { value: 0 },
+  },
+  vertexShader: `
+    attribute float aSize; attribute vec3 aColor; attribute float aAlpha;
+    varying vec3 vColor; varying float vAlpha;
+    void main() {
+      vColor = aColor; vAlpha = aAlpha;
+      vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+      gl_PointSize = aSize * (300.0 / -mvPos.z);
+      gl_Position = projectionMatrix * mvPos;
+      gl_Position.z -= 0.1; // Ensure top layer
+    }
+  `,
+  fragmentShader: `
+    varying vec3 vColor; varying float vAlpha;
+    uniform float uTime;
+    void main() {
+      float r = length(gl_PointCoord - 0.5);
+      if (r > 0.5) discard;
+      float glow = pow(1.0 - r * 2.0, 3.0);
+      float pulse = 0.9 + 0.1 * sin(uTime * 5.0);
+      vec3 finalColor = vColor * (1.0 + glow * 2.0 * pulse);
+      gl_FragColor = vec4(finalColor * vAlpha, vAlpha * (smoothstep(0.5, 0.3, r) + glow * 0.5));
+    }
+  `,
+  transparent: true,
+  blending: THREE.AdditiveBlending,
   depthTest: false,
 });
-// Special Z-nudge just for highlights
-hiMat.vertexShader = hiMat.vertexShader.replace(
-  "gl_Position = projectionMatrix * mvPos;",
-  "gl_Position = projectionMatrix * mvPos; gl_Position.z -= 0.05;",
-);
-hiMat.fragmentShader = hiMat.fragmentShader.replace(
-  "gl_FragColor = vec4(vColor * vAlpha, vAlpha);",
-  "gl_FragColor = vec4(vColor, 1.0);",
-);
 const hiPoints = new THREE.Points(hiGeom, hiMat);
 scene.add(hiPoints);
 
@@ -441,6 +460,7 @@ window.addEventListener("keyup", (e) => (keyState[e.key] = false));
 function animate() {
   requestAnimationFrame(animate);
   const time = Date.now() * 0.001;
+  hiMat.uniforms.uTime.value = time;
 
   // Ambient Breathing (Sub-Perceptual Parallax)
   if (isRotating) {
