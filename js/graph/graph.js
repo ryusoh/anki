@@ -35,9 +35,9 @@ const camera = new THREE.PerspectiveCamera(
   75,
   window.innerWidth / window.innerHeight,
   0.1,
-  5000,
+  50000,
 );
-camera.position.set(0, 0, 1000);
+camera.position.set(0, 0, 10000);
 
 // Renderer
 const renderer = new THREE.WebGLRenderer({
@@ -53,7 +53,7 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 controls.minDistance = 100;
-controls.maxDistance = 2000;
+controls.maxDistance = 20000;
 
 // Deck colors and cluster positions
 const deckColors = {};
@@ -79,8 +79,21 @@ uniqueDecks.forEach((deck, i) => {
   deckColors[deck] = colorPalette[i % colorPalette.length];
 });
 
-const clusterRadius = 400;
-const clusterSpread = 250;
+// Count nodes per deck for spread scaling
+const deckCounts = {};
+data.nodes.forEach((n) => {
+  deckCounts[n.deck] = (deckCounts[n.deck] || 0) + 1;
+});
+
+// Spread scales with sqrt of deck size — 100 nodes → 250, 25000 nodes → ~4000
+const deckSpread = {};
+uniqueDecks.forEach((deck) => {
+  deckSpread[deck] = Math.max(250, Math.sqrt(deckCounts[deck]) * 25);
+});
+
+// Cluster radius scales so larger spreads don't overlap
+const maxSpread = Math.max(...Object.values(deckSpread));
+const clusterRadius = maxSpread * 1.5 + 200;
 
 // --- NODES (Points + ShaderMaterial) ---
 const nodeCount = data.nodes.length;
@@ -94,14 +107,15 @@ const color = new THREE.Color();
 
 data.nodes.forEach((node, i) => {
   const deckAngle = deckAngles[node.deck] || 0;
+  const spread = deckSpread[node.deck] || 250;
 
   const px =
     node.x ||
-    Math.cos(deckAngle) * clusterRadius + (Math.random() - 0.5) * clusterSpread;
+    Math.cos(deckAngle) * clusterRadius + (Math.random() - 0.5) * spread;
   const py =
     node.y ||
-    Math.sin(deckAngle) * clusterRadius + (Math.random() - 0.5) * clusterSpread;
-  const pz = node.z || (Math.random() - 0.5) * 150;
+    Math.sin(deckAngle) * clusterRadius + (Math.random() - 0.5) * spread;
+  const pz = node.z || (Math.random() - 0.5) * spread * 0.3;
 
   positions[i * 3] = px;
   positions[i * 3 + 1] = py;
