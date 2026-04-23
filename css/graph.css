@@ -219,3 +219,38 @@ canvas {
   height: 6px;
   cursor: pointer;
 }
+
+footer {
+  position: fixed;
+  z-index: 1001;
+  bottom: 10px;
+  width: 85%;
+  max-width: 900px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  line-height: 1;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-family:
+    "Helvetica Neue", Helvetica, "Segoe UI", Arial, freesans, sans-serif;
+  font-weight: 100;
+  letter-spacing: 1px;
+  padding: 0;
+  border: 0;
+  vertical-align: baseline;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+footer a {
+  color: rgba(255, 255, 255, 0.5);
+  opacity: 1;
+  transition: opacity 0.2s ease;
+  text-decoration: none;
+}
+
+footer a:hover {
+  opacity: 0.8;
+}
