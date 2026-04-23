@@ -1,19 +1,10 @@
 // Custom cursor and UI enhancements
 import { initCursor } from "./vendor/cursor.js?v=20240223";
 
-document.addEventListener("DOMContentLoaded", () => {
-  // Check if GSAP is available
-  if (!window.gsap) {
-    // GSAP is required for cursor functionality
-    return;
-  }
-
-  // Initialize just the cursor
-  // Increase followEase on the graph page to compensate for rendering load
+function boot() {
   const isGraphPage = window.location.pathname.includes("/graph/");
   const { cursor } = initCursor({
     cursor: {
-      // Custom cursor options
       hoverTargets:
         "a, button, .container li, .nav-container li, #timeline-slider",
       followEase: isGraphPage ? 0.8 : 0.4,
@@ -21,7 +12,25 @@ document.addEventListener("DOMContentLoaded", () => {
       hoverScale: 3,
     },
   });
-
-  // Store instances for cleanup if needed
   window.cursorInstances = { cursor };
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  if (window.gsap) {
+    boot();
+    return;
+  }
+
+  // GSAP may be deferred by Cloudflare Rocket Loader — poll briefly
+  let attempts = 0;
+  const id = setInterval(() => {
+    attempts += 1;
+    if (window.gsap) {
+      clearInterval(id);
+      boot();
+    } else if (attempts >= 40) {
+      // Give up after ~2 s
+      clearInterval(id);
+    }
+  }, 50);
 });

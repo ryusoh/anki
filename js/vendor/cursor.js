@@ -1,5 +1,7 @@
 // GSAP is loaded globally via script tag
-const gsap = window.gsap;
+// Use a getter so we always read the latest value from window.gsap,
+// even if the module evaluates before GSAP finishes loading (e.g. Cloudflare Rocket Loader).
+const getGsap = () => window.gsap;
 
 const isTouchDevice =
     typeof window !== 'undefined' &&
@@ -257,6 +259,8 @@ export class CustomCursor {
         this.coords.x.value = lerp(this.coords.x.value, this.coords.x.current, this.followEase);
         this.coords.y.value = lerp(this.coords.y.value, this.coords.y.current, this.followEase);
 
+        const gsap = getGsap();
+        if (!gsap) return; // GSAP not yet loaded – skip this frame
         gsap.set(this.element, {
             opacity: this.coords.opacity.value,
             x: this.coords.x.value,

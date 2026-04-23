@@ -189,6 +189,7 @@ canvas {
 
 #timeline-slider {
   -webkit-appearance: none;
+  appearance: none;
   width: 100%;
   height: 6px;
   background: rgba(255, 255, 255, 0.15);
