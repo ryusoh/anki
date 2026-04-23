@@ -57,7 +57,6 @@ controls.maxDistance = 20000;
 
 // Deck colors and cluster positions
 const deckColors = {};
-const deckAngles = {};
 const colorPalette = [
   "#667eea",
   "#764ba2",
@@ -74,26 +73,36 @@ const colorPalette = [
 ];
 
 const uniqueDecks = [...new Set(data.nodes.map((n) => n.deck))];
+// Fibonacci sphere for even 3D distribution of cluster centers
+const deckCenters = {};
+const goldenAngle = Math.PI * (3 - Math.sqrt(5));
 uniqueDecks.forEach((deck, i) => {
-  deckAngles[deck] = (i / uniqueDecks.length) * Math.PI * 2;
+  const y = 1 - (2 * i + 1) / uniqueDecks.length; // -1 to 1
+  const radiusAtY = Math.sqrt(1 - y * y);
+  const theta = goldenAngle * i;
+  deckCenters[deck] = {
+    x: Math.cos(theta) * radiusAtY,
+    y: y,
+    z: Math.sin(theta) * radiusAtY,
+  };
   deckColors[deck] = colorPalette[i % colorPalette.length];
 });
 
-// Count nodes per deck for spread scaling
+// Check if nodes have pre-computed positions
+const hasLayout = data.nodes.length > 0 && data.nodes[0].x != null;
+
+// Fallback cluster layout for nodes without pre-computed positions
 const deckCounts = {};
 data.nodes.forEach((n) => {
   deckCounts[n.deck] = (deckCounts[n.deck] || 0) + 1;
 });
-
-// Spread scales with sqrt of deck size — 100 nodes → 250, 25000 nodes → ~4000
+// Sphere radius per deck scales with cube root (volume-proportional)
 const deckSpread = {};
 uniqueDecks.forEach((deck) => {
-  deckSpread[deck] = Math.max(250, Math.sqrt(deckCounts[deck]) * 25);
+  deckSpread[deck] = Math.max(100, Math.cbrt(deckCounts[deck]) * 30);
 });
-
-// Cluster radius scales so larger spreads don't overlap
 const maxSpread = Math.max(...Object.values(deckSpread));
-const clusterRadius = maxSpread * 1.5 + 200;
+const clusterRadius = maxSpread * 2;
 
 // --- NODES (Points + ShaderMaterial) ---
 const nodeCount = data.nodes.length;
@@ -106,16 +115,23 @@ const nodeDeckMap = new Map();
 const color = new THREE.Color();
 
 data.nodes.forEach((node, i) => {
-  const deckAngle = deckAngles[node.deck] || 0;
-  const spread = deckSpread[node.deck] || 250;
+  const center = deckCenters[node.deck] || { x: 0, y: 0, z: 0 };
+  const spread = deckSpread[node.deck] || 100;
 
-  const px =
-    node.x ||
-    Math.cos(deckAngle) * clusterRadius + (Math.random() - 0.5) * spread;
-  const py =
-    node.y ||
-    Math.sin(deckAngle) * clusterRadius + (Math.random() - 0.5) * spread;
-  const pz = node.z || (Math.random() - 0.5) * spread * 0.3;
+  let px, py, pz;
+  if (hasLayout) {
+    px = node.x;
+    py = node.y;
+    pz = (Math.random() - 0.5) * spread * 0.5;
+  } else {
+    // Spherical distribution within cluster
+    const r = spread * Math.cbrt(Math.random());
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    px = center.x * clusterRadius + r * Math.sin(phi) * Math.cos(theta);
+    py = center.y * clusterRadius + r * Math.sin(phi) * Math.sin(theta);
+    pz = center.z * clusterRadius + r * Math.cos(phi);
+  }
 
   positions[i * 3] = px;
   positions[i * 3 + 1] = py;
@@ -171,6 +187,18 @@ const nodeMaterial = new THREE.ShaderMaterial({
 
 const nodePoints = new THREE.Points(nodeGeometry, nodeMaterial);
 scene.add(nodePoints);
+
+// Auto-fit camera to data bounds
+let maxDist = 0;
+for (let i = 0; i < nodeCount; i++) {
+  const dx = positions[i * 3];
+  const dy = positions[i * 3 + 1];
+  const d = Math.sqrt(dx * dx + dy * dy);
+  if (d > maxDist) maxDist = d;
+}
+camera.position.set(0, 0, maxDist * 2.5);
+controls.minDistance = maxDist * 0.1;
+controls.maxDistance = maxDist * 10;
 
 // --- EDGES (LineSegments) ---
 const deckColorCache = new Map();

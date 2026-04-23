@@ -9,10 +9,12 @@ Usage:
 """
 
 import sys, json, gzip, re, time, hashlib
+import numpy as np
 from pathlib import Path
 
 sys.path.insert(0, '/Users/lz/Library/Application Support/Anki2/addons21')
 from graph.builder import build_graph
+from fa2_modified import ForceAtlas2
 
 BASE = Path('/Users/lz/Library/Application Support/Anki2/addons21')
 NOTES_FILE = BASE / 'data/cloudflare/collection/notes.json.gz'
@@ -121,6 +123,40 @@ def deck_progress(deck_name, deck_idx, total_decks, deck_size):
     progress_bar(deck_idx + 1, total_decks, f'Refs: {short_name} ({deck_size} notes)')
 
 
+def compute_layout(graph, iterations=50):
+    """Compute ForceAtlas2 layout positions for a networkx graph."""
+    node_list = list(graph.nodes())
+    n = len(node_list)
+    if n == 0:
+        return {}
+
+    fa2 = ForceAtlas2(
+        outboundAttractionDistribution=True,
+        edgeWeightInfluence=1.0,
+        jitterTolerance=1.0,
+        barnesHutOptimize=True,
+        barnesHutTheta=1.2,
+        scalingRatio=2.0,
+        strongGravityMode=False,
+        gravity=1.0,
+        verbose=False,
+    )
+
+    positions = fa2.forceatlas2_networkx_layout(graph, pos=None, iterations=iterations)
+
+    # Scale positions so the layout fills a reasonable space
+    coords = np.array([positions[nid] for nid in node_list])
+    # Center at origin
+    coords -= coords.mean(axis=0)
+    # Scale so 95th percentile radius is ~1000 units
+    dists = np.linalg.norm(coords, axis=1)
+    p95 = np.percentile(dists, 95)
+    if p95 > 0:
+        coords *= 1000.0 / p95
+
+    return {nid: (float(coords[i][0]), float(coords[i][1])) for i, nid in enumerate(node_list)}
+
+
 # --- Main ---
 force_full = '--full' in sys.argv
 args = [a for a in sys.argv[1:] if not a.startswith('--')]
@@ -177,14 +213,25 @@ if changed_decks is not None:
     graph = build_graph(changed_notes, with_pagerank=True, progress_callback=deck_progress)
     print(f'  Graph built in {time.time() - t1:.1f}s')
 
+    # Layout for changed decks
+    n_changed = len(graph.nodes())
+    iters = 30 if n_changed > 50000 else 50 if n_changed > 10000 else 100
+    print(f'  Computing layout for changed decks ({iters} iterations)...')
+    t_layout = time.time()
+    layout = compute_layout(graph, iterations=iters)
+    print(f'  Layout computed in {time.time() - t_layout:.1f}s')
+
     # Merge
     for node_id, ndata in graph.nodes(data=True):
+        x, y = layout.get(node_id, (0, 0))
         kept_nodes.append({
             'id': node_id,
             'label': strip_html(ndata.get('front', 'Unknown')),
             'deck': ndata.get('deck', 'Unknown'),
             'pagerank': round(ndata.get('pagerank', 0), 6),
             'size': min(3, max(0.5, ndata.get('pagerank', 0) * 100)),
+            'x': round(x, 2),
+            'y': round(y, 2),
         })
     for s, t, d in graph.edges(data=True):
         kept_links.append({
@@ -202,17 +249,28 @@ else:
     t_graph = time.time() - t1
     print(f'  Graph: {len(graph.nodes())} nodes, {len(graph.edges())} edges ({t_graph:.1f}s)')
 
+    # Compute ForceAtlas2 layout
+    n_nodes = len(graph.nodes())
+    iters = 30 if n_nodes > 50000 else 50 if n_nodes > 10000 else 100
+    print(f'Computing layout (ForceAtlas2, {iters} iterations)...')
+    t_layout = time.time()
+    layout = compute_layout(graph, iterations=iters)
+    print(f'  Layout computed in {time.time() - t_layout:.1f}s')
+
     print('Exporting nodes...')
     nodes = []
     for i, (node_id, ndata) in enumerate(graph.nodes(data=True)):
         if (i + 1) % 5000 == 0 or i + 1 == len(graph.nodes()):
             progress_bar(i + 1, len(graph.nodes()), 'Nodes')
+        x, y = layout.get(node_id, (0, 0))
         nodes.append({
             'id': node_id,
             'label': strip_html(ndata.get('front', 'Unknown')),
             'deck': ndata.get('deck', 'Unknown'),
             'pagerank': round(ndata.get('pagerank', 0), 6),
             'size': min(3, max(0.5, ndata.get('pagerank', 0) * 100)),
+            'x': round(x, 2),
+            'y': round(y, 2),
         })
 
     links = [
