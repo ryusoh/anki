@@ -245,12 +245,57 @@ def compute_layout(graph, iterations=50):
     return all_positions
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     # --- Main ---
     force_full = '--full' in sys.argv
+    relayout_only = '--relayout' in sys.argv
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     arg = args[0] if args else '2000'
-    
+
+    if relayout_only:
+        print(f"Loading existing {OUTPUT_FILE} for layout recalculation...")
+        if not OUTPUT_FILE.exists():
+            print(f"Error: {OUTPUT_FILE} not found. Cannot re-layout without existing data.")
+            sys.exit(1)
+
+        with open(OUTPUT_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        nodes = data.get('nodes', [])
+        links = data.get('links', [])
+
+        print(f"Rebuilding networkx graph from {len(nodes)} nodes and {len(links)} links...")
+        import networkx as nx
+        G = nx.DiGraph()
+        for n in nodes:
+            G.add_node(n['id'], deck=n.get('deck', 'Unknown'))
+        for l in links:
+            G.add_edge(l['source'], l['target'], weight=l.get('weight', 1))
+
+        n_nodes = len(G.nodes())
+        iters = 30 if n_nodes > 50000 else 50 if n_nodes > 10000 else 100
+        print(f"Computing 3D sphere layout ({iters} iterations)...")
+
+        t_layout = time.time()
+        layout = compute_layout(G, iterations=iters)
+        print(f"  Layout computed in {time.time() - t_layout:.1f}s")
+
+        print("Updating node coordinates...")
+        for n in nodes:
+            node_id = n['id']
+            x, y, z = layout.get(node_id, (0, 0, 0))
+            n['x'] = round(x, 2)
+            n['y'] = round(y, 2)
+            n['z'] = round(z, 2)
+
+        print(f"Saving to {OUTPUT_FILE}...")
+        t2 = time.time()
+        with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
+            json.dump({'nodes': nodes, 'links': links}, f, ensure_ascii=False)
+        print(f"  Written in {time.time() - t2:.1f}s")
+        print("Done!")
+        sys.exit(0)
+
     print('Loading notes...')
     t0 = time.time()
     with gzip.open(NOTES_FILE, 'rt') as f:
