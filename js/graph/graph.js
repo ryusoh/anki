@@ -85,6 +85,15 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.5;
+
+let isRotating = true;
+renderer.domElement.addEventListener("dblclick", () => {
+  isRotating = !isRotating;
+  controls.autoRotate = isRotating;
+  console.log("Graph Rotation:", isRotating ? "Resumed" : "Stopped");
+});
 
 // --- SHARED BUFFERS & MAPS ---
 const nodeMap = new Map();
@@ -420,10 +429,12 @@ function animate() {
   const time = Date.now() * 0.001;
 
   // Ambient Breathing (Sub-Perceptual Parallax)
-  const breathX = Math.sin(time * 0.4) * 20;
-  const breathY = Math.cos(time * 0.3) * 15;
-  camera.position.x += (breathX - camera.position.x) * 0.005;
-  camera.position.y += (breathY - camera.position.y) * 0.005;
+  if (isRotating) {
+    const breathX = Math.sin(time * 0.4) * 20;
+    const breathY = Math.cos(time * 0.3) * 15;
+    camera.position.x += (breathX - camera.position.x) * 0.005;
+    camera.position.y += (breathY - camera.position.y) * 0.005;
+  }
 
   // WASD Camera Move
   const speed = 25;
