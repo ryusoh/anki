@@ -157,7 +157,6 @@ canvas {
 #timeline:hover {
   background: rgba(20, 20, 25, 0.85);
   border-color: rgba(255, 255, 255, 0.2);
-  bottom: 45px;
 }
 
 #timeline-controls {
