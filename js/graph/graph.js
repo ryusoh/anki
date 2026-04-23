@@ -1,5 +1,11 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { GRAPH_BACKGROUND_IMAGE } from "#js/config.js";
+
+if (GRAPH_BACKGROUND_IMAGE.enabled) {
+  document.body.style.setProperty("background", "#000 url(../assets/backgrounds/graph_background.jpg) center center no-repeat", "important");
+  document.body.style.setProperty("background-size", "cover", "important");
+}
 
 const loading = document.getElementById("loading");
 
@@ -59,18 +65,18 @@ controls.maxDistance = 20000;
 // Deck colors and cluster positions
 const deckColors = {};
 const colorPalette = [
-  "#667eea",
-  "#764ba2",
-  "#f093fb",
-  "#f5576c",
-  "#4facfe",
-  "#00f2fe",
-  "#43e97b",
-  "#38f9d7",
-  "#fa709a",
-  "#fee140",
-  "#30cfd0",
-  "#330867",
+  "#00C7BE", // Teal
+  "#32ADE6", // Cyan
+  "#0A84FF", // Blue
+  "#5E5CE6", // Indigo
+  "#AF52DE", // Purple
+  "#BF5AF2", // Light Purple
+  "#FF2D55", // Pink
+  "#FF375F", // Rose
+  "#FF3B30", // Red
+  "#FF9500", // Orange
+  "#FFCC00", // Yellow
+  "#8E8E93", // Gray
 ];
 
 const uniqueDecks = [...new Set(data.nodes.map((n) => n.deck))];
@@ -141,8 +147,12 @@ data.nodes.forEach((node, i) => {
   nodeMap.set(node.id, { x: px, y: py, z: pz });
   nodeDeckMap.set(node.id, node.deck);
 
+  const sizeFactor = nodeCount > 50000 ? 0.5 : nodeCount > 10000 ? 0.75 : 1.0;
   const baseScale = 0.3 + node.pagerank * 200;
-  sizes[i] = Math.max(3, Math.min(30, baseScale * 10));
+  sizes[i] = Math.max(
+    3 * sizeFactor,
+    Math.min(30 * sizeFactor, baseScale * 10 * sizeFactor),
+  );
 
   color.set(deckColors[node.deck] || "#ffffff");
   colors[i * 3] = color.r;
@@ -155,9 +165,12 @@ nodeGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
 nodeGeometry.setAttribute("aColor", new THREE.BufferAttribute(colors, 3));
 nodeGeometry.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1));
 
+const baseAlpha = nodeCount > 50000 ? 0.15 : nodeCount > 10000 ? 0.25 : 0.4;
+
 const nodeMaterial = new THREE.ShaderMaterial({
   uniforms: {
     uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+    uBaseAlpha: { value: baseAlpha },
   },
   vertexShader: `
     uniform float uPixelRatio;
@@ -173,15 +186,23 @@ const nodeMaterial = new THREE.ShaderMaterial({
     }
   `,
   fragmentShader: `
+    uniform float uBaseAlpha;
     varying vec3 vColor;
     void main() {
-      float dist = length(gl_PointCoord - 0.5);
-      if (dist > 0.45) discard;
       vec2 center = gl_PointCoord - 0.5;
-      float light = 0.6 + 0.4 * dot(normalize(vec3(-center, 0.5)), vec3(-0.3, 0.3, 1.0));
-      gl_FragColor = vec4(vColor * light, 1.0);
+      float dist = length(center);
+      // Soft radial gradient
+      float alpha = smoothstep(0.5, 0.0, dist);
+      // Soft core
+      float core = smoothstep(0.15, 0.0, dist);
+      vec3 finalColor = mix(vColor, vec3(1.0), core * 0.2);
+      
+      float finalAlpha = alpha * uBaseAlpha;
+      // Explicitly premultiply alpha for correct CSS background compositing
+      gl_FragColor = vec4(finalColor * finalAlpha, finalAlpha);
     }
   `,
+  transparent: true,
   depthWrite: false,
   depthTest: false,
 });
@@ -260,8 +281,12 @@ edgeGeometry.setAttribute(
   new THREE.Float32BufferAttribute(edgeColors, 3),
 );
 
+const edgeOpacity = nodeCount > 50000 ? 0.015 : nodeCount > 10000 ? 0.05 : 0.15;
+
 const edgeMaterial = new THREE.LineBasicMaterial({
   vertexColors: true,
+  transparent: true,
+  opacity: edgeOpacity,
   depthWrite: false,
   depthTest: false,
 });

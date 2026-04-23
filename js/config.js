@@ -688,3 +688,7 @@ export const PERLIN_BACKGROUND_SETTINGS = {
   respectReducedMotion: true,
   maxPixelRatio: 10,
 };
+
+export const GRAPH_BACKGROUND_IMAGE = {
+  enabled: false,
+};
