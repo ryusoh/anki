@@ -525,6 +525,64 @@ for (let i = 0; i < nodeCount; i++) {
 }
 camera.position.set(0, 0, maxD * 0.42);
 
+// --- LAYER 3: AMBIENT QUANTUM MIST ---
+function createAmbientMist(THREE, scale) {
+  const particleCount = 2000;
+  const positions = new Float32Array(particleCount * 3);
+  const sizes = new Float32Array(particleCount);
+  for (let i = 0; i < particleCount; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const radius = scale * (Math.random() * 3.5);
+    const height = (Math.random() - 0.5) * scale * 3;
+    positions[i * 3] = Math.cos(angle) * radius;
+    positions[i * 3 + 1] = height;
+    positions[i * 3 + 2] = Math.sin(angle) * radius;
+    sizes[i] = 1.0 + Math.random() * 3.0;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1));
+
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 } },
+    vertexShader: `
+      precision highp float;
+      uniform float uTime;
+      attribute float aSize;
+      varying float vAlpha;
+      void main() {
+        vec3 pos = position;
+        // 3x Faster Drifting Logic
+        pos.y += sin(uTime * 1.2 + position.x * 0.02) * 150.0;
+        pos.x += cos(uTime * 0.9 + position.z * 0.02) * 90.0;
+        
+        vAlpha = 0.3 + 0.3 * abs(sin(uTime * 1.5 + position.x * 0.1));
+        vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
+        gl_Position = projectionMatrix * mvPos;
+        gl_PointSize = aSize * (6000.0 / -mvPos.z);
+      }
+    `,
+    fragmentShader: `
+      precision highp float;
+      varying float vAlpha;
+      void main() {
+        float d = length(gl_PointCoord - 0.5);
+        if (d > 0.5) discard;
+        // Radial beam/mist effect
+        float glow = pow(max(0.0, 1.0 - d * 2.0), 3.0);
+        gl_FragColor = vec4(vec3(1.0), glow * vAlpha);
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  return new THREE.Points(geo, mat);
+}
+
+const ambientMist = createAmbientMist(THREE, maxD);
+scene.add(ambientMist);
+
 const timeline = document.getElementById("timeline");
 
 // Final Reveal - delayed slightly to ensure first frame is painted
@@ -553,6 +611,8 @@ function animate() {
   requestAnimationFrame(animate);
   const time = Date.now() * 0.001;
   hiMat.uniforms.uTime.value = time;
+  ambientMist.material.uniforms.uTime.value = time;
+  ambientMist.rotation.y += 0.01;
 
   // Ambient Breathing (Sub-Perceptual Parallax) - Moved to SCENE to avoid Camera conflict
   if (isRotating) {
