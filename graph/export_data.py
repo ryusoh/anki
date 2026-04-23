@@ -123,12 +123,13 @@ def deck_progress(deck_name, deck_idx, total_decks, deck_size):
     progress_bar(deck_idx + 1, total_decks, f'Refs: {short_name} ({deck_size} notes)')
 
 
-def compute_layout(graph, iterations=50):
-    """Compute ForceAtlas2 layout positions for a networkx graph."""
-    node_list = list(graph.nodes())
-    n = len(node_list)
-    if n == 0:
+def _compute_deck_layout(subgraph, iterations):
+    """Compute FA2 layout for a single deck subgraph, centered at origin."""
+    node_list = list(subgraph.nodes())
+    if len(node_list) == 0:
         return {}
+    if len(node_list) == 1:
+        return {node_list[0]: (0.0, 0.0)}
 
     fa2 = ForceAtlas2(
         outboundAttractionDistribution=True,
@@ -142,19 +143,89 @@ def compute_layout(graph, iterations=50):
         verbose=False,
     )
 
-    positions = fa2.forceatlas2_networkx_layout(graph, pos=None, iterations=iterations)
+    positions = fa2.forceatlas2_networkx_layout(subgraph, pos=None, iterations=iterations)
 
-    # Scale positions so the layout fills a reasonable space
     coords = np.array([positions[nid] for nid in node_list])
-    # Center at origin
     coords -= coords.mean(axis=0)
-    # Scale so 95th percentile radius is ~1000 units
+    # Scale so 95th percentile radius matches cube-root of node count
+    # This gives each deck a size proportional to its volume
     dists = np.linalg.norm(coords, axis=1)
-    p95 = np.percentile(dists, 95)
+    p95 = np.percentile(dists, 95) if len(dists) > 1 else 1.0
+    target_radius = max(50, np.cbrt(len(node_list)) * 30)
     if p95 > 0:
-        coords *= 1000.0 / p95
+        coords *= target_radius / p95
 
     return {nid: (float(coords[i][0]), float(coords[i][1])) for i, nid in enumerate(node_list)}
+
+
+def compute_layout(graph, iterations=50):
+    """
+    Compute per-deck ForceAtlas2 layouts, then arrange decks
+    on a Fibonacci sphere in 3D so they don't overlap.
+
+    Returns dict: {node_id: (x, y, z)}
+    """
+    # Group nodes by deck
+    decks = {}
+    for nid, ndata in graph.nodes(data=True):
+        deck = ndata.get('deck', 'Unknown')
+        if deck not in decks:
+            decks[deck] = []
+        decks[deck].append(nid)
+
+    deck_names = sorted(decks.keys(), key=lambda d: len(decks[d]), reverse=True)
+    total = len(deck_names)
+
+    # Fibonacci sphere centers for deck placement
+    golden_angle = np.pi * (3 - np.sqrt(5))
+    deck_centers = {}
+    deck_radii = {}
+    for i, deck in enumerate(deck_names):
+        y = 1 - (2 * i + 1) / total
+        r_at_y = np.sqrt(1 - y * y)
+        theta = golden_angle * i
+        deck_centers[deck] = np.array([
+            np.cos(theta) * r_at_y,
+            y,
+            np.sin(theta) * r_at_y,
+        ])
+        deck_radii[deck] = max(50, np.cbrt(len(decks[deck])) * 30)
+
+    # Spacing: scale sphere so decks don't overlap
+    max_radius = max(deck_radii.values())
+    sphere_radius = max_radius * total * 0.4
+
+    all_positions = {}
+
+    for i, deck in enumerate(deck_names):
+        deck_nodes = decks[deck]
+        subgraph = graph.subgraph(deck_nodes)
+        n = len(deck_nodes)
+        iters = max(10, min(iterations, iterations * 5000 // max(n, 1)))
+
+        short = deck[:30] + '…' if len(deck) > 30 else deck
+        progress_bar(i + 1, total, f'Layout: {short} ({n} nodes, {iters} iters)')
+
+        layout_2d = _compute_deck_layout(subgraph, iters)
+
+        # Place deck's 2D layout on a tangent plane at the sphere surface
+        center_3d = deck_centers[deck] * sphere_radius
+
+        # Create a local coordinate frame on the sphere surface
+        normal = deck_centers[deck]  # unit normal pointing outward
+        # Pick an arbitrary vector not parallel to normal
+        up = np.array([0, 1, 0]) if abs(normal[1]) < 0.9 else np.array([1, 0, 0])
+        tangent_x = np.cross(normal, up)
+        tangent_x /= np.linalg.norm(tangent_x)
+        tangent_y = np.cross(normal, tangent_x)
+        tangent_y /= np.linalg.norm(tangent_y)
+
+        for nid, (lx, ly) in layout_2d.items():
+            pos = center_3d + tangent_x * lx + tangent_y * ly
+            all_positions[nid] = (float(pos[0]), float(pos[1]), float(pos[2]))
+
+    sys.stderr.write('\n')
+    return all_positions
 
 
 # --- Main ---

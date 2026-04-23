@@ -28,7 +28,7 @@ try {
 
 // Scene with subtle fog
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x000000);
+scene.background = null;
 
 // Camera
 const camera = new THREE.PerspectiveCamera(
@@ -42,6 +42,7 @@ camera.position.set(0, 0, 10000);
 // Renderer
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
+  alpha: true,
   powerPreference: "high-performance",
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
