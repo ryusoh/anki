@@ -85,10 +85,10 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.autoRotate = true;
+controls.autoRotate = false;
 controls.autoRotateSpeed = 0.5;
 
-let isRotating = true;
+let isRotating = false;
 renderer.domElement.addEventListener("dblclick", () => {
   isRotating = !isRotating;
   controls.autoRotate = isRotating;
