@@ -389,7 +389,14 @@ function createLabel(id, parent, beforeEl) {
 
 function updateTimeline() {
   if (!historyData) return;
-  const dateStr = historyData.dates[parseInt(slider.value)];
+  const val = parseInt(slider.value);
+
+  // Sync Magnetic Thumb Location
+  const magThumb = document.getElementById("magnetic-thumb");
+  const percent = (val / slider.max) * 100;
+  if (magThumb) magThumb.style.left = `${percent}%`;
+
+  const dateStr = historyData.dates[val];
   const rawActive = historyData.history[dateStr] || [];
 
   // FAST LOOKUP SETS
@@ -408,10 +415,10 @@ function updateTimeline() {
 
   const dateTop =
     document.getElementById("date-top") ||
-    createLabel("date-top", dateDisplay.parentNode, slider);
+    createLabel("date-top", slider.parentNode, slider);
   const countBottom =
     document.getElementById("count-bottom") ||
-    createLabel("count-bottom", dateDisplay.parentNode, null);
+    createLabel("count-bottom", slider.parentNode, null);
 
   dateTop.textContent = dateStr;
   countBottom.textContent = activeSet.size;
@@ -598,9 +605,18 @@ const timeline = document.getElementById("timeline");
 // Final Reveal - delayed slightly to ensure first frame is painted
 setTimeout(() => {
   loading.style.display = "none";
-  timeline.style.opacity = "1";
+  if (window.gsap) {
+    gsap.to(timeline, {
+      opacity: 1,
+      y: 0,
+      duration: 1.2,
+      ease: "expo.out",
+    });
+  } else {
+    timeline.style.opacity = "1";
+    timeline.style.transform = "translateX(-50%) translateY(0)";
+  }
   timeline.style.pointerEvents = "auto";
-  timeline.style.transform = "translateX(-50%) translateY(0)";
 }, 200);
 // --- INTERACTION & NAVIGATION ---
 const keyState = {};
@@ -660,6 +676,39 @@ function animate() {
   renderer.render(scene, camera);
 }
 animate();
+
+// --- MAGNETIC THUMB EFFECT ---
+if (window.gsap) {
+  const sliderGroup = document.getElementById("slider-group");
+  const magThumb = document.getElementById("magnetic-thumb");
+  if (sliderGroup && magThumb) {
+    sliderGroup.addEventListener("mousemove", (e) => {
+      const rect = magThumb.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const distX = e.clientX - centerX;
+      const distY = e.clientY - centerY;
+
+      window.gsap.to(magThumb, {
+        x: distX * 0.15,
+        y: distY * 0.15,
+        duration: 0.3,
+        ease: "power2.out",
+      });
+    });
+
+    sliderGroup.addEventListener("mouseleave", () => {
+      window.gsap.to(magThumb, {
+        scale: 1,
+        x: 0,
+        y: 0,
+        duration: 0.7,
+        ease: "elastic.out(1, 0.3)",
+      });
+    });
+  }
+}
+
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();

@@ -23,6 +23,23 @@
       src="/js/cursor-init.js"
       data-cfasync="false"
     ></script>
+    <script type="importmap" data-cfasync="false">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
+          "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/",
+          "#js/": "/js/",
+          "#ui/": "/js/ui/",
+          "#data/": "/data/"
+        }
+      }
+    </script>
+    <script type="module" data-cfasync="false">
+      import { initMagneticNav } from "#ui/magnetic_nav.js?v=20240223";
+      window.addEventListener("DOMContentLoaded", () => {
+        initMagneticNav();
+      });
+    </script>
   </head>
 
   <body>
@@ -52,8 +69,20 @@
 
     <div id="timeline">
       <div id="timeline-controls">
-        <span id="date-display">Select a date</span>
-        <input type="range" id="timeline-slider" min="0" max="100" value="0" />
+        <span id="date-display" style="display: none"></span>
+        <div
+          id="slider-group"
+          style="position: relative; width: 100%; padding: 10px 0"
+        >
+          <input
+            type="range"
+            id="timeline-slider"
+            min="0"
+            max="100"
+            value="0"
+          />
+          <div id="magnetic-thumb"></div>
+        </div>
       </div>
     </div>
 
@@ -67,16 +96,6 @@
       ></a>
     </footer>
 
-    <script type="importmap">
-      {
-        "imports": {
-          "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
-          "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/",
-          "#js/": "/js/",
-          "#data/": "/data/"
-        }
-      }
-    </script>
     <script type="module" src="/js/graph/graph.js?v=2" crossorigin></script>
   </body>
 </html>

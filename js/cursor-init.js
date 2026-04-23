@@ -14,7 +14,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const { cursor } = initCursor({
     cursor: {
       // Custom cursor options
-      hoverTargets: "a, button, .container li",
+      hoverTargets:
+        "a, button, .container li, .nav-container li, #timeline-slider",
       followEase: isGraphPage ? 0.8 : 0.4,
       fadeEase: 0.1,
       hoverScale: 3,

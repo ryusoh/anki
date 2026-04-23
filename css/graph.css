@@ -137,7 +137,7 @@ canvas {
   position: fixed;
   top: 40px;
   left: 50%;
-  transform: translateX(-50%) translateY(-20px);
+  transform: translate(-50%, -20px);
   width: 85%;
   max-width: 800px;
   background: rgba(10, 10, 15, 0.4);
@@ -148,8 +148,10 @@ canvas {
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
   z-index: 1000;
   opacity: 0;
-  pointer-events: none;
-  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease;
 }
 
 #timeline:hover {
@@ -197,21 +199,32 @@ canvas {
 #timeline-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
+  width: 30px;
+  height: 30px;
+  background: transparent; /* Hide native thumb but keep it interactive */
+  cursor: pointer;
+  border: none;
+}
+
+#magnetic-thumb {
+  position: absolute;
   width: 20px;
   height: 20px;
   background: #8e8e93;
-  /* Neutral Grey */
   border: 3px solid #fff;
   border-radius: 50%;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-  transition: all 0.2s ease;
-  margin-top: -7px;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+  left: 0;
+  top: 50%; /* Center vertically within slider-group */
+  transform: translate(-50%, -50%);
+  transition: background 0.2s ease;
+  z-index: 5;
 }
 
-#timeline-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
-  background: #aeaeb2;
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+#timeline-controls {
+  position: relative;
+  width: 100%;
 }
 
 #timeline-slider::-webkit-slider-runnable-track {
