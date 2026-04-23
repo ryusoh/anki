@@ -73,6 +73,8 @@ def export_history():
     if is_public:
         OUTPUT_FILE = BASE / 'graph/history_data_public.json'
         print("💡 Public Mode: Saving to history_data_public.json")
+    else:
+        OUTPUT_FILE = BASE / 'graph/history_data.json'
 
     print(f"💾 Saving to {OUTPUT_FILE}...")
     with open(OUTPUT_FILE, 'w') as f:

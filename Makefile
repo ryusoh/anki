@@ -96,6 +96,19 @@ graph-push: graph-public
 	@python3 graph/upload_public.py
 
 
+graph-local:
+	@echo "📊 Exporting local private graph data..."
+	@python3 graph/export_data.py all
+	@python3 graph/export_history.py
+
+graph-local-prompt:
+	@echo ""
+	@echo "📊 Export local private Knowledge Graph data? (y/n)"
+	@read -r response && \
+	if [ "$$response" = "y" ] || [ "$$response" = "yes" ]; then \
+		$(MAKE) graph-local; \
+	fi
+
 graph-viz:
 	@mkdir -p graph_output
 	@python3 graph/export_viz.py --format html --output graph_output
@@ -160,7 +173,7 @@ fetch-prompt:
 		echo "   ⊘ Fetch skipped"; \
 	fi
 
-precommit-fix: install $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt-fix) fmt lint-fix check
+precommit-fix: install $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt-fix) fmt lint-fix check $(if $(filter 1,$(SKIP)),,graph-local-prompt)
 	@echo ""
 	@echo "🔒 Running EXTREMELY RIGOROUS security check..."
 	@echo "   Scanning ALL files for private Anki data..."
@@ -175,6 +188,12 @@ precommit-fix: install $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt-fix)
 		read -r response && \
 		if [ "$$response" = "y" ] || [ "$$response" = "yes" ]; then \
 			$(MAKE) fetch-r2-skip-fetch; \
+		fi; \
+		echo ""; \
+		echo "🌐 Push public Knowledge Graph data to R2? (y/n)"; \
+		read -r response_graph && \
+		if [ "$$response_graph" = "y" ] || [ "$$response_graph" = "yes" ]; then \
+			$(MAKE) graph-push; \
 		fi; \
 	fi
 
