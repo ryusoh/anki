@@ -13,7 +13,8 @@ try {
     fetch("/graph/graph_data.json"),
     fetch("/graph/history_data.json"),
   ]);
-  if (!graphRes.ok) throw new Error(`HTTP ${graphRes.status}: ${graphRes.statusText}`);
+  if (!graphRes.ok)
+    throw new Error(`HTTP ${graphRes.status}: ${graphRes.statusText}`);
   data = await graphRes.json();
   if (historyRes.ok) historyData = await historyRes.json();
 } catch (e) {
@@ -23,17 +24,37 @@ try {
 
 const nodeCount = data.nodes.length;
 const uniqueDecks = [...new Set(data.nodes.map((n) => n.deck))];
-const colorPalette = ["#00C7BE", "#32ADE6", "#0A84FF", "#5E5CE6", "#AF52DE", "#BF5AF2", "#FF2D55", "#FF375F", "#FF3B30", "#FF9500", "#FFCC00", "#8E8E93"];
+const colorPalette = [
+  "#00C7BE",
+  "#32ADE6",
+  "#0A84FF",
+  "#5E5CE6",
+  "#AF52DE",
+  "#BF5AF2",
+  "#FF2D55",
+  "#FF375F",
+  "#FF3B30",
+  "#FF9500",
+  "#FFCC00",
+  "#8E8E93",
+];
 const deckColorCache = new Map();
 const fallbackColor = new THREE.Color("#4facfe");
-uniqueDecks.forEach((deck, i) => deckColorCache.set(deck, new THREE.Color(colorPalette[i % colorPalette.length])));
+uniqueDecks.forEach((deck, i) =>
+  deckColorCache.set(
+    deck,
+    new THREE.Color(colorPalette[i % colorPalette.length]),
+  ),
+);
 
 // Build adjacency
 const adjacency = new Map();
 if (data.links) {
   data.links.forEach((l) => {
-    const s = String(l.source).trim(), t = String(l.target).trim();
-    if (!adjacency.has(s)) adjacency.set(s, []); if (!adjacency.has(t)) adjacency.set(t, []);
+    const s = String(l.source).trim(),
+      t = String(l.target).trim();
+    if (!adjacency.has(s)) adjacency.set(s, []);
+    if (!adjacency.has(t)) adjacency.set(t, []);
     adjacency.get(s).push({ target: t, weight: l.weight || 1 });
     adjacency.get(t).push({ target: s, weight: l.weight || 1 });
   });
@@ -41,7 +62,12 @@ if (data.links) {
 
 // --- SCENE SETUP ---
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100000);
+const camera = new THREE.PerspectiveCamera(
+  75,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  100000,
+);
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
@@ -55,7 +81,11 @@ data.nodes.forEach((node, i) => {
   positions[i * 3] = node.x || (Math.random() - 0.5) * 5000;
   positions[i * 3 + 1] = node.y || (Math.random() - 0.5) * 5000;
   positions[i * 3 + 2] = node.z || (Math.random() - 0.5) * 5000;
-  nodeMap.set(String(node.id).trim(), { x: positions[i * 3], y: positions[i * 3 + 1], z: positions[i * 3 + 2] });
+  nodeMap.set(String(node.id).trim(), {
+    x: positions[i * 3],
+    y: positions[i * 3 + 1],
+    z: positions[i * 3 + 2],
+  });
 });
 
 // --- LAYER 1: BACKGROUND (GREY MIST - CIRCULAR) ---
@@ -87,10 +117,14 @@ const commonShaderMat = {
       gl_FragColor = vec4(vColor * vAlpha, vAlpha);
     }
   `,
-  transparent: true, depthWrite: false
+  transparent: true,
+  depthWrite: false,
 };
 
-const bgNodes = new THREE.Points(bgNodeGeom, new THREE.ShaderMaterial(commonShaderMat));
+const bgNodes = new THREE.Points(
+  bgNodeGeom,
+  new THREE.ShaderMaterial(commonShaderMat),
+);
 scene.add(bgNodes);
 
 // Background links (Full coverage web)
@@ -99,18 +133,30 @@ const bgEdgePos = new Float32Array(MAX_BG_EDGES * 6);
 let bgEdgeIdx = 0;
 data.links.forEach((l, i) => {
   if (bgEdgeIdx < MAX_BG_EDGES) {
-    const s = nodeMap.get(String(l.source).trim()), t = nodeMap.get(String(l.target).trim());
+    const s = nodeMap.get(String(l.source).trim()),
+      t = nodeMap.get(String(l.target).trim());
     if (s && t) {
       const o = bgEdgeIdx * 6;
-      bgEdgePos[o] = s.x; bgEdgePos[o+1] = s.y; bgEdgePos[o+2] = s.z;
-      bgEdgePos[o+3] = t.x; bgEdgePos[o+4] = t.y; bgEdgePos[o+5] = t.z;
+      bgEdgePos[o] = s.x;
+      bgEdgePos[o + 1] = s.y;
+      bgEdgePos[o + 2] = s.z;
+      bgEdgePos[o + 3] = t.x;
+      bgEdgePos[o + 4] = t.y;
+      bgEdgePos[o + 5] = t.z;
       bgEdgeIdx++;
     }
   }
 });
 const bgEdgeGeom = new THREE.BufferGeometry();
-bgEdgeGeom.setAttribute("position", new THREE.BufferAttribute(bgEdgePos.slice(0, bgEdgeIdx * 6), 3));
-const bgEdgeMat = new THREE.LineBasicMaterial({ color: 0x555555, transparent: true, opacity: 0.1 });
+bgEdgeGeom.setAttribute(
+  "position",
+  new THREE.BufferAttribute(bgEdgePos.slice(0, bgEdgeIdx * 6), 3),
+);
+const bgEdgeMat = new THREE.LineBasicMaterial({
+  color: 0x555555,
+  transparent: true,
+  opacity: 0.1,
+});
 const bgEdges = new THREE.LineSegments(bgEdgeGeom, bgEdgeMat);
 scene.add(bgEdges);
 
@@ -120,26 +166,52 @@ const hiPos = new Float32Array(MAX_HI * 3);
 const hiCol = new Float32Array(MAX_HI * 3);
 const hiSiz = new Float32Array(MAX_HI);
 const hiGeom = new THREE.BufferGeometry();
-hiGeom.setAttribute("position", new THREE.BufferAttribute(hiPos, 3).setUsage(THREE.DynamicDrawUsage));
-hiGeom.setAttribute("aColor", new THREE.BufferAttribute(hiCol, 3).setUsage(THREE.DynamicDrawUsage));
-hiGeom.setAttribute("aSize", new THREE.BufferAttribute(hiSiz, 1).setUsage(THREE.DynamicDrawUsage));
+hiGeom.setAttribute(
+  "position",
+  new THREE.BufferAttribute(hiPos, 3).setUsage(THREE.DynamicDrawUsage),
+);
+hiGeom.setAttribute(
+  "aColor",
+  new THREE.BufferAttribute(hiCol, 3).setUsage(THREE.DynamicDrawUsage),
+);
+hiGeom.setAttribute(
+  "aSize",
+  new THREE.BufferAttribute(hiSiz, 1).setUsage(THREE.DynamicDrawUsage),
+);
 
 const hiMat = new THREE.ShaderMaterial({
   ...commonShaderMat,
-  depthTest: false
+  depthTest: false,
 });
 // Special Z-nudge just for highlights
-hiMat.vertexShader = hiMat.vertexShader.replace("gl_Position = projectionMatrix * mvPos;", "gl_Position = projectionMatrix * mvPos; gl_Position.z -= 0.05;");
-hiMat.fragmentShader = hiMat.fragmentShader.replace("gl_FragColor = vec4(vColor * vAlpha, vAlpha);", "gl_FragColor = vec4(vColor, 1.0);");
+hiMat.vertexShader = hiMat.vertexShader.replace(
+  "gl_Position = projectionMatrix * mvPos;",
+  "gl_Position = projectionMatrix * mvPos; gl_Position.z -= 0.05;",
+);
+hiMat.fragmentShader = hiMat.fragmentShader.replace(
+  "gl_FragColor = vec4(vColor * vAlpha, vAlpha);",
+  "gl_FragColor = vec4(vColor, 1.0);",
+);
 const hiPoints = new THREE.Points(hiGeom, hiMat);
 scene.add(hiPoints);
 
 const hiEdgePos = new Float32Array(MAX_HI * 6);
 const hiEdgeCol = new Float32Array(MAX_HI * 6);
 const hiEdgeGeom = new THREE.BufferGeometry();
-hiEdgeGeom.setAttribute("position", new THREE.BufferAttribute(hiEdgePos, 3).setUsage(THREE.DynamicDrawUsage));
-hiEdgeGeom.setAttribute("color", new THREE.BufferAttribute(hiEdgeCol, 3).setUsage(THREE.DynamicDrawUsage));
-const hiEdgeMat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 1.0, depthTest: false });
+hiEdgeGeom.setAttribute(
+  "position",
+  new THREE.BufferAttribute(hiEdgePos, 3).setUsage(THREE.DynamicDrawUsage),
+);
+hiEdgeGeom.setAttribute(
+  "color",
+  new THREE.BufferAttribute(hiEdgeCol, 3).setUsage(THREE.DynamicDrawUsage),
+);
+const hiEdgeMat = new THREE.LineBasicMaterial({
+  vertexColors: true,
+  transparent: true,
+  opacity: 1.0,
+  depthTest: false,
+});
 const hiEdges = new THREE.LineSegments(hiEdgeGeom, hiEdgeMat);
 scene.add(hiEdges);
 
@@ -151,9 +223,13 @@ function updateTimeline() {
   if (!historyData) return;
   const dateStr = historyData.dates[parseInt(slider.value)];
   const rawActive = historyData.history[dateStr] || [];
-  const activeSet = new Set(rawActive.map(id => String(id).trim()));
+  const activeSet = new Set(rawActive.map((id) => String(id).trim()));
   const degree1 = new Set();
-  activeSet.forEach(id => (adjacency.get(id) || []).forEach(n => { if (!activeSet.has(n.target)) degree1.add(n.target); }));
+  activeSet.forEach((id) =>
+    (adjacency.get(id) || []).forEach((n) => {
+      if (!activeSet.has(n.target)) degree1.add(n.target);
+    }),
+  );
 
   dateDisplay.innerHTML = `<div>${dateStr}</div><div>${activeSet.size}</div>`;
 
@@ -162,18 +238,28 @@ function updateTimeline() {
   const updateNode = (id, size, color) => {
     const p = nodeMap.get(id);
     if (!p || hiIdx >= MAX_HI) return;
-    hiPos[hiIdx * 3] = p.x; hiPos[hiIdx * 3 + 1] = p.y; hiPos[hiIdx * 3 + 2] = p.z;
-    hiCol[hiIdx * 3] = color.r; hiCol[hiIdx * 3 + 1] = color.g; hiCol[hiIdx * 3 + 2] = color.b;
+    hiPos[hiIdx * 3] = p.x;
+    hiPos[hiIdx * 3 + 1] = p.y;
+    hiPos[hiIdx * 3 + 2] = p.z;
+    hiCol[hiIdx * 3] = color.r;
+    hiCol[hiIdx * 3 + 1] = color.g;
+    hiCol[hiIdx * 3 + 2] = color.b;
     hiSiz[hiIdx] = size;
     hiIdx++;
   };
 
-  activeSet.forEach(id => {
-    const c = deckColorCache.get(data.nodes.find(n => String(n.id).trim() === id)?.deck) || fallbackColor;
+  activeSet.forEach((id) => {
+    const c =
+      deckColorCache.get(
+        data.nodes.find((n) => String(n.id).trim() === id)?.deck,
+      ) || fallbackColor;
     updateNode(id, 80, c); // BIGGEST
   });
-  degree1.forEach(id => {
-    const c = deckColorCache.get(data.nodes.find(n => String(n.id).trim() === id)?.deck) || fallbackColor;
+  degree1.forEach((id) => {
+    const c =
+      deckColorCache.get(
+        data.nodes.find((n) => String(n.id).trim() === id)?.deck,
+      ) || fallbackColor;
     updateNode(id, 35, { r: c.r * 0.7, g: c.g * 0.7, b: c.b * 0.7 }); // DIMMER
   });
 
@@ -184,28 +270,43 @@ function updateTimeline() {
 
   // Update Highlight Edges
   let hiEIdx = 0;
-  activeSet.forEach(sId => {
-    (adjacency.get(sId) || []).forEach(l => {
+  activeSet.forEach((sId) => {
+    (adjacency.get(sId) || []).forEach((l) => {
       if (hiEIdx >= MAX_HI) return;
-      const s = nodeMap.get(sId), t = nodeMap.get(l.target);
+      const s = nodeMap.get(sId),
+        t = nodeMap.get(l.target);
       if (!s || !t) return;
       const o = hiEIdx * 6;
-      hiEdgePos[o] = s.x; hiEdgePos[o+1] = s.y; hiEdgePos[o+2] = s.z;
-      hiEdgePos[o+3] = t.x; hiEdgePos[o+4] = t.y; hiEdgePos[o+5] = t.z;
+      hiEdgePos[o] = s.x;
+      hiEdgePos[o + 1] = s.y;
+      hiEdgePos[o + 2] = s.z;
+      hiEdgePos[o + 3] = t.x;
+      hiEdgePos[o + 4] = t.y;
+      hiEdgePos[o + 5] = t.z;
       const c = deckColorCache.get(nodeDeckMap.get(sId)) || fallbackColor;
       const isHigh = activeSet.has(l.target) || degree1.has(l.target);
-      
+
       let r, g, b, a;
       if (isHigh) {
         // Vivid internal links
-        r = c.r; g = c.g; b = c.b; a = 0.8;
+        r = c.r;
+        g = c.g;
+        b = c.b;
+        a = 0.8;
       } else {
         // Neutral grey outgoing links
-        r = 0.4; g = 0.4; b = 0.45; a = 0.2;
+        r = 0.4;
+        g = 0.4;
+        b = 0.45;
+        a = 0.2;
       }
-      
-      hiEdgeCol[o] = r * a; hiEdgeCol[o+1] = g * a; hiEdgeCol[o+2] = b * a;
-      hiEdgeCol[o+3] = r * a; hiEdgeCol[o+4] = g * a; hiEdgeCol[o+5] = b * a;
+
+      hiEdgeCol[o] = r * a;
+      hiEdgeCol[o + 1] = g * a;
+      hiEdgeCol[o + 2] = b * a;
+      hiEdgeCol[o + 3] = r * a;
+      hiEdgeCol[o + 4] = g * a;
+      hiEdgeCol[o + 5] = b * a;
       hiEIdx++;
     });
   });
@@ -215,10 +316,11 @@ function updateTimeline() {
 }
 
 const nodeDeckMap = new Map();
-data.nodes.forEach(n => nodeDeckMap.set(String(n.id).trim(), n.deck));
+data.nodes.forEach((n) => nodeDeckMap.set(String(n.id).trim(), n.deck));
 
 if (historyData) {
-  slider.max = historyData.dates.length - 1; slider.value = slider.max;
+  slider.max = historyData.dates.length - 1;
+  slider.value = slider.max;
   slider.addEventListener("input", updateTimeline);
   updateTimeline(); // Initial sync happens while loading is still visible
 }
@@ -226,7 +328,11 @@ if (historyData) {
 // --- BOOTSTRAP ---
 let maxD = 0;
 for (let i = 0; i < nodeCount; i++) {
-  const d = Math.sqrt(positions[i*3]**2 + positions[i*3+1]**2 + positions[i*3+2]**2);
+  const d = Math.sqrt(
+    positions[i * 3] ** 2 +
+      positions[i * 3 + 1] ** 2 +
+      positions[i * 3 + 2] ** 2,
+  );
   if (d > maxD) maxD = d;
 }
 camera.position.set(0, 0, maxD * 2.5);
@@ -234,7 +340,7 @@ camera.position.set(0, 0, maxD * 2.5);
 const timeline = document.getElementById("timeline");
 
 // Final Reveal - delayed slightly to ensure first frame is painted
-setTimeout(() => { 
+setTimeout(() => {
   loading.style.display = "none";
   timeline.style.opacity = "1";
   timeline.style.pointerEvents = "auto";
@@ -253,25 +359,41 @@ window.addEventListener("keydown", (e) => {
     updateTimeline();
   }
 });
-window.addEventListener("keyup", (e) => keyState[e.key] = false);
+window.addEventListener("keyup", (e) => (keyState[e.key] = false));
 
 function animate() {
-  requestAnimationFrame(animate); 
-  
+  requestAnimationFrame(animate);
+
   // WASD Camera Move
   const speed = 25;
-  const forward = new THREE.Vector3(); camera.getWorldDirection(forward);
-  const right = new THREE.Vector3().crossVectors(forward, camera.up).normalize();
-  if (keyState["w"]) { camera.position.addScaledVector(camera.up, speed); controls.target.addScaledVector(camera.up, speed); }
-  if (keyState["s"]) { camera.position.addScaledVector(camera.up, -speed); controls.target.addScaledVector(camera.up, -speed); }
-  if (keyState["a"]) { camera.position.addScaledVector(right, -speed); controls.target.addScaledVector(right, -speed); }
-  if (keyState["d"]) { camera.position.addScaledVector(right, speed); controls.target.addScaledVector(right, speed); }
-  
-  controls.update(); 
+  const forward = new THREE.Vector3();
+  camera.getWorldDirection(forward);
+  const right = new THREE.Vector3()
+    .crossVectors(forward, camera.up)
+    .normalize();
+  if (keyState["w"]) {
+    camera.position.addScaledVector(camera.up, speed);
+    controls.target.addScaledVector(camera.up, speed);
+  }
+  if (keyState["s"]) {
+    camera.position.addScaledVector(camera.up, -speed);
+    controls.target.addScaledVector(camera.up, -speed);
+  }
+  if (keyState["a"]) {
+    camera.position.addScaledVector(right, -speed);
+    controls.target.addScaledVector(right, -speed);
+  }
+  if (keyState["d"]) {
+    camera.position.addScaledVector(right, speed);
+    controls.target.addScaledVector(right, speed);
+  }
+
+  controls.update();
   renderer.render(scene, camera);
 }
 animate();
 window.addEventListener("resize", () => {
-  camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
