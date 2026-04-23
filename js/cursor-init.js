@@ -9,11 +9,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Initialize just the cursor
+  // Increase followEase on the graph page to compensate for rendering load
+  const isGraphPage = window.location.pathname.includes("/graph/");
   const { cursor } = initCursor({
     cursor: {
       // Custom cursor options
       hoverTargets: "a, button, .container li",
-      followEase: 0.4,
+      followEase: isGraphPage ? 0.8 : 0.4,
       fadeEase: 0.1,
       hoverScale: 3,
     },
