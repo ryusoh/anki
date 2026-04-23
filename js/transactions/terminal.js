@@ -47,7 +47,6 @@ import {
   formatCurrency as formatValueWithCurrency,
   convertBetweenCurrencies,
   convertValueToCurrency,
-  escapeHtml,
 } from "./utils.js";
 import { getHoldingAssetClass } from "#js/config.js";
 import { toggleZoom, getZoomState } from "./zoom.js";
@@ -623,20 +622,22 @@ export function updateTerminalCrosshair(snapshot, rangeSummary) {
   }
 
   if (details.list) {
-    const markup = snapshot.series
-      .map(
-        (series) => `
-                <div class="terminal-crosshair-row">
-                    <span class="terminal-crosshair-key">
-                        <span class="terminal-crosshair-dot" style="background:${escapeHtml(series.color)};"></span>
-                        ${escapeHtml(series.label)}
-                    </span>
-                    <span class="terminal-crosshair-value">${escapeHtml(series.formatted)}</span>
-                </div>
-            `,
-      )
-      .join("");
-    details.list.innerHTML = markup;
+    details.list.textContent = "";
+    snapshot.series.forEach((s) => {
+      const row = document.createElement("div");
+      const k = document.createElement("span");
+      const d = document.createElement("span");
+      const v = document.createElement("span");
+      row.className = "terminal-crosshair-row";
+      k.className = "terminal-crosshair-key";
+      d.className = "terminal-crosshair-dot";
+      v.className = "terminal-crosshair-value";
+      d.style.background = s.color;
+      k.append(d, " ", s.label);
+      v.textContent = s.formatted;
+      row.append(k, v);
+      details.list.appendChild(row);
+    });
   }
 
   if (details.range) {
@@ -650,29 +651,32 @@ export function updateTerminalCrosshair(snapshot, rangeSummary) {
               Math.round(rangeSummary.durationDays) === 1 ? "" : "s"
             }`
           : `${Math.max(1, Math.round(rangeSummary.durationMs / (1000 * 60 * 60)))} hrs`;
-      const entriesMarkup = rangeSummary.entries
-        .map(
-          (entry) => `
-                        <div class="terminal-crosshair-range-row">
-                            <span class="terminal-crosshair-key">
-                                <span class="terminal-crosshair-dot" style="background:${escapeHtml(entry.color)};"></span>
-                                ${escapeHtml(entry.label)}
-                            </span>
-                            <span class="terminal-crosshair-value">${escapeHtml(entry.deltaFormatted)}${
-                              entry.percentFormatted
-                                ? ` (${escapeHtml(entry.percentFormatted)})`
-                                : ""
-                            }</span>
-                        </div>
-                    `,
-        )
-        .join("");
+
       const startLabel = formatCrosshairDateLabel(rangeSummary.start);
       const endLabel = formatCrosshairDateLabel(rangeSummary.end);
-      details.range.innerHTML = `
-                <div class="terminal-crosshair-range-header">${escapeHtml(startLabel)} → ${escapeHtml(endLabel)} · ${escapeHtml(durationLabel)}</div>
-                ${entriesMarkup ? `<div class="terminal-crosshair-range-body">${entriesMarkup}</div>` : ""}
-            `;
+
+      details.range.textContent = "";
+      const hdr = document.createElement("div");
+      hdr.className = "terminal-crosshair-range-header";
+      hdr.textContent = `${startLabel} \u2192 ${endLabel} \u00B7 ${durationLabel}`;
+      details.range.appendChild(hdr);
+
+      if (rangeSummary.entries && rangeSummary.entries.length > 0) {
+        const bodyDiv = document.createElement("div");
+        bodyDiv.className = "terminal-crosshair-range-body";
+        rangeSummary.entries.forEach((e) => {
+          const row = document.createElement("div"), k = document.createElement("span");
+          const d = document.createElement("span"), v = document.createElement("span");
+          row.className = "terminal-crosshair-range-row"; k.className = "terminal-crosshair-key";
+          d.className = "terminal-crosshair-dot"; v.className = "terminal-crosshair-value";
+          d.style.background = e.color;
+          k.append(d, " ", e.label);
+          v.textContent = `${e.deltaFormatted}${e.percentFormatted ? ` (${e.percentFormatted})` : ""}`;
+          row.append(k, v);
+          bodyDiv.appendChild(row);
+        });
+        details.range.appendChild(bodyDiv);
+      }
       details.range.hidden = false;
     }
   }
