@@ -52,13 +52,35 @@ if (data.links) {
 
 // --- SCENE SETUP ---
 const scene = new THREE.Scene();
+
+// IMPLEMENT BACKGROUND IMAGE Support
+if (GRAPH_BACKGROUND_IMAGE && GRAPH_BACKGROUND_IMAGE.enabled) {
+  const loader = new THREE.TextureLoader();
+  const bgPath =
+    GRAPH_BACKGROUND_IMAGE.path || "/assets/backgrounds/graph_background.jpg";
+  loader.load(
+    bgPath,
+    (texture) => {
+      texture.encoding = THREE.sRGBEncoding;
+      scene.background = texture;
+      console.log("Graph Background Loaded:", bgPath);
+    },
+    undefined,
+    (err) => {
+      console.warn("Could not load background image:", bgPath, err);
+    },
+  );
+} else {
+  scene.background = new THREE.Color(0x0a0a0f);
+}
+
 const camera = new THREE.PerspectiveCamera(
   75,
   window.innerWidth / window.innerHeight,
   0.1,
   100000,
 );
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -340,8 +362,8 @@ let maxD = 0;
 for (let i = 0; i < nodeCount; i++) {
   const d = Math.sqrt(
     positions[i * 3] ** 2 +
-    positions[i * 3 + 1] ** 2 +
-    positions[i * 3 + 2] ** 2,
+      positions[i * 3 + 1] ** 2 +
+      positions[i * 3 + 2] ** 2,
   );
   if (d > maxD) maxD = d;
 }
