@@ -186,17 +186,18 @@ canvas {
   appearance: none;
   width: 20px;
   height: 20px;
-  background: #00c7be;
-  border-radius: 50%;
+  background: #8e8e93; /* Neutral Grey */
   border: 3px solid #fff;
-  box-shadow: 0 0 15px rgba(0, 199, 190, 0.8);
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
   transition: all 0.2s ease;
-  margin-top: -7px; /* Center 20px thumb on 6px track */
+  margin-top: -7px;
 }
 
 #timeline-slider::-webkit-slider-thumb:hover {
   transform: scale(1.2);
-  box-shadow: 0 0 25px rgba(0, 199, 190, 1);
+  background: #aeaeb2;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
 }
 
 #timeline-slider::-webkit-slider-runnable-track {
