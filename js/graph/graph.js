@@ -123,7 +123,7 @@ data.nodes.forEach((node, i) => {
   if (hasLayout) {
     px = node.x;
     py = node.y;
-    pz = (Math.random() - 0.5) * spread * 0.5;
+    pz = node.z !== undefined ? node.z : (Math.random() - 0.5) * spread * 0.5;
   } else {
     // Spherical distribution within cluster
     const r = spread * Math.cbrt(Math.random());

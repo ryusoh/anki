@@ -294,7 +294,7 @@ if changed_decks is not None:
 
     # Merge
     for node_id, ndata in graph.nodes(data=True):
-        x, y = layout.get(node_id, (0, 0))
+        x, y, z = layout.get(node_id, (0, 0, 0))
         kept_nodes.append({
             'id': node_id,
             'label': strip_html(ndata.get('front', 'Unknown')),
@@ -303,6 +303,7 @@ if changed_decks is not None:
             'size': min(3, max(0.5, ndata.get('pagerank', 0) * 100)),
             'x': round(x, 2),
             'y': round(y, 2),
+            'z': round(z, 2),
         })
     for s, t, d in graph.edges(data=True):
         kept_links.append({
@@ -333,7 +334,7 @@ else:
     for i, (node_id, ndata) in enumerate(graph.nodes(data=True)):
         if (i + 1) % 5000 == 0 or i + 1 == len(graph.nodes()):
             progress_bar(i + 1, len(graph.nodes()), 'Nodes')
-        x, y = layout.get(node_id, (0, 0))
+        x, y, z = layout.get(node_id, (0, 0, 0))
         nodes.append({
             'id': node_id,
             'label': strip_html(ndata.get('front', 'Unknown')),
@@ -342,6 +343,7 @@ else:
             'size': min(3, max(0.5, ndata.get('pagerank', 0) * 100)),
             'x': round(x, 2),
             'y': round(y, 2),
+            'z': round(z, 2),
         })
 
     links = [
