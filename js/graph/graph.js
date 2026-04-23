@@ -231,8 +231,15 @@ for (let i = 0; i < nodeCount; i++) {
 }
 camera.position.set(0, 0, maxD * 2.5);
 
+const timeline = document.getElementById("timeline");
+
 // Final Reveal - delayed slightly to ensure first frame is painted
-setTimeout(() => { loading.style.display = "none"; }, 100);
+setTimeout(() => { 
+  loading.style.display = "none";
+  timeline.style.opacity = "1";
+  timeline.style.pointerEvents = "auto";
+  timeline.style.transform = "translateX(-50%) translateY(0)";
+}, 200);
 // --- INTERACTION & NAVIGATION ---
 const keyState = {};
 window.addEventListener("keydown", (e) => {
