@@ -87,6 +87,8 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.autoRotate = false;
 controls.autoRotateSpeed = 0.5;
+controls.minDistance = 10;
+controls.maxDistance = 100000;
 
 let isRotating = false;
 renderer.domElement.addEventListener("dblclick", () => {
@@ -135,7 +137,7 @@ const commonShaderMat = {
     void main() {
       vColor = aColor; vAlpha = aAlpha;
       vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
-      gl_PointSize = aSize * (300.0 / -mvPos.z);
+      gl_PointSize = aSize * (150.0 / -mvPos.z);
       gl_Position = projectionMatrix * mvPos;
     }
   `,
@@ -229,7 +231,7 @@ const hiMat = new THREE.ShaderMaterial({
     void main() {
       vColor = aColor; vAlpha = aAlpha;
       vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
-      gl_PointSize = aSize * (300.0 / -mvPos.z);
+      gl_PointSize = aSize * (150.0 / -mvPos.z);
       gl_Position = projectionMatrix * mvPos;
       gl_Position.z -= 0.1; // Ensure top layer
     }
@@ -415,9 +417,14 @@ function updateTimeline() {
         a = 0.2;
       }
 
-      hiEdgeCol[o] = r; hiEdgeCol[o + 1] = g; hiEdgeCol[o + 2] = b;
-      hiEdgeCol[o + 3] = r; hiEdgeCol[o + 4] = g; hiEdgeCol[o + 5] = b;
-      hiEdgeAlp[hiEIdx * 2] = a; hiEdgeAlp[hiEIdx * 2 + 1] = a;
+      hiEdgeCol[o] = r;
+      hiEdgeCol[o + 1] = g;
+      hiEdgeCol[o + 2] = b;
+      hiEdgeCol[o + 3] = r;
+      hiEdgeCol[o + 4] = g;
+      hiEdgeCol[o + 5] = b;
+      hiEdgeAlp[hiEIdx * 2] = a;
+      hiEdgeAlp[hiEIdx * 2 + 1] = a;
       hiEIdx++;
     });
   });
@@ -442,8 +449,8 @@ let maxD = 0;
 for (let i = 0; i < nodeCount; i++) {
   const d = Math.sqrt(
     positions[i * 3] ** 2 +
-    positions[i * 3 + 1] ** 2 +
-    positions[i * 3 + 2] ** 2,
+      positions[i * 3 + 1] ** 2 +
+      positions[i * 3 + 2] ** 2,
   );
   if (d > maxD) maxD = d;
 }
@@ -478,12 +485,12 @@ function animate() {
   const time = Date.now() * 0.001;
   hiMat.uniforms.uTime.value = time;
 
-  // Ambient Breathing (Sub-Perceptual Parallax)
+  // Ambient Breathing (Sub-Perceptual Parallax) - Moved to SCENE to avoid Camera conflict
   if (isRotating) {
-    const breathX = Math.sin(time * 0.4) * 20;
-    const breathY = Math.cos(time * 0.3) * 15;
-    camera.position.x += (breathX - camera.position.x) * 0.005;
-    camera.position.y += (breathY - camera.position.y) * 0.005;
+    scene.position.x = Math.sin(time * 0.4) * 15;
+    scene.position.y = Math.cos(time * 0.3) * 12;
+  } else {
+    scene.position.set(0, 0, 0);
   }
 
   // WASD Camera Move
