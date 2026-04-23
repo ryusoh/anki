@@ -74,18 +74,26 @@ document.body.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
-// --- SHARED BUFFERS ---
+// --- SHARED BUFFERS & MAPS ---
 const nodeMap = new Map();
+const nodeColorMap = new Map();
 const positions = new Float32Array(nodeCount * 3);
+
 data.nodes.forEach((node, i) => {
+  const idStr = String(node.id).trim();
   positions[i * 3] = node.x || (Math.random() - 0.5) * 5000;
   positions[i * 3 + 1] = node.y || (Math.random() - 0.5) * 5000;
   positions[i * 3 + 2] = node.z || (Math.random() - 0.5) * 5000;
-  nodeMap.set(String(node.id).trim(), {
+
+  nodeMap.set(idStr, {
     x: positions[i * 3],
     y: positions[i * 3 + 1],
     z: positions[i * 3 + 2],
   });
+
+  // PRE-CACHE COLORS FOR MAX SPEED
+  const c = deckColorCache.get(node.deck) || fallbackColor;
+  nodeColorMap.set(idStr, c);
 });
 
 // --- LAYER 1: BACKGROUND (GREY MIST - CIRCULAR) ---
@@ -223,44 +231,56 @@ function updateTimeline() {
   if (!historyData) return;
   const dateStr = historyData.dates[parseInt(slider.value)];
   const rawActive = historyData.history[dateStr] || [];
+
+  // FAST LOOKUP SETS
   const activeSet = new Set(rawActive.map((id) => String(id).trim()));
   const degree1 = new Set();
-  activeSet.forEach((id) =>
-    (adjacency.get(id) || []).forEach((n) => {
-      if (!activeSet.has(n.target)) degree1.add(n.target);
-    }),
-  );
+
+  activeSet.forEach((id) => {
+    const neighbors = adjacency.get(id);
+    if (neighbors) {
+      for (let j = 0; j < neighbors.length; j++) {
+        const targetId = neighbors[j].target;
+        if (!activeSet.has(targetId)) degree1.add(targetId);
+      }
+    }
+  });
 
   dateDisplay.innerHTML = `<div>${dateStr}</div><div>${activeSet.size}</div>`;
 
-  // Update Highlight Nodes
+  // Update Highlight Nodes (Now O(1) Lookups)
   let hiIdx = 0;
-  const updateNode = (id, size, color) => {
+
+  activeSet.forEach((id) => {
+    if (hiIdx >= MAX_HI) return;
     const p = nodeMap.get(id);
-    if (!p || hiIdx >= MAX_HI) return;
+    const c = nodeColorMap.get(id) || fallbackColor;
+    if (!p) return;
+
     hiPos[hiIdx * 3] = p.x;
     hiPos[hiIdx * 3 + 1] = p.y;
     hiPos[hiIdx * 3 + 2] = p.z;
-    hiCol[hiIdx * 3] = color.r;
-    hiCol[hiIdx * 3 + 1] = color.g;
-    hiCol[hiIdx * 3 + 2] = color.b;
-    hiSiz[hiIdx] = size;
+    hiCol[hiIdx * 3] = c.r;
+    hiCol[hiIdx * 3 + 1] = c.g;
+    hiCol[hiIdx * 3 + 2] = c.b;
+    hiSiz[hiIdx] = 80;
     hiIdx++;
-  };
-
-  activeSet.forEach((id) => {
-    const c =
-      deckColorCache.get(
-        data.nodes.find((n) => String(n.id).trim() === id)?.deck,
-      ) || fallbackColor;
-    updateNode(id, 80, c); // BIGGEST
   });
+
   degree1.forEach((id) => {
-    const c =
-      deckColorCache.get(
-        data.nodes.find((n) => String(n.id).trim() === id)?.deck,
-      ) || fallbackColor;
-    updateNode(id, 35, { r: c.r * 0.7, g: c.g * 0.7, b: c.b * 0.7 }); // DIMMER
+    if (hiIdx >= MAX_HI) return;
+    const p = nodeMap.get(id);
+    const c = nodeColorMap.get(id) || fallbackColor;
+    if (!p) return;
+
+    hiPos[hiIdx * 3] = p.x;
+    hiPos[hiIdx * 3 + 1] = p.y;
+    hiPos[hiIdx * 3 + 2] = p.z;
+    hiCol[hiIdx * 3] = c.r * 0.7;
+    hiCol[hiIdx * 3 + 1] = c.g * 0.7;
+    hiCol[hiIdx * 3 + 2] = c.b * 0.7;
+    hiSiz[hiIdx] = 35;
+    hiIdx++;
   });
 
   hiGeom.setDrawRange(0, hiIdx);
