@@ -174,10 +174,11 @@ canvas {
   -webkit-appearance: none;
   width: 100%;
   height: 6px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
   border-radius: 3px;
   outline: none;
   cursor: pointer;
+  margin: 10px 0;
 }
 
 #timeline-slider::-webkit-slider-thumb {
@@ -190,6 +191,7 @@ canvas {
   border: 3px solid #fff;
   box-shadow: 0 0 15px rgba(0, 199, 190, 0.8);
   transition: all 0.2s ease;
+  margin-top: -7px; /* Center 20px thumb on 6px track */
 }
 
 #timeline-slider::-webkit-slider-thumb:hover {
