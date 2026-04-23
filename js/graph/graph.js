@@ -11,7 +11,7 @@ let historyData;
 try {
   let graphUrl = "/graph/graph_data.json";
   let historyUrl = "/graph/history_data.json";
-  const R2_DOMAIN = "https://anki-graph.lyeutsaon.com";
+  const R2_DOMAIN = "https://pub-8b97bb17509e4905ba9e155b6ed3c936.r2.dev";
 
   // First check if private data exists, otherwise fallback to public R2
   const privateGraph = await fetch(graphUrl, { method: "HEAD" });
