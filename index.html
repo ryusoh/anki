@@ -98,12 +98,12 @@
             chartGlass,
           });
 
-          // Hide loading once ready
+          // Reveal content and hide spinner
+          const appContent = document.getElementById("appContent");
+          if (appContent) appContent.classList.add("ready");
           if (loading) {
-            setTimeout(() => {
-              loading.style.opacity = "0";
-              setTimeout(() => (loading.style.display = "none"), 500);
-            }, 300);
+            loading.style.opacity = "0";
+            setTimeout(() => (loading.style.display = "none"), 500);
           }
         } catch (err) {
           console.error("Failed to init glass effect", err);
@@ -114,174 +114,186 @@
   </head>
 
   <body class="body-terminal body-main no-pull-to-refresh">
+    <style>
+      /* Hide all content until ready — only spinner visible */
+      .app-content {
+        visibility: hidden;
+      }
+      .app-content.ready {
+        visibility: visible;
+      }
+    </style>
     <div id="loading">
       <div class="spinner"></div>
     </div>
-    <a href="#terminalInput" class="sr-only skip-to-content"
-      >Skip to command input</a
-    >
-    <div class="mobile-landing" aria-hidden="true">
-      <div class="video-background">
-        <video
-          autoplay
-          loop
-          muted
-          playsinline
-          preload="metadata"
-          poster="assets/mobile_bg.jpg"
-          src="assets/mobile_bg.mp4"
-          webkit-playsinline
-        ></video>
-      </div>
-      <img
-        class="mobile-banner"
-        alt="Anki Stats"
-        loading="lazy"
-        data-fallbacks='[
+    <div class="app-content" id="appContent">
+      <a href="#terminalInput" class="sr-only skip-to-content"
+        >Skip to command input</a
+      >
+      <div class="mobile-landing" aria-hidden="true">
+        <div class="video-background">
+          <video
+            autoplay
+            loop
+            muted
+            playsinline
+            preload="metadata"
+            poster="assets/mobile_bg.jpg"
+            src="assets/mobile_bg.mp4"
+            webkit-playsinline
+          ></video>
+        </div>
+        <img
+          class="mobile-banner"
+          alt="Anki Stats"
+          loading="lazy"
+          data-fallbacks='[
                     "assets/banners/banner.png"
                 ]'
-      />
-    </div>
-    <div class="nav-container">
-      <ul>
-        <li>
-          <a href="https://www.lyeutsaon.com/" aria-label="Home">
-            <i class="fa fa-chevron-right"></i>
-          </a>
-        </li>
-        <li class="is-current-page">
-          <a href="../" aria-label="Terminal">
-            <i class="fa fa-code"></i>
-          </a>
-        </li>
-        <li>
-          <a href="graph/" aria-label="Graph">
-            <i class="fa fa-connectdevelop"></i>
-          </a>
-        </li>
-      </ul>
-    </div>
-    <div class="transaction-container">
-      <div class="terminal" id="terminal">
-        <div
-          class="terminal-output"
-          id="terminalOutput"
-          role="log"
-          aria-live="polite"
-          aria-atomic="false"
-        ></div>
-        <div class="terminal-prompt">
-          <label for="terminalInput" class="prompt-user">lz@anki:~$</label>
-          <input
-            type="text"
-            id="terminalInput"
-            class="terminal-input"
-            autocomplete="off"
-            spellcheck="false"
-            aria-label="Terminal command input"
-            autofocus
-          />
-        </div>
+        />
       </div>
-
-      <section
-        id="runningAmountSection"
-        class="chart-card is-hidden"
-        aria-labelledby="runningAmountTitle"
-      >
-        <h2 id="runningAmountTitle" class="sr-only">Future Due Chart</h2>
-        <div
-          class="chart-container"
-          role="img"
-          aria-describedby="runningAmountTitle"
-        >
-          <canvas id="runningAmountCanvas"></canvas>
+      <div class="nav-container">
+        <ul>
+          <li>
+            <a href="https://www.lyeutsaon.com/" aria-label="Home">
+              <i class="fa fa-chevron-right"></i>
+            </a>
+          </li>
+          <li class="is-current-page">
+            <a href="../" aria-label="Terminal">
+              <i class="fa fa-code"></i>
+            </a>
+          </li>
+          <li>
+            <a href="graph/" aria-label="Graph">
+              <i class="fa fa-connectdevelop"></i>
+            </a>
+          </li>
+        </ul>
+      </div>
+      <div class="transaction-container">
+        <div class="terminal" id="terminal">
           <div
-            class="chart-empty"
-            id="runningAmountEmpty"
-            style="display: none"
+            class="terminal-output"
+            id="terminalOutput"
+            role="log"
+            aria-live="polite"
+            aria-atomic="false"
           ></div>
+          <div class="terminal-prompt">
+            <label for="terminalInput" class="prompt-user">lz@anki:~$</label>
+            <input
+              type="text"
+              id="terminalInput"
+              class="terminal-input"
+              autocomplete="off"
+              spellcheck="false"
+              aria-label="Terminal command input"
+              autofocus
+            />
+          </div>
         </div>
-        <div class="chart-legend" id="chartLegend">
-          <span data-dataset-index="0" role="button" tabindex="0"
-            ><i class="legend-color color-mature"></i> Mature</span
-          >
-          <span data-dataset-index="1" role="button" tabindex="0"
-            ><i class="legend-color color-young"></i> Young</span
-          >
-        </div>
-      </section>
 
-      <div class="table-responsive-container is-hidden" aria-live="polite">
-        <table id="transactionTable">
-          <thead>
-            <tr>
-              <th
-                id="header-tradeDate"
-                class="sortable"
-                tabindex="0"
-                role="button"
-              >
-                Date<span class="sort-indicator"></span>
-              </th>
-              <th
-                id="header-orderType"
-                class="filterable"
-                tabindex="0"
-                role="button"
-              >
-                Type
-                <span class="filter-indicator" aria-hidden="true">
-                  <i class="fa fa-filter"></i>
-                </span>
-              </th>
-              <th
-                id="header-security"
-                class="sortable filterable"
-                tabindex="0"
-                role="button"
-              >
-                Security
-                <span class="sort-indicator"></span>
-                <span class="filter-indicator" aria-hidden="true">
-                  <i class="fa fa-filter"></i>
-                </span>
-              </th>
-              <th>Quantity</th>
-              <th>Price</th>
-              <th
-                id="header-netAmount"
-                class="sortable"
-                tabindex="0"
-                role="button"
-              >
-                Amount<span class="sort-indicator"></span>
-              </th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody id="transactionBody"></tbody>
-        </table>
+        <section
+          id="runningAmountSection"
+          class="chart-card is-hidden"
+          aria-labelledby="runningAmountTitle"
+        >
+          <h2 id="runningAmountTitle" class="sr-only">Future Due Chart</h2>
+          <div
+            class="chart-container"
+            role="img"
+            aria-describedby="runningAmountTitle"
+          >
+            <canvas id="runningAmountCanvas"></canvas>
+            <div
+              class="chart-empty"
+              id="runningAmountEmpty"
+              style="display: none"
+            ></div>
+          </div>
+          <div class="chart-legend" id="chartLegend">
+            <span data-dataset-index="0" role="button" tabindex="0"
+              ><i class="legend-color color-mature"></i> Mature</span
+            >
+            <span data-dataset-index="1" role="button" tabindex="0"
+              ><i class="legend-color color-young"></i> Young</span
+            >
+          </div>
+        </section>
+
+        <div class="table-responsive-container is-hidden" aria-live="polite">
+          <table id="transactionTable">
+            <thead>
+              <tr>
+                <th
+                  id="header-tradeDate"
+                  class="sortable"
+                  tabindex="0"
+                  role="button"
+                >
+                  Date<span class="sort-indicator"></span>
+                </th>
+                <th
+                  id="header-orderType"
+                  class="filterable"
+                  tabindex="0"
+                  role="button"
+                >
+                  Type
+                  <span class="filter-indicator" aria-hidden="true">
+                    <i class="fa fa-filter"></i>
+                  </span>
+                </th>
+                <th
+                  id="header-security"
+                  class="sortable filterable"
+                  tabindex="0"
+                  role="button"
+                >
+                  Security
+                  <span class="sort-indicator"></span>
+                  <span class="filter-indicator" aria-hidden="true">
+                    <i class="fa fa-filter"></i>
+                  </span>
+                </th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th
+                  id="header-netAmount"
+                  class="sortable"
+                  tabindex="0"
+                  role="button"
+                >
+                  Amount<span class="sort-indicator"></span>
+                </th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody id="transactionBody"></tbody>
+          </table>
+        </div>
+
+        <div
+          id="error"
+          class="error"
+          style="display: none"
+          aria-live="assertive"
+          role="alert"
+        ></div>
       </div>
 
-      <div
-        id="error"
-        class="error"
-        style="display: none"
-        aria-live="assertive"
-        role="alert"
-      ></div>
+      <footer>
+        <a
+          href="https://github.com/ryusoh"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="GitHub Profile"
+          ><i class="fa fa-github" aria-hidden="true"></i
+        ></a>
+      </footer>
     </div>
-
-    <footer>
-      <a
-        href="https://github.com/ryusoh"
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="GitHub Profile"
-        ><i class="fa fa-github" aria-hidden="true"></i
-      ></a>
-    </footer>
+    <!-- .app-content -->
 
     <script
       src="js/terminal.js?v=20240223"
