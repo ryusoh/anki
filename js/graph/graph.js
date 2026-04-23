@@ -59,13 +59,22 @@ const uniqueDecks = [...new Set(data.nodes.map((n) => n.deck))];
 const deckColorCache = new Map();
 const fallbackColor = new THREE.Color("#4facfe");
 
-// GOLDEN RATIO COLOR GENERATION (MAXIMUM PERCEPTUAL DISTANCE)
-const goldenRatioConjugate = 0.618033988749895;
-let hue = Math.random(); // Start at a random point
-uniqueDecks.forEach((deck) => {
-  hue += goldenRatioConjugate;
-  hue %= 1;
-  const color = new THREE.Color().setHSL(hue, 0.9, 0.6);
+// BRAND COLOR PALETTE (Synced with chart legends)
+const BRAND_PALETTE = [
+  "#48c78e", // Mature (Green)
+  "#49a8ec", // Young (Blue)
+  "#f0b90b", // Learn/Retention (Gold)
+  "#ea4335", // Relearn (Red)
+  "#64b5f6", // Sky Blue
+  "#34a853", // Forest Green
+  "#f44336", // Deep Red
+  "#ff9800", // Orange
+];
+
+uniqueDecks.forEach((deck, i) => {
+  const color = new THREE.PointLight()
+    ? new THREE.Color(BRAND_PALETTE[i % BRAND_PALETTE.length])
+    : fallbackColor;
   deckColorCache.set(deck, color);
 });
 
