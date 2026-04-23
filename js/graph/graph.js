@@ -101,12 +101,37 @@ renderer.domElement.addEventListener("dblclick", () => {
 const nodeMap = new Map();
 const nodeColorMap = new Map();
 const positions = new Float32Array(nodeCount * 3);
+const layoutScale = 0.5; // Controls how much HUBS are pulled together
 
+// 1. First Pass: Calculate Hub Centroids
+const deckCentroids = new Map();
+const deckCounts = new Map();
+uniqueDecks.forEach((d) => deckCentroids.set(d, new THREE.Vector3(0, 0, 0)));
+data.nodes.forEach((n) => {
+  const c = deckCentroids.get(n.deck);
+  c.x += n.x || 0;
+  c.y += n.y || 0;
+  c.z += n.z || 0;
+  deckCounts.set(n.deck, (deckCounts.get(n.deck) || 0) + 1);
+});
+uniqueDecks.forEach((d) => {
+  const count = deckCounts.get(d) || 1;
+  deckCentroids.get(d).divideScalar(count);
+});
+
+// 2. Second Pass: Apply Hub Gravity (Compress space between clusters)
 data.nodes.forEach((node, i) => {
   const idStr = String(node.id).trim();
-  positions[i * 3] = node.x || (Math.random() - 0.5) * 5000;
-  positions[i * 3 + 1] = node.y || (Math.random() - 0.5) * 5000;
-  positions[i * 3 + 2] = node.z || (Math.random() - 0.5) * 5000;
+  const centroid = deckCentroids.get(node.deck);
+
+  // New Position = (Hub scaled toward zero) + (Node's local offset from Hub)
+  const x = (node.x || 0) - centroid.x;
+  const y = (node.y || 0) - centroid.y;
+  const z = (node.z || 0) - centroid.z;
+
+  positions[i * 3] = centroid.x * layoutScale + x;
+  positions[i * 3 + 1] = centroid.y * layoutScale + y;
+  positions[i * 3 + 2] = centroid.z * layoutScale + z;
 
   nodeMap.set(idStr, {
     x: positions[i * 3],
@@ -454,7 +479,7 @@ for (let i = 0; i < nodeCount; i++) {
   );
   if (d > maxD) maxD = d;
 }
-camera.position.set(0, 0, maxD * 2.5);
+camera.position.set(0, 0, maxD * 0.6);
 
 const timeline = document.getElementById("timeline");
 
