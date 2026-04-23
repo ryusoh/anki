@@ -193,11 +193,15 @@ let maxDist = 0;
 for (let i = 0; i < nodeCount; i++) {
   const dx = positions[i * 3];
   const dy = positions[i * 3 + 1];
-  const d = Math.sqrt(dx * dx + dy * dy);
+  const dz = positions[i * 3 + 2];
+  const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
   if (d > maxDist) maxDist = d;
 }
+maxDist = Math.max(maxDist, 100); // minimum bound
 camera.position.set(0, 0, maxDist * 2.5);
-controls.minDistance = maxDist * 0.1;
+camera.far = maxDist * 20;
+camera.updateProjectionMatrix();
+controls.minDistance = maxDist * 0.05;
 controls.maxDistance = maxDist * 10;
 
 // --- EDGES (LineSegments) ---
@@ -268,13 +272,45 @@ scene.add(edgeLines);
 
 loading.style.display = "none";
 
+// Keyboard navigation
+const keyState = {};
+window.addEventListener("keydown", (e) => { keyState[e.key] = true; });
+window.addEventListener("keyup", (e) => { keyState[e.key] = false; });
+
 // Animation
 function animate() {
   requestAnimationFrame(animate);
+  handleKeys();
   controls.update();
   renderer.render(scene, camera);
 }
 animate();
+
+function handleKeys() {
+  const speed = 15;
+  // Get camera's local axes
+  const forward = new THREE.Vector3();
+  camera.getWorldDirection(forward);
+  const right = new THREE.Vector3().crossVectors(forward, camera.up).normalize();
+  const up = camera.up.clone();
+
+  if (keyState["ArrowUp"] || keyState["w"]) {
+    controls.target.addScaledVector(up, speed);
+    camera.position.addScaledVector(up, speed);
+  }
+  if (keyState["ArrowDown"] || keyState["s"]) {
+    controls.target.addScaledVector(up, -speed);
+    camera.position.addScaledVector(up, -speed);
+  }
+  if (keyState["ArrowRight"] || keyState["d"]) {
+    controls.target.addScaledVector(right, speed);
+    camera.position.addScaledVector(right, speed);
+  }
+  if (keyState["ArrowLeft"] || keyState["a"]) {
+    controls.target.addScaledVector(right, -speed);
+    camera.position.addScaledVector(right, -speed);
+  }
+}
 
 // Resize handler
 window.addEventListener("resize", () => {
