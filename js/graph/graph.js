@@ -255,23 +255,41 @@ scene.add(hiPoints);
 
 const hiEdgePos = new Float32Array(MAX_HI * 6);
 const hiEdgeCol = new Float32Array(MAX_HI * 6);
+const hiEdgeAlp = new Float32Array(MAX_HI * 2);
 const hiEdgeGeom = new THREE.BufferGeometry();
 hiEdgeGeom.setAttribute(
   "position",
   new THREE.BufferAttribute(hiEdgePos, 3).setUsage(THREE.DynamicDrawUsage),
 );
 hiEdgeGeom.setAttribute(
-  "color",
+  "aColor",
   new THREE.BufferAttribute(hiEdgeCol, 3).setUsage(THREE.DynamicDrawUsage),
 );
-const hiEdgeMat = new THREE.LineBasicMaterial({
-  vertexColors: true,
+hiEdgeGeom.setAttribute(
+  "aAlpha",
+  new THREE.BufferAttribute(hiEdgeAlp, 1).setUsage(THREE.DynamicDrawUsage),
+);
+
+const hiEdgeMat = new THREE.ShaderMaterial({
+  vertexShader: `
+    attribute vec3 aColor; attribute float aAlpha;
+    varying vec3 vColor; varying float vAlpha;
+    void main() {
+      vColor = aColor; vAlpha = aAlpha;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      gl_Position.z -= 0.05;
+    }
+  `,
+  fragmentShader: `
+    varying vec3 vColor; varying float vAlpha;
+    void main() { gl_FragColor = vec4(vColor, vAlpha); }
+  `,
   transparent: true,
-  opacity: 1.0,
+  blending: THREE.AdditiveBlending,
   depthTest: false,
 });
-const hiEdges = new THREE.LineSegments(hiEdgeGeom, hiEdgeMat);
-scene.add(hiEdges);
+const hiLines = new THREE.LineSegments(hiEdgeGeom, hiEdgeMat);
+scene.add(hiLines);
 
 // --- TIMELINE ACTION ---
 const slider = document.getElementById("timeline-slider");
@@ -388,7 +406,7 @@ function updateTimeline() {
         r = c.r;
         g = c.g;
         b = c.b;
-        a = 0.6;
+        a = 0.2;
       } else {
         // Neutral grey outgoing links
         r = 0.4;
@@ -397,18 +415,16 @@ function updateTimeline() {
         a = 0.2;
       }
 
-      hiEdgeCol[o] = r * a;
-      hiEdgeCol[o + 1] = g * a;
-      hiEdgeCol[o + 2] = b * a;
-      hiEdgeCol[o + 3] = r * a;
-      hiEdgeCol[o + 4] = g * a;
-      hiEdgeCol[o + 5] = b * a;
+      hiEdgeCol[o] = r; hiEdgeCol[o + 1] = g; hiEdgeCol[o + 2] = b;
+      hiEdgeCol[o + 3] = r; hiEdgeCol[o + 4] = g; hiEdgeCol[o + 5] = b;
+      hiEdgeAlp[hiEIdx * 2] = a; hiEdgeAlp[hiEIdx * 2 + 1] = a;
       hiEIdx++;
     });
   });
   hiEdgeGeom.setDrawRange(0, hiEIdx * 2);
   hiEdgeGeom.attributes.position.needsUpdate = true;
-  hiEdgeGeom.attributes.color.needsUpdate = true;
+  hiEdgeGeom.attributes.aColor.needsUpdate = true;
+  hiEdgeGeom.attributes.aAlpha.needsUpdate = true;
 }
 
 const nodeDeckMap = new Map();
@@ -426,8 +442,8 @@ let maxD = 0;
 for (let i = 0; i < nodeCount; i++) {
   const d = Math.sqrt(
     positions[i * 3] ** 2 +
-      positions[i * 3 + 1] ** 2 +
-      positions[i * 3 + 2] ** 2,
+    positions[i * 3 + 1] ** 2 +
+    positions[i * 3 + 2] ** 2,
   );
   if (d > maxD) maxD = d;
 }
