@@ -275,8 +275,12 @@ loading.style.display = "none";
 
 // Keyboard navigation
 const keyState = {};
-window.addEventListener("keydown", (e) => { keyState[e.key] = true; });
-window.addEventListener("keyup", (e) => { keyState[e.key] = false; });
+window.addEventListener("keydown", (e) => {
+  keyState[e.key] = true;
+});
+window.addEventListener("keyup", (e) => {
+  keyState[e.key] = false;
+});
 
 // Animation
 function animate() {
@@ -292,7 +296,9 @@ function handleKeys() {
   // Get camera's local axes
   const forward = new THREE.Vector3();
   camera.getWorldDirection(forward);
-  const right = new THREE.Vector3().crossVectors(forward, camera.up).normalize();
+  const right = new THREE.Vector3()
+    .crossVectors(forward, camera.up)
+    .normalize();
   const up = camera.up.clone();
 
   if (keyState["ArrowUp"] || keyState["w"]) {

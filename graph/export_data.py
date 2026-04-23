@@ -197,167 +197,185 @@ def compute_layout(graph, iterations=50):
 
     all_positions = {}
 
-    for i, deck in enumerate(deck_names):
-        deck_nodes = decks[deck]
-        subgraph = graph.subgraph(deck_nodes)
-        n = len(deck_nodes)
-        iters = max(10, min(iterations, iterations * 5000 // max(n, 1)))
+    import concurrent.futures
 
-        short = deck[:30] + '…' if len(deck) > 30 else deck
-        progress_bar(i + 1, total, f'Layout: {short} ({n} nodes, {iters} iters)')
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        future_to_deck = {}
+        for i, deck in enumerate(deck_names):
+            deck_nodes = decks[deck]
+            # Copy subgraph so pickling to workers doesn't send the entire graph
+            subgraph = graph.subgraph(deck_nodes).copy()
+            n = len(deck_nodes)
+            iters = max(10, min(iterations, iterations * 5000 // max(n, 1)))
+            future_to_deck[executor.submit(_compute_deck_layout, subgraph, iters)] = deck
 
-        layout_2d = _compute_deck_layout(subgraph, iters)
+        completed = 0
+        for future in concurrent.futures.as_completed(future_to_deck):
+            deck = future_to_deck[future]
+            layout_2d = future.result()
 
-        # Place deck's 2D layout on a tangent plane at the sphere surface
-        center_3d = deck_centers[deck] * sphere_radius
+            completed += 1
+            short = deck[:30] + '…' if len(deck) > 30 else deck
+            progress_bar(completed, total, f'Layout: {short}')
 
-        # Create a local coordinate frame on the sphere surface
-        normal = deck_centers[deck]  # unit normal pointing outward
-        # Pick an arbitrary vector not parallel to normal
-        up = np.array([0, 1, 0]) if abs(normal[1]) < 0.9 else np.array([1, 0, 0])
-        tangent_x = np.cross(normal, up)
-        tangent_x /= np.linalg.norm(tangent_x)
-        tangent_y = np.cross(normal, tangent_x)
-        tangent_y /= np.linalg.norm(tangent_y)
+            # Place deck's 2D layout on a tangent plane at the sphere surface
+            center_3d = deck_centers[deck] * sphere_radius
 
-        for nid, (lx, ly) in layout_2d.items():
-            pos = center_3d + tangent_x * lx + tangent_y * ly
-            all_positions[nid] = (float(pos[0]), float(pos[1]), float(pos[2]))
+            # Create a local coordinate frame on the sphere surface
+            normal = deck_centers[deck]  # unit normal pointing outward
+            # Pick an arbitrary vector not parallel to normal
+            up = np.array([0, 1, 0]) if abs(normal[1]) < 0.9 else np.array([1, 0, 0])
+            tangent_x = np.cross(normal, up)
+            tangent_x /= np.linalg.norm(tangent_x)
+            tangent_y = np.cross(normal, tangent_x)
+            tangent_y /= np.linalg.norm(tangent_y)
+
+            for nid, (lx, ly) in layout_2d.items():
+                r2d_sq = lx**2 + ly**2
+                R_sq = deck_radii[deck]**2
+                # Calculate max possible Z to form a spherical cluster
+                max_z = np.sqrt(max(0, R_sq - r2d_sq))
+                # Distribute Z randomly within that spherical bounds to inflate the 2D layout into a 3D ball
+                lz = (np.random.random() * 2 - 1) * max_z
+                
+                pos = center_3d + tangent_x * lx + tangent_y * ly + normal * lz
+                all_positions[nid] = (float(pos[0]), float(pos[1]), float(pos[2]))
 
     sys.stderr.write('\n')
     return all_positions
 
 
-# --- Main ---
-force_full = '--full' in sys.argv
-args = [a for a in sys.argv[1:] if not a.startswith('--')]
-arg = args[0] if args else '2000'
-
-print('Loading notes...')
-t0 = time.time()
-with gzip.open(NOTES_FILE, 'rt') as f:
-    all_notes = json.load(f)
-print(f'  Loaded {len(all_notes)} notes in {time.time() - t0:.1f}s')
-
-if arg == 'all':
-    sample_notes = all_notes
-else:
-    n = int(arg)
-    sample_notes = all_notes[:n]
-
-print(f'Using {len(sample_notes)} / {len(all_notes)} notes')
-
-# --- Incremental check ---
-cache = load_cache() if not force_full else None
-changed_decks = find_changed_decks(sample_notes, cache) if cache else None
-
-if changed_decks is not None and len(changed_decks) == 0:
-    print('No changes detected — graph_data.json is up to date.')
-    print(f'  ({cache["node_count"]} nodes, {cache["link_count"]} links)')
-    print('  Use --full to force rebuild.')
-    sys.exit(0)
-
-if changed_decks is not None:
-    print(f'Incremental: {len(changed_decks)} deck(s) changed, rebuilding those')
-    # Load existing output
-    with open(OUTPUT_FILE, 'r') as f:
-        existing = json.load(f)
-    existing_nodes = {n['id']: n for n in existing['nodes']}
-    existing_links = existing['links']
-
-    # Remove old data for changed decks
-    unchanged_node_ids = set()
-    for nid, nd in existing_nodes.items():
-        if nd.get('deck') not in changed_decks:
-            unchanged_node_ids.add(nid)
-    kept_nodes = [nd for nid, nd in existing_nodes.items() if nid in unchanged_node_ids]
-    kept_links = [
-        lk for lk in existing_links
-        if lk['source'] in unchanged_node_ids and lk['target'] in unchanged_node_ids
-    ]
-
-    # Rebuild only changed decks
-    changed_notes = [n for n in sample_notes if n.get('deck') in changed_decks]
-    print(f'  Rebuilding {len(changed_notes)} notes across changed decks...')
-
-    t1 = time.time()
-    graph = build_graph(changed_notes, with_pagerank=True, progress_callback=deck_progress)
-    print(f'  Graph built in {time.time() - t1:.1f}s')
-
-    # Layout for changed decks
-    n_changed = len(graph.nodes())
-    iters = 30 if n_changed > 50000 else 50 if n_changed > 10000 else 100
-    print(f'  Computing layout for changed decks ({iters} iterations)...')
-    t_layout = time.time()
-    layout = compute_layout(graph, iterations=iters)
-    print(f'  Layout computed in {time.time() - t_layout:.1f}s')
-
-    # Merge
-    for node_id, ndata in graph.nodes(data=True):
-        x, y, z = layout.get(node_id, (0, 0, 0))
-        kept_nodes.append({
-            'id': node_id,
-            'label': strip_html(ndata.get('front', 'Unknown')),
-            'deck': ndata.get('deck', 'Unknown'),
-            'pagerank': round(ndata.get('pagerank', 0), 6),
-            'size': min(3, max(0.5, ndata.get('pagerank', 0) * 100)),
-            'x': round(x, 2),
-            'y': round(y, 2),
-            'z': round(z, 2),
-        })
-    for s, t, d in graph.edges(data=True):
-        kept_links.append({
-            'source': s, 'target': t,
-            'weight': round(d.get('weight', 1), 2),
-        })
-
-    nodes = kept_nodes
-    links = kept_links
-else:
-    # Full rebuild
-    print('Building graph (full)...')
-    t1 = time.time()
-    graph = build_graph(sample_notes, with_pagerank=True, progress_callback=deck_progress)
-    t_graph = time.time() - t1
-    print(f'  Graph: {len(graph.nodes())} nodes, {len(graph.edges())} edges ({t_graph:.1f}s)')
-
-    # Compute ForceAtlas2 layout
-    n_nodes = len(graph.nodes())
-    iters = 30 if n_nodes > 50000 else 50 if n_nodes > 10000 else 100
-    print(f'Computing layout (ForceAtlas2, {iters} iterations)...')
-    t_layout = time.time()
-    layout = compute_layout(graph, iterations=iters)
-    print(f'  Layout computed in {time.time() - t_layout:.1f}s')
-
-    print('Exporting nodes...')
-    nodes = []
-    for i, (node_id, ndata) in enumerate(graph.nodes(data=True)):
-        if (i + 1) % 5000 == 0 or i + 1 == len(graph.nodes()):
-            progress_bar(i + 1, len(graph.nodes()), 'Nodes')
-        x, y, z = layout.get(node_id, (0, 0, 0))
-        nodes.append({
-            'id': node_id,
-            'label': strip_html(ndata.get('front', 'Unknown')),
-            'deck': ndata.get('deck', 'Unknown'),
-            'pagerank': round(ndata.get('pagerank', 0), 6),
-            'size': min(3, max(0.5, ndata.get('pagerank', 0) * 100)),
-            'x': round(x, 2),
-            'y': round(y, 2),
-            'z': round(z, 2),
-        })
-
-    links = [
-        {'source': s, 'target': t, 'weight': round(d.get('weight', 1), 2)}
-        for s, t, d in graph.edges(data=True)
-    ]
-
-print(f'Writing {len(nodes)} nodes, {len(links)} links...')
-t2 = time.time()
-with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-    json.dump({'nodes': nodes, 'links': links}, f, ensure_ascii=False)
-print(f'  Written in {time.time() - t2:.1f}s')
-
-save_cache(sample_notes, len(nodes), len(links))
-
-print(f'Done — {OUTPUT_FILE}')
-print(f'  {len(nodes)} nodes, {len(links)} links')
+if __name__ == "__main__":
+    # --- Main ---
+    force_full = '--full' in sys.argv
+    args = [a for a in sys.argv[1:] if not a.startswith('--')]
+    arg = args[0] if args else '2000'
+    
+    print('Loading notes...')
+    t0 = time.time()
+    with gzip.open(NOTES_FILE, 'rt') as f:
+        all_notes = json.load(f)
+    print(f'  Loaded {len(all_notes)} notes in {time.time() - t0:.1f}s')
+    
+    if arg == 'all':
+        sample_notes = all_notes
+    else:
+        n = int(arg)
+        sample_notes = all_notes[:n]
+    
+    print(f'Using {len(sample_notes)} / {len(all_notes)} notes')
+    
+    # --- Incremental check ---
+    cache = load_cache() if not force_full else None
+    changed_decks = find_changed_decks(sample_notes, cache) if cache else None
+    
+    if changed_decks is not None and len(changed_decks) == 0:
+        print('No changes detected — graph_data.json is up to date.')
+        print(f'  ({cache["node_count"]} nodes, {cache["link_count"]} links)')
+        print('  Use --full to force rebuild.')
+        sys.exit(0)
+    
+    if changed_decks is not None:
+        print(f'Incremental: {len(changed_decks)} deck(s) changed, rebuilding those')
+        # Load existing output
+        with open(OUTPUT_FILE, 'r') as f:
+            existing = json.load(f)
+        existing_nodes = {n['id']: n for n in existing['nodes']}
+        existing_links = existing['links']
+    
+        # Remove old data for changed decks
+        unchanged_node_ids = set()
+        for nid, nd in existing_nodes.items():
+            if nd.get('deck') not in changed_decks:
+                unchanged_node_ids.add(nid)
+        kept_nodes = [nd for nid, nd in existing_nodes.items() if nid in unchanged_node_ids]
+        kept_links = [
+            lk for lk in existing_links
+            if lk['source'] in unchanged_node_ids and lk['target'] in unchanged_node_ids
+        ]
+    
+        # Rebuild only changed decks
+        changed_notes = [n for n in sample_notes if n.get('deck') in changed_decks]
+        print(f'  Rebuilding {len(changed_notes)} notes across changed decks...')
+    
+        t1 = time.time()
+        graph = build_graph(changed_notes, with_pagerank=True, progress_callback=deck_progress)
+        print(f'  Graph built in {time.time() - t1:.1f}s')
+    
+        # Layout for changed decks
+        n_changed = len(graph.nodes())
+        iters = 30 if n_changed > 50000 else 50 if n_changed > 10000 else 100
+        print(f'  Computing layout for changed decks ({iters} iterations)...')
+        t_layout = time.time()
+        layout = compute_layout(graph, iterations=iters)
+        print(f'  Layout computed in {time.time() - t_layout:.1f}s')
+    
+        # Merge
+        for node_id, ndata in graph.nodes(data=True):
+            x, y, z = layout.get(node_id, (0, 0, 0))
+            kept_nodes.append({
+                'id': node_id,
+                'label': strip_html(ndata.get('front', 'Unknown')),
+                'deck': ndata.get('deck', 'Unknown'),
+                'pagerank': round(ndata.get('pagerank', 0), 6),
+                'size': min(3, max(0.5, ndata.get('pagerank', 0) * 100)),
+                'x': round(x, 2),
+                'y': round(y, 2),
+                'z': round(z, 2),
+            })
+        for s, t, d in graph.edges(data=True):
+            kept_links.append({
+                'source': s, 'target': t,
+                'weight': round(d.get('weight', 1), 2),
+            })
+    
+        nodes = kept_nodes
+        links = kept_links
+    else:
+        # Full rebuild
+        print('Building graph (full)...')
+        t1 = time.time()
+        graph = build_graph(sample_notes, with_pagerank=True, progress_callback=deck_progress)
+        t_graph = time.time() - t1
+        print(f'  Graph: {len(graph.nodes())} nodes, {len(graph.edges())} edges ({t_graph:.1f}s)')
+    
+        # Compute ForceAtlas2 layout
+        n_nodes = len(graph.nodes())
+        iters = 30 if n_nodes > 50000 else 50 if n_nodes > 10000 else 100
+        print(f'Computing layout (ForceAtlas2, {iters} iterations)...')
+        t_layout = time.time()
+        layout = compute_layout(graph, iterations=iters)
+        print(f'  Layout computed in {time.time() - t_layout:.1f}s')
+    
+        print('Exporting nodes...')
+        nodes = []
+        for i, (node_id, ndata) in enumerate(graph.nodes(data=True)):
+            if (i + 1) % 5000 == 0 or i + 1 == len(graph.nodes()):
+                progress_bar(i + 1, len(graph.nodes()), 'Nodes')
+            x, y, z = layout.get(node_id, (0, 0, 0))
+            nodes.append({
+                'id': node_id,
+                'label': strip_html(ndata.get('front', 'Unknown')),
+                'deck': ndata.get('deck', 'Unknown'),
+                'pagerank': round(ndata.get('pagerank', 0), 6),
+                'size': min(3, max(0.5, ndata.get('pagerank', 0) * 100)),
+                'x': round(x, 2),
+                'y': round(y, 2),
+                'z': round(z, 2),
+            })
+    
+        links = [
+            {'source': s, 'target': t, 'weight': round(d.get('weight', 1), 2)}
+            for s, t, d in graph.edges(data=True)
+        ]
+    
+    print(f'Writing {len(nodes)} nodes, {len(links)} links...')
+    t2 = time.time()
+    with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
+        json.dump({'nodes': nodes, 'links': links}, f, ensure_ascii=False)
+    print(f'  Written in {time.time() - t2:.1f}s')
+    
+    save_cache(sample_notes, len(nodes), len(links))
+    
+    print(f'Done — {OUTPUT_FILE}')
+    print(f'  {len(nodes)} nodes, {len(links)} links')
