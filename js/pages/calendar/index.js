@@ -942,7 +942,7 @@ function handleViewportChange() {
               CALENDAR_SELECTORS.heatmap,
             );
             if (calendarElement) {
-              calendarElement.innerHTML = "";
+              calendarElement.textContent = "";
             }
             calendarInstance
               .paint(basePaintConfig)

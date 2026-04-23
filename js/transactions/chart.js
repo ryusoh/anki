@@ -2100,7 +2100,7 @@ function updateLegend(series, chartManager) {
     return;
   }
 
-  legendContainer.innerHTML = ""; // Clear existing legend
+  legendContainer.textContent = ""; // Clear existing legend
 
   series.forEach((s) => {
     const item = document.createElement("div");
