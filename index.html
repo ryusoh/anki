@@ -81,6 +81,7 @@
 
       window.addEventListener("DOMContentLoaded", () => {
         console.log("DOMContentLoaded fired");
+        const loading = document.getElementById("loading");
         try {
           initMagneticNav();
           console.log("Initializing TableGlassEffect...");
@@ -96,14 +97,26 @@
             terminalGlass,
             chartGlass,
           });
+
+          // Hide loading once ready
+          if (loading) {
+            setTimeout(() => {
+              loading.style.opacity = "0";
+              setTimeout(() => (loading.style.display = "none"), 500);
+            }, 300);
+          }
         } catch (err) {
           console.error("Failed to init glass effect", err);
+          if (loading) loading.style.display = "none";
         }
       });
     </script>
   </head>
 
   <body class="body-terminal body-main no-pull-to-refresh">
+    <div id="loading">
+      <div class="spinner"></div>
+    </div>
     <a href="#terminalInput" class="sr-only skip-to-content"
       >Skip to command input</a
     >
