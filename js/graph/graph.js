@@ -176,6 +176,9 @@ data.nodes.forEach((node, i) => {
   nodeColorMap.set(idStr, c);
 });
 
+const nodeDeckMap = new Map();
+data.nodes.forEach((n) => nodeDeckMap.set(String(n.id).trim(), n.deck));
+
 // --- LAYER 1: BACKGROUND (GREY MIST - CIRCULAR) ---
 const bgNodeGeom = new THREE.BufferGeometry();
 bgNodeGeom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
@@ -220,24 +223,35 @@ const bgNodes = new THREE.Points(
 );
 scene.add(bgNodes);
 
-// Background links (Full coverage web)
-const MAX_BG_EDGES = 1500000;
+// Background links (Strategic Subsampling)
+const MAX_BG_EDGES = 800000;
 const bgEdgePos = new Float32Array(MAX_BG_EDGES * 6);
 let bgEdgeIdx = 0;
-data.links.forEach((l, i) => {
-  if (bgEdgeIdx < MAX_BG_EDGES) {
-    const s = nodeMap.get(String(l.source).trim()),
-      t = nodeMap.get(String(l.target).trim());
-    if (s && t) {
-      const o = bgEdgeIdx * 6;
-      bgEdgePos[o] = s.x;
-      bgEdgePos[o + 1] = s.y;
-      bgEdgePos[o + 2] = s.z;
-      bgEdgePos[o + 3] = t.x;
-      bgEdgePos[o + 4] = t.y;
-      bgEdgePos[o + 5] = t.z;
-      bgEdgeIdx++;
-    }
+data.links.forEach((l) => {
+  if (bgEdgeIdx >= MAX_BG_EDGES) return;
+
+  const sId = String(l.source).trim();
+  const tId = String(l.target).trim();
+
+  // Selective Subsampling:
+  // Show 20% of internal cluster links, but only 5% of cross-cluster noise
+  const sDeck = nodeDeckMap.get(sId);
+  const tDeck = nodeDeckMap.get(tId);
+  const isSameDeck = sDeck && tDeck && sDeck === tDeck;
+  const prob = isSameDeck ? 0.2 : 0.05;
+  if (Math.random() > prob) return;
+
+  const s = nodeMap.get(sId),
+    t = nodeMap.get(tId);
+  if (s && t) {
+    const o = bgEdgeIdx * 6;
+    bgEdgePos[o] = s.x;
+    bgEdgePos[o + 1] = s.y;
+    bgEdgePos[o + 2] = s.z;
+    bgEdgePos[o + 3] = t.x;
+    bgEdgePos[o + 4] = t.y;
+    bgEdgePos[o + 5] = t.z;
+    bgEdgeIdx++;
   }
 });
 const bgEdgeGeom = new THREE.BufferGeometry();
@@ -248,7 +262,8 @@ bgEdgeGeom.setAttribute(
 const bgEdgeMat = new THREE.LineBasicMaterial({
   color: 0x555555,
   transparent: true,
-  opacity: 0.1,
+  opacity: 0.08,
+  depthWrite: false,
 });
 const bgEdges = new THREE.LineSegments(bgEdgeGeom, bgEdgeMat);
 scene.add(bgEdges);
@@ -490,9 +505,6 @@ function updateTimeline() {
   hiEdgeGeom.attributes.aColor.needsUpdate = true;
   hiEdgeGeom.attributes.aAlpha.needsUpdate = true;
 }
-
-const nodeDeckMap = new Map();
-data.nodes.forEach((n) => nodeDeckMap.set(String(n.id).trim(), n.deck));
 
 if (historyData) {
   slider.max = historyData.dates.length - 1;
