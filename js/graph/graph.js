@@ -64,7 +64,7 @@ bgNodeGeom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
 const bgColArr = new Float32Array(nodeCount * 3).fill(0.7); // Light grey
 bgNodeGeom.setAttribute("aColor", new THREE.BufferAttribute(bgColArr, 3));
 const bgSizArr = new Float32Array(nodeCount).fill(12); // Small but visible
-bgNodeGeom.setAttribute("aSize", new THREE.BufferAttribute(bgSizArr, 3));
+bgNodeGeom.setAttribute("aSize", new THREE.BufferAttribute(bgSizArr, 1));
 const bgAlpArr = new Float32Array(nodeCount).fill(0.1); // Thinnest mist
 bgNodeGeom.setAttribute("aAlpha", new THREE.BufferAttribute(bgAlpArr, 1));
 
@@ -94,7 +94,7 @@ const bgNodes = new THREE.Points(bgNodeGeom, new THREE.ShaderMaterial(commonShad
 scene.add(bgNodes);
 
 // Background links (Full coverage web)
-const MAX_BG_EDGES = 1000000;
+const MAX_BG_EDGES = 1500000;
 const bgEdgePos = new Float32Array(MAX_BG_EDGES * 6);
 let bgEdgeIdx = 0;
 data.links.forEach((l, i) => {
