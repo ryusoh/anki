@@ -665,10 +665,14 @@ export function updateTerminalCrosshair(snapshot, rangeSummary) {
         const bodyDiv = document.createElement("div");
         bodyDiv.className = "terminal-crosshair-range-body";
         rangeSummary.entries.forEach((e) => {
-          const row = document.createElement("div"), k = document.createElement("span");
-          const d = document.createElement("span"), v = document.createElement("span");
-          row.className = "terminal-crosshair-range-row"; k.className = "terminal-crosshair-key";
-          d.className = "terminal-crosshair-dot"; v.className = "terminal-crosshair-value";
+          const row = document.createElement("div"),
+            k = document.createElement("span");
+          const d = document.createElement("span"),
+            v = document.createElement("span");
+          row.className = "terminal-crosshair-range-row";
+          k.className = "terminal-crosshair-key";
+          d.className = "terminal-crosshair-dot";
+          v.className = "terminal-crosshair-value";
           d.style.background = e.color;
           k.append(d, " ", e.label);
           v.textContent = `${e.deltaFormatted}${e.percentFormatted ? ` (${e.percentFormatted})` : ""}`;

@@ -184,11 +184,22 @@ data.links.forEach((link) => {
   const targetPos = nodeMap.get(link.target);
   if (sourcePos && targetPos && (link.weight || 1) >= maxWeight) {
     edgePositions.push(
-      sourcePos.x, sourcePos.y, sourcePos.z,
-      targetPos.x, targetPos.y, targetPos.z,
+      sourcePos.x,
+      sourcePos.y,
+      sourcePos.z,
+      targetPos.x,
+      targetPos.y,
+      targetPos.z,
     );
     const c = deckColorCache.get(nodeDeckMap.get(link.source)) || fallbackColor;
-    edgeColors.push(c.r * 0.5, c.g * 0.5, c.b * 0.5, c.r * 0.5, c.g * 0.5, c.b * 0.5);
+    edgeColors.push(
+      c.r * 0.5,
+      c.g * 0.5,
+      c.b * 0.5,
+      c.r * 0.5,
+      c.g * 0.5,
+      c.b * 0.5,
+    );
   }
 });
 
@@ -228,5 +239,8 @@ window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-  nodeMaterial.uniforms.uPixelRatio.value = Math.min(window.devicePixelRatio, 2);
+  nodeMaterial.uniforms.uPixelRatio.value = Math.min(
+    window.devicePixelRatio,
+    2,
+  );
 });
