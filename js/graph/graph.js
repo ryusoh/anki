@@ -57,25 +57,45 @@ try {
 const nodeCount = data.nodes.length;
 const uniqueDecks = [...new Set(data.nodes.map((n) => n.deck))];
 const deckColorCache = new Map();
-const fallbackColor = new THREE.Color("#4facfe");
 
-// BRAND COLOR PALETTE (Synced with chart legends)
-const BRAND_PALETTE = [
-  "#48c78e", // Mature (Green)
-  "#49a8ec", // Young (Blue)
-  "#f0b90b", // Learn/Retention (Gold)
-  "#ea4335", // Relearn (Red)
-  "#64b5f6", // Sky Blue
-  "#34a853", // Forest Green
-  "#f44336", // Deep Red
-  "#ff9800", // Orange
+// EXACT COLOR STRINGS FROM LIVE LEGEND
+const LIVE_COLOR_MAP = [
+  "hsla(216, 85%, 65%, 0.85)",
+  "hsla(225, 60%, 83%, 0.85)",
+  "hsla(207, 73%, 47%, 0.85)",
+  "hsla(232, 85%, 75%, 0.85)",
+  "hsla(200, 60%, 55%, 0.85)",
+  "hsla(348, 83%, 67%, 0.85)",
+  "hsla(357, 58%, 85%, 0.85)",
 ];
 
-uniqueDecks.forEach((deck, i) => {
-  const color = new THREE.PointLight()
-    ? new THREE.Color(BRAND_PALETTE[i % BRAND_PALETTE.length])
-    : fallbackColor;
-  deckColorCache.set(deck, color);
+/**
+ * Robust HSLA string to THREE.Color converter
+ */
+function parseHSLAToColor(hslaStr) {
+  const match = hslaStr.match(
+    /hsla\((\d+),\s*(\d+)%,\s*([\d.]+)%,\s*([\d.]+)\)/,
+  );
+  if (!match) return new THREE.Color("#4facfe");
+  const h = parseInt(match[1], 10) / 360;
+  const s = parseInt(match[2], 10) / 100;
+  const l = parseFloat(match[3]) / 100;
+  return new THREE.Color().setHSL(h, s, l);
+}
+
+// 1. Calculate Deck Weights (Node counts) to match Terminal Sorting
+const deckWeights = {};
+data.nodes.forEach((n) => {
+  deckWeights[n.deck] = (deckWeights[n.deck] || 0) + 1;
+});
+
+// 2. Assign the live colors based on importance (Node count descending)
+const sortedDecks = Object.keys(deckWeights).sort(
+  (a, b) => deckWeights[b] - deckWeights[a],
+);
+sortedDecks.forEach((deckName, i) => {
+  const colorStr = LIVE_COLOR_MAP[i % LIVE_COLOR_MAP.length];
+  deckColorCache.set(deckName, parseHSLAToColor(colorStr));
 });
 
 // Build adjacency
