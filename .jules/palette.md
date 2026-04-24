@@ -35,3 +35,8 @@
 
 **Learning:** Terminal emulators or command-line interfaces built with web technologies that dynamically append command output and results using JavaScript are entirely invisible to assistive technologies like screen readers if no ARIA live regions are used. Without explicit indication, screen reader users input a command, hit enter, and receive absolutely no feedback.
 **Action:** When building custom web-based terminal interfaces or logs, always ensure the container holding the output stream uses `role="log"` and `aria-live="polite"` so new lines are announced without interrupting the user. Additionally, route dedicated command error messages to a container with `aria-live="assertive" role="alert"` to immediately interrupt and alert the user of failure.
+
+## 2023-10-24 - Dynamic ARIA Live Regions vs Global Elements
+
+**Learning:** Reusing a single global static HTML element (like `<div id="error">`) for ARIA live region announcements (e.g., `role="alert" aria-live="assertive"`) can be risky. Changing its visual display properties or DOM position to handle dynamic errors (like terminal outputs) can break the visual experience for sighted users or conflict with existing error-handling logic.
+**Action:** When dynamically appending text that needs immediate screen reader announcement (like terminal error lines), it is safer and more robust to inject the `role="alert"` and `aria-live="assertive"` attributes directly onto the newly created specific DOM elements (e.g., the `div.line` representing the error) rather than modifying global error containers.
