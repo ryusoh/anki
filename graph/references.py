@@ -49,6 +49,20 @@ _MIN_IDF = 2.0
 # Delimiters for splitting front fields into sub-phrases
 _SPLIT_RE = re.compile(r'[()（）\[\]【】:：\-—–/|,，;；""\"\'?？]')
 
+# Strip Anki cloze deletion markers: {{c1::, {{c2::, etc. and closing }}
+_CLOZE_RE = re.compile(r'\{\{c\d+::|\}\}')
+
+# Regex to detect CJK characters (Hanzi, Kanji, Hiragana, Katakana)
+_CJK_RE = re.compile(r'[\u4e00-\u9fff\u3400-\u4dbf\u3040-\u309f\u30a0-\u30ff]')
+
+# Minimum sub-phrase length (chars). Single characters cause spurious
+# substring matches: "人" matches inside "人口", "大人", etc.
+_MIN_SUBPHRASE_LEN = 2
+
+# Maximum Document Frequency ratio. Sub-phrases appearing in more than
+# 2% of the deck are too common to be useful links (e.g. "拼音練習").
+_MAX_DF_RATIO = 0.02
+
 # Decks larger than this get parallelized internally
 _LARGE_DECK_THRESHOLD = 2000
 
@@ -65,35 +79,30 @@ def _normalize(text):
 
 
 def _tokenize_front(front_norm):
-    """Extract candidate sub-tokens from a front field.
+    """Extract candidate sub-phrases from a front field.
 
-    Splits on structural delimiters, then on whitespace.
-    Returns set of tokens (excluding the full front itself and empty strings).
-    IDF filtering happens later — no stopwords or length heuristics here.
+    Strips cloze markers, then splits on structural delimiters.
+    Requires sub-phrases to be at least 2 characters to avoid
+    single-char substring noise. IDF filtering happens later.
     """
+    # Strip cloze syntax before splitting — otherwise ":" in {{c1::answer}}
+    # produces garbage fragments like "{{c1" and "answer}}"
+    text = _CLOZE_RE.sub('', front_norm).strip()
     tokens = set()
-    parts = _SPLIT_RE.split(front_norm)
+    parts = _SPLIT_RE.split(text)
     for part in parts:
         p = part.strip()
-        if not p or p == front_norm:
+        if not p or p == front_norm or len(p) < _MIN_SUBPHRASE_LEN:
             continue
         tokens.add(p)
-        # Also split multi-word phrases into individual words
-        if ' ' in p:
-            for w in p.split():
-                w = w.strip()
-                if w:
-                    tokens.add(w)
     return tokens
 
 
-def _compute_idf(note_fields):
-    """Compute IDF for all candidate sub-phrase tokens across a deck.
+def _compute_df(note_fields):
+    """Compute Document Frequency (DF) for candidate sub-phrases across a deck.
 
-    Uses Aho-Corasick for O(N * text_length) document frequency counting
-    instead of O(tokens * N * text_length) brute force.
-
-    Returns dict: token → IDF value (ln(N/DF))
+    Uses Aho-Corasick for O(N * text_length) frequency counting.
+    Returns dict: token → occurrence count
     """
     N = len(note_fields)
     if N == 0:
@@ -107,11 +116,9 @@ def _compute_idf(note_fields):
     if not all_tokens:
         return {}
 
-    # Count document frequency
     df = {}
 
     if HAS_AHO and len(all_tokens) > 20:
-        # Fast path: single Aho-Corasick scan per note
         auto = ahocorasick.Automaton()
         for token in all_tokens:
             auto.add_word(token, token)
@@ -125,46 +132,55 @@ def _compute_idf(note_fields):
             for token in found:
                 df[token] = df.get(token, 0) + 1
     else:
-        # Brute force for small decks / no ahocorasick
         for nf in note_fields:
             combined = nf['front'] + ' ' + nf['other']
             for token in all_tokens:
                 if token in combined:
                     df[token] = df.get(token, 0) + 1
 
-    # Compute IDF = ln(N / DF)
-    idf = {}
-    for token, count in df.items():
-        if count > 0:
-            idf[token] = math.log(N / count)
-
-    return idf
+    return df
 
 
-def _prepare_note_fields(notes):
-    """Pre-compute normalized fields for a list of notes."""
+def _prepare_note_fields(notes, deck_name=""):
+    """Pre-compute normalized fields for a list of notes.
+    
+    If the deck is a Language deck (日語, 粤語, 呉語, 台語), purely phonetic
+    or Latin sub-phrases (those without any CJK characters) are excluded.
+    """
+    is_cjk_deck = any(k in deck_name for k in ['日語', '粤語', '呉語', '台語'])
+    
     result = []
     for note in notes:
         front_norm = _normalize(get_front_field(note))
         other_norm = _normalize(get_other_fields_text(note))
         raw_tokens = _tokenize_front(front_norm) if len(front_norm) >= MIN_FRONT_LENGTH else set()
+        
+        if is_cjk_deck:
+            # Drop sub-phrases that contain absolutely no CJK characters
+            # (e.g. "is", "ni", "186", "desu")
+            raw_tokens = {t for t in raw_tokens if _CJK_RE.search(t)}
+            
         result.append({
             'guid': note['guid'],
             'front': front_norm,
             'front_len': len(front_norm),
             'other': other_norm,
-            'subphrases_raw': raw_tokens,  # unfiltered, for IDF computation
-            'subphrases': [],              # filled after IDF filtering
+            'subphrases_raw': raw_tokens,  # unfiltered, for DF computation
+            'subphrases': [],              # filled after DF filtering
         })
     return result
 
 
-def _apply_idf_filter(note_fields, idf):
-    """Filter each note's sub-phrases by IDF threshold. Mutates in place."""
+def _apply_df_filter(note_fields, df):
+    """Filter sub-phrases by Max Document Frequency limit. Mutates in place."""
+    N = len(note_fields)
+    # A term must not appear in more than 2% of the deck (min 10 cards for small decks)
+    max_allowed_df = max(10, int(N * _MAX_DF_RATIO))
+    
     for nf in note_fields:
         nf['subphrases'] = [
             sp for sp in nf['subphrases_raw']
-            if idf.get(sp, 0) >= _MIN_IDF and sp != nf['front']
+            if df.get(sp, 0) <= max_allowed_df and sp != nf['front']
         ]
 
 
@@ -217,8 +233,8 @@ def find_references_for_deck_only(deck_notes, deck_name):
 
     Steps:
     1. Tokenize all fronts into candidate sub-phrases
-    2. Compute IDF across the deck — rare terms score high
-    3. Filter: only keep sub-phrases with IDF >= threshold
+    2. Compute Document Frequency (DF) across the deck
+    3. Filter: only keep sub-phrases appearing in <= 2% of cards
     4. Build Aho-Corasick automaton from full fronts + surviving sub-phrases
     5. Scan and create edges
 
@@ -232,11 +248,11 @@ def find_references_for_deck_only(deck_notes, deck_name):
     if len(deck_notes) < 2:
         return []
 
-    note_fields = _prepare_note_fields(deck_notes)
+    note_fields = _prepare_note_fields(deck_notes, deck_name)
 
-    # Compute IDF and filter sub-phrases
-    idf = _compute_idf(note_fields)
-    _apply_idf_filter(note_fields, idf)
+    # Compute DF and filter out overly common sub-phrases
+    df = _compute_df(note_fields)
+    _apply_df_filter(note_fields, df)
 
     if HAS_AHO and len(note_fields) > 50:
         if len(note_fields) > _LARGE_DECK_THRESHOLD:
