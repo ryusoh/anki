@@ -39,22 +39,37 @@ def computeValues():
         ("mature", f"queue = {QUEUE_REV} and ivl >= 21", "", ""),
         ("young", f"queue = {QUEUE_REV} and 0<ivl and ivl <21", "", ""),
     ])
+
+    # Group queries by table
+    queries_by_table = {}
     for name, condition, addend, table in queriesCardCount:
-        if addend:
-            element = f" sum({addend})"
-        else:
-            element = f" count(*)"
-        if condition:
-            condition = f" where {condition}"
         if not table:
             table = "cards"
-        query = f"select did, {element} from {table} {condition} group by did"
-        results = mw.col.db.all(query)
-        debug(f"""For {name}: query "{query}".""")
+        if table not in queries_by_table:
+            queries_by_table[table] = []
+        queries_by_table[table].append((name, condition, addend))
         values[name] = dict()
-        for did, value in results:
-            debug(f"In deck {did} there are {value} cards of kind {name}")
-            values[name][did] = value
+
+    for table, query_list in queries_by_table.items():
+        select_parts = ["did"]
+        for idx, (name, condition, addend) in enumerate(query_list):
+            expr = addend if addend else "1"
+            if condition:
+                select_parts.append(f"SUM(CASE WHEN {condition} THEN {expr} ELSE NULL END)")
+            else:
+                select_parts.append(f"SUM({expr})")
+
+        query = f"SELECT {', '.join(select_parts)} FROM {table} GROUP BY did"
+        results = mw.col.db.all(query)
+        debug(f"""For table {table}: query "{query}".""")
+
+        for row in results:
+            did = row[0]
+            for idx, (name, condition, addend) in enumerate(query_list):
+                val = row[idx + 1]
+                if val is not None and val > 0:
+                    debug(f"In deck {did} there are {val} cards of kind {name}")
+                    values[name][did] = val
 
 
 times = dict()
