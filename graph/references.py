@@ -111,6 +111,8 @@ def _compute_df(note_fields):
     # Collect all candidate tokens from all fronts
     all_tokens = set()
     for nf in note_fields:
+        if nf['front_len'] >= MIN_FRONT_LENGTH:
+            all_tokens.add(nf['front'])
         all_tokens.update(nf.get('subphrases_raw', set()))
 
     if not all_tokens:
@@ -167,6 +169,7 @@ def _prepare_note_fields(notes, deck_name=""):
             'other': other_norm,
             'subphrases_raw': raw_tokens,  # unfiltered, for DF computation
             'subphrases': [],              # filled after DF filtering
+            'match_front': True,           # whether to match the full front
         })
     return result
 
@@ -178,6 +181,9 @@ def _apply_df_filter(note_fields, df):
     max_allowed_df = max(10, int(N * _MAX_DF_RATIO))
     
     for nf in note_fields:
+        # Only allow the full front to act as a hyperlink if it's not overly common
+        nf['match_front'] = df.get(nf['front'], 0) <= max_allowed_df
+        
         nf['subphrases'] = [
             sp for sp in nf['subphrases_raw']
             if df.get(sp, 0) <= max_allowed_df and sp != nf['front']
@@ -274,11 +280,13 @@ def _build_automaton(note_fields):
         if nf['front_len'] < MIN_FRONT_LENGTH:
             continue
         front = nf['front']
-        # Add full front
-        if front not in guid_by_pattern:
-            guid_by_pattern[front] = []
-            automaton.add_word(front, front)
-        guid_by_pattern[front].append((nf['guid'], False))
+        
+        # Add full front only if it passes the Max DF filter
+        if nf.get('match_front', True):
+            if front not in guid_by_pattern:
+                guid_by_pattern[front] = []
+                automaton.add_word(front, front)
+            guid_by_pattern[front].append((nf['guid'], False))
 
         # Add IDF-filtered sub-phrases
         for sp in nf.get('subphrases', []):
@@ -442,10 +450,16 @@ def _find_refs_bruteforce(note_fields, deck_name):
             continue
 
         # Collect all patterns: full front + IDF-filtered sub-phrases
-        patterns = [(src_front, False)]
+        patterns = []
+        if src.get('match_front', True):
+            patterns.append((src_front, False))
+            
         for sp in src.get('subphrases', []):
             if sp != src_front:
                 patterns.append((sp, True))
+
+        if not patterns:
+            continue
 
         for tgt in note_fields:
             if src['guid'] == tgt['guid']:
