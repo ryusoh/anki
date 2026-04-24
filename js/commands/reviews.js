@@ -178,14 +178,14 @@ export function groupAndSortDecks(byDeckData, showTime) {
   for (const [deckName, entries] of Object.entries(byDeckData)) {
     if (deckName === "Unknown") continue;
 
-    const total = entries.reduce(
-      (sum, e) =>
-        sum +
-        (showTime
-          ? e.time || 0
-          : (e.count || 0) + (e.mature || 0) + (e.young || 0)),
-      0,
-    );
+    // Bolt: Replace reduce with a for loop to eliminate O(N) callback allocations
+    let total = 0;
+    for (let i = 0; i < entries.length; i++) {
+      const e = entries[i];
+      total += showTime
+        ? e.time || 0
+        : (e.count || 0) + (e.mature || 0) + (e.young || 0);
+    }
 
     const topLevelName = deckName.split("::")[0];
     if (!groups[topLevelName]) {
@@ -455,63 +455,86 @@ export function renderReviewsChart(
       time_learn: 0,
       time_relearn: 0,
     };
-    totalTimes = data.map((entry) =>
-      isCumulative
-        ? Number((entry.time / 3600).toFixed(1))
-        : Math.round(entry.time / 60),
-    );
+    // Bolt: Replace multiple array maps with a single loop to reduce O(N) array allocations and GC pressure
+    totalTimes = new Array(data.length);
+    let matureData = new Array(data.length);
+    let youngData = new Array(data.length);
+    let learnData = new Array(data.length);
+    let relearnData = new Array(data.length);
 
-    if (isCumulative) {
-      let runSum = Number((preSumObj.time / 3600).toFixed(1));
-      totalTimes = totalTimes.map((t) => Number((runSum += t).toFixed(1)));
-    }
-
-    let matureData, youngData, learnData, relearnData;
-    if (showTime) {
-      matureData = data.map((entry) =>
-        isCumulative
-          ? Number(((entry.time_mature || 0) / 3600).toFixed(1))
-          : Math.round((entry.time_mature || 0) / 60),
-      );
-      youngData = data.map((entry) =>
-        isCumulative
-          ? Number(((entry.time_young || 0) / 3600).toFixed(1))
-          : Math.round((entry.time_young || 0) / 60),
-      );
-      learnData = data.map((entry) =>
-        isCumulative
-          ? Number(((entry.time_learn || 0) / 3600).toFixed(1))
-          : Math.round((entry.time_learn || 0) / 60),
-      );
-      relearnData = data.map((entry) =>
-        isCumulative
-          ? Number(((entry.time_relearn || 0) / 3600).toFixed(1))
-          : Math.round((entry.time_relearn || 0) / 60),
-      );
-    } else {
-      matureData = data.map((entry) => entry.mature || 0);
-      youngData = data.map((entry) => entry.young || 0);
-      learnData = data.map((entry) => entry.learn || 0);
-      relearnData = data.map((entry) => entry.relearn || 0);
-    }
-
-    if (isCumulative) {
-      let mSum = showTime
+    let runSum = isCumulative ? Number((preSumObj.time / 3600).toFixed(1)) : 0;
+    let mSum = isCumulative
+      ? showTime
         ? Number((preSumObj.time_mature / 3600).toFixed(1))
-        : preSumObj.mature;
-      let ySum = showTime
+        : preSumObj.mature
+      : 0;
+    let ySum = isCumulative
+      ? showTime
         ? Number((preSumObj.time_young / 3600).toFixed(1))
-        : preSumObj.young;
-      let lSum = showTime
+        : preSumObj.young
+      : 0;
+    let lSum = isCumulative
+      ? showTime
         ? Number((preSumObj.time_learn / 3600).toFixed(1))
-        : preSumObj.learn;
-      let rSum = showTime
+        : preSumObj.learn
+      : 0;
+    let rSum = isCumulative
+      ? showTime
         ? Number((preSumObj.time_relearn / 3600).toFixed(1))
-        : preSumObj.relearn;
-      matureData = matureData.map((val) => Number((mSum += val).toFixed(1)));
-      youngData = youngData.map((val) => Number((ySum += val).toFixed(1)));
-      learnData = learnData.map((val) => Number((lSum += val).toFixed(1)));
-      relearnData = relearnData.map((val) => Number((rSum += val).toFixed(1)));
+        : preSumObj.relearn
+      : 0;
+
+    for (let i = 0; i < data.length; i++) {
+      const entry = data[i];
+
+      let tTime = isCumulative
+        ? Number((entry.time / 3600).toFixed(1))
+        : Math.round(entry.time / 60);
+
+      let tMature = showTime
+        ? isCumulative
+          ? Number(((entry.time_mature || 0) / 3600).toFixed(1))
+          : Math.round((entry.time_mature || 0) / 60)
+        : entry.mature || 0;
+
+      let tYoung = showTime
+        ? isCumulative
+          ? Number(((entry.time_young || 0) / 3600).toFixed(1))
+          : Math.round((entry.time_young || 0) / 60)
+        : entry.young || 0;
+
+      let tLearn = showTime
+        ? isCumulative
+          ? Number(((entry.time_learn || 0) / 3600).toFixed(1))
+          : Math.round((entry.time_learn || 0) / 60)
+        : entry.learn || 0;
+
+      let tRelearn = showTime
+        ? isCumulative
+          ? Number(((entry.time_relearn || 0) / 3600).toFixed(1))
+          : Math.round((entry.time_relearn || 0) / 60)
+        : entry.relearn || 0;
+
+      if (isCumulative) {
+        runSum += tTime;
+        tTime = Number(runSum.toFixed(1));
+
+        mSum += tMature;
+        ySum += tYoung;
+        lSum += tLearn;
+        rSum += tRelearn;
+
+        tMature = Number(mSum.toFixed(1));
+        tYoung = Number(ySum.toFixed(1));
+        tLearn = Number(lSum.toFixed(1));
+        tRelearn = Number(rSum.toFixed(1));
+      }
+
+      totalTimes[i] = tTime;
+      matureData[i] = tMature;
+      youngData[i] = tYoung;
+      learnData[i] = tLearn;
+      relearnData[i] = tRelearn;
     }
 
     const baselineParams = isCumulative
