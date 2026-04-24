@@ -19,3 +19,8 @@
 **Action:** When testing partial commands, check for `handled: false`.
 **Learning:** `getReviewStatsData` calculates a `preSliceSum` object internally when `byDeck` is false, which accumulates historic time metrics needed for accurate rendering.
 **Action:** Ensure that mock data injected into `global.window.reviewStatsData` has sufficient prior history items before the sliced time window to trigger `preSliceSum` logic.
+
+## 2024-05-18 - Node.js JSDOM Testing Edge Cases
+
+**Learning:** `jsdom` testing dependencies can easily fail in fresh environments when module paths don't match, particularly if tests attempt to import files needing missing packages. Modifying `package.json` to resolve test failures is strictly forbidden by repository boundaries unless specifically tasked.
+**Prevention:** If testing `JSDOM` UI tests fail due to missing dependencies, restore the original state and avoid artificially fixing CI dependencies. Focus purely on writing missing code coverage via native unit tests rather than attempting to fix unrelated repository failures.
