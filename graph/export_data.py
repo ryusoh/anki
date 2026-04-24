@@ -68,54 +68,77 @@ def load_cache():
 
 
 def save_cache(notes, node_count, link_count):
-    """Save cache with note fingerprints as sets per deck."""
-    deck_fingerprints = {}
+    """Save cache with guid→fingerprint mapping per deck."""
+    deck_data = {}
     for note in notes:
         deck = note.get('deck', 'Unknown')
-        if deck not in deck_fingerprints:
-            deck_fingerprints[deck] = []
-        deck_fingerprints[deck].append(note_fingerprint(note))
+        if deck not in deck_data:
+            deck_data[deck] = {}
+        deck_data[deck][note['guid']] = note_fingerprint(note)
 
     cache = {
-        'version': 3,
+        'version': 4,
         'note_count': len(notes),
         'node_count': node_count,
         'link_count': link_count,
-        'decks': deck_fingerprints,
+        'decks': deck_data,
     }
     with open(CACHE_FILE, 'w') as f:
         json.dump(cache, f)
 
 
-def find_changed_decks(notes, cache):
-    """Compare current notes against cache to find which decks changed."""
-    if not cache or cache.get('version') != 3:
+def find_changed_notes(notes, cache):
+    """
+    Compare current notes against cache to find exactly which notes changed per deck.
+
+    Returns:
+        None if full rebuild needed,
+        dict {deck: {'new_guids': set, 'removed_guids': set, 'modified_guids': set}} otherwise.
+        Decks with no changes are omitted.
+    """
+    if not cache or cache.get('version') != 4:
         return None  # full rebuild
 
-    # Build current fingerprints by deck
+    # Build current guid→fingerprint per deck
     current = {}
+    guid_to_note = {}
     for note in notes:
         deck = note.get('deck', 'Unknown')
         if deck not in current:
-            current[deck] = set()
-        current[deck].add(note_fingerprint(note))
+            current[deck] = {}
+        current[deck][note['guid']] = note_fingerprint(note)
+        guid_to_note[note['guid']] = note
 
     cached_decks = cache.get('decks', {})
-    changed = set()
+    changes = {}
 
-    for deck, fps in current.items():
-        cached_fps = set(cached_decks.get(deck, []))
-        if fps != cached_fps:
-            new_count = len(fps - cached_fps)
-            removed_count = len(cached_fps - fps)
-            print(f'  Deck "{deck}": +{new_count} new, -{removed_count} removed')
-            changed.add(deck)
+    for deck, cur_guids in current.items():
+        cached_guids = cached_decks.get(deck, {})
+        new_guids = set(cur_guids.keys()) - set(cached_guids.keys())
+        removed_guids = set(cached_guids.keys()) - set(cur_guids.keys())
+        modified_guids = {
+            g for g in set(cur_guids.keys()) & set(cached_guids.keys())
+            if cur_guids[g] != cached_guids[g]
+        }
 
+        if new_guids or removed_guids or modified_guids:
+            print(f'  Deck "{deck}": +{len(new_guids)} new, ~{len(modified_guids)} modified, -{len(removed_guids)} removed')
+            changes[deck] = {
+                'new_guids': new_guids,
+                'removed_guids': removed_guids,
+                'modified_guids': modified_guids,
+            }
+
+    # Check for deleted decks
     for deck in cached_decks:
         if deck not in current:
-            changed.add(deck)
+            changes[deck] = {
+                'new_guids': set(),
+                'removed_guids': set(cached_decks[deck].keys()),
+                'modified_guids': set(),
+            }
 
-    return changed
+    return changes
 
 
 def deck_progress(deck_name, deck_idx, total_decks, deck_size):
@@ -318,80 +341,117 @@ if __name__ == '__main__':
     
     # --- Incremental check ---
     cache = load_cache() if not force_full else None
-    changed_decks = find_changed_decks(sample_notes, cache) if cache else None
-    
-    if changed_decks is not None and len(changed_decks) == 0 and OUTPUT_FILE.exists():
+    changes = find_changed_notes(sample_notes, cache) if cache else None
+
+    if changes is not None and len(changes) == 0 and OUTPUT_FILE.exists():
         print(f'No changes detected — {OUTPUT_FILE.name} is up to date.')
         print(f'  ({cache["node_count"]} nodes, {cache["link_count"]} links)')
         print('  Use --full to force rebuild.')
         sys.exit(0)
-    
-    if changed_decks is not None and OUTPUT_FILE.exists():
-        print(f'Incremental: {len(changed_decks)} deck(s) changed, rebuilding those')
+
+    if changes is not None and OUTPUT_FILE.exists():
+        from graph.references import find_references_incremental
+        from graph.parser import get_front_field, group_by_deck
+
+        # Collect all changed guids (new + modified + removed) across all decks
+        all_changed_guids = set()
+        all_removed_guids = set()
+        changed_decks = set(changes.keys())
+        for deck, ch in changes.items():
+            all_changed_guids |= ch['new_guids'] | ch['modified_guids']
+            all_removed_guids |= ch['removed_guids']
+
+        total_changed = len(all_changed_guids)
+        total_removed = len(all_removed_guids)
+        print(f'Incremental: {total_changed} changed + {total_removed} removed notes across {len(changed_decks)} deck(s)')
+
         # Load existing output
         with open(OUTPUT_FILE, 'r') as f:
             existing = json.load(f)
         existing_nodes = {n['id']: n for n in existing['nodes']}
         existing_links = existing['links']
-    
-        # Remove old data for changed decks
-        unchanged_node_ids = set()
-        for nid, nd in existing_nodes.items():
-            if nd.get('deck') not in changed_decks:
-                unchanged_node_ids.add(nid)
-        kept_nodes = [nd for nid, nd in existing_nodes.items() if nid in unchanged_node_ids]
+
+        # Remove nodes that were deleted or modified (will be re-added)
+        remove_ids = all_removed_guids | all_changed_guids
+        kept_nodes = [nd for nd in existing['nodes'] if nd['id'] not in remove_ids]
+        # Remove edges involving removed/changed nodes
         kept_links = [
             lk for lk in existing_links
-            if lk['source'] in unchanged_node_ids and lk['target'] in unchanged_node_ids
+            if lk.get('source', lk.get('s')) not in remove_ids
+            and lk.get('target', lk.get('t')) not in remove_ids
         ]
-    
-        # Rebuild only changed decks
-        changed_notes = [n for n in sample_notes if n.get('deck') in changed_decks]
-        print(f'  Rebuilding {len(changed_notes)} notes across changed decks...')
-    
+
+        # Build notes lookup
+        notes_by_guid = {n['guid']: n for n in sample_notes}
+
+        # Process each changed deck
         t1 = time.time()
-        graph = build_graph(changed_notes, with_pagerank=True, progress_callback=deck_progress)
-        print(f'  Graph built in {time.time() - t1:.1f}s')
-    
-        # Layout for changed decks
-        n_changed = len(graph.nodes())
-        iters = 30 if n_changed > 50000 else 50 if n_changed > 10000 else 100
-        print(f'  Computing layout for changed decks ({iters} iterations)...')
-        t_layout = time.time()
-        layout = compute_layout(graph, iterations=iters)
-        print(f'  Layout computed in {time.time() - t_layout:.1f}s')
-    
-        # Merge
-        for node_id, ndata in graph.nodes(data=True):
-            x, y, z = layout.get(node_id, (0, 0, 0))
-            label = "" if is_public else strip_html(ndata.get('front', 'Unknown'))
-            
-            # Short keys for public mode to save space
-            if is_public:
-                kept_nodes.append({
-                    'id': node_id, 'l': label, 'd': ndata.get('deck', 'Unknown'),
-                    'p': round(ndata.get('pagerank', 0), 6),
-                    's': round(min(3, max(0.5, ndata.get('pagerank', 0) * 100)), 2),
-                    'x': int(x), 'y': int(y), 'z': int(z),
-                })
+        for deck, ch in changes.items():
+            changed_guids = ch['new_guids'] | ch['modified_guids']
+            if not changed_guids:
+                continue
+
+            # Get ALL notes in this deck for reference scanning
+            all_deck_notes = [n for n in sample_notes if n.get('deck') == deck]
+
+            # Find references involving changed notes only
+            print(f'  Scanning refs for {len(changed_guids)} changed notes in "{deck}" ({len(all_deck_notes)} total)...')
+            new_edges = find_references_incremental(all_deck_notes, changed_guids, deck)
+
+            # Add new nodes with existing positions as hint (place near deck centroid)
+            # Find centroid of existing nodes in this deck
+            deck_existing = [nd for nd in kept_nodes if nd.get('deck', nd.get('d')) == deck]
+            if deck_existing:
+                cx = np.mean([nd.get('x', 0) for nd in deck_existing])
+                cy = np.mean([nd.get('y', 0) for nd in deck_existing])
+                cz = np.mean([nd.get('z', 0) for nd in deck_existing])
             else:
-                kept_nodes.append({
-                    'id': node_id,
-                    'label': label,
-                    'deck': ndata.get('deck', 'Unknown'),
-                    'pagerank': round(ndata.get('pagerank', 0), 6),
-                    'size': min(3, max(0.5, ndata.get('pagerank', 0) * 100)),
-                    'x': round(x, 2), 'y': round(y, 2), 'z': round(z, 2),
-                })
-        for s, t, d in graph.edges(data=True):
-            if is_public:
-                kept_links.append({'s': s, 't': t, 'w': round(d.get('weight', 1), 1)})
-            else:
-                kept_links.append({
-                    'source': s, 'target': t,
-                    'weight': round(d.get('weight', 1), 2),
-                })
-    
+                cx, cy, cz = 0, 0, 0
+
+            # Compute average pagerank for the deck as default
+            deck_pageranks = [nd.get('pagerank', nd.get('p', 0)) for nd in deck_existing]
+            avg_pr = np.mean(deck_pageranks) if deck_pageranks else 1e-5
+
+            for guid in changed_guids:
+                note = notes_by_guid.get(guid)
+                if not note:
+                    continue
+                front = get_front_field(note)
+                label = "" if is_public else strip_html(front)
+                # Place near centroid with small random offset
+                offset = 20
+                x = cx + (np.random.random() - 0.5) * offset
+                y = cy + (np.random.random() - 0.5) * offset
+                z = cz + (np.random.random() - 0.5) * offset
+
+                if is_public:
+                    kept_nodes.append({
+                        'id': guid, 'l': label, 'd': deck,
+                        'p': round(avg_pr, 6),
+                        's': round(min(3, max(0.5, avg_pr * 100)), 2),
+                        'x': int(x), 'y': int(y), 'z': int(z),
+                    })
+                else:
+                    kept_nodes.append({
+                        'id': guid,
+                        'label': label,
+                        'deck': deck,
+                        'pagerank': round(avg_pr, 6),
+                        'size': min(3, max(0.5, avg_pr * 100)),
+                        'x': round(x, 2), 'y': round(y, 2), 'z': round(z, 2),
+                    })
+
+            # Add new edges
+            for e in new_edges:
+                if is_public:
+                    kept_links.append({'s': e['source'], 't': e['target'], 'w': round(e['weight'], 1)})
+                else:
+                    kept_links.append({
+                        'source': e['source'], 'target': e['target'],
+                        'weight': round(e['weight'], 2),
+                    })
+
+        print(f'  Incremental build in {time.time() - t1:.1f}s')
         nodes = kept_nodes
         links = kept_links
     else:

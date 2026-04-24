@@ -319,6 +319,88 @@ def _find_refs_bruteforce(note_fields, deck_name):
     return edges
 
 
+def find_references_incremental(all_deck_notes, changed_guids, deck_name):
+    """
+    Find references involving changed notes only.
+
+    Instead of O(n²) over the full deck, this does:
+    - Build automaton from ALL fronts, scan only changed notes' text → edges TO changed
+    - Build automaton from only CHANGED fronts, scan all notes' text → edges FROM changed
+
+    Args:
+        all_deck_notes: All notes in the deck (including unchanged)
+        changed_guids: Set of guids that are new or modified
+        deck_name: Name of the deck
+
+    Returns:
+        List of edge dicts involving at least one changed node
+    """
+    if not HAS_AHO or len(all_deck_notes) < 2:
+        # Fallback: just do full rebuild for this deck
+        return find_references_for_deck_only(all_deck_notes, deck_name)
+
+    all_fields = _prepare_note_fields(all_deck_notes)
+    changed_fields = [nf for nf in all_fields if nf['guid'] in changed_guids]
+
+    if not changed_fields:
+        return []
+
+    edges = []
+    seen_edges = set()
+
+    # 1) Edges TO changed notes: scan changed notes' text against ALL fronts
+    automaton_all, guid_by_front_all = _build_automaton(all_fields)
+    if guid_by_front_all:
+        for tgt in changed_fields:
+            _scan_target(tgt, automaton_all, guid_by_front_all, deck_name, edges, seen_edges)
+
+    # 2) Edges FROM changed notes: scan ALL notes' text against changed fronts only
+    automaton_changed, guid_by_front_changed = _build_automaton(changed_fields)
+    if guid_by_front_changed:
+        for tgt in all_fields:
+            if tgt['guid'] in changed_guids:
+                continue  # already handled above
+            _scan_target(tgt, automaton_changed, guid_by_front_changed, deck_name, edges, seen_edges)
+
+    return edges
+
+
+def _scan_target(tgt, automaton, guid_by_front, deck_name, edges, seen_edges):
+    """Scan a single target note against an automaton, appending found edges."""
+    tgt_guid = tgt['guid']
+
+    for end_idx, matched_front in automaton.iter(tgt['front']):
+        for src_guid in guid_by_front[matched_front]:
+            if src_guid == tgt_guid:
+                continue
+            edge_key = (src_guid, tgt_guid)
+            if edge_key not in seen_edges:
+                seen_edges.add(edge_key)
+                edges.append({
+                    'source': src_guid,
+                    'target': tgt_guid,
+                    'type': 'front_in_front',
+                    'weight': EDGE_WEIGHTS['front_in_front'],
+                    'deck': deck_name,
+                })
+
+    matched_in_front = {ek[0] for ek in seen_edges if ek[1] == tgt_guid}
+    for end_idx, matched_front in automaton.iter(tgt['other']):
+        for src_guid in guid_by_front[matched_front]:
+            if src_guid == tgt_guid or src_guid in matched_in_front:
+                continue
+            edge_key = (src_guid, tgt_guid)
+            if edge_key not in seen_edges:
+                seen_edges.add(edge_key)
+                edges.append({
+                    'source': src_guid,
+                    'target': tgt_guid,
+                    'type': 'front_in_back',
+                    'weight': EDGE_WEIGHTS['front_in_back'],
+                    'deck': deck_name,
+                })
+
+
 def calculate_edge_weight(edge_type):
     """
     Calculate edge weight based on type.
