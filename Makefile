@@ -112,7 +112,11 @@ graph-local-prompt:
 	fi
 
 pagerank:
-	@python3 graph/pagerank_report.py
+	@if [ -n "$(TOP)" ]; then \
+		python3 graph/pagerank_report.py --top $(TOP); \
+	else \
+		python3 graph/pagerank_report.py; \
+	fi
 
 pagerank-all:
 	@python3 graph/pagerank_report.py --all

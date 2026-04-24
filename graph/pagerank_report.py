@@ -38,8 +38,10 @@ def build_link_counts(links):
     return counts
 
 
-def generate_report(date, card_ids, nodes_by_id, link_counts):
-    """Generate markdown report for a single day."""
+import argparse
+
+def generate_report(date, card_ids, nodes_by_id, link_counts, top_n=None):
+    """Generate markdown report for a single day, or all time top N."""
     # Collect reviewed cards with their data
     cards = []
     for cid in card_ids:
@@ -63,7 +65,10 @@ def generate_report(date, card_ids, nodes_by_id, link_counts):
         by_deck[c['deck']].append(c)
 
     # Build markdown
-    lines = [f'# PageRank Report — {date} ({len(cards)} cards reviewed)\n']
+    if top_n:
+        lines = [f'# PageRank Report — All Time Top {top_n} ({len(cards)} total cards in graph)\n']
+    else:
+        lines = [f'# PageRank Report — {date} ({len(cards)} cards reviewed)\n']
 
     for deck in sorted(by_deck.keys()):
         deck_cards = by_deck[deck]
@@ -74,7 +79,12 @@ def generate_report(date, card_ids, nodes_by_id, link_counts):
 
         if connected:
             connected.sort(key=lambda c: c['pagerank'], reverse=True)
-            lines.append('### Connected (by PageRank)\n')
+            if top_n:
+                connected = connected[:top_n]
+                lines.append(f'### Top {top_n} Connected (by PageRank)\n')
+            else:
+                lines.append('### Connected (by PageRank)\n')
+                
             lines.append('| # | Front | PageRank | In-Links | Out-Links |')
             lines.append('|---|-------|----------|----------|-----------|')
             for i, c in enumerate(connected, 1):
@@ -83,7 +93,7 @@ def generate_report(date, card_ids, nodes_by_id, link_counts):
                 lines.append(f'| {i} | {front} | {pr} | {c["links_in"]} | {c["links_out"]} |')
             lines.append('')
 
-        if isolated:
+        if isolated and not top_n:
             isolated.sort(key=lambda c: c['front'])
             lines.append('### Isolated (no connections)\n')
             for c in isolated:
@@ -94,7 +104,10 @@ def generate_report(date, card_ids, nodes_by_id, link_counts):
 
 
 def main():
-    gen_all = '-a' in sys.argv or '--all' in sys.argv
+    parser = argparse.ArgumentParser(description="Generate PageRank report")
+    parser.add_argument('-a', '--all', action='store_true', help='Generate reports for all historical dates')
+    parser.add_argument('--top', type=int, help='Generate a single report for the top N cards of all time per deck')
+    args = parser.parse_args()
 
     graph, history = load_data()
 
@@ -106,12 +119,23 @@ def main():
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+    if args.top:
+        # All time top N report
+        card_ids = list(nodes_by_id.keys())
+        report = generate_report(None, card_ids, nodes_by_id, link_counts, top_n=args.top)
+        out_file = OUTPUT_DIR / f'top_{args.top}.md'
+        with open(out_file, 'w', encoding='utf-8') as f:
+            f.write(report)
+        print(report)
+        print(f'\nSaved to {out_file}')
+        return
+
     dates = history['dates']
     if not dates:
         print('No review history found.')
         sys.exit(1)
 
-    if gen_all:
+    if args.all:
         targets = dates
     else:
         targets = [dates[-1]]
@@ -126,10 +150,10 @@ def main():
         with open(out_file, 'w', encoding='utf-8') as f:
             f.write(report)
 
-        if not gen_all or date == targets[-1]:
+        if not args.all or date == targets[-1]:
             print(report)
 
-    if gen_all:
+    if args.all:
         print(f'\nGenerated {len(targets)} reports in {OUTPUT_DIR}')
     else:
         print(f'\nSaved to {OUTPUT_DIR / f"{targets[0]}.md"}')
