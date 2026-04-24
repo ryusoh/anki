@@ -19,6 +19,8 @@ help:
 	@echo "  graph-analyze  Analyze all decks with PageRank"
 	@echo "  graph-deck     Analyze specific deck (DECK='name')"
 	@echo "  graph-export   Export graphs to graph_output/"
+	@echo "  pagerank       PageRank report for latest reviewed day"
+	@echo "  pagerank-all   PageRank reports for all reviewed days"
 	@echo "  check          Run all tests"
 	@echo "  precommit      Run all pre-commit checks (no fixes)"
 	@echo "  precommit-fix  Auto-fix issues and run pre-commit checks"
@@ -108,6 +110,12 @@ graph-local-prompt:
 	if [ "$$response" = "y" ] || [ "$$response" = "yes" ]; then \
 		$(MAKE) graph-local; \
 	fi
+
+pagerank:
+	@python3 graph/pagerank_report.py
+
+pagerank-all:
+	@python3 graph/pagerank_report.py --all
 
 graph-viz:
 	@mkdir -p graph_output

@@ -33,7 +33,9 @@ EDGE_WEIGHTS = {
 }
 
 # Minimum front field length to consider for matching
-MIN_FRONT_LENGTH = 2
+# 1 char is valid for CJK (e.g. 韮), but too noisy for Latin scripts.
+# We use 1 globally since CJK single chars are meaningful words.
+MIN_FRONT_LENGTH = 1
 
 # Decks larger than this get parallelized internally
 _LARGE_DECK_THRESHOLD = 2000

@@ -1,0 +1,135 @@
+#!/usr/bin/env python3
+"""Generate PageRank report for recently reviewed cards.
+
+Usage:
+    python3 graph/pagerank_report.py          # latest reviewed day
+    python3 graph/pagerank_report.py -a       # all days
+    python3 graph/pagerank_report.py --all    # all days
+"""
+
+import sys, json
+from pathlib import Path
+from collections import defaultdict
+
+BASE = Path('/Users/lz/Library/Application Support/Anki2/addons21')
+GRAPH_FILE = BASE / 'graph/graph_data.json'
+HISTORY_FILE = BASE / 'graph/history_data.json'
+OUTPUT_DIR = BASE / 'data/pagerank'
+
+
+def load_data():
+    """Load graph and history data."""
+    with open(GRAPH_FILE, 'r') as f:
+        graph = json.load(f)
+    with open(HISTORY_FILE, 'r') as f:
+        history = json.load(f)
+    return graph, history
+
+
+def build_link_counts(links):
+    """Count links per node (in + out degree)."""
+    counts = defaultdict(int)
+    for lk in links:
+        s = lk.get('source', lk.get('s'))
+        t = lk.get('target', lk.get('t'))
+        counts[s] += 1
+        counts[t] += 1
+    return counts
+
+
+def generate_report(date, card_ids, nodes_by_id, link_counts):
+    """Generate markdown report for a single day."""
+    # Collect reviewed cards with their data
+    cards = []
+    for cid in card_ids:
+        node = nodes_by_id.get(cid)
+        if not node:
+            continue
+        cards.append({
+            'id': cid,
+            'front': node.get('label', node.get('l', '')),
+            'deck': node.get('deck', node.get('d', 'Unknown')),
+            'pagerank': node.get('pagerank', node.get('p', 0)),
+            'links': link_counts.get(cid, 0),
+        })
+
+    # Group by deck
+    by_deck = defaultdict(list)
+    for c in cards:
+        by_deck[c['deck']].append(c)
+
+    # Build markdown
+    lines = [f'# PageRank Report — {date} ({len(cards)} cards reviewed)\n']
+
+    for deck in sorted(by_deck.keys()):
+        deck_cards = by_deck[deck]
+        connected = [c for c in deck_cards if c['links'] > 0]
+        isolated = [c for c in deck_cards if c['links'] == 0]
+
+        lines.append(f'## {deck} ({len(deck_cards)} cards)\n')
+
+        if connected:
+            connected.sort(key=lambda c: c['pagerank'], reverse=True)
+            lines.append('### Connected (by PageRank)\n')
+            lines.append('| # | Front | PageRank | Links |')
+            lines.append('|---|-------|----------|-------|')
+            for i, c in enumerate(connected, 1):
+                pr = f"{c['pagerank']:.6f}"
+                front = c['front'].replace('|', '\\|')
+                lines.append(f'| {i} | {front} | {pr} | {c["links"]} |')
+            lines.append('')
+
+        if isolated:
+            isolated.sort(key=lambda c: c['front'])
+            lines.append('### Isolated (no connections)\n')
+            for c in isolated:
+                lines.append(f'- {c["front"]}')
+            lines.append('')
+
+    return '\n'.join(lines)
+
+
+def main():
+    gen_all = '-a' in sys.argv or '--all' in sys.argv
+
+    graph, history = load_data()
+
+    nodes_by_id = {}
+    for n in graph['nodes']:
+        nodes_by_id[n['id']] = n
+
+    link_counts = build_link_counts(graph['links'])
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    dates = history['dates']
+    if not dates:
+        print('No review history found.')
+        sys.exit(1)
+
+    if gen_all:
+        targets = dates
+    else:
+        targets = [dates[-1]]
+
+    for date in targets:
+        card_ids = history['history'].get(date, [])
+        if not card_ids:
+            continue
+
+        report = generate_report(date, card_ids, nodes_by_id, link_counts)
+        out_file = OUTPUT_DIR / f'{date}.md'
+        with open(out_file, 'w', encoding='utf-8') as f:
+            f.write(report)
+
+        if not gen_all or date == targets[-1]:
+            print(report)
+
+    if gen_all:
+        print(f'\nGenerated {len(targets)} reports in {OUTPUT_DIR}')
+    else:
+        print(f'\nSaved to {OUTPUT_DIR / f"{targets[0]}.md"}')
+
+
+if __name__ == '__main__':
+    main()
