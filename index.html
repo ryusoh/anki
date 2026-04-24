@@ -76,82 +76,128 @@
     <link rel="stylesheet" href="./css/table.css" />
     <link rel="stylesheet" href="./css/toggle.css" />
     <link rel="stylesheet" href="./css/perf.css" />
+    <link rel="stylesheet" href="./css/terminal/responsive.css?v=20240223" />
     <link rel="stylesheet" href="./css/cursor.css" />
     <link rel="stylesheet" href="./css/marquee.css" />
+    <script src="./js/vendor/gsap.min.js" data-cfasync="false"></script>
+    <script
+      type="module"
+      src="./js/cursor-init.js"
+      data-cfasync="false"
+    ></script>
+    <script type="module" data-cfasync="false">
+      import { initMagneticNav } from "#ui/magnetic_nav.js?v=20240223";
+      import { initTiltEffect } from "#ui/tilt_effect.js?v=20240223";
+      import { TableGlassEffect } from "#ui/tableGlassEffect.js?v=20240223";
+      import { TABLE_GLASS_EFFECT } from "#js/config.js?v=20240223";
+
+      window.addEventListener("DOMContentLoaded", () => {
+        const loading = document.getElementById("loading");
+        try {
+          initMagneticNav();
+          initTiltEffect();
+
+          // Reveal content and hide spinner
+          const appContent = document.getElementById("appContent");
+          if (appContent) appContent.classList.add("ready");
+          if (loading) {
+            loading.style.opacity = "0";
+            setTimeout(() => (loading.style.display = "none"), 500);
+          }
+        } catch (err) {
+          console.error("Initialization failed", err);
+          if (loading) loading.style.display = "none";
+        }
+      });
+    </script>
   </head>
 
   <body class="body-main no-pull-to-refresh">
-    <div class="marquee-wrapper" aria-hidden="true">
-      <div class="marquee-container marquee-left">
-        <div class="marquee-content">
-          <span>ALL THOSE MOMENTS WILL BE LOST IN TIME</span>
+    <style>
+      /* Hide all content until ready — only spinner visible */
+      .app-content {
+        visibility: hidden;
+      }
+      .app-content.ready {
+        visibility: visible;
+      }
+    </style>
+    <div id="loading">
+      <div class="spinner"></div>
+    </div>
+    <div class="app-content" id="appContent">
+      <div class="marquee-wrapper" aria-hidden="true">
+        <div class="marquee-container marquee-left">
+          <div class="marquee-content">
+            <span>ALL THOSE MOMENTS WILL BE LOST IN TIME</span>
+          </div>
+        </div>
+        <div class="marquee-container marquee-right">
+          <div class="marquee-content">
+            <span>LIKE TEARS IN RAIN</span>
+          </div>
         </div>
       </div>
-      <div class="marquee-container marquee-right">
-        <div class="marquee-content">
-          <span>LIKE TEARS IN RAIN</span>
+
+      <div class="mobile-landing" aria-hidden="true">
+        <div class="video-background">
+          <video
+            autoplay
+            loop
+            muted
+            playsinline
+            preload="metadata"
+            poster="./assets/mobile_bg.jpg"
+            src="./assets/mobile_bg.mp4"
+            webkit-playsinline
+          ></video>
         </div>
+        <img
+          class="mobile-banner"
+          alt="Anki Stats"
+          loading="lazy"
+          data-fallbacks='[
+                    "./assets/banners/banner.png"
+                ]'
+        />
       </div>
+
+      <div class="nav-container">
+        <ul>
+          <li>
+            <a href="https://www.lyeutsaon.com/" aria-label="Main Site">
+              <i class="fa fa-chevron-right"></i>
+            </a>
+          </li>
+          <li>
+            <a href="./graph/" aria-label="Graph">
+              <i class="fa fa-connectdevelop"></i>
+            </a>
+          </li>
+          <li>
+            <a href="./terminal/" aria-label="Terminal">
+              <i class="fa fa-code"></i>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <footer>
+        <a
+          href="https://github.com/ryusoh"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="GitHub Profile"
+        >
+          <i
+            class="fa fa-github"
+            style="color: #aaa; opacity: 0.5"
+            aria-hidden="true"
+          ></i>
+        </a>
+      </footer>
     </div>
-    <nav class="container" aria-label="Main Navigation">
-      <ul>
-        <li>
-          <a
-            href="https://www.lyeutsaon.com/"
-            class="nav-link"
-            aria-label="Main Site"
-          >
-            <i class="fa fa-chevron-right" aria-hidden="true"></i>
-          </a>
-        </li>
-        <li>
-          <a href="./graph/" class="nav-link" aria-label="Graph"
-            ><i class="fa fa-connectdevelop" aria-hidden="true"></i
-          ></a>
-        </li>
-        <li class="hide-on-mobile">
-          <a href="./terminal/" class="nav-link" aria-label="Terminal"
-            ><i class="fa fa-code" aria-hidden="true"></i
-          ></a>
-        </li>
-      </ul>
-    </nav>
-    <div class="video-background" aria-hidden="true">
-      <video
-        autoplay
-        loop
-        muted
-        playsinline
-        preload="metadata"
-        poster="./assets/mobile_bg.jpg"
-        src="./assets/mobile_bg.mp4"
-        webkit-playsinline
-      ></video>
-    </div>
-    <img
-      class="mobile-banner"
-      alt="Banner"
-      aria-hidden="true"
-      src="./assets/banners/banner.png"
-      fetchpriority="high"
-      data-fallbacks='[
-                "./assets/banners/banner.png"
-            ]'
-    />
-    <footer>
-      <a
-        href="https://github.com/ryusoh"
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="GitHub Profile"
-      >
-        <i
-          class="fa fa-github"
-          style="color: #aaa; opacity: 0.5"
-          aria-hidden="true"
-        ></i>
-      </a>
-    </footer>
+    <!-- .app-content -->
     <!-- Image fallback and Ambient via CDN fallback loader -->
     <script defer src="./js/loader/imageFallback.js"></script>
     <script defer src="./js/ambient/loader.js"></script>
@@ -174,12 +220,7 @@
     ></script>
     <script type="module" src="./js/ambient/quantum_shader.js"></script>
 
-    <!-- GSAP library -->
-    <script src="./js/vendor/gsap.min.js"></script>
-    <script type="module" src="./js/ui/magnetic_nav.js"></script>
-    <!-- Custom cursor initialization -->
-    <script type="module" src="./js/cursor-init.js"></script>
+    <!-- Custom cursor and Marquee -->
     <script type="module" src="./js/ui/marquee.js"></script>
-    <script type="module" src="./js/ui/tilt_effect.js"></script>
   </body>
 </html>

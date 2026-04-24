@@ -59,3 +59,9 @@
 .mq-char.mq-space {
   width: 0.35em;
 }
+
+@media screen and (max-width: 768px) {
+  .marquee-wrapper {
+    display: none !important;
+  }
+}
