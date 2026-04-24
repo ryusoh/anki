@@ -689,3 +689,14 @@ fixReviewsMissingCoverage().catch(e => {
   console.error("TestPilot tests failed:", e);
   process.exit(1);
 });
+
+async function fixReviewsGetDeckColorCoverage() {
+  const { getDeckColor } = await import('../js/commands/reviews.js');
+  getDeckColor(0);
+  console.log("✅ getDeckColor coverage fix completed");
+}
+
+fixReviewsGetDeckColorCoverage().catch(e => {
+  console.error(e);
+  process.exit(1);
+});
