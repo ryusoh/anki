@@ -7,7 +7,7 @@ Usage:
     python3 graph/pagerank_report.py --all    # all days
 """
 
-import sys, json
+import sys, json, re
 from pathlib import Path
 from collections import defaultdict
 
@@ -15,6 +15,15 @@ BASE = Path('/Users/lz/Library/Application Support/Anki2/addons21')
 GRAPH_FILE = BASE / 'graph/graph_data.json'
 HISTORY_FILE = BASE / 'graph/history_data.json'
 OUTPUT_DIR = BASE / 'data/pagerank'
+
+
+def _normalize_concept(text):
+    """Normalize text for concept deduplication (strip punctuation, lower, etc)."""
+    # Remove HTML tags
+    text = re.sub(r'<[^>]+>', '', text)
+    # Remove common punctuation and whitespace
+    text = re.sub(r'[?？!！.。,，:;：；()（）[\]【】\s]+', '', text)
+    return text.lower().strip()
 
 
 def load_data():
@@ -79,6 +88,21 @@ def generate_report(date, card_ids, nodes_by_id, link_counts, top_n=None):
 
         if connected:
             connected.sort(key=lambda c: c['pagerank'], reverse=True)
+            
+            # Deduplicate by concept
+            unique_concepts = []
+            seen_concepts = set()
+            for c in connected:
+                concept = _normalize_concept(c['front'])
+                if not concept:
+                    # If normalization results in empty string, keep original but don't dedup
+                    unique_concepts.append(c)
+                    continue
+                if concept not in seen_concepts:
+                    seen_concepts.add(concept)
+                    unique_concepts.append(c)
+            connected = unique_concepts
+
             if top_n:
                 connected = connected[:top_n]
                 lines.append(f'### Top {top_n} Connected (by PageRank)\n')
