@@ -28,15 +28,15 @@ function normalization(n) {
 function createContainer() {
   const wrap = document.createElement("div");
   wrap.className = "quantum-widget";
-  document.body.appendChild(wrap);
+  const parent = document.getElementById("appContent") || document.body;
+  parent.appendChild(wrap);
   return wrap;
 }
 
 async function loadThree() {
-  const module = await import("/js/vendor/three.module.js");
+  const module = await import("three");
   return module;
 }
-
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
@@ -325,7 +325,8 @@ function initBackgroundRenderer(THREE) {
   renderer.setClearColor(0x000000, 0);
   renderer.domElement.classList.add("quantum-background-canvas");
   renderer.domElement.setAttribute("aria-hidden", "true");
-  document.body.appendChild(renderer.domElement);
+  const parent = document.getElementById("appContent") || document.body;
+  parent.appendChild(renderer.domElement);
   return renderer;
 }
 

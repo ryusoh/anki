@@ -49,47 +49,45 @@
     <script type="importmap">
       {
         "imports": {
-          "#js/": "./js/",
-          "#ui/": "./js/ui/",
-          "#utils/": "./js/utils/",
-          "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js"
+          "#js/": "/js/",
+          "#ui/": "/js/ui/",
+          "#utils/": "/js/utils/",
+          "three": "/js/vendor/three.module.js"
         }
       }
     </script>
     <!-- Load Font Awesome with fallbacks -->
-    <script defer src="./js/loader/cdnFallback.js"></script>
+    <script defer src="/js/loader/cdnFallback.js?v=2"></script>
     <link
       rel="preload"
-      href="./assets/vendor/fonts/fontawesome-webfont.woff2?v=4.7.0"
+      href="/assets/vendor/fonts/fontawesome-webfont.woff2?v=4.7.0"
       as="font"
       type="font/woff2"
       crossorigin
     />
     <link
       rel="stylesheet"
-      href="./assets/vendor/css/font-awesome-4.7.0.min.css"
+      href="/assets/vendor/css/font-awesome-4.7.0.min.css"
     />
-    <link rel="stylesheet" href="./css/base.css" />
-    <link rel="stylesheet" href="./css/layout.css" />
-    <link rel="stylesheet" href="./css/main_index.css" />
-    <link rel="stylesheet" href="./css/container.css" />
-    <link rel="stylesheet" href="./css/table.css" />
-    <link rel="stylesheet" href="./css/toggle.css" />
-    <link rel="stylesheet" href="./css/perf.css" />
-    <link rel="stylesheet" href="./css/terminal/responsive.css?v=20240223" />
-    <link rel="stylesheet" href="./css/cursor.css" />
-    <link rel="stylesheet" href="./css/marquee.css" />
-    <script src="./js/vendor/gsap.min.js" data-cfasync="false"></script>
+    <link rel="stylesheet" href="/css/base.css" />
+    <link rel="stylesheet" href="/css/layout.css" />
+    <link rel="stylesheet" href="/css/main_index.css?v=2" />
+    <link rel="stylesheet" href="/css/container.css" />
+    <link rel="stylesheet" href="/css/table.css" />
+    <link rel="stylesheet" href="/css/toggle.css" />
+    <link rel="stylesheet" href="/css/perf.css" />
+    <link rel="stylesheet" href="/css/terminal/responsive.css?v=20240223" />
+    <link rel="stylesheet" href="/css/cursor.css" />
+    <link rel="stylesheet" href="/css/marquee.css" />
+    <script src="/js/vendor/gsap.min.js" data-cfasync="false"></script>
     <script
       type="module"
-      src="./js/cursor-init.js"
+      src="/js/cursor-init.js?v=2"
       data-cfasync="false"
     ></script>
     <script type="module" data-cfasync="false">
-      import { initMagneticNav } from "#ui/magnetic_nav.js?v=20240223";
-      import { initTiltEffect } from "#ui/tilt_effect.js?v=20240223";
-      import { TableGlassEffect } from "#ui/tableGlassEffect.js?v=20240223";
-      import { TABLE_GLASS_EFFECT } from "#js/config.js?v=20240223";
+      import { initMagneticNav } from "#ui/magnetic_nav.js?v=2";
+      import { initTiltEffect } from "#ui/tilt_effect.js?v=2";
 
       window.addEventListener("DOMContentLoaded", () => {
         const loading = document.getElementById("loading");
@@ -147,8 +145,8 @@
             muted
             playsinline
             preload="metadata"
-            poster="./assets/mobile_bg.jpg"
-            src="./assets/mobile_bg.mp4"
+            poster="/assets/mobile_bg.jpg"
+            src="/assets/mobile_bg.mp4"
             webkit-playsinline
           ></video>
         </div>
@@ -157,7 +155,7 @@
           alt="Anki Stats"
           loading="lazy"
           data-fallbacks='[
-                    "./assets/banners/banner.png"
+                    "/assets/banners/banner.png"
                 ]'
         />
       </div>
@@ -165,17 +163,21 @@
       <div class="nav-container">
         <ul>
           <li>
-            <a href="https://www.lyeutsaon.com/" aria-label="Main Site">
-              <i class="fa fa-chevron-right"></i>
+            <a
+              href="https://www.lyeutsaon.com/"
+              class="nav-link"
+              aria-label="Main Site"
+            >
+              <i class="fa fa-chevron-right" aria-hidden="true"></i>
             </a>
           </li>
           <li>
-            <a href="./graph/" aria-label="Graph">
+            <a href="/graph/" aria-label="Graph">
               <i class="fa fa-connectdevelop"></i>
             </a>
           </li>
           <li>
-            <a href="./terminal/" aria-label="Terminal">
+            <a href="/terminal/" aria-label="Terminal">
               <i class="fa fa-code"></i>
             </a>
           </li>
@@ -199,28 +201,28 @@
     </div>
     <!-- .app-content -->
     <!-- Image fallback and Ambient via CDN fallback loader -->
-    <script defer src="./js/loader/imageFallback.js"></script>
-    <script defer src="./js/ambient/loader.js"></script>
-    <script defer src="./js/ui/reduced_motion.js"></script>
-    <script src="./js/ui/scroll_control.js"></script>
-    <script defer src="./js/ui/icon_font_ready.js"></script>
-    <script defer src="./js/ui/nav_current_page.js"></script>
-    <script defer src="./js/ui/nav_prefetch.js"></script>
-    <script defer src="./js/ui/video_warmup.js"></script>
+    <script defer src="/js/loader/imageFallback.js?v=2"></script>
+    <script defer src="/js/ambient/loader.js?v=2"></script>
+    <script defer src="/js/ui/reduced_motion.js?v=2"></script>
+    <script src="/js/ui/scroll_control.js?v=2"></script>
+    <script defer src="/js/ui/icon_font_ready.js?v=2"></script>
+    <script defer src="/js/ui/nav_current_page.js?v=2"></script>
+    <script defer src="/js/ui/nav_prefetch.js?v=2"></script>
+    <script defer src="/js/ui/video_warmup.js?v=2"></script>
     <!-- Video fallback for iOS web app mode -->
     <script type="module">
-      import { initVideoFallback } from "./js/ui/videoFallback.js";
+      import { initVideoFallback } from "/js/ui/videoFallback.js?v=2";
       document.addEventListener("DOMContentLoaded", initVideoFallback);
     </script>
     <script
       defer
-      src="./js/ui/service_worker_register.js"
-      data-sw-path="./sw.js"
-      data-sw-scope="./"
+      src="/js/ui/service_worker_register.js?v=2"
+      data-sw-path="/sw.js"
+      data-sw-scope="/"
     ></script>
-    <script type="module" src="./js/ambient/quantum_shader.js"></script>
+    <script type="module" src="/js/ambient/quantum_shader.js?v=2"></script>
 
     <!-- Custom cursor and Marquee -->
-    <script type="module" src="./js/ui/marquee.js"></script>
+    <script type="module" src="/js/ui/marquee.js?v=2"></script>
   </body>
 </html>

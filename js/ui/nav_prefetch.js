@@ -8,30 +8,17 @@
       { url: "assets/mobile_bg.jpg", type: "image" },
       { url: "assets/mobile_bg.mp4", type: "video" },
     ],
-    position: [
-      { url: "assets/logos/anet.png", type: "image" },
-      { url: "assets/logos/brk.png", type: "image" },
-      { url: "assets/logos/geo.png", type: "image" },
-      { url: "assets/logos/goog.png", type: "image" },
-      { url: "assets/logos/oxy.png", type: "image" },
-      { url: "assets/logos/pdd.png", type: "image" },
-      { url: "assets/logos/vt.png", type: "image" },
-    ],
-    calendar: [],
     terminal: [],
   };
   const CSS_BACKGROUND_SOURCES = {
-    shared: ["css/base.css"],
+    shared: [],
     home: ["css/main_index.css"],
-    calendar: ["css/calendar.css"],
     terminal: ["css/terminal/base.css"],
   };
   const BACKGROUND_URL_REGEX =
     /background(?:-image)?\s*:[^;{}]*url\(([^)]+)\)/gi;
   const ROUTE_SLUGS = {
     home: "",
-    position: "position/",
-    calendar: "calendar/",
     terminal: "terminal/",
   };
 

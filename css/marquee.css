@@ -14,6 +14,10 @@
   opacity: 0.15;
   perspective: 1000px;
   transform-style: preserve-3d;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 .marquee-container {
   display: flex;
