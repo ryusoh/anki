@@ -121,7 +121,7 @@ class ElevenLabs(Service):
                 }
             }
 
-            response = requests.post(url, json=data, headers=headers)
+            response = requests.post(url, json=data, headers=headers, timeout=10)
             response.raise_for_status()
 
             with open(path, 'wb') as audio:

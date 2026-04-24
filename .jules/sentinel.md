@@ -119,3 +119,9 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Vulnerability:** Emptying DOM elements or appending static HTML with `innerHTML` in `js/pages/analysis/lab.js`.
 **Learning:** While assigning static strings to `innerHTML` isn't an active XSS vector, retaining it violates strict defense-in-depth secure coding standards. It trains developers to use unsafe DOM APIs, keeps the codebase non-compliant with modern SAST linters, and risks accidental introduction of XSS.
 **Prevention:** Always use safe DOM APIs like `element.textContent = ""` or `document.createElement()` to maintain robust defense-in-depth and avoid security regressions.
+
+## 2026-05-02 - Add timeout to prevent Denial of Service on external API request
+
+**Vulnerability:** A `requests.post` call to the ElevenLabs API in `awesome_tts/awesometts/service/elevenlabs.py` lacked a `timeout` parameter, allowing the application thread to hang indefinitely if the API server failed to respond.
+**Learning:** Network calls to external APIs without explicit timeouts introduce Denial of Service (DoS) and application hang risks.
+**Prevention:** Always include a `timeout` parameter (e.g., `timeout=10`) when using the `requests` library to interact with external services.
