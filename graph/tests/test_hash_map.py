@@ -276,3 +276,25 @@ class TestUpdateHashMap:
         
         assert updated['changed'] != 'old_hash'
         assert updated['changed'] == compute_note_hash(new_notes[0])
+
+def test_load_hash_map_invalid_json(tmp_path):
+    from graph.hash_map import load_hash_map
+
+    hash_map_file = tmp_path / "invalid.json"
+    with open(hash_map_file, "w") as f:
+        f.write("{invalid json")
+
+    assert load_hash_map(hash_map_file) == {}
+
+def test_find_changed_notes_no_guid():
+    from graph.hash_map import find_changed_notes
+    notes = [{"flds": "test", "tags": "test", "mid": 123}]
+    changed, unchanged = find_changed_notes(notes, {})
+    assert changed == []
+    assert unchanged == []
+
+def test_update_hash_map_no_guid():
+    from graph.hash_map import update_hash_map
+    notes = [{"flds": "test", "tags": "test", "mid": 123}]
+    updated = update_hash_map({"existing": "hash"}, notes)
+    assert updated == {"existing": "hash"}
