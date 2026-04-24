@@ -58,6 +58,8 @@ const nodeCount = data.nodes.length;
 const uniqueDecks = [...new Set(data.nodes.map((n) => n.deck))];
 const deckColorCache = new Map();
 
+const fallbackColor = new THREE.Color("#4facfe");
+
 // EXACT COLOR STRINGS FROM LIVE LEGEND
 const LIVE_COLOR_MAP = [
   "hsla(216, 85%, 65%, 0.85)",
