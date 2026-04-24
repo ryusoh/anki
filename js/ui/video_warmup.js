@@ -70,7 +70,9 @@
         video.preload = "auto";
         try {
           video.load();
-        } catch {
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.warn("Caught exception:", error);
           // Ignore playback readiness errors; fallback will still cache the source
         }
       }
@@ -88,7 +90,10 @@
       credentials: "same-origin",
       cache: "force-cache",
       redirect: "follow",
-    }).catch(() => undefined);
+    }).catch((err) => {
+      // eslint-disable-next-line no-console
+      console.warn("Failed to pre-warm video source:", err);
+    });
   }
 
   function init() {

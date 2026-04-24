@@ -30,17 +30,17 @@
       return;
     }
 
-    loadCss("./css/ambient/ambient.css");
+    loadCss("/css/ambient/ambient.css");
 
-    loadScript("./js/ambient/sketch.js")
-      .then(() => loadScript("./js/ambient/config.js", true))
-      .then(() => loadScript("./js/ambient/ambient.js", true))
-      .catch(() => {
-        // Ambient is optional
+    loadScript("/js/ambient/sketch.js")
+      .then(() => loadScript("/js/ambient/config.js", true))
+      .then(() => loadScript("/js/ambient/ambient.js", true))
+      .catch((error) => {
+        // eslint-disable-next-line no-console
+        console.warn("Caught exception loading ambient scripts:", error);
       });
-
-    // eslint-disable-next-line no-unused-vars
-  } catch (e) {
-    console.debug("[ambient/loader] Ambient effect failed to load:", e);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn("Caught exception initializing ambient loader:", error);
   }
 })();

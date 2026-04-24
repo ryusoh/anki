@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="author" content="Zhuang Liu" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="view-transition" content="same-origin" />
+    <meta property="og:title" content="Terminal" />
+    <meta property="og:description" content="Terminal" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="http://anki.lyeutsaon.com/terminal" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=auto"
+    />
+    <title>Anki</title>
+    <link
+      rel="shortcut icon"
+      href="../assets/icons/icon-180.png"
+      type="image/png"
+    />
+    <link rel="icon" href="../assets/icons/icon-180.png" type="image/png" />
+    <link rel="apple-touch-icon" href="../assets/icons/icon-180.png" />
+    <link rel="bookmark" href="../assets/icons/icon-180.png" type="image/png" />
+    <link rel="manifest" href="../assets/manifest.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="theme-color" content="#000000" />
+    <meta property="og:image" content="../assets/og-image.png" />
+    <meta property="og:image:width" content="1447" />
+    <meta property="og:image:height" content="965" />
+    <meta name="twitter:image" content="../assets/og-image.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="stylesheet" href="../css/table.css?v=20240223" />
+    <link rel="stylesheet" href="../css/container.css?v=20240223" />
+    <link rel="stylesheet" href="../css/terminal/base.css?v=20240223" />
+    <link rel="stylesheet" href="../css/terminal/terminal.css?v=20240223" />
+    <link rel="stylesheet" href="../css/terminal/table.css?v=20240223" />
+    <link rel="stylesheet" href="../css/terminal/chart.css?v=20240223" />
+    <link rel="stylesheet" href="../css/terminal/responsive.css?v=20240223" />
+    <link rel="stylesheet" href="../css/toggle.css?v=20240223" />
+    <link rel="stylesheet" href="../css/cursor.css?v=20240223" />
+    <link
+      rel="preload"
+      href="../assets/vendor/fonts/fontawesome-webfont.woff2?v=4.7.0"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="stylesheet"
+      href="../assets/vendor/css/font-awesome-4.7.0.min.css"
+    />
+    <script src="../js/vendor/chart.umd.min.js" data-cfasync="false"></script>
+    <script src="../js/vendor/gsap.min.js" data-cfasync="false"></script>
+    <script
+      type="module"
+      src="../js/cursor-init.js"
+      data-cfasync="false"
+    ></script>
+    <script type="importmap" data-cfasync="false">
+      {
+        "imports": {
+          "#js/": "../js/",
+          "#ui/": "../js/ui/"
+        }
+      }
+    </script>
+    <script type="module" data-cfasync="false">
+      console.log("=== TableGlassEffect initialization script started ===");
+      console.log("DOM ready state:", document.readyState);
+
+      import { TableGlassEffect } from "#ui/tableGlassEffect.js?v=20240223";
+      import { TABLE_GLASS_EFFECT } from "#js/config.js?v=20240223";
+      import { initMagneticNav } from "#ui/magnetic_nav.js?v=20240223";
+
+      console.log("Imports successful:", {
+        TableGlassEffect,
+        TABLE_GLASS_EFFECT,
+        initMagneticNav,
+      });
+
+      window.addEventListener("DOMContentLoaded", () => {
+        console.log("DOMContentLoaded fired");
+        const loading = document.getElementById("loading");
+        try {
+          initMagneticNav();
+          console.log("Initializing TableGlassEffect...");
+          const terminalGlass = new TableGlassEffect(".terminal", {
+            ...TABLE_GLASS_EFFECT,
+            excludeHeader: false,
+          });
+          const chartGlass = new TableGlassEffect(".chart-card", {
+            ...TABLE_GLASS_EFFECT,
+            excludeHeader: true,
+          });
+          console.log("TableGlassEffect initialized:", {
+            terminalGlass,
+            chartGlass,
+          });
+
+          // Reveal content and hide spinner
+          const appContent = document.getElementById("appContent");
+          if (appContent) appContent.classList.add("ready");
+          if (loading) {
+            loading.style.opacity = "0";
+            setTimeout(() => (loading.style.display = "none"), 500);
+          }
+        } catch (err) {
+          console.error("Failed to init glass effect", err);
+          if (loading) loading.style.display = "none";
+        }
+      });
+    </script>
+  </head>
+
+  <body class="body-terminal body-main no-pull-to-refresh">
+    <style>
+      /* Hide all content until ready — only spinner visible */
+      .app-content {
+        visibility: hidden;
+      }
+
+      .app-content.ready {
+        visibility: visible;
+      }
+    </style>
+    <div id="loading">
+      <div class="spinner"></div>
+    </div>
+    <div class="app-content" id="appContent">
+      <a href="#terminalInput" class="sr-only skip-to-content"
+        >Skip to command input</a
+      >
+      <div class="mobile-landing" aria-hidden="true">
+        <div class="video-background">
+          <video
+            autoplay
+            loop
+            muted
+            playsinline
+            preload="metadata"
+            poster="../assets/mobile_bg.jpg"
+            src="../assets/mobile_bg.mp4"
+            webkit-playsinline
+          ></video>
+        </div>
+        <img
+          class="mobile-banner"
+          alt="Anki Stats"
+          loading="lazy"
+          data-fallbacks='[
+                    "../assets/banners/banner.png"
+                ]'
+        />
+      </div>
+      <div class="nav-container">
+        <ul>
+          <li>
+            <a href="../" aria-label="Home">
+              <i class="fa fa-chevron-right"></i>
+            </a>
+          </li>
+          <li>
+            <a href="../graph/" aria-label="Graph">
+              <i class="fa fa-connectdevelop"></i>
+            </a>
+          </li>
+          <li class="is-current-page">
+            <a href="./" aria-label="Terminal">
+              <i class="fa fa-code"></i>
+            </a>
+          </li>
+        </ul>
+      </div>
+      <div class="transaction-container">
+        <div class="terminal" id="terminal">
+          <div
+            class="terminal-output"
+            id="terminalOutput"
+            role="log"
+            aria-live="polite"
+            aria-atomic="false"
+          ></div>
+          <div class="terminal-prompt">
+            <label for="terminalInput" class="prompt-user">lz@anki:~$</label>
+            <input
+              type="text"
+              id="terminalInput"
+              class="terminal-input"
+              autocomplete="off"
+              spellcheck="false"
+              aria-label="Terminal command input"
+              autofocus
+            />
+          </div>
+        </div>
+
+        <section
+          id="runningAmountSection"
+          class="chart-card is-hidden"
+          aria-labelledby="runningAmountTitle"
+        >
+          <h2 id="runningAmountTitle" class="sr-only">Future Due Chart</h2>
+          <div
+            class="chart-container"
+            role="img"
+            aria-describedby="runningAmountTitle"
+          >
+            <canvas id="runningAmountCanvas"></canvas>
+            <div
+              class="chart-empty"
+              id="runningAmountEmpty"
+              style="display: none"
+            ></div>
+          </div>
+          <div class="chart-legend" id="chartLegend">
+            <span data-dataset-index="0" role="button" tabindex="0"
+              ><i class="legend-color color-mature"></i> Mature</span
+            >
+            <span data-dataset-index="1" role="button" tabindex="0"
+              ><i class="legend-color color-young"></i> Young</span
+            >
+          </div>
+        </section>
+
+        <div class="table-responsive-container is-hidden" aria-live="polite">
+          <table id="transactionTable">
+            <thead>
+              <tr>
+                <th
+                  id="header-tradeDate"
+                  class="sortable"
+                  tabindex="0"
+                  role="button"
+                >
+                  Date<span class="sort-indicator"></span>
+                </th>
+                <th
+                  id="header-orderType"
+                  class="filterable"
+                  tabindex="0"
+                  role="button"
+                >
+                  Type
+                  <span class="filter-indicator" aria-hidden="true">
+                    <i class="fa fa-filter"></i>
+                  </span>
+                </th>
+                <th
+                  id="header-security"
+                  class="sortable filterable"
+                  tabindex="0"
+                  role="button"
+                >
+                  Security
+                  <span class="sort-indicator"></span>
+                  <span class="filter-indicator" aria-hidden="true">
+                    <i class="fa fa-filter"></i>
+                  </span>
+                </th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th
+                  id="header-netAmount"
+                  class="sortable"
+                  tabindex="0"
+                  role="button"
+                >
+                  Amount<span class="sort-indicator"></span>
+                </th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody id="transactionBody"></tbody>
+          </table>
+        </div>
+
+        <div
+          id="error"
+          class="error"
+          style="display: none"
+          aria-live="assertive"
+          role="alert"
+        ></div>
+      </div>
+
+      <footer>
+        <a
+          href="https://github.com/ryusoh"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="GitHub Profile"
+          ><i class="fa fa-github" aria-hidden="true"></i
+        ></a>
+      </footer>
+    </div>
+    <!-- .app-content -->
+
+    <script
+      src="../js/terminal.js?v=20240223"
+      type="module"
+      data-cfasync="false"
+    ></script>
+    <script
+      type="module"
+      src="../js/mobile_ambient_bootstrap.js"
+      data-cfasync="false"
+    ></script>
+  </body>
+</html>

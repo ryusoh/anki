@@ -11,350 +11,737 @@ if (GRAPH_BACKGROUND_IMAGE.enabled) {
   document.body.style.setProperty("background-size", "cover", "important");
 }
 
+// --- INITIAL UI ---
 const loading = document.getElementById("loading");
 
-// Load data
+// --- DATA LOADING ---
 let data;
+let historyData;
 try {
-  const response = await fetch("/graph/graph_data.json");
-  if (!response.ok)
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  data = await response.json();
+  let graphUrl = "/graph/graph_data.json";
+  let historyUrl = "/graph/history_data.json";
+  const R2_DOMAIN = "https://pub-8b97bb17509e4905ba9e155b6ed3c936.r2.dev";
+
+  // First check if private data exists, otherwise fallback to public R2
+  const privateGraph = await fetch(graphUrl, { method: "HEAD" });
+  if (!privateGraph.ok) {
+    graphUrl = `${R2_DOMAIN}/graph/graph_data_public.json`;
+    historyUrl = `${R2_DOMAIN}/graph/history_data_public.json`;
+    console.log("🌐 Loading Public Anonymized Data from R2");
+  }
+
+  const [graphRes, historyRes] = await Promise.all([
+    fetch(graphUrl),
+    fetch(historyUrl),
+  ]);
+  if (!graphRes.ok)
+    throw new Error(`HTTP ${graphRes.status}: ${graphRes.statusText}`);
+  data = await graphRes.json();
+
+  // Map short keys if public data is detected
+  if (data.nodes && data.nodes.length > 0 && data.nodes[0].l !== undefined) {
+    data.nodes = data.nodes.map((n) => ({
+      id: n.id,
+      label: n.l,
+      deck: n.d,
+      pagerank: n.p,
+      size: n.s,
+      x: n.x,
+      y: n.y,
+      z: n.z,
+    }));
+    data.links = data.links.map((l) => ({
+      source: l.s,
+      target: l.t,
+      weight: l.w,
+    }));
+  }
+
+  if (historyRes.ok) historyData = await historyRes.json();
 } catch (e) {
-  loading.textContent = "";
-  const errorDiv = document.createElement("div");
-  errorDiv.style.color = "#f5576c";
-  errorDiv.style.fontSize = "16px";
-  errorDiv.textContent = "Failed to load graph data";
-  const errorBr = document.createElement("br");
-  const errorSmall = document.createElement("small");
-  errorSmall.style.color = "#888";
-  errorSmall.textContent = e.message;
-  errorDiv.appendChild(errorBr);
-  errorDiv.appendChild(errorSmall);
-  loading.appendChild(errorDiv);
+  loading.innerHTML = `<div style="color:#f5576c;">Failed to load graph data<br><small>${e.message}</small></div>`;
   throw e;
 }
 
-// Scene with subtle fog
-const scene = new THREE.Scene();
-scene.background = null;
+const nodeCount = data.nodes.length;
+const uniqueDecks = [...new Set(data.nodes.map((n) => n.deck))];
+const deckColorCache = new Map();
 
-// Camera
+const fallbackColor = new THREE.Color("#4facfe");
+
+// EXACT COLOR STRINGS FROM LIVE LEGEND
+const LIVE_COLOR_MAP = [
+  "hsla(216, 85%, 65%, 0.85)",
+  "hsla(225, 60%, 83%, 0.85)",
+  "hsla(207, 73%, 47%, 0.85)",
+  "hsla(232, 85%, 75%, 0.85)",
+  "hsla(200, 60%, 55%, 0.85)",
+  "hsla(348, 83%, 67%, 0.85)",
+  "hsla(357, 58%, 85%, 0.85)",
+];
+
+/**
+ * Robust HSLA string to THREE.Color converter
+ */
+function parseHSLAToColor(hslaStr) {
+  const match = hslaStr.match(
+    /hsla\((\d+),\s*(\d+)%,\s*([\d.]+)%,\s*([\d.]+)\)/,
+  );
+  if (!match) return new THREE.Color("#4facfe");
+  const h = parseInt(match[1], 10) / 360;
+  const s = parseInt(match[2], 10) / 100;
+  const l = parseFloat(match[3]) / 100;
+  return new THREE.Color().setHSL(h, s, l);
+}
+
+// 1. Calculate Deck Weights (Node counts) to match Terminal Sorting
+const deckWeights = {};
+data.nodes.forEach((n) => {
+  deckWeights[n.deck] = (deckWeights[n.deck] || 0) + 1;
+});
+
+// 2. Assign the live colors based on importance (Node count descending)
+const sortedDecks = Object.keys(deckWeights).sort(
+  (a, b) => deckWeights[b] - deckWeights[a],
+);
+sortedDecks.forEach((deckName, i) => {
+  const colorStr = LIVE_COLOR_MAP[i % LIVE_COLOR_MAP.length];
+  deckColorCache.set(deckName, parseHSLAToColor(colorStr));
+});
+
+// Build adjacency
+const adjacency = new Map();
+if (data.links) {
+  data.links.forEach((l) => {
+    const s = String(l.source).trim(),
+      t = String(l.target).trim();
+    if (!adjacency.has(s)) adjacency.set(s, []);
+    if (!adjacency.has(t)) adjacency.set(t, []);
+    adjacency.get(s).push({ target: t, weight: l.weight || 1 });
+    adjacency.get(t).push({ target: s, weight: l.weight || 1 });
+  });
+}
+
+// --- SCENE SETUP ---
+const scene = new THREE.Scene();
+
+// IMPLEMENT BACKGROUND IMAGE Support
+if (GRAPH_BACKGROUND_IMAGE && GRAPH_BACKGROUND_IMAGE.enabled) {
+  const loader = new THREE.TextureLoader();
+  const bgPath =
+    GRAPH_BACKGROUND_IMAGE.path || "/assets/backgrounds/graph_background.jpg";
+  loader.load(
+    bgPath,
+    (texture) => {
+      texture.encoding = THREE.sRGBEncoding;
+      scene.background = texture;
+      console.log("Graph Background Loaded:", bgPath);
+    },
+    undefined,
+    (err) => {
+      console.warn("Could not load background image:", bgPath, err);
+    },
+  );
+} else {
+  scene.background = new THREE.Color(0x0a0a0f);
+}
+
 const camera = new THREE.PerspectiveCamera(
   75,
   window.innerWidth / window.innerHeight,
   0.1,
-  50000,
+  100000,
 );
-camera.position.set(0, 0, 10000);
-
-// Renderer
-const renderer = new THREE.WebGLRenderer({
-  antialias: true,
-  alpha: true,
-  powerPreference: "high-performance",
-});
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 document.body.appendChild(renderer.domElement);
-
-// Controls
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.dampingFactor = 0.05;
-controls.minDistance = 100;
-controls.maxDistance = 20000;
+controls.autoRotate = false;
+controls.autoRotateSpeed = 0.5;
+controls.minDistance = 10;
+controls.maxDistance = 100000;
 
-// Deck colors and cluster positions
-const deckColors = {};
-const colorPalette = [
-  "#00C7BE", // Teal
-  "#32ADE6", // Cyan
-  "#0A84FF", // Blue
-  "#5E5CE6", // Indigo
-  "#AF52DE", // Purple
-  "#BF5AF2", // Light Purple
-  "#FF2D55", // Pink
-  "#FF375F", // Rose
-  "#FF3B30", // Red
-  "#FF9500", // Orange
-  "#FFCC00", // Yellow
-  "#8E8E93", // Gray
-];
-
-const uniqueDecks = [...new Set(data.nodes.map((n) => n.deck))];
-// Fibonacci sphere for even 3D distribution of cluster centers
-const deckCenters = {};
-const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-uniqueDecks.forEach((deck, i) => {
-  const y = 1 - (2 * i + 1) / uniqueDecks.length; // -1 to 1
-  const radiusAtY = Math.sqrt(1 - y * y);
-  const theta = goldenAngle * i;
-  deckCenters[deck] = {
-    x: Math.cos(theta) * radiusAtY,
-    y: y,
-    z: Math.sin(theta) * radiusAtY,
-  };
-  deckColors[deck] = colorPalette[i % colorPalette.length];
+let isRotating = false;
+renderer.domElement.addEventListener("dblclick", () => {
+  isRotating = !isRotating;
+  controls.autoRotate = isRotating;
+  console.log("Graph Rotation:", isRotating ? "Resumed" : "Stopped");
 });
 
-// Check if nodes have pre-computed positions
-const hasLayout = data.nodes.length > 0 && data.nodes[0].x != null;
-
-// Fallback cluster layout for nodes without pre-computed positions
-const deckCounts = {};
-data.nodes.forEach((n) => {
-  deckCounts[n.deck] = (deckCounts[n.deck] || 0) + 1;
-});
-// Sphere radius per deck scales with cube root (volume-proportional)
-const deckSpread = {};
-uniqueDecks.forEach((deck) => {
-  deckSpread[deck] = Math.max(100, Math.cbrt(deckCounts[deck]) * 30);
-});
-const maxSpread = Math.max(...Object.values(deckSpread));
-const clusterRadius = maxSpread * 2;
-
-// --- NODES (Points + ShaderMaterial) ---
-const nodeCount = data.nodes.length;
-const positions = new Float32Array(nodeCount * 3);
-const colors = new Float32Array(nodeCount * 3);
-const sizes = new Float32Array(nodeCount);
-
+// --- SHARED BUFFERS & MAPS ---
 const nodeMap = new Map();
-const nodeDeckMap = new Map();
-const color = new THREE.Color();
+const nodeColorMap = new Map();
+const positions = new Float32Array(nodeCount * 3);
+const layoutScale = 0.5; // Controls how much HUBS are pulled together
 
-data.nodes.forEach((node, i) => {
-  const center = deckCenters[node.deck] || { x: 0, y: 0, z: 0 };
-  const spread = deckSpread[node.deck] || 100;
-
-  let px, py, pz;
-  if (hasLayout) {
-    px = node.x;
-    py = node.y;
-    pz = node.z !== undefined ? node.z : (Math.random() - 0.5) * spread * 0.5;
-  } else {
-    // Spherical distribution within cluster
-    const r = spread * Math.cbrt(Math.random());
-    const theta = Math.random() * Math.PI * 2;
-    const phi = Math.acos(2 * Math.random() - 1);
-    px = center.x * clusterRadius + r * Math.sin(phi) * Math.cos(theta);
-    py = center.y * clusterRadius + r * Math.sin(phi) * Math.sin(theta);
-    pz = center.z * clusterRadius + r * Math.cos(phi);
-  }
-
-  positions[i * 3] = px;
-  positions[i * 3 + 1] = py;
-  positions[i * 3 + 2] = pz;
-
-  nodeMap.set(node.id, { x: px, y: py, z: pz });
-  nodeDeckMap.set(node.id, node.deck);
-
-  const sizeFactor = nodeCount > 50000 ? 0.5 : nodeCount > 10000 ? 0.75 : 1.0;
-  const baseScale = 0.3 + node.pagerank * 200;
-  sizes[i] = Math.max(
-    3 * sizeFactor,
-    Math.min(30 * sizeFactor, baseScale * 10 * sizeFactor),
-  );
-
-  color.set(deckColors[node.deck] || "#ffffff");
-  colors[i * 3] = color.r;
-  colors[i * 3 + 1] = color.g;
-  colors[i * 3 + 2] = color.b;
+// 1. First Pass: Calculate Hub Centroids
+const deckCentroids = new Map();
+const deckCounts = new Map();
+uniqueDecks.forEach((d) => deckCentroids.set(d, new THREE.Vector3(0, 0, 0)));
+data.nodes.forEach((n) => {
+  const c = deckCentroids.get(n.deck);
+  c.x += n.x || 0;
+  c.y += n.y || 0;
+  c.z += n.z || 0;
+  deckCounts.set(n.deck, (deckCounts.get(n.deck) || 0) + 1);
+});
+uniqueDecks.forEach((d) => {
+  const count = deckCounts.get(d) || 1;
+  deckCentroids.get(d).divideScalar(count);
 });
 
-const nodeGeometry = new THREE.BufferGeometry();
-nodeGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-nodeGeometry.setAttribute("aColor", new THREE.BufferAttribute(colors, 3));
-nodeGeometry.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1));
+// 2. Second Pass: Apply Hub Gravity (Compress space between clusters)
+data.nodes.forEach((node, i) => {
+  const idStr = String(node.id).trim();
+  const centroid = deckCentroids.get(node.deck);
 
-const baseAlpha = nodeCount > 50000 ? 0.15 : nodeCount > 10000 ? 0.25 : 0.4;
+  // New Position = (Hub scaled toward zero) + (Node's local offset from Hub)
+  const x = (node.x || 0) - centroid.x;
+  const y = (node.y || 0) - centroid.y;
+  const z = (node.z || 0) - centroid.z;
 
-const nodeMaterial = new THREE.ShaderMaterial({
-  uniforms: {
-    uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
-    uBaseAlpha: { value: baseAlpha },
-  },
+  positions[i * 3] = centroid.x * layoutScale + x;
+  positions[i * 3 + 1] = centroid.y * layoutScale + y;
+  positions[i * 3 + 2] = centroid.z * layoutScale + z;
+
+  nodeMap.set(idStr, {
+    x: positions[i * 3],
+    y: positions[i * 3 + 1],
+    z: positions[i * 3 + 2],
+    size: node.s || node.size || 1,
+  });
+
+  // PRE-CACHE COLORS FOR MAX SPEED
+  const c = deckColorCache.get(node.deck) || fallbackColor;
+  nodeColorMap.set(idStr, c);
+});
+
+const nodeDeckMap = new Map();
+data.nodes.forEach((n) => nodeDeckMap.set(String(n.id).trim(), n.deck));
+
+// --- LAYER 1: BACKGROUND (GREY MIST - CIRCULAR) ---
+const bgNodeGeom = new THREE.BufferGeometry();
+bgNodeGeom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+const bgColArr = new Float32Array(nodeCount * 3).fill(0.7); // Light grey
+bgNodeGeom.setAttribute("aColor", new THREE.BufferAttribute(bgColArr, 3));
+const bgSizArr = new Float32Array(nodeCount).fill(12); // Small but visible
+bgNodeGeom.setAttribute("aSize", new THREE.BufferAttribute(bgSizArr, 1));
+const bgAlpArr = new Float32Array(nodeCount).fill(0.1); // Thinnest mist
+bgNodeGeom.setAttribute("aAlpha", new THREE.BufferAttribute(bgAlpArr, 1));
+
+const commonShaderMat = {
+  uniforms: { uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) } },
   vertexShader: `
-    uniform float uPixelRatio;
-    attribute float aSize;
-    attribute vec3 aColor;
-    varying vec3 vColor;
+    attribute float aSize; attribute vec3 aColor; attribute float aAlpha;
+    varying vec3 vColor; varying float vAlpha;
     void main() {
-      vColor = aColor;
+      vColor = aColor; vAlpha = aAlpha;
       vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
-      gl_PointSize = aSize * uPixelRatio * (300.0 / -mvPos.z);
-      gl_PointSize = clamp(gl_PointSize, 1.0, 64.0);
+      gl_PointSize = aSize * (150.0 / -mvPos.z);
       gl_Position = projectionMatrix * mvPos;
     }
   `,
   fragmentShader: `
-    uniform float uBaseAlpha;
-    varying vec3 vColor;
+    varying vec3 vColor; varying float vAlpha;
     void main() {
-      vec2 center = gl_PointCoord - 0.5;
-      float dist = length(center);
-      // Soft radial gradient
-      float alpha = smoothstep(0.5, 0.0, dist);
-      // Soft core
-      float core = smoothstep(0.15, 0.0, dist);
-      vec3 finalColor = mix(vColor, vec3(1.0), core * 0.2);
-      
-      float finalAlpha = alpha * uBaseAlpha;
-      // Explicitly premultiply alpha for correct CSS background compositing
-      gl_FragColor = vec4(finalColor * finalAlpha, finalAlpha);
+      float r = length(gl_PointCoord - 0.5);
+      if (r > 0.5) discard;
+      // Radiant Core + Soft Bloom Aura
+      float bloom = pow(max(0.0, 1.0 - r * 2.0), 3.0);
+      float core = smoothstep(0.5, 0.4, r);
+      vec3 finalColor = vColor + (vColor * bloom * 0.6);
+      gl_FragColor = vec4(finalColor * vAlpha, vAlpha * (core + bloom * 0.3));
     }
   `,
   transparent: true,
   depthWrite: false,
-  depthTest: false,
-});
+};
 
-const nodePoints = new THREE.Points(nodeGeometry, nodeMaterial);
-scene.add(nodePoints);
+const bgNodes = new THREE.Points(
+  bgNodeGeom,
+  new THREE.ShaderMaterial(commonShaderMat),
+);
+scene.add(bgNodes);
 
-// Auto-fit camera to data bounds
-let maxDist = 0;
-for (let i = 0; i < nodeCount; i++) {
-  const dx = positions[i * 3];
-  const dy = positions[i * 3 + 1];
-  const dz = positions[i * 3 + 2];
-  const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
-  if (d > maxDist) maxDist = d;
-}
-maxDist = Math.max(maxDist, 100); // minimum bound
-camera.position.set(0, 0, maxDist * 2.5);
-camera.far = maxDist * 20;
-camera.updateProjectionMatrix();
-controls.minDistance = maxDist * 0.05;
-controls.maxDistance = maxDist * 10;
+// Background links (Strategic Subsampling)
+const MAX_BG_EDGES = 800000;
+const bgEdgePos = new Float32Array(MAX_BG_EDGES * 6);
+let bgEdgeIdx = 0;
+data.links.forEach((l) => {
+  if (bgEdgeIdx >= MAX_BG_EDGES) return;
 
-// --- EDGES (LineSegments) ---
-const deckColorCache = new Map();
-for (const [deck, hex] of Object.entries(deckColors)) {
-  deckColorCache.set(deck, new THREE.Color(hex));
-}
-const fallbackColor = new THREE.Color("#4facfe");
+  const sId = String(l.source).trim();
+  const tId = String(l.target).trim();
 
-const edgePositions = [];
-const edgeColors = [];
+  // Selective Subsampling:
+  // Show 20% of internal cluster links, but only 5% of cross-cluster noise
+  const sDeck = nodeDeckMap.get(sId);
+  const tDeck = nodeDeckMap.get(tId);
+  const isSameDeck = sDeck && tDeck && sDeck === tDeck;
+  const prob = isSameDeck ? 0.2 : 0.05;
+  if (Math.random() > prob) return;
 
-// Find weight range for normalization
-let minWeight = Infinity;
-let maxWeight = -Infinity;
-data.links.forEach((link) => {
-  const w = link.weight || 1;
-  if (w < minWeight) minWeight = w;
-  if (w > maxWeight) maxWeight = w;
-});
-const weightRange = maxWeight - minWeight || 1;
-
-// Only keep strongest edges (weight >= max weight)
-data.links.forEach((link) => {
-  const sourcePos = nodeMap.get(link.source);
-  const targetPos = nodeMap.get(link.target);
-  if (sourcePos && targetPos && (link.weight || 1) >= maxWeight) {
-    edgePositions.push(
-      sourcePos.x,
-      sourcePos.y,
-      sourcePos.z,
-      targetPos.x,
-      targetPos.y,
-      targetPos.z,
-    );
-    const c = deckColorCache.get(nodeDeckMap.get(link.source)) || fallbackColor;
-    edgeColors.push(
-      c.r * 0.5,
-      c.g * 0.5,
-      c.b * 0.5,
-      c.r * 0.5,
-      c.g * 0.5,
-      c.b * 0.5,
-    );
+  const s = nodeMap.get(sId),
+    t = nodeMap.get(tId);
+  if (s && t) {
+    const o = bgEdgeIdx * 6;
+    bgEdgePos[o] = s.x;
+    bgEdgePos[o + 1] = s.y;
+    bgEdgePos[o + 2] = s.z;
+    bgEdgePos[o + 3] = t.x;
+    bgEdgePos[o + 4] = t.y;
+    bgEdgePos[o + 5] = t.z;
+    bgEdgeIdx++;
   }
 });
-
-const edgeGeometry = new THREE.BufferGeometry();
-edgeGeometry.setAttribute(
+const bgEdgeGeom = new THREE.BufferGeometry();
+bgEdgeGeom.setAttribute(
   "position",
-  new THREE.Float32BufferAttribute(edgePositions, 3),
+  new THREE.BufferAttribute(bgEdgePos.slice(0, bgEdgeIdx * 6), 3),
 );
-edgeGeometry.setAttribute(
-  "color",
-  new THREE.Float32BufferAttribute(edgeColors, 3),
-);
-
-const edgeOpacity = nodeCount > 50000 ? 0.015 : nodeCount > 10000 ? 0.05 : 0.15;
-
-const edgeMaterial = new THREE.LineBasicMaterial({
-  vertexColors: true,
+const bgEdgeMat = new THREE.LineBasicMaterial({
+  color: 0x555555,
   transparent: true,
-  opacity: edgeOpacity,
+  opacity: 0.08,
   depthWrite: false,
+});
+const bgEdges = new THREE.LineSegments(bgEdgeGeom, bgEdgeMat);
+scene.add(bgEdges);
+
+// --- LAYER 2: HIGHLIGHTS (ALWAYS ON TOP) ---
+const MAX_HI = 8000;
+const hiPos = new Float32Array(MAX_HI * 3);
+const hiCol = new Float32Array(MAX_HI * 3);
+const hiSiz = new Float32Array(MAX_HI);
+const hiAlp = new Float32Array(MAX_HI);
+const hiGeom = new THREE.BufferGeometry();
+hiGeom.setAttribute(
+  "position",
+  new THREE.BufferAttribute(hiPos, 3).setUsage(THREE.DynamicDrawUsage),
+);
+hiGeom.setAttribute(
+  "aColor",
+  new THREE.BufferAttribute(hiCol, 3).setUsage(THREE.DynamicDrawUsage),
+);
+hiGeom.setAttribute(
+  "aSize",
+  new THREE.BufferAttribute(hiSiz, 1).setUsage(THREE.DynamicDrawUsage),
+);
+hiGeom.setAttribute(
+  "aAlpha",
+  new THREE.BufferAttribute(hiAlp, 1).setUsage(THREE.DynamicDrawUsage),
+);
+
+const hiMat = new THREE.ShaderMaterial({
+  uniforms: {
+    uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+    uTime: { value: 0 },
+  },
+  vertexShader: `
+    attribute float aSize; attribute vec3 aColor; attribute float aAlpha;
+    varying vec3 vColor; varying float vAlpha;
+    void main() {
+      vColor = aColor; vAlpha = aAlpha;
+      vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+      gl_PointSize = aSize * (150.0 / -mvPos.z);
+      gl_Position = projectionMatrix * mvPos;
+      gl_Position.z -= 0.1; // Ensure top layer
+    }
+  `,
+  fragmentShader: `
+    varying vec3 vColor; varying float vAlpha;
+    uniform float uTime;
+    void main() {
+      float r = length(gl_PointCoord - 0.5);
+      if (r > 0.5) discard;
+      float glow = pow(1.0 - r * 2.0, 3.0);
+      float pulse = 0.9 + 0.1 * sin(uTime * 5.0);
+      vec3 finalColor = vColor * (1.0 + glow * 2.0 * pulse);
+      gl_FragColor = vec4(finalColor * vAlpha, vAlpha * (smoothstep(0.5, 0.3, r) + glow * 0.5));
+    }
+  `,
+  transparent: true,
+  blending: THREE.AdditiveBlending,
   depthTest: false,
 });
+const hiPoints = new THREE.Points(hiGeom, hiMat);
+scene.add(hiPoints);
 
-const edgeLines = new THREE.LineSegments(edgeGeometry, edgeMaterial);
-edgeLines.renderOrder = 0;
-nodePoints.renderOrder = 1;
-scene.add(edgeLines);
+const hiEdgePos = new Float32Array(MAX_HI * 6);
+const hiEdgeCol = new Float32Array(MAX_HI * 6);
+const hiEdgeAlp = new Float32Array(MAX_HI * 2);
+const hiEdgeGeom = new THREE.BufferGeometry();
+hiEdgeGeom.setAttribute(
+  "position",
+  new THREE.BufferAttribute(hiEdgePos, 3).setUsage(THREE.DynamicDrawUsage),
+);
+hiEdgeGeom.setAttribute(
+  "aColor",
+  new THREE.BufferAttribute(hiEdgeCol, 3).setUsage(THREE.DynamicDrawUsage),
+);
+hiEdgeGeom.setAttribute(
+  "aAlpha",
+  new THREE.BufferAttribute(hiEdgeAlp, 1).setUsage(THREE.DynamicDrawUsage),
+);
 
-loading.style.display = "none";
+const hiEdgeMat = new THREE.ShaderMaterial({
+  vertexShader: `
+    attribute vec3 aColor; attribute float aAlpha;
+    varying vec3 vColor; varying float vAlpha;
+    void main() {
+      vColor = aColor; vAlpha = aAlpha;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      gl_Position.z -= 0.05;
+    }
+  `,
+  fragmentShader: `
+    varying vec3 vColor; varying float vAlpha;
+    void main() { gl_FragColor = vec4(vColor, vAlpha); }
+  `,
+  transparent: true,
+  blending: THREE.AdditiveBlending,
+  depthTest: false,
+});
+const hiLines = new THREE.LineSegments(hiEdgeGeom, hiEdgeMat);
+scene.add(hiLines);
 
-// Keyboard navigation
+// --- TIMELINE ACTION ---
+const slider = document.getElementById("timeline-slider");
+const dateDisplay = document.getElementById("date-display");
+
+function createLabel(id, parent, beforeEl) {
+  const el = document.createElement("div");
+  el.id = id;
+  if (beforeEl) parent.insertBefore(el, beforeEl);
+  else parent.appendChild(el);
+  return el;
+}
+
+function updateTimeline() {
+  if (!historyData) return;
+  const val = parseInt(slider.value);
+
+  // Sync Magnetic Thumb Location
+  const magThumb = document.getElementById("magnetic-thumb");
+  const percent = (val / slider.max) * 100;
+  if (magThumb) magThumb.style.left = `${percent}%`;
+
+  const dateStr = historyData.dates[val];
+  const rawActive = historyData.history[dateStr] || [];
+
+  // FAST LOOKUP SETS
+  const activeSet = new Set(rawActive.map((id) => String(id).trim()));
+  const degree1 = new Set();
+
+  activeSet.forEach((id) => {
+    const neighbors = adjacency.get(id);
+    if (neighbors) {
+      for (let j = 0; j < neighbors.length; j++) {
+        const targetId = neighbors[j].target;
+        if (!activeSet.has(targetId)) degree1.add(targetId);
+      }
+    }
+  });
+
+  const dateTop =
+    document.getElementById("date-top") ||
+    createLabel("date-top", slider.parentNode, slider);
+  const countBottom =
+    document.getElementById("count-bottom") ||
+    createLabel("count-bottom", slider.parentNode, null);
+
+  dateTop.textContent = dateStr;
+  countBottom.textContent = activeSet.size;
+  dateDisplay.style.display = "none"; // Hide original
+
+  // Update Highlight Nodes (Now O(1) Lookups)
+  let hiIdx = 0;
+
+  activeSet.forEach((id) => {
+    if (hiIdx >= MAX_HI) return;
+    const p = nodeMap.get(id);
+    const c = nodeColorMap.get(id) || fallbackColor;
+    if (!p) return;
+
+    hiPos[hiIdx * 3] = p.x;
+    hiPos[hiIdx * 3 + 1] = p.y;
+    hiPos[hiIdx * 3 + 2] = p.z;
+    hiCol[hiIdx * 3] = c.r;
+    hiCol[hiIdx * 3 + 1] = c.g;
+    hiCol[hiIdx * 3 + 2] = c.b;
+    hiSiz[hiIdx] = p.size * 65; // Proportional to PageRank
+    hiAlp[hiIdx] = 1.0;
+    hiIdx++;
+  });
+
+  degree1.forEach((id) => {
+    if (hiIdx >= MAX_HI) return;
+    const p = nodeMap.get(id);
+    const c = nodeColorMap.get(id) || fallbackColor;
+    if (!p) return;
+
+    hiPos[hiIdx * 3] = p.x;
+    hiPos[hiIdx * 3 + 1] = p.y;
+    hiPos[hiIdx * 3 + 2] = p.z;
+    hiCol[hiIdx * 3] = c.r * 0.7;
+    hiCol[hiIdx * 3 + 1] = c.g * 0.7;
+    hiCol[hiIdx * 3 + 2] = c.b * 0.7;
+    hiSiz[hiIdx] = p.size * 25; // Sub-highlights also proportional
+    hiAlp[hiIdx] = 0.4;
+    hiIdx++;
+  });
+
+  // Zero out rest to hide them
+  for (let i = hiIdx; i < MAX_HI; i++) {
+    hiSiz[i] = 0;
+    hiAlp[i] = 0;
+  }
+
+  hiGeom.setDrawRange(0, hiIdx);
+  hiGeom.attributes.position.needsUpdate = true;
+  hiGeom.attributes.aColor.needsUpdate = true;
+  hiGeom.attributes.aSize.needsUpdate = true;
+  hiGeom.attributes.aAlpha.needsUpdate = true;
+
+  // Update Highlight Edges
+  let hiEIdx = 0;
+  activeSet.forEach((sId) => {
+    (adjacency.get(sId) || []).forEach((l) => {
+      if (hiEIdx >= MAX_HI) return;
+      const s = nodeMap.get(sId),
+        t = nodeMap.get(l.target);
+      if (!s || !t) return;
+      const o = hiEIdx * 6;
+      hiEdgePos[o] = s.x;
+      hiEdgePos[o + 1] = s.y;
+      hiEdgePos[o + 2] = s.z;
+      hiEdgePos[o + 3] = t.x;
+      hiEdgePos[o + 4] = t.y;
+      hiEdgePos[o + 5] = t.z;
+      const c = deckColorCache.get(nodeDeckMap.get(sId)) || fallbackColor;
+      const isHigh = activeSet.has(l.target) || degree1.has(l.target);
+
+      let r, g, b, a;
+      if (isHigh) {
+        // Vivid internal links
+        r = c.r;
+        g = c.g;
+        b = c.b;
+        a = 0.2;
+      } else {
+        // Neutral grey outgoing links
+        r = 0.4;
+        g = 0.4;
+        b = 0.45;
+        a = 0.2;
+      }
+
+      hiEdgeCol[o] = r;
+      hiEdgeCol[o + 1] = g;
+      hiEdgeCol[o + 2] = b;
+      hiEdgeCol[o + 3] = r;
+      hiEdgeCol[o + 4] = g;
+      hiEdgeCol[o + 5] = b;
+      hiEdgeAlp[hiEIdx * 2] = a;
+      hiEdgeAlp[hiEIdx * 2 + 1] = a;
+      hiEIdx++;
+    });
+  });
+  hiEdgeGeom.setDrawRange(0, hiEIdx * 2);
+  hiEdgeGeom.attributes.position.needsUpdate = true;
+  hiEdgeGeom.attributes.aColor.needsUpdate = true;
+  hiEdgeGeom.attributes.aAlpha.needsUpdate = true;
+}
+
+if (historyData) {
+  slider.max = historyData.dates.length - 1;
+  slider.value = slider.max;
+  slider.addEventListener("input", updateTimeline);
+  updateTimeline(); // Initial sync happens while loading is still visible
+}
+
+// --- BOOTSTRAP ---
+let maxD = 0;
+for (let i = 0; i < nodeCount; i++) {
+  const d = Math.sqrt(
+    positions[i * 3] ** 2 +
+      positions[i * 3 + 1] ** 2 +
+      positions[i * 3 + 2] ** 2,
+  );
+  if (d > maxD) maxD = d;
+}
+camera.position.set(0, 0, maxD * 0.42);
+
+// --- LAYER 3: AMBIENT QUANTUM MIST ---
+function createAmbientMist(THREE, scale) {
+  const particleCount = 2000;
+  const positions = new Float32Array(particleCount * 3);
+  const sizes = new Float32Array(particleCount);
+  for (let i = 0; i < particleCount; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const radius = scale * (Math.random() * 3.5);
+    const height = (Math.random() - 0.5) * scale * 3;
+    positions[i * 3] = Math.cos(angle) * radius;
+    positions[i * 3 + 1] = height;
+    positions[i * 3 + 2] = Math.sin(angle) * radius;
+    sizes[i] = 1.0 + Math.random() * 3.0;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute("aSize", new THREE.BufferAttribute(sizes, 1));
+
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 } },
+    vertexShader: `
+      precision highp float;
+      uniform float uTime;
+      attribute float aSize;
+      varying float vAlpha;
+      void main() {
+        vec3 pos = position;
+        // 3x Faster Drifting Logic
+        pos.y += sin(uTime * 1.2 + position.x * 0.02) * 150.0;
+        pos.x += cos(uTime * 0.9 + position.z * 0.02) * 90.0;
+        
+        vAlpha = 0.3 + 0.3 * abs(sin(uTime * 1.5 + position.x * 0.1));
+        vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
+        gl_Position = projectionMatrix * mvPos;
+        gl_PointSize = aSize * (6000.0 / -mvPos.z);
+      }
+    `,
+    fragmentShader: `
+      precision highp float;
+      varying float vAlpha;
+      void main() {
+        float d = length(gl_PointCoord - 0.5);
+        if (d > 0.5) discard;
+        // Radial beam/mist effect
+        float glow = pow(max(0.0, 1.0 - d * 2.0), 3.0);
+        gl_FragColor = vec4(vec3(1.0), glow * vAlpha);
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  return new THREE.Points(geo, mat);
+}
+
+const ambientMist = createAmbientMist(THREE, maxD);
+scene.add(ambientMist);
+
+const timeline = document.getElementById("timeline");
+
+// Final Reveal - delayed slightly to ensure first frame is painted
+setTimeout(() => {
+  loading.style.display = "none";
+  if (window.gsap) {
+    gsap.to(timeline, {
+      opacity: 1,
+      y: 0,
+      duration: 1.2,
+      ease: "expo.out",
+    });
+  } else {
+    timeline.style.opacity = "1";
+    timeline.style.transform = "translateX(-50%) translateY(0)";
+  }
+  timeline.style.pointerEvents = "auto";
+}, 200);
+// --- INTERACTION & NAVIGATION ---
 const keyState = {};
 window.addEventListener("keydown", (e) => {
   keyState[e.key] = true;
+  if (!historyData) return;
+  if (e.key === "ArrowRight") {
+    slider.value = Math.min(parseInt(slider.value) + 1, slider.max);
+    updateTimeline();
+  } else if (e.key === "ArrowLeft") {
+    slider.value = Math.max(parseInt(slider.value) - 1, 0);
+    updateTimeline();
+  }
 });
-window.addEventListener("keyup", (e) => {
-  keyState[e.key] = false;
-});
+window.addEventListener("keyup", (e) => (keyState[e.key] = false));
 
-// Animation
 function animate() {
   requestAnimationFrame(animate);
-  handleKeys();
-  controls.update();
-  renderer.render(scene, camera);
-}
-animate();
+  const time = Date.now() * 0.001;
+  hiMat.uniforms.uTime.value = time;
+  ambientMist.material.uniforms.uTime.value = time;
+  ambientMist.rotation.y += 0.01;
 
-function handleKeys() {
-  const speed = 15;
-  // Get camera's local axes
+  // Ambient Breathing (Sub-Perceptual Parallax) - Moved to SCENE to avoid Camera conflict
+  if (isRotating) {
+    scene.position.x = Math.sin(time * 0.4) * 15;
+    scene.position.y = Math.cos(time * 0.3) * 12;
+  } else {
+    scene.position.set(0, 0, 0);
+  }
+
+  // WASD Camera Move
+  const speed = 25;
   const forward = new THREE.Vector3();
   camera.getWorldDirection(forward);
   const right = new THREE.Vector3()
     .crossVectors(forward, camera.up)
     .normalize();
-  const up = camera.up.clone();
-
-  if (keyState["ArrowUp"] || keyState["w"]) {
-    controls.target.addScaledVector(up, speed);
-    camera.position.addScaledVector(up, speed);
+  if (keyState["w"]) {
+    camera.position.addScaledVector(camera.up, speed);
+    controls.target.addScaledVector(camera.up, speed);
   }
-  if (keyState["ArrowDown"] || keyState["s"]) {
-    controls.target.addScaledVector(up, -speed);
-    camera.position.addScaledVector(up, -speed);
+  if (keyState["s"]) {
+    camera.position.addScaledVector(camera.up, -speed);
+    controls.target.addScaledVector(camera.up, -speed);
   }
-  if (keyState["ArrowRight"] || keyState["d"]) {
-    controls.target.addScaledVector(right, speed);
-    camera.position.addScaledVector(right, speed);
-  }
-  if (keyState["ArrowLeft"] || keyState["a"]) {
-    controls.target.addScaledVector(right, -speed);
+  if (keyState["a"]) {
     camera.position.addScaledVector(right, -speed);
+    controls.target.addScaledVector(right, -speed);
+  }
+  if (keyState["d"]) {
+    camera.position.addScaledVector(right, speed);
+    controls.target.addScaledVector(right, speed);
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+// --- MAGNETIC THUMB EFFECT ---
+if (window.gsap) {
+  const sliderGroup = document.getElementById("slider-group");
+  const magThumb = document.getElementById("magnetic-thumb");
+  if (sliderGroup && magThumb) {
+    sliderGroup.addEventListener("mousemove", (e) => {
+      const rect = magThumb.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const distX = e.clientX - centerX;
+      const distY = e.clientY - centerY;
+
+      window.gsap.to(magThumb, {
+        x: distX * 0.15,
+        y: distY * 0.15,
+        duration: 0.3,
+        ease: "power2.out",
+      });
+    });
+
+    sliderGroup.addEventListener("mouseleave", () => {
+      window.gsap.to(magThumb, {
+        scale: 1,
+        x: 0,
+        y: 0,
+        duration: 0.7,
+        ease: "elastic.out(1, 0.3)",
+      });
+    });
   }
 }
 
-// Resize handler
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-  nodeMaterial.uniforms.uPixelRatio.value = Math.min(
-    window.devicePixelRatio,
-    2,
-  );
 });

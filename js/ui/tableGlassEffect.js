@@ -51,29 +51,22 @@ export class TableGlassEffect {
   }
 
   init() {
-    this.canvas.style.position = "absolute";
     this.canvas.style.left = "0";
     this.canvas.style.width = "100%";
     this.canvas.style.pointerEvents = "none"; // Let clicks pass through
     this.canvas.style.zIndex = "-1"; // Behind content
-    this.canvas.style.borderRadius = "8px"; // Match container radius
+    this.canvas.style.display = "block";
 
     // Handle header exclusion
+    this._headerHeight = 0;
     if (this.options.excludeHeader) {
-      // Try to find the header height (thead for tables, h2 or header for cards)
       const thead = this.container.querySelector("thead");
-      const h2 = this.container.querySelector("h2");
-      const header = this.container.querySelector("header");
-      const headerElement = thead || h2 || header;
-
-      const headerHeight = headerElement ? headerElement.offsetHeight : 0;
-      this.canvas.style.top = `${headerHeight}px`;
-      this.canvas.style.height = `calc(100% - ${headerHeight}px)`;
-      this.canvas.style.borderRadius = "0"; // Sharp corners when confined to body
+      this._headerHeight = thead ? thead.offsetHeight : 0;
+      this.canvas.style.top = `${this._headerHeight}px`;
+      this.canvas.style.borderRadius = "0";
     } else {
       this.canvas.style.top = "0";
-      this.canvas.style.height = "100%";
-      this.canvas.style.borderRadius = "8px"; // Match container radius
+      this.canvas.style.borderRadius = "8px";
     }
 
     // Ensure container is relative so canvas is positioned correctly
@@ -82,7 +75,21 @@ export class TableGlassEffect {
       this.container.style.position = "relative";
     }
 
-    this.container.appendChild(this.canvas);
+    // Use sticky only when content actually overflows the container,
+    // so the canvas stays pinned during scroll with zero lag.
+    // Just checking overflow CSS is not enough — containers like .chart-card
+    // have overflow:auto but content never exceeds the viewport.
+    this._scrollable =
+      /auto|scroll/.test(computedStyle.overflow + computedStyle.overflowY) &&
+      this.container.scrollHeight > this.container.clientHeight + 1;
+
+    if (this._scrollable) {
+      this.canvas.style.position = "sticky";
+      this.container.insertBefore(this.canvas, this.container.firstChild);
+    } else {
+      this.canvas.style.position = "absolute";
+      this.container.appendChild(this.canvas);
+    }
 
     // Find the table element to observe its full width
     this.table = this.container.querySelector("table");
@@ -98,21 +105,9 @@ export class TableGlassEffect {
     this.startLoop();
 
     // Mouse movement for parallax/interaction
-    // ⚡ Bolt Performance Optimization:
-    // Throttled mousemove event using requestAnimationFrame and a ticking lock.
-    // Why: Prevent high-frequency events from triggering expensive DOM operations
-    // (like document.elementFromPoint, .closest, and .findIndex) continuously.
-    // Impact: Smooths out layout thrashing and hover jank on large tables, improving frame rates.
-    let ticking = false;
-    this.container.addEventListener("mousemove", (e) => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          this.handleMouseMove(e);
-          ticking = false;
-        });
-        ticking = true;
-      }
-    });
+    this.container.addEventListener("mousemove", (e) =>
+      this.handleMouseMove(e),
+    );
     this.container.addEventListener("mouseleave", () =>
       this.handleMouseLeave(),
     );
@@ -136,15 +131,34 @@ export class TableGlassEffect {
     }
 
     // Re-check header height on resize if needed
+    let headerHeight = 0;
     if (this.options.excludeHeader) {
       const thead = this.container.querySelector("thead");
-      const h2 = this.container.querySelector("h2");
-      const header = this.container.querySelector("header");
-      const headerElement = thead || h2 || header;
-
-      const headerHeight = headerElement ? headerElement.offsetHeight : 0;
+      headerHeight = thead ? thead.offsetHeight : 0;
+      this._headerHeight = headerHeight;
       this.canvas.style.top = `${headerHeight}px`;
-      this.canvas.style.height = `calc(100% - ${headerHeight}px)`;
+    }
+
+    // Re-evaluate whether content actually overflows and update positioning
+    const overflowStyle =
+      window.getComputedStyle(this.container).overflow +
+      window.getComputedStyle(this.container).overflowY;
+    const nowScrollable =
+      /auto|scroll/.test(overflowStyle) &&
+      this.container.scrollHeight > this.container.clientHeight + 1;
+
+    if (nowScrollable !== this._scrollable) {
+      this._scrollable = nowScrollable;
+      if (this._scrollable) {
+        this.canvas.style.position = "sticky";
+        // Move canvas to first child for sticky to work
+        if (this.canvas !== this.container.firstChild) {
+          this.container.insertBefore(this.canvas, this.container.firstChild);
+        }
+      } else {
+        this.canvas.style.position = "absolute";
+        this.canvas.style.marginBottom = "";
+      }
     }
 
     // Use the table's full scroll width if available, otherwise container width
@@ -158,10 +172,15 @@ export class TableGlassEffect {
     // Explicitly set style width to match the full content width
     this.canvas.style.width = `${this.width}px`;
 
-    // Calculate height from the actual computed style of the canvas
-    // This handles the case where excludeHeader reduces the canvas height via CSS
-    const rect = this.canvas.getBoundingClientRect();
-    this.height = rect.height;
+    // Keep canvas at visible viewport size (avoids exceeding browser canvas limits)
+    // Sticky positioning keeps it pinned during scroll with zero lag
+    const visibleHeight = this.container.clientHeight - headerHeight;
+    this.height = Math.max(1, visibleHeight);
+    this.canvas.style.height = `${this.height}px`;
+    // For sticky canvas, negative margin pulls content up so the canvas doesn't consume layout space
+    if (this._scrollable) {
+      this.canvas.style.marginBottom = `-${this.height}px`;
+    }
 
     // Handle high DPI displays
     const dpr = window.devicePixelRatio || 1;
@@ -171,7 +190,6 @@ export class TableGlassEffect {
 
     // Track rows for hover effect
     this.rows = [];
-    this.rowMap = new WeakMap();
     if (this.options.rowHoverEffect?.enabled) {
       const tbody = this.container.querySelector("tbody");
       if (tbody) {
@@ -193,7 +211,6 @@ export class TableGlassEffect {
             height: rowRect.height,
             element: row,
           });
-          this.rowMap.set(row, this.rows.length - 1);
         });
       }
     }
@@ -207,12 +224,25 @@ export class TableGlassEffect {
 
     // Determine hovered row by finding actual element under cursor
     if (this.options.rowHoverEffect?.enabled) {
-      // Find the closest table row to the event target
-      const rowElement = e.target?.closest?.("tr");
+      // Find the actual row element under the mouse cursor
+      const elementUnderMouse = document.elementFromPoint(e.clientX, e.clientY);
+      if (elementUnderMouse) {
+        // Find the closest table row
+        const rowElement = elementUnderMouse.closest("tr");
 
-      if (rowElement && this.container.contains(rowElement)) {
-        // Find the index of this row in our stored rows array via O(1) WeakMap lookup
-        this.state.hoveredRowIndex = this.rowMap.get(rowElement) ?? -1;
+        if (rowElement && this.container.contains(rowElement)) {
+          // Find the index of this row in our stored rows array
+          let foundIndex = -1;
+          for (let i = 0; i < this.rows.length; i++) {
+            if (this.rows[i].element === rowElement) {
+              foundIndex = i;
+              break;
+            }
+          }
+          this.state.hoveredRowIndex = foundIndex;
+        } else {
+          this.state.hoveredRowIndex = -1;
+        }
       } else {
         this.state.hoveredRowIndex = -1;
       }
@@ -254,9 +284,11 @@ export class TableGlassEffect {
       (this.state.pointer.y - this.state.pointerSmoothed.y) * damping;
 
     // Update particles
-    this.state.energyParticles.forEach((p) => {
+    const particles = this.state.energyParticles;
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
       p.progress = (p.progress + delta * p.speed * 0.5) % 1;
-    });
+    }
   }
 
   draw() {
@@ -361,103 +393,92 @@ export class TableGlassEffect {
 
   // Helper to get point along rounded rectangle path
   // Helper to get point along rounded rectangle path
+  getPointAtProgressZeroRadius(progress) {
+    const w = this.width;
+    const h = this.height;
+    const perimeter = 2 * w + 2 * h;
+    const dist = progress * perimeter;
+    if (dist <= w) {
+      return { x: dist, y: 0 };
+    }
+    if (dist <= w + h) {
+      return { x: w, y: dist - w };
+    }
+    if (dist <= 2 * w + h) {
+      return { x: w - (dist - (w + h)), y: h };
+    }
+    return { x: 0, y: h - (dist - (2 * w + h)) };
+  }
+
   getPointAtProgress(progress, radius) {
-    // Ensure progress is 0-1
     progress = progress % 1;
     if (progress < 0) {
       progress += 1;
     }
 
+    if (radius === 0) {
+      return this.getPointAtProgressZeroRadius(progress);
+    }
+
+    // ⚡ Bolt: Inline mathematical calculations inside high-frequency
+    // animation loops to eliminate Array.reduce and object generation GC pressure.
     const w = this.width;
     const h = this.height;
-
-    // If radius is 0, simplify
-    if (radius === 0) {
-      const perimeter = 2 * w + 2 * h;
-      const dist = progress * perimeter;
-      if (dist <= w) {
-        return { x: dist, y: 0 };
-      } // Top
-      if (dist <= w + h) {
-        return { x: w, y: dist - w };
-      } // Right
-      if (dist <= 2 * w + h) {
-        return { x: w - (dist - (w + h)), y: h };
-      } // Bottom
-      return { x: 0, y: h - (dist - (2 * w + h)) }; // Left
-    }
-
-    // Corner length (quarter circle)
     const cornerLen = 0.5 * Math.PI * radius;
-    // Straight lengths
-    const topLen = w - 2 * radius;
-    const rightLen = h - 2 * radius;
-    const bottomLen = w - 2 * radius;
-    const leftLen = h - 2 * radius;
+    const lineW = w - 2 * radius;
+    const lineH = h - 2 * radius;
+    const perimeter = 2 * lineW + 2 * lineH + 4 * cornerLen;
 
-    const perimeter = 2 * topLen + 2 * rightLen + 4 * cornerLen;
-    const dist = progress * perimeter;
+    let dist = progress * perimeter;
 
-    let currentDist = 0;
-
-    // Top
-    if (dist <= topLen) {
+    if (dist <= lineW) {
       return { x: radius + dist, y: 0 };
     }
-    currentDist += topLen;
+    dist -= lineW;
 
-    // Top-Right Corner
-    if (dist <= currentDist + cornerLen) {
-      const angle =
-        -Math.PI / 2 + ((dist - currentDist) / cornerLen) * (Math.PI / 2);
+    if (dist <= cornerLen) {
+      const angle = -Math.PI / 2 + (dist / cornerLen) * (Math.PI / 2);
       return {
         x: w - radius + Math.cos(angle) * radius,
         y: radius + Math.sin(angle) * radius,
       };
     }
-    currentDist += cornerLen;
+    dist -= cornerLen;
 
-    // Right
-    if (dist <= currentDist + rightLen) {
-      return { x: w, y: radius + (dist - currentDist) };
+    if (dist <= lineH) {
+      return { x: w, y: radius + dist };
     }
-    currentDist += rightLen;
+    dist -= lineH;
 
-    // Bottom-Right Corner
-    if (dist <= currentDist + cornerLen) {
-      const angle = 0 + ((dist - currentDist) / cornerLen) * (Math.PI / 2);
+    if (dist <= cornerLen) {
+      const angle = (dist / cornerLen) * (Math.PI / 2);
       return {
         x: w - radius + Math.cos(angle) * radius,
         y: h - radius + Math.sin(angle) * radius,
       };
     }
-    currentDist += cornerLen;
+    dist -= cornerLen;
 
-    // Bottom
-    if (dist <= currentDist + bottomLen) {
-      return { x: w - radius - (dist - currentDist), y: h };
+    if (dist <= lineW) {
+      return { x: w - radius - dist, y: h };
     }
-    currentDist += bottomLen;
+    dist -= lineW;
 
-    // Bottom-Left Corner
-    if (dist <= currentDist + cornerLen) {
-      const angle =
-        Math.PI / 2 + ((dist - currentDist) / cornerLen) * (Math.PI / 2);
+    if (dist <= cornerLen) {
+      const angle = Math.PI / 2 + (dist / cornerLen) * (Math.PI / 2);
       return {
         x: radius + Math.cos(angle) * radius,
         y: h - radius + Math.sin(angle) * radius,
       };
     }
-    currentDist += cornerLen;
+    dist -= cornerLen;
 
-    // Left
-    if (dist <= currentDist + leftLen) {
-      return { x: 0, y: h - radius - (dist - currentDist) };
+    if (dist <= lineH) {
+      return { x: 0, y: h - radius - dist };
     }
-    currentDist += leftLen;
+    dist -= lineH;
 
-    // Top-Left Corner
-    const angle = Math.PI + ((dist - currentDist) / cornerLen) * (Math.PI / 2);
+    const angle = Math.PI + (dist / cornerLen) * (Math.PI / 2);
     return {
       x: radius + Math.cos(angle) * radius,
       y: radius + Math.sin(angle) * radius,
@@ -515,11 +536,20 @@ export class TableGlassEffect {
     }
 
     const colors = electric.colors || {};
-    const palette = [colors.primary, colors.secondary, colors.tertiary].filter(
-      Boolean,
-    );
-    if (!palette.length) {
-      palette.push("rgba(255, 255, 255, 0.4)");
+    const rawPalette = [colors.primary, colors.secondary, colors.tertiary];
+    let validPaletteCount = 0;
+    for (let i = 0; i < rawPalette.length; i++) {
+      if (rawPalette[i]) {
+        validPaletteCount++;
+      }
+    }
+
+    let activePalette = rawPalette;
+    let activePaletteLength = validPaletteCount;
+
+    if (validPaletteCount === 0) {
+      activePalette = ["rgba(255, 255, 255, 0.4)"];
+      activePaletteLength = 1;
     }
 
     this.ctx.save();
@@ -530,9 +560,15 @@ export class TableGlassEffect {
     const trailWidth = electric.width || 0.1;
     const segments = 30; // More segments for smoother gradient
 
-    palette.forEach((color, i) => {
+    let paletteIdx = 0;
+    for (let i = 0; i < activePalette.length; i++) {
+      const color = activePalette[i];
+      if (!color) {
+        continue;
+      }
+
       const offset =
-        i / palette.length +
+        paletteIdx / activePaletteLength +
         this.state.continuousPhase * (electric.streakSpeedMultiplier || 1);
       const headProgress = offset % 1;
 
@@ -566,7 +602,8 @@ export class TableGlassEffect {
         this.ctx.lineTo(point2.x, point2.y);
         this.ctx.stroke();
       }
-    });
+      paletteIdx++;
+    }
 
     this.ctx.restore();
   }
@@ -580,10 +617,12 @@ export class TableGlassEffect {
     this.ctx.save();
     this.ctx.globalCompositeOperation = "screen";
 
-    this.state.energyParticles.forEach((p) => {
+    const particles = this.state.energyParticles;
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
       // Only draw path particles (those without 'life' property)
       if (p.life !== undefined) {
-        return;
+        continue;
       }
 
       const pos = this.getPointAtProgress(p.progress, radius);
@@ -600,7 +639,7 @@ export class TableGlassEffect {
       this.ctx.beginPath();
       this.ctx.arc(pos.x, pos.y, p.size * flicker, 0, Math.PI * 2);
       this.ctx.fill();
-    });
+    }
 
     this.ctx.restore();
   }

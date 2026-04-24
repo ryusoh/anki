@@ -11,6 +11,8 @@
       }
     }
   } catch (error) {
-    console.warn("Failed to apply reduced motion preference:", error);
+    // eslint-disable-next-line no-console
+    console.warn("Caught exception:", error);
+    /* no-op */
   }
 })();

@@ -28,15 +28,15 @@ function normalization(n) {
 function createContainer() {
   const wrap = document.createElement("div");
   wrap.className = "quantum-widget";
-  document.body.appendChild(wrap);
+  const parent = document.getElementById("appContent") || document.body;
+  parent.appendChild(wrap);
   return wrap;
 }
 
 async function loadThree() {
-  const module = await import("../../js/vendor/three.module.js");
+  const module = await import("three");
   return module;
 }
-
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
@@ -97,7 +97,9 @@ function initControls(container, surface, state, uniforms, onStateChange) {
     if (typeof surface.setPointerCapture === "function") {
       try {
         surface.setPointerCapture(pointerId);
-      } catch {
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.warn("Caught exception:", error);
         // Ignore pointer capture failures on platforms that disallow it.
       }
     }
@@ -105,46 +107,32 @@ function initControls(container, surface, state, uniforms, onStateChange) {
     container.classList.add("is-dragging");
   };
 
-  // Bolt Performance Optimization:
-  // Throttled pointermove event using requestAnimationFrame and a ticking lock.
-  // Why: Prevent high-frequency events from triggering expensive DOM operations continuously.
-  // Impact: Improves frame rates by avoiding redundant state updates and layout thrashing.
-  let ticking = false;
-  let latestEvent = null;
   const onPointerMove = (event) => {
-    if (pointerActive && pointerId !== event.pointerId) {
+    if (!pointerActive) {
+      updatePointerUniform(event.clientX, event.clientY);
+      return;
+    }
+    if (pointerId !== event.pointerId) {
       return;
     }
 
-    latestEvent = event;
-    if (!ticking) {
-      window.requestAnimationFrame(() => {
-        const ev = latestEvent;
-        if (!pointerActive) {
-          updatePointerUniform(ev.clientX, ev.clientY);
-        } else {
-          const deltaX = (ev.clientX - start.x) / 60;
-          const deltaY = (ev.clientY - start.y) / 60;
-          const newNx = clamp(Math.round(start.nx + deltaX), 0, MAX_N);
-          const newNy = clamp(Math.round(start.ny - deltaY), 0, MAX_N);
+    const deltaX = (event.clientX - start.x) / 60;
+    const deltaY = (event.clientY - start.y) / 60;
+    const newNx = clamp(Math.round(start.nx + deltaX), 0, MAX_N);
+    const newNy = clamp(Math.round(start.ny - deltaY), 0, MAX_N);
 
-          if (newNx !== state.nx || newNy !== state.ny) {
-            state.nx = newNx;
-            state.ny = newNy;
-            uniforms.nx.value = state.nx;
-            uniforms.ny.value = state.ny;
-            uniforms.normalizationX.value = normalization(state.nx);
-            uniforms.normalizationY.value = normalization(state.ny);
-            uniforms.energy.value = state.nx + state.ny + 1;
-            onStateChange();
-          }
-
-          updatePointerUniform(ev.clientX, ev.clientY);
-        }
-        ticking = false;
-      });
-      ticking = true;
+    if (newNx !== state.nx || newNy !== state.ny) {
+      state.nx = newNx;
+      state.ny = newNy;
+      uniforms.nx.value = state.nx;
+      uniforms.ny.value = state.ny;
+      uniforms.normalizationX.value = normalization(state.nx);
+      uniforms.normalizationY.value = normalization(state.ny);
+      uniforms.energy.value = state.nx + state.ny + 1;
+      onStateChange();
     }
+
+    updatePointerUniform(event.clientX, event.clientY);
   };
 
   const releasePointer = (event) => {
@@ -161,7 +149,9 @@ function initControls(container, surface, state, uniforms, onStateChange) {
       ) {
         surface.releasePointerCapture(event.pointerId);
       }
-    } catch {
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn("Caught exception:", error);
       // Ignore errors from releasePointerCapture on browsers without support.
     }
     container.classList.remove("is-dragging");
@@ -335,7 +325,8 @@ function initBackgroundRenderer(THREE) {
   renderer.setClearColor(0x000000, 0);
   renderer.domElement.classList.add("quantum-background-canvas");
   renderer.domElement.setAttribute("aria-hidden", "true");
-  document.body.appendChild(renderer.domElement);
+  const parent = document.getElementById("appContent") || document.body;
+  parent.appendChild(renderer.domElement);
   return renderer;
 }
 

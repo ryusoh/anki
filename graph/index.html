@@ -1,8 +1,60 @@
 <!doctype html>
 <html>
   <head>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=auto"
+    />
     <title>Graph</title>
-    <link rel="stylesheet" href="/css/graph.css" />
+    <link
+      rel="shortcut icon"
+      href="/assets/icons/icon-180.png"
+      type="image/png"
+    />
+    <link rel="icon" href="/assets/icons/icon-180.png" type="image/png" />
+    <link rel="apple-touch-icon" href="/assets/icons/icon-180.png" />
+    <link rel="bookmark" href="/assets/icons/icon-180.png" type="image/png" />
+    <link rel="stylesheet" href="/css/cursor.css?v=20240223" />
+    <link rel="stylesheet" href="/css/graph.css?v=2" />
+    <link rel="stylesheet" href="/css/container.css" />
+    <link
+      rel="stylesheet"
+      href="/assets/vendor/css/font-awesome-4.7.0.min.css"
+    />
+    <script src="/js/vendor/gsap.min.js" data-cfasync="false"></script>
+    <script
+      type="module"
+      src="/js/cursor-init.js"
+      data-cfasync="false"
+    ></script>
+    <script type="importmap" data-cfasync="false">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
+          "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/",
+          "#js/": "/js/",
+          "#ui/": "/js/ui/",
+          "#data/": "/data/"
+        }
+      }
+    </script>
+    <script type="module" data-cfasync="false">
+      import { initMagneticNav } from "#ui/magnetic_nav.js?v=20240223";
+      import { TableGlassEffect } from "#ui/tableGlassEffect.js?v=20240223";
+      import { TABLE_GLASS_EFFECT } from "#js/config.js?v=20240223";
+
+      window.addEventListener("DOMContentLoaded", () => {
+        initMagneticNav();
+        try {
+          new TableGlassEffect("#timeline", {
+            ...TABLE_GLASS_EFFECT,
+            excludeHeader: false,
+          });
+        } catch (e) {
+          console.error("Glass effect failed:", e);
+        }
+      });
+    </script>
   </head>
 
   <body>
@@ -10,16 +62,55 @@
       <div class="spinner"></div>
     </div>
 
-    <script type="importmap">
-      {
-        "imports": {
-          "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
-          "three/examples/jsm/": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/",
-          "#js/": "/js/",
-          "#data/": "/data/"
-        }
-      }
-    </script>
-    <script type="module" src="/js/graph/graph.js?v=2"></script>
+    <div class="nav-container">
+      <ul>
+        <li>
+          <a href="/" aria-label="Home">
+            <i class="fa fa-chevron-right"></i>
+          </a>
+        </li>
+        <li class="is-current-page">
+          <a href="/graph/" aria-label="Graph">
+            <i class="fa fa-connectdevelop"></i>
+          </a>
+        </li>
+        <li>
+          <a href="/terminal/" aria-label="Terminal">
+            <i class="fa fa-code"></i>
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <div id="timeline">
+      <div id="timeline-controls">
+        <span id="date-display" style="display: none"></span>
+        <div
+          id="slider-group"
+          style="position: relative; width: 100%; padding: 10px 0"
+        >
+          <input
+            type="range"
+            id="timeline-slider"
+            min="0"
+            max="100"
+            value="0"
+          />
+          <div id="magnetic-thumb"></div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <a
+        href="https://github.com/ryusoh"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="GitHub Profile"
+        ><i class="fa fa-github" aria-hidden="true"></i
+      ></a>
+    </footer>
+
+    <script type="module" src="/js/graph/graph.js?v=2" crossorigin></script>
   </body>
 </html>

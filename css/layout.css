@@ -1,0 +1,172 @@
+/* New wrapper for combined table and footer */
+.content-block {
+  width: fit-content; /* Allow growing with content */
+  display: table; /* Force container to expand to fit table content */
+  max-width: 900px; /* Max width for larger screens */
+  margin: 30px auto 20px auto; /* Centered, combined vertical spacing */
+  background-color: rgba(44, 44, 46, 0.9); /* Unified background */
+  border-radius: 8px; /* Unified rounded corners */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); /* Unified shadow */
+  position: relative; /* Create stacking context for z-index */
+  z-index: 100; /* Ensure table/footer sit above chart canvas */
+}
+
+/* iOS web app safe area support for content block */
+@media (max-width: 768px) {
+  @supports (margin-top: env(safe-area-inset-top)) {
+    .content-block {
+      margin-top: calc(60px + env(safe-area-inset-top));
+    }
+  }
+}
+
+body:not(.body-calendar) .content-block {
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+}
+
+#fundPieChartContainer {
+  width: 90%; /* Increased width */
+  max-width: 400px; /* Increased max-width */
+  margin: 10px auto 10px; /* Horizontally center, top margin 0, bottom margin 20px */
+  position: relative; /* Make this a positioning context for child absolute elements */
+}
+
+@media (min-width: 769px) {
+  #fundPieChartContainer {
+    margin-top: 40px;
+  }
+}
+
+/* iOS web app safe area support for pie chart container */
+@media (max-width: 768px) {
+  @supports (margin-top: env(safe-area-inset-top)) {
+    #fundPieChartContainer {
+      margin-top: calc(60px + env(safe-area-inset-top));
+    }
+  }
+}
+
+.footer-wrapper {
+  /* Mimics tfoot tr background and layout */
+  background-color: transparent; /* Background handled by .content-block */
+  box-sizing: border-box;
+  /* Rounded corners for the bottom part of the content-block */
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  position: relative;
+  z-index: 200; /* Keep footer controls clickable above overlapping elements */
+}
+
+footer {
+  position: fixed;
+  z-index: 1001;
+  bottom: 10px;
+  /* Align footer block with .content-block */
+  width: 85%; /* Matches .content-block width */
+  max-width: 900px; /* Matches .content-block max-width */
+  left: 50%;
+  transform: translateX(-50%);
+  /* End alignment changes */
+  font-size: 12px;
+  text-align: center; /* Centers text within the footer block */
+  color: rgba(255, 255, 255, 0.5);
+  font-family:
+    "Helvetica Neue", Helvetica, "Segoe UI", Arial, freesans, sans-serif;
+  font-weight: 100;
+  letter-spacing: 1px;
+  padding: 0;
+  border: 0;
+  vertical-align: baseline;
+}
+
+a.nav-back {
+  position: fixed;
+  top: 15px;
+  right: 15px;
+  color: #fff;
+  z-index: 101;
+  font-size: 1.1em;
+}
+
+/* iOS web app safe area support for nav-back */
+@media (max-width: 768px) {
+  @supports (top: env(safe-area-inset-top)) {
+    a.nav-back {
+      top: calc(15px + env(safe-area-inset-top));
+    }
+  }
+}
+
+/* Media Query for mobile devices */
+@media (max-width: 768px) {
+  html.no-pull-to-refresh {
+    /* Allow html to size to its content (body), overflow handled by body */
+    height: auto;
+    position: relative; /* Helps iOS honor overflow */
+    overscroll-behavior-y: contain !important; /* Prevents scroll chaining/bounce */
+  }
+  body.no-pull-to-refresh {
+    /* Mobile specific body overrides */
+    /* Revert body positioning to allow normal flow within the fixed html viewport */
+    position: static !important; /* Or remove this line to revert to default */
+    width: 100% !important; /* Full viewport width */
+    overflow-y: hidden !important; /* Still hide vertical overflow */
+    overflow-x: hidden !important; /* Prevent horizontal scroll on body */
+    overscroll-behavior-y: contain !important; /* Prevent bounce */
+    background: #000 url(../assets/mobile_bg.jpg) center center no-repeat !important; /* Background image, adjusted path */
+    background-size: cover !important; /* Cover the entire viewport */
+  }
+  html {
+    /* Allow html to size to its content (body), overflow handled by body */
+    height: auto;
+    position: relative; /* Helps iOS honor overflow */
+  }
+  body {
+    /* Mobile specific body overrides */
+    /* Revert body positioning to allow normal flow within the fixed html viewport */
+    position: static !important; /* Or remove this line to revert to default */
+    width: 100% !important; /* Full viewport width */
+    overflow-x: hidden !important; /* Prevent horizontal scroll on body */
+    background: #000 url(../assets/mobile_bg.jpg) center center no-repeat !important; /* Background image, adjusted path */
+    background-size: cover !important; /* Cover the entire viewport */
+  }
+  .content-block {
+    width: 95%; /* Wider for mobile */
+    display: block; /* Reset from table to block for mobile scrolling */
+    max-width: none; /* Reset max-width */
+    margin: 8px auto 10px auto; /* Reduced top margin keeps content near chart */
+  }
+  #fundPieChartContainer {
+    width: 90%; /* Allow chart to take full width */
+    max-width: 90%; /* Max width for mobile */
+    margin: -25px auto -15px; /* Tighter gap above the table on mobile */
+    /* position: relative; is inherited from the global style, which is fine */
+  }
+  footer {
+    width: 95%; /* Match .content-block's mobile width */
+    /* position: fixed, z-index, bottom, left, transform already set globally */
+  }
+}
+
+/* Desktop default: show both, normal cursor */
+#table-footer-summary .total-pnl {
+  display: inline;
+}
+
+/* Mobile-specific footer behaviors */
+@media (max-width: 768px) {
+  #total-portfolio-value-in-table,
+  .total-pnl {
+    cursor: pointer;
+  }
+  #table-footer-summary .total-pnl {
+    display: none; /* Hidden by default on mobile; toggled via JS */
+  }
+}
+
+footer a:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: -2px;
+  border-radius: 4px;
+}

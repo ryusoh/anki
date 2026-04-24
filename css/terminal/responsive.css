@@ -185,8 +185,7 @@
 @media screen and (min-width: 769px) {
   .mobile-landing,
   .video-background,
-  .mobile-banner,
-  .quantum-widget {
+  .mobile-banner {
     display: none !important;
   }
 

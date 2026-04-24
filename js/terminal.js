@@ -36,6 +36,12 @@ function appendLine(text, variant = "info") {
 
   const line = document.createElement("div");
   line.className = `terminal-line variant-${variant}`;
+
+  if (variant === "error") {
+    line.setAttribute("role", "alert");
+    line.setAttribute("aria-live", "assertive");
+  }
+
   line.textContent = text;
   terminalOutput.appendChild(line);
   terminalOutput.scrollTop = terminalOutput.scrollHeight;
@@ -214,7 +220,7 @@ function attachCommandTriggers(historyState) {
 }
 
 async function fetchCustomStatsData() {
-  const response = await fetch("data/anki/custom_stats_data.json", {
+  const response = await fetch("/data/anki/custom_stats_data.json", {
     cache: "no-store",
   });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -222,7 +228,7 @@ async function fetchCustomStatsData() {
 }
 
 async function fetchReviewStatsData() {
-  const response = await fetch("data/anki/review_stats_data.json", {
+  const response = await fetch("/data/anki/review_stats_data.json", {
     cache: "no-store",
   });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);

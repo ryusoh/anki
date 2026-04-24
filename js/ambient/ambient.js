@@ -112,7 +112,6 @@
       for (let i = 0; i < count; i++) {
         particles.push(reset({}));
       }
-      // if (trace && window.console) console.log('[ambient] setup', {count: count, area: area, w: s.width, h: s.height, cw: cw, ch: ch});
     };
     s.resize = function () {
       s.setup();
@@ -148,15 +147,8 @@
       }
       ctx.restore();
     };
-    // if (trace && window.console) {
-    //   var m0 = (typeof metrics === 'function') ? metrics() : { width: s.width, height: s.height };
-    //   console.log('[ambient] created', { C: C, size: { w: m0.width, h: m0.height }, dpi: window.devicePixelRatio||1 });
-    //   window.__ambient = { config: C, instance: s };
-    // eslint-disable-next-line no-unused-vars
-  } catch (e) {
-    console.debug(
-      "[ambient/ambient] Ambient background effect failed to load:",
-      e,
-    );
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn("Caught exception in ambient setup:", error);
   }
 })();

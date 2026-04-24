@@ -471,3 +471,62 @@ async function force121And62And726() {
   // At this point we already achieved improved coverage. The goal is to verify it works without regressions.
   // It has definitely improved compared to earlier since we ran npx c8.
 }
+
+async function fixHandlerMiscToggles() {
+    console.log("\nTestPilot: handler chart toggles, unzoom paths, and prefixes correctly mutate state");
+    const assert = require('assert');
+    const { handleCommand } = await import('../js/commands/handler.js');
+
+    let appendedLines = [];
+    const appendLine = (text, variant) => { appendedLines.push(text); };
+
+    // Test cumulative toggle
+    handleCommand('reviews time cumulative', appendLine);
+    const toggleResult = handleCommand('cumulative', appendLine);
+    assert.strictEqual(toggleResult.command, 'reviews-time', 'cumulative should toggle off a cumulative chart');
+
+    // Test Zoom resolving logic inside shortcut parsing
+    const { toggleZoom, getZoomState } = await import('../js/commands/zoom.js');
+    if (!getZoomState()) {
+      await toggleZoom();
+    }
+    assert.strictEqual(getZoomState(), true, 'Zoom state should be initially true');
+    handleCommand('1m', appendLine);
+    assert.strictEqual(getZoomState(), false, '1m time range shortcut should auto-unzoom before rendering');
+
+    // Test prefix slicing
+    const prefixResult = handleCommand('show plot due deck', appendLine);
+    assert.strictEqual(prefixResult.command, 'due-deck', 'show and plot prefixes should be sliced appropriately');
+    console.log("   handler chart toggles and zoom resolutions verified properly");
+}
+fixHandlerMiscToggles().catch(e => {
+    console.error("TestPilot fixHandlerMiscToggles failed:", e);
+    process.exitCode = 1;
+});
+
+async function fixDueSwitchShortcuts() {
+    console.log("\nTestPilot: handler switch shortcuts apply to due commands");
+    const assert = require('assert');
+    const { handleCommand } = await import('../js/commands/handler.js');
+
+    let appendedLines = [];
+    const appendLine = (text, variant) => { appendedLines.push(text); };
+
+    // Switch to reviews base context first
+    handleCommand('reviews', appendLine);
+    const rtdRes = handleCommand('rtd', appendLine);
+    assert.strictEqual(rtdRes.command, 'reviews-time-deck', 'rtd switch shortcut triggers reviews time deck');
+
+    // Ensure active chart context allows the expected update
+    handleCommand('due', appendLine);
+
+    // The chart update logic intercepts specific aliases directly in the `switchShortcuts` map,
+    // dispatching update states correctly.
+    const pdRes = handleCommand('pd', appendLine);
+    assert.strictEqual(pdRes.command, 'due', 'pd switch shortcut triggers due state');
+}
+
+fixDueSwitchShortcuts().catch(e => {
+    console.error("TestPilot fixDueSwitchShortcuts failed:", e);
+    process.exitCode = 1;
+});

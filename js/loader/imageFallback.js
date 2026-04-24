@@ -10,8 +10,9 @@
       let list;
       try {
         list = JSON.parse(listAttr);
-      } catch {
-        // Fallback gracefully on parsing failure
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.warn("Caught exception:", error);
         list = [];
       }
       if (!Array.isArray(list) || list.length === 0) {
@@ -23,7 +24,6 @@
         if (i >= list.length) {
           return;
         }
-        // codeql[js/dom-text-reinterpreted-as-html] Setting src attribute, not innerHTML
         el.src = list[i++];
       }
       el.addEventListener("load", function onLoad() {
@@ -34,7 +34,6 @@
       });
       // If current src fails, onerror will advance; ensure first URL is current
       if (!el.src || el.src !== list[0]) {
-        // codeql[js/dom-text-reinterpreted-as-html] Setting src attribute, not innerHTML
         el.src = list[0];
       } else if (el.complete && el.naturalWidth > 0) {
         el.classList.add("is-fallback-ready");
@@ -44,7 +43,8 @@
     for (let j = 0; j < imgs.length; j++) {
       attach(imgs[j]);
     }
-  } catch {
-    // Top-level catch to ensure document loading completes without error blocks
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn("Caught exception:", error);
   }
 })();

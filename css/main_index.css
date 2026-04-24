@@ -1,12 +1,13 @@
-html {
+html,
+body.body-main {
   height: 100%;
+  width: 100%;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 body.body-main {
-  height: 100%;
-  padding: 0 !important;
-  margin: 0 !important;
-  overflow: hidden;
   /* Hide scrollbar for Chrome, Safari and Opera */
   &::-webkit-scrollbar {
     display: none;
@@ -19,9 +20,17 @@ body.body-main {
 /* Set a different background for the calendar page ONLY on desktop screens */
 @media (min-width: 769px) {
   body.body-main {
-    background: #000 url(../assets/backgrounds/main_background.jpg) center
-      center no-repeat !important;
+    background: #000 url(../assets/backgrounds/main_background.jpg) center 15%
+      no-repeat !important;
     background-size: cover !important;
+    background-attachment: fixed;
+  }
+
+  .quantum-widget {
+    top: clamp(0vh, 0vh, 0vh);
+    left: 0%;
+    transform: translate(-50%, 0);
+    width: clamp(1000px, 50vw, 1000px);
   }
 
   .video-background {
@@ -127,12 +136,11 @@ footer .fa-github {
 }
 
 .quantum-widget {
-  top: clamp(0vh, 0vh, 0vh);
-  left: 90%;
-  transform: translate(-50%, 0);
-  width: clamp(1000px, 50vw, 1000px);
+  position: fixed;
   aspect-ratio: 1;
-  z-index: 6;
+  height: auto;
+  min-height: 1px;
+  z-index: 500;
   pointer-events: auto;
   display: grid;
   place-items: center;
@@ -166,7 +174,7 @@ footer .fa-github {
   width: 100vw !important;
   height: 100vh !important;
   pointer-events: none;
-  z-index: 5;
+  z-index: 499;
 }
 
 .quantum-widget.is-dragging {
@@ -213,6 +221,7 @@ footer .fa-github {
     transform: translate(-50%, -50%);
     width: clamp(220vw, 86vw, 92vw);
     aspect-ratio: 1;
+    z-index: 100;
     filter: drop-shadow(0 24px 56px rgba(0, 0, 0, 0.55));
   }
 
