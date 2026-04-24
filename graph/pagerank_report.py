@@ -27,13 +27,14 @@ def load_data():
 
 
 def build_link_counts(links):
-    """Count links per node (in + out degree)."""
-    counts = defaultdict(int)
+    """Count incoming and outgoing links per node."""
+    counts = defaultdict(lambda: {'in': 0, 'out': 0})
     for lk in links:
         s = lk.get('source', lk.get('s'))
         t = lk.get('target', lk.get('t'))
-        counts[s] += 1
-        counts[t] += 1
+        if s and t:
+            counts[s]['out'] += 1
+            counts[t]['in'] += 1
     return counts
 
 
@@ -45,12 +46,15 @@ def generate_report(date, card_ids, nodes_by_id, link_counts):
         node = nodes_by_id.get(cid)
         if not node:
             continue
+        c_links = link_counts.get(cid, {'in': 0, 'out': 0})
         cards.append({
             'id': cid,
             'front': node.get('label', node.get('l', '')),
             'deck': node.get('deck', node.get('d', 'Unknown')),
             'pagerank': node.get('pagerank', node.get('p', 0)),
-            'links': link_counts.get(cid, 0),
+            'links_in': c_links['in'],
+            'links_out': c_links['out'],
+            'links_total': c_links['in'] + c_links['out'],
         })
 
     # Group by deck
@@ -63,20 +67,20 @@ def generate_report(date, card_ids, nodes_by_id, link_counts):
 
     for deck in sorted(by_deck.keys()):
         deck_cards = by_deck[deck]
-        connected = [c for c in deck_cards if c['links'] > 0]
-        isolated = [c for c in deck_cards if c['links'] == 0]
+        connected = [c for c in deck_cards if c['links_total'] > 0]
+        isolated = [c for c in deck_cards if c['links_total'] == 0]
 
         lines.append(f'## {deck} ({len(deck_cards)} cards)\n')
 
         if connected:
             connected.sort(key=lambda c: c['pagerank'], reverse=True)
             lines.append('### Connected (by PageRank)\n')
-            lines.append('| # | Front | PageRank | Links |')
-            lines.append('|---|-------|----------|-------|')
+            lines.append('| # | Front | PageRank | In-Links | Out-Links |')
+            lines.append('|---|-------|----------|----------|-----------|')
             for i, c in enumerate(connected, 1):
                 pr = f"{c['pagerank']:.6f}"
                 front = c['front'].replace('|', '\\|')
-                lines.append(f'| {i} | {front} | {pr} | {c["links"]} |')
+                lines.append(f'| {i} | {front} | {pr} | {c["links_in"]} | {c["links_out"]} |')
             lines.append('')
 
         if isolated:
