@@ -29,8 +29,12 @@ export const getBaseUrl = (location) => {
 export const BASE_URL =
   /* c8 ignore next */
   typeof window !== "undefined" ? getBaseUrl(window.location) : "";
-export const HOLDINGS_DETAILS_URL = "../data/holdings_details.json";
-export const FUND_DATA_URL = "../data/fund_data.json";
+
+export const ANKI_DATA_URLS = {
+  customStats: "/data/anki/custom_stats_data.json",
+  reviewStats: "/data/anki/review_stats_data.json",
+  graphData: "/graph/graph_data.json",
+};
 
 export const COLORS = {
   POSITIVE_PNL: "#34A853", // Darker, less saturated green
@@ -366,10 +370,9 @@ export const TICKER_TO_LOGO_MAP = {
 };
 
 export const DATA_PATHS = {
-  historical: "../data/historical_portfolio_values.csv",
-  fx: "../data/fx_data.json",
-  holdings: "../data/holdings_details.json",
-  fund: "../data/fund_data.json",
+  customStats: "/data/anki/custom_stats_data.json",
+  reviewStats: "/data/anki/review_stats_data.json",
+  graphData: "/graph/graph_data.json",
 };
 
 export const CALENDAR_SELECTORS = {
@@ -675,6 +678,19 @@ export const TABLE_GLASS_EFFECT = {
       fadeZone: 0.15, // Smooth fade at wrap point (0-1, higher = longer fade)
     },
   },
+};
+
+export const MARQUEE_CONFIG = {
+  enabled: true,
+  // Size multiplier for marquee content (1 = normal, 2 = twice as large)
+  sizeMultiplier: 2,
+  animationDuration: 20, // seconds for one full loop
+  // Direction: 1 = right-to-left (default), -1 = left-to-right
+  direction: -1,
+};
+
+export const TILT_EFFECT = {
+  enabled: false,
 };
 
 export const PERLIN_BACKGROUND_SETTINGS = {

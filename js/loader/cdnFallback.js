@@ -13,8 +13,9 @@
         l.crossOrigin = "anonymous";
         document.head.appendChild(l);
       }
-    } catch {
-      // Ignore errors when dynamically appending preconnect links
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn("Caught exception:", error);
     }
   }
   function loadScriptSequential(urls, attrs) {
@@ -58,7 +59,9 @@
               document.head.appendChild(style);
               resolve();
             })
-            .catch(function () {
+            .catch(function (error) {
+              // eslint-disable-next-line no-console
+              console.warn("Caught exception:", error);
               resolve();
             });
           return;

@@ -1,13 +1,15 @@
 // Custom cursor and UI enhancements
-import { initCursor } from "./vendor/cursor.js?v=20240223";
+import { initCursor } from "./vendor/cursor.js";
 
-function boot() {
-  const isGraphPage = window.location.pathname.includes("/graph/");
+// Initialize cursor after DOM is ready and GSAP is loaded
+function initCursorOnce() {
+  if (!window.gsap) {
+    return;
+  }
   const { cursor } = initCursor({
     cursor: {
-      hoverTargets:
-        "a, button, .container li, .nav-container li, #timeline-slider",
-      followEase: isGraphPage ? 0.8 : 0.4,
+      hoverTargets: "a, button, .container li",
+      followEase: 0.4,
       fadeEase: 0.1,
       hoverScale: 3,
     },
@@ -15,22 +17,10 @@ function boot() {
   window.cursorInstances = { cursor };
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  if (window.gsap) {
-    boot();
-    return;
-  }
-
-  // GSAP may be deferred by Cloudflare Rocket Loader — poll briefly
-  let attempts = 0;
-  const id = setInterval(() => {
-    attempts += 1;
-    if (window.gsap) {
-      clearInterval(id);
-      boot();
-    } else if (attempts >= 40) {
-      // Give up after ~2 s
-      clearInterval(id);
-    }
-  }, 50);
-});
+// Module scripts are deferred, but we wait for DOMContentLoaded to ensure
+// GSAP (loaded via blocking script) is available and DOM is fully parsed
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initCursorOnce);
+} else {
+  initCursorOnce();
+}

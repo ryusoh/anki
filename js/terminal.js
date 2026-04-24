@@ -214,7 +214,7 @@ function attachCommandTriggers(historyState) {
 }
 
 async function fetchCustomStatsData() {
-  const response = await fetch("data/anki/custom_stats_data.json", {
+  const response = await fetch("/data/anki/custom_stats_data.json", {
     cache: "no-store",
   });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -222,7 +222,7 @@ async function fetchCustomStatsData() {
 }
 
 async function fetchReviewStatsData() {
-  const response = await fetch("data/anki/review_stats_data.json", {
+  const response = await fetch("/data/anki/review_stats_data.json", {
     cache: "no-store",
   });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);

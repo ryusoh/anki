@@ -1,7 +1,3 @@
-/**
- * Magnetic Navigation Effect
- * Uses GSAP for smooth interactive pull and elastic snap back
- */
 export function initMagneticNav() {
   if (typeof window === "undefined" || !window.gsap) {
     return;
@@ -14,9 +10,9 @@ export function initMagneticNav() {
     return;
   }
 
-  // Target nav elements and related controls
+  // Target nav elements and footer icons
   const magneticElements = document.querySelectorAll(
-    ".container li, .nav-container li, .currency-toggle, .cal-nav-btn",
+    ".container li, .nav-container li, #currencyToggleContainer .currency-toggle, #calendar-navigation-controls .cal-nav-btn",
   );
 
   magneticElements.forEach((el) => {
@@ -74,4 +70,10 @@ export function initMagneticNav() {
       }
     });
   });
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initMagneticNav);
+} else {
+  initMagneticNav();
 }

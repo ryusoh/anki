@@ -14,20 +14,20 @@ if (typeof window !== "undefined" && window.matchMedia(MOBILE_QUERY).matches) {
     });
 
   const scripts = [
-    "js/ambient/config.js",
-    "js/ambient/loader.js",
-    "js/loader/imageFallback.js",
-    "js/ui/reduced_motion.js",
-    "js/ui/scroll_control.js",
-    "js/ui/icon_font_ready.js",
-    "js/ui/nav_current_page.js",
-    "js/ui/nav_prefetch.js",
-    "js/ui/video_warmup.js",
+    "/js/ambient/config.js",
+    "/js/ambient/loader.js",
+    "/js/loader/imageFallback.js",
+    "/js/ui/reduced_motion.js",
+    "/js/ui/scroll_control.js",
+    "/js/ui/icon_font_ready.js",
+    "/js/ui/nav_current_page.js",
+    "/js/ui/nav_prefetch.js",
+    "/js/ui/video_warmup.js",
   ];
 
   Promise.all(scripts.map(loadScript))
-    .then(() => import("./ambient/quantum_shader.js"))
-    .then(() => import("./ui/videoFallback.js"))
+    .then(() => import("/js/ambient/quantum_shader.js"))
+    .then(() => import("/js/ui/videoFallback.js"))
     .then(({ initVideoFallback }) => {
       document.addEventListener("DOMContentLoaded", initVideoFallback);
     })

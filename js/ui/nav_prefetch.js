@@ -72,8 +72,12 @@
         if (markerIndex !== -1) {
           return normalizePath(manifestPath.slice(0, markerIndex + 1));
         }
-      } catch {
-        // ignore and fall back
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          "Caught exception parsing manifest URL, falling back to window location:",
+          error,
+        );
       }
     }
 
@@ -125,7 +129,9 @@
       let fetchUrl;
       try {
         fetchUrl = new window.URL(url);
-      } catch {
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.warn("Caught exception:", error);
         return undefined;
       }
 
@@ -269,7 +275,9 @@
       try {
         const resolved = new window.URL(rawUrl, cssUrl).href;
         urls.add(resolved);
-      } catch {
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.warn("Caught exception:", error);
         // Ignore invalid URLs
       }
     }
@@ -312,7 +320,9 @@
       let resolved;
       try {
         resolved = new window.URL(href, window.location.href);
-      } catch {
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.warn("Caught exception:", error);
         return;
       }
       if (resolved.origin !== window.location.origin) {

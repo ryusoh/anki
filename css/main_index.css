@@ -1,12 +1,13 @@
-html {
+html,
+body.body-main {
   height: 100%;
+  width: 100%;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 body.body-main {
-  height: 100%;
-  padding: 0 !important;
-  margin: 0 !important;
-  overflow: hidden;
   /* Hide scrollbar for Chrome, Safari and Opera */
   &::-webkit-scrollbar {
     display: none;
@@ -19,9 +20,10 @@ body.body-main {
 /* Set a different background for the calendar page ONLY on desktop screens */
 @media (min-width: 769px) {
   body.body-main {
-    background: #000 url(../assets/backgrounds/main_background.jpg) center
-      center no-repeat !important;
+    background: #000 url(../assets/backgrounds/main_background.jpg) center 25%
+      no-repeat !important;
     background-size: cover !important;
+    background-attachment: fixed;
   }
 
   .video-background {
