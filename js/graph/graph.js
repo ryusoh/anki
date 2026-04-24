@@ -2,6 +2,15 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GRAPH_BACKGROUND_IMAGE } from "#js/config.js";
 
+if (GRAPH_BACKGROUND_IMAGE.enabled) {
+  document.body.style.setProperty(
+    "background",
+    "#000 url(../assets/backgrounds/graph_background.jpg) center center no-repeat",
+    "important",
+  );
+  document.body.style.setProperty("background-size", "cover", "important");
+}
+
 // --- INITIAL UI ---
 const loading = document.getElementById("loading");
 

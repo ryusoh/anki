@@ -167,7 +167,7 @@ const DECK_COLORS = [
   "hsla(25,  90%, 65%, 0.85)", // Peach
 ];
 
-function getDeckColor(index) {
+export function getDeckColor(index) {
   return DECK_COLORS[index % DECK_COLORS.length];
 }
 
