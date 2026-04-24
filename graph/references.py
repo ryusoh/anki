@@ -320,30 +320,30 @@ def _scan_chunk(args):
             for src_guid, is_sub in guid_by_pattern[matched]:
                 if src_guid == tgt_guid:
                     continue
-                edge_key = (src_guid, tgt_guid)
+                edge_key = (tgt_guid, src_guid)
                 if edge_key not in seen_edges:
                     seen_edges.add(edge_key)
                     etype = _edge_type(True, is_sub)
                     edges.append({
-                        'source': src_guid,
-                        'target': tgt_guid,
+                        'source': tgt_guid,
+                        'target': src_guid,
                         'type': etype,
                         'weight': EDGE_WEIGHTS[etype],
                         'deck': deck_name,
                     })
 
-        matched_in_front = {ek[0] for ek in seen_edges if ek[1] == tgt_guid}
+        matched_in_front = {ek[1] for ek in seen_edges if ek[0] == tgt_guid}
         for end_idx, matched in automaton.iter(tgt['other']):
             for src_guid, is_sub in guid_by_pattern[matched]:
                 if src_guid == tgt_guid or src_guid in matched_in_front:
                     continue
-                edge_key = (src_guid, tgt_guid)
+                edge_key = (tgt_guid, src_guid)
                 if edge_key not in seen_edges:
                     seen_edges.add(edge_key)
                     etype = _edge_type(False, is_sub)
                     edges.append({
-                        'source': src_guid,
-                        'target': tgt_guid,
+                        'source': tgt_guid,
+                        'target': src_guid,
                         'type': etype,
                         'weight': EDGE_WEIGHTS[etype],
                         'deck': deck_name,
@@ -398,30 +398,30 @@ def _find_refs_aho(note_fields, deck_name):
             for src_guid, is_sub in guid_by_pattern[matched]:
                 if src_guid == tgt_guid:
                     continue
-                edge_key = (src_guid, tgt_guid)
+                edge_key = (tgt_guid, src_guid)
                 if edge_key not in seen_edges:
                     seen_edges.add(edge_key)
                     etype = _edge_type(True, is_sub)
                     edges.append({
-                        'source': src_guid,
-                        'target': tgt_guid,
+                        'source': tgt_guid,    # Text owner (citing card)
+                        'target': src_guid,    # Pattern owner (cited card)
                         'type': etype,
                         'weight': EDGE_WEIGHTS[etype],
                         'deck': deck_name,
                     })
 
-        matched_in_front = {ek[0] for ek in seen_edges if ek[1] == tgt_guid}
+        matched_in_front = {ek[1] for ek in seen_edges if ek[0] == tgt_guid}
         for end_idx, matched in automaton.iter(tgt['other']):
             for src_guid, is_sub in guid_by_pattern[matched]:
                 if src_guid == tgt_guid or src_guid in matched_in_front:
                     continue
-                edge_key = (src_guid, tgt_guid)
+                edge_key = (tgt_guid, src_guid)
                 if edge_key not in seen_edges:
                     seen_edges.add(edge_key)
                     etype = _edge_type(False, is_sub)
                     edges.append({
-                        'source': src_guid,
-                        'target': tgt_guid,
+                        'source': tgt_guid,    # Text owner (citing card)
+                        'target': src_guid,    # Pattern owner (cited card)
                         'type': etype,
                         'weight': EDGE_WEIGHTS[etype],
                         'deck': deck_name,
@@ -451,7 +451,7 @@ def _find_refs_bruteforce(note_fields, deck_name):
             if src['guid'] == tgt['guid']:
                 continue
 
-            edge_key = (src['guid'], tgt['guid'])
+            edge_key = (tgt['guid'], src['guid'])
             if edge_key in seen_edges:
                 continue
 
@@ -461,8 +461,8 @@ def _find_refs_bruteforce(note_fields, deck_name):
                     seen_edges.add(edge_key)
                     etype = _edge_type(True, is_sub)
                     edges.append({
-                        'source': src['guid'],
-                        'target': tgt['guid'],
+                        'source': tgt['guid'],    # Text owner (citing card)
+                        'target': src['guid'],    # Pattern owner (cited card)
                         'type': etype,
                         'weight': EDGE_WEIGHTS[etype],
                         'deck': deck_name,
@@ -472,8 +472,8 @@ def _find_refs_bruteforce(note_fields, deck_name):
                     seen_edges.add(edge_key)
                     etype = _edge_type(False, is_sub)
                     edges.append({
-                        'source': src['guid'],
-                        'target': tgt['guid'],
+                        'source': tgt['guid'],    # Text owner (citing card)
+                        'target': src['guid'],    # Pattern owner (cited card)
                         'type': etype,
                         'weight': EDGE_WEIGHTS[etype],
                         'deck': deck_name,
