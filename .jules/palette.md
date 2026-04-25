@@ -40,3 +40,8 @@
 
 **Learning:** Reusing a single global static HTML element (like `<div id="error">`) for ARIA live region announcements (e.g., `role="alert" aria-live="assertive"`) can be risky. Changing its visual display properties or DOM position to handle dynamic errors (like terminal outputs) can break the visual experience for sighted users or conflict with existing error-handling logic.
 **Action:** When dynamically appending text that needs immediate screen reader announcement (like terminal error lines), it is safer and more robust to inject the `role="alert"` and `aria-live="assertive"` attributes directly onto the newly created specific DOM elements (e.g., the `div.line` representing the error) rather than modifying global error containers.
+
+## 2024-05-31 - Keyboard Accessibility for Navigation Links
+
+**Learning:** When custom styling navigation links or buttons requires removing default browser outlines (`outline: none`), it breaks keyboard navigation accessibility because users can no longer perceive which element has focus.
+**Action:** Always restore keyboard accessibility by adding a `:focus-visible` pseudo-class with a distinct outline (e.g., `outline: 2px solid rgba(255, 255, 255, 0.5)`) so keyboard users can perceive focus without affecting mouse users.
