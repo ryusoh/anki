@@ -167,7 +167,7 @@ class Azure(Service):
         headers = {
             'Ocp-Apim-Subscription-Key': subscription_key
         }
-        response = requests.post(fetch_token_url, headers=headers)
+        response = requests.post(fetch_token_url, headers=headers, timeout=10)
         self.access_token = str(response.text)
         self.access_token_timestamp = datetime.datetime.now()
         self._logger.debug(f'requested access_token')
@@ -231,7 +231,7 @@ class Azure(Service):
             
             body = ssml_str.encode(encoding='utf-8')
 
-            response = requests.post(constructed_url, headers=headers, data=body)
+            response = requests.post(constructed_url, headers=headers, data=body, timeout=10)
             if response.status_code == 200:
                 with open(path, 'wb') as audio:
                     audio.write(response.content)
