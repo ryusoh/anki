@@ -23,7 +23,7 @@ jobs:
 
       - name: Setup Node.js
         # codeql[js/unpinned-tag] Pinned to actions/setup-node@v4.1.0 SHA: 39370e3970a6d050c480ffad4ff0ed4d3fdee5af
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
           node-version: '24'
           cache: 'npm'
