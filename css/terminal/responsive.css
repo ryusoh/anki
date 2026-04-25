@@ -183,9 +183,9 @@
 }
 
 @media screen and (min-width: 769px) {
-  .mobile-landing,
-  .video-background,
-  .mobile-banner {
+  .body-terminal .mobile-landing,
+  .body-terminal .video-background,
+  .body-terminal .mobile-banner {
     display: none !important;
   }
 

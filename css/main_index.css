@@ -5,6 +5,7 @@ body.body-main {
   overflow: hidden !important;
   margin: 0 !important;
   padding: 0 !important;
+  touch-action: none;
 }
 
 body.body-main {

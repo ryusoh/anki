@@ -1,4 +1,28 @@
 (function () {
+  // Prevent desktop zoom (Ctrl+wheel / trackpad pinch, Ctrl+Plus/Minus/0)
+  document.addEventListener(
+    "wheel",
+    function (e) {
+      if (e.ctrlKey || e.metaKey) e.preventDefault();
+    },
+    { passive: false },
+  );
+  document.addEventListener("keydown", function (e) {
+    if (
+      (e.ctrlKey || e.metaKey) &&
+      (e.key === "+" || e.key === "-" || e.key === "=" || e.key === "0")
+    ) {
+      e.preventDefault();
+    }
+  });
+  // Prevent Safari gesture zoom
+  document.addEventListener("gesturestart", function (e) {
+    e.preventDefault();
+  });
+  document.addEventListener("gesturechange", function (e) {
+    e.preventDefault();
+  });
+
   let lastScrollTop = 0;
 
   window.addEventListener("scroll", function () {
