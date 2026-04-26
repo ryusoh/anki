@@ -24,3 +24,6 @@
 
 **Learning:** `jsdom` testing dependencies can easily fail in fresh environments when module paths don't match, particularly if tests attempt to import files needing missing packages. Modifying `package.json` to resolve test failures is strictly forbidden by repository boundaries unless specifically tasked.
 **Prevention:** If testing `JSDOM` UI tests fail due to missing dependencies, restore the original state and avoid artificially fixing CI dependencies. Focus purely on writing missing code coverage via native unit tests rather than attempting to fix unrelated repository failures.
+## 2024-05-18 - Node.js Custom Runner and Missing Globals
+**Learning:** When using the custom Node.js runner to test modules that eventually import `config.js` (which accesses `document.querySelector`), the tests will crash with `ReferenceError: document is not defined`.
+**Prevention:** Always provide a lightweight stub for `global.window` and `global.document` (e.g. `global.window = { matchMedia: () => ({ matches: false }) }; global.document = { querySelector: () => null, createElement: () => ({}), head: { appendChild: () => {} } };`) *before* executing the dynamic `await import()` of the target module.
