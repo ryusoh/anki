@@ -677,7 +677,13 @@ export function renderReviewsChart(
             titleFont: { family: "JetBrains Mono, monospace", size: 12 },
             bodyFont: { family: "JetBrains Mono, monospace", size: 11 },
             callbacks: {
-              title: (items) => items.map((item) => item.label).join("\n"),
+              title: (items) => {
+                let title = "";
+                for (let i = 0; i < items.length; i++) {
+                  title += (i > 0 ? "\n" : "") + items[i].label;
+                }
+                return title;
+              },
               label: (ctx) => {
                 const unit = isCumulative ? "h" : "min";
                 if (showTime) {
