@@ -29,3 +29,8 @@
 
 **Learning:** When using the custom Node.js runner to test modules that eventually import `config.js` (which accesses `document.querySelector`), the tests will crash with `ReferenceError: document is not defined`.
 **Prevention:** Always provide a lightweight stub for `global.window` and `global.document` (e.g. `global.window = { matchMedia: () => ({ matches: false }) }; global.document = { querySelector: () => null, createElement: () => ({}), head: { appendChild: () => {} } };`) _before_ executing the dynamic `await import()` of the target module.
+
+## 2024-05-30 - Module-level State Fallback Paths
+
+**Learning:** To test module-level state fallback paths, direct variable assignment via module exports (if available) or recreating conditions where state is null/undefined is sometimes necessary to trigger default returns when testing pure functions interacting with that state.
+**Action:** Use temporary state modification and `finally` blocks to restore state, or directly set state to null to test fallback paths.

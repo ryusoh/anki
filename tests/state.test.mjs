@@ -121,3 +121,37 @@ test("setZoomed properly sets internal zoom state", async () => {
   setZoomed(true);
   assert.strictEqual(isZoomed(), true);
 });
+
+test("state getSelectedCurrency and getCompositionAssetClassFilter handling falsy paths", async () => {
+  const { getSelectedCurrency, getCompositionAssetClassFilter, transactionState } = await import("../js/transactions/state.js");
+
+  // Temporarily force internal state to falsy to trigger fallback paths
+  const oldCurrency = transactionState.selectedCurrency;
+  const oldFilter = transactionState.compositionAssetClassFilter;
+
+  try {
+    // line 147 fallback test
+    transactionState.selectedCurrency = null;
+    assert.strictEqual(getSelectedCurrency(), "USD");
+
+    // line 177 fallback test
+    transactionState.compositionAssetClassFilter = null;
+    assert.strictEqual(getCompositionAssetClassFilter(), null);
+  } finally {
+    // Restore
+    transactionState.selectedCurrency = oldCurrency;
+    transactionState.compositionAssetClassFilter = oldFilter;
+  }
+});
+
+test("state getCompositionFilterTickers falsy path", async () => {
+  const { getCompositionFilterTickers, transactionState } = await import("../js/transactions/state.js");
+
+  const oldFilter = transactionState.compositionFilterTickers;
+  try {
+    transactionState.compositionFilterTickers = null;
+    assert.deepStrictEqual(getCompositionFilterTickers(), []);
+  } finally {
+    transactionState.compositionFilterTickers = oldFilter;
+  }
+});
