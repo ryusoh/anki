@@ -321,18 +321,25 @@ export function renderReviewsChart(
     labels = data.dates;
     isDense = labels.length > 100;
     const radius = isDense ? 0 : 4;
-    // Convert global time to hours if cumulative, else minutes
-    totalTimes = data.global.map((g) =>
-      isCumulative
-        ? Number(((g.time || 0) / 3600).toFixed(1))
-        : Math.round((g.time || 0) / 60),
-    );
-
-    if (isCumulative) {
-      let runSum = data.preSliceGlobalTime
+    // Bolt: Use pre-allocated array and single loop instead of chained maps
+    totalTimes = new Array(data.global.length);
+    let runSum = isCumulative
+      ? data.preSliceGlobalTime
         ? Number((data.preSliceGlobalTime / 3600).toFixed(1))
-        : 0;
-      totalTimes = totalTimes.map((t) => Number((runSum += t).toFixed(1)));
+        : 0
+      : 0;
+
+    for (let i = 0; i < data.global.length; i++) {
+      const g = data.global[i];
+      const val = isCumulative
+        ? Number(((g.time || 0) / 3600).toFixed(1))
+        : Math.round((g.time || 0) / 60);
+
+      if (isCumulative) {
+        totalTimes[i] = Number((runSum += val).toFixed(1));
+      } else {
+        totalTimes[i] = val;
+      }
     }
 
     let datasetIndex = 0;
@@ -353,26 +360,34 @@ export function renderReviewsChart(
           ? data.preSliceSumsByDeck[deckName]
           : { count: 0, time: 0 };
 
+      // Bolt: Use pre-allocated array and single loop instead of chained maps
+      deckData = new Array(deckEntries.length);
       if (showTime) {
-        // Time in hours if cumulative, else minutes
-        deckData = deckEntries.map((e) =>
-          isCumulative
-            ? Number(((e.time || 0) / 3600).toFixed(1))
-            : Math.round((e.time || 0) / 60),
-        );
         preSum = isCumulative
           ? Number((deckPreSums.time / 3600).toFixed(1))
           : Math.round(deckPreSums.time / 60);
       } else {
-        deckData = deckEntries.map((e) => e.count || 0);
         preSum = deckPreSums.count;
       }
 
-      if (isCumulative) {
-        let runningSum = preSum;
-        deckData = deckData.map((val) =>
-          Number((runningSum += val).toFixed(1)),
-        );
+      let runningSum = isCumulative ? preSum : 0;
+
+      for (let i = 0; i < deckEntries.length; i++) {
+        const e = deckEntries[i];
+        let val;
+        if (showTime) {
+          val = isCumulative
+            ? Number(((e.time || 0) / 3600).toFixed(1))
+            : Math.round((e.time || 0) / 60);
+        } else {
+          val = e.count || 0;
+        }
+
+        if (isCumulative) {
+          deckData[i] = Number((runningSum += val).toFixed(1));
+        } else {
+          deckData[i] = val;
+        }
       }
 
       // Assign a related color dynamically based on group category
