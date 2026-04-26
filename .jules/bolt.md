@@ -94,5 +94,11 @@
 **Action:** Replace multiple chained `.reduce()` passes over the same array with a single standard `for` loop to compute all needed aggregates simultaneously, optimizing O(2N) down to O(N) and eliminating closure allocation overhead.
 
 ## 2024-03-24 - Optimize chained array map allocations in reviews.js
+
 **Learning:** Found multiple instances where arrays were being transformed multiple times with chained `.map()` calls, generating unnecessary intermediate arrays and putting pressure on garbage collection. This is a common performance anti-pattern.
 **Action:** Replaced chained `.map()` operations with a single `for` loop that iterates over the source array once and populates a pre-allocated array (`new Array(length)`), executing all formatting and accumulation logic concurrently. Apply this pre-allocation + single loop pattern for hot path array derivations across the app.
+
+## 2025-05-18 - [Optimize Tooltip Iterations in Chart Render callbacks]
+
+**Learning:** When defining `callbacks: { title: (items) => items.map(item => item.label).join('\n') }` within interactive libraries like Chart.js tooltips, chained array mapping and joining during high-frequency mouse hover operations cause numerous intermediate Array allocations and heavy Garbage Collection spikes in hot paths.
+**Action:** Replace `.map().join()` with standard `.length` iteration inside interactive callback functions. Iteratively construct primitive strings with standard string concatenation and a single native `for` loop to eliminate intermittent Array heap allocations completely.
