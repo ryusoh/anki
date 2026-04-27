@@ -29,3 +29,8 @@
 
 **Learning:** When using the custom Node.js runner to test modules that eventually import `config.js` (which accesses `document.querySelector`), the tests will crash with `ReferenceError: document is not defined`.
 **Prevention:** Always provide a lightweight stub for `global.window` and `global.document` (e.g. `global.window = { matchMedia: () => ({ matches: false }) }; global.document = { querySelector: () => null, createElement: () => ({}), head: { appendChild: () => {} } };`) _before_ executing the dynamic `await import()` of the target module.
+
+## 2025-04-27 - DOM Mocking for Tests
+
+**Learning:** We need to provide minimal mocked versions of browser globals (like `window` and `document`) BEFORE importing JS modules that access them during their top-level evaluation.
+**Action:** Always inject required DOM mock dependencies into the `global` object before using dynamic `await import()` on frontend modules under test in our Node test runner.
