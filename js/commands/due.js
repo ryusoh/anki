@@ -103,11 +103,14 @@ export function renderFutureDueChart(data, byDeck = false, rangeDays = null) {
   let maxDay = 0;
   /* c8 ignore next 10 */
   if (byDeck) {
-    const allDays = Object.values(data).flatMap((entries) =>
-      entries.map((e) => e.day),
-    );
-    if (allDays.length > 0) {
-      maxDay = Math.max(...allDays);
+    // Bolt: Use native for loops to find the max day instead of .flatMap().map()
+    // This avoids large intermediate array allocations and prevents Math.max stack overflow on large datasets.
+    for (const entries of Object.values(data)) {
+      for (let i = 0, len = entries.length; i < len; i++) {
+        if (entries[i].day > maxDay) {
+          maxDay = entries[i].day;
+        }
+      }
     }
   } else {
     maxDay = data.length > 0 ? data[data.length - 1].day : 0;
