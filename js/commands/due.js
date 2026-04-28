@@ -103,11 +103,14 @@ export function renderFutureDueChart(data, byDeck = false, rangeDays = null) {
   let maxDay = 0;
   /* c8 ignore next 10 */
   if (byDeck) {
-    const allDays = Object.values(data).flatMap((entries) =>
-      entries.map((e) => e.day),
-    );
-    if (allDays.length > 0) {
-      maxDay = Math.max(...allDays);
+    // Bolt: Use native for loops to find the max day instead of .flatMap().map()
+    // This avoids large intermediate array allocations and prevents Math.max stack overflow on large datasets.
+    for (const entries of Object.values(data)) {
+      for (let i = 0, len = entries.length; i < len; i++) {
+        if (entries[i].day > maxDay) {
+          maxDay = entries[i].day;
+        }
+      }
     }
   } else {
     maxDay = data.length > 0 ? data[data.length - 1].day : 0;
@@ -286,7 +289,13 @@ function finishRenderDue(canvas, labels, datasets, legend, section, byDeck) {
             titleFont: { family: "JetBrains Mono, monospace", size: 12 },
             bodyFont: { family: "JetBrains Mono, monospace", size: 12 },
             callbacks: {
-              title: (items) => items.map((item) => item.label).join("\n"),
+              title: (items) => {
+                let title = "";
+                for (let i = 0; i < items.length; i++) {
+                  title += (i > 0 ? "\n" : "") + items[i].label;
+                }
+                return title;
+              },
               label: (context) => {
                 /* c8 ignore next */
                 if (context.raw === 0) return null;

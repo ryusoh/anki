@@ -97,3 +97,13 @@
 
 **Learning:** Found multiple instances where arrays were being transformed multiple times with chained `.map()` calls, generating unnecessary intermediate arrays and putting pressure on garbage collection. This is a common performance anti-pattern.
 **Action:** Replaced chained `.map()` operations with a single `for` loop that iterates over the source array once and populates a pre-allocated array (`new Array(length)`), executing all formatting and accumulation logic concurrently. Apply this pre-allocation + single loop pattern for hot path array derivations across the app.
+
+## 2025-05-18 - [Optimize Tooltip Iterations in Chart Render callbacks]
+
+**Learning:** When defining `callbacks: { title: (items) => items.map(item => item.label).join('\n') }` within interactive libraries like Chart.js tooltips, chained array mapping and joining during high-frequency mouse hover operations cause numerous intermediate Array allocations and heavy Garbage Collection spikes in hot paths.
+**Action:** Replace `.map().join()` with standard `.length` iteration inside interactive callback functions. Iteratively construct primitive strings with standard string concatenation and a single native `for` loop to eliminate intermittent Array heap allocations completely.
+
+## 2025-05-19 - [Optimize flatMap Array loops]
+
+**Learning:** When calculating max values using `Object.values(data).flatMap(entries => entries.map(e => e.day))`, multiple chained iterations create extensive array instantiation allocations on the heap, and put heavy load on GC due to discarding intermediate array states during layout rendering.
+**Action:** Use native primitive standard iteration to bypass `.flatMap()` entirely, creating 0 new intermediate array allocations.
