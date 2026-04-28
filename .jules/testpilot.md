@@ -39,3 +39,5 @@
 
 **Learning:** We need to provide minimal mocked versions of browser globals (like `window` and `document`) BEFORE importing JS modules that access them during their top-level evaluation.
 **Action:** Always inject required DOM mock dependencies into the `global` object before using dynamic `await import()` on frontend modules under test in our Node test runner.
+**Learning:** Adding test coverage for basic configuration and utilities that are often skipped.
+**Action:** Created missing tests to reach 100% test coverage for js/config.js, js/config/assetClasses.js, and js/utils/host.js.
