@@ -107,3 +107,8 @@
 
 **Learning:** When calculating max values using `Object.values(data).flatMap(entries => entries.map(e => e.day))`, multiple chained iterations create extensive array instantiation allocations on the heap, and put heavy load on GC due to discarding intermediate array states during layout rendering.
 **Action:** Use native primitive standard iteration to bypass `.flatMap()` entirely, creating 0 new intermediate array allocations.
+
+## 2026-04-28 - [Optimizing Hot Path Maps in Set Initializations]
+
+**Learning:** When generating a Set of unique properties from an array (like unique decks), doing `[...new Set(data.nodes.map(n => n.deck))]` maps an entirely new temporary array in memory purely to feed the Set constructor, creating severe and unnecessary Garbage Collection overhead when parsing large datasets.
+**Action:** Use a fast native `for` loop to iteratively `add()` values into a `new Set()` directly, entirely bypassing the intermediate array `.map()` allocation step when extracting unique properties.

@@ -52,8 +52,15 @@ export function renderRetentionChart(data) {
   const empty = document.getElementById("runningAmountEmpty");
   if (empty) empty.style.display = "none";
 
-  const labels = data.map((entry) => entry.date);
-  const retentions = data.map((entry) => (entry.retention * 100).toFixed(1));
+  // Bolt: Replace multiple array maps with a single loop to reduce O(N) allocations and GC pressure
+  const len = data.length;
+  const labels = new Array(len);
+  const retentions = new Array(len);
+  for (let i = 0; i < len; i++) {
+    const entry = data[i];
+    labels[i] = entry.date;
+    retentions[i] = (entry.retention * 100).toFixed(1);
+  }
 
   const isDense = data.length > 200;
   const borderWidth = isDense ? 1 : 2;
