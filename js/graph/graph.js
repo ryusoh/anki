@@ -40,21 +40,34 @@ try {
 
   // Map short keys if public data is detected
   if (data.nodes && data.nodes.length > 0 && data.nodes[0].l !== undefined) {
-    data.nodes = data.nodes.map((n) => ({
-      id: n.id,
-      label: n.l,
-      deck: n.d,
-      pagerank: n.p,
-      size: n.s,
-      x: n.x,
-      y: n.y,
-      z: n.z,
-    }));
-    data.links = data.links.map((l) => ({
-      source: l.s,
-      target: l.t,
-      weight: l.w,
-    }));
+    // Bolt: Use native for loops to allocate nodes to reduce memory allocations at startup
+    const newNodes = new Array(data.nodes.length);
+    for (let i = 0, len = data.nodes.length; i < len; i++) {
+      const n = data.nodes[i];
+      newNodes[i] = {
+        id: n.id,
+        label: n.l,
+        deck: n.d,
+        pagerank: n.p,
+        size: n.s,
+        x: n.x,
+        y: n.y,
+        z: n.z,
+      };
+    }
+    data.nodes = newNodes;
+
+    // Bolt: Use native for loops to allocate links to reduce memory allocations
+    const newLinks = new Array(data.links.length);
+    for (let i = 0, len = data.links.length; i < len; i++) {
+      const l = data.links[i];
+      newLinks[i] = {
+        source: l.s,
+        target: l.t,
+        weight: l.w,
+      };
+    }
+    data.links = newLinks;
   }
 
   if (historyRes.ok) historyData = await historyRes.json();
@@ -64,7 +77,12 @@ try {
 }
 
 const nodeCount = data.nodes.length;
-const uniqueDecks = [...new Set(data.nodes.map((n) => n.deck))];
+// Bolt: Fast single-pass set instantiation without O(N) intermediate array allocation
+const deckSet = new Set();
+for (let i = 0; i < nodeCount; i++) {
+  deckSet.add(data.nodes[i].deck);
+}
+const uniqueDecks = Array.from(deckSet);
 const deckColorCache = new Map();
 
 const fallbackColor = new THREE.Color("#4facfe");
@@ -431,7 +449,11 @@ function updateTimeline() {
   const rawActive = historyData.history[dateStr] || [];
 
   // FAST LOOKUP SETS
-  const activeSet = new Set(rawActive.map((id) => String(id).trim()));
+  // Bolt: Avoid mapping a new array to populate the set to prevent GC pressure in hot timeline path
+  const activeSet = new Set();
+  for (let i = 0, len = rawActive.length; i < len; i++) {
+    activeSet.add(String(rawActive[i]).trim());
+  }
   const degree1 = new Set();
 
   activeSet.forEach((id) => {
