@@ -33,7 +33,13 @@ export function getReviewStatsData(rangeKey = DEFAULT_RANGE, byDeck = false) {
       sliceIndex = Math.max(0, globalData.length - days);
       globalSlice = globalData.slice(sliceIndex);
     }
-    const targetDates = globalSlice.map((d) => d.date);
+
+    // Bolt: Use pre-allocated array instead of .map() to reduce garbage collection pressure.
+    // This optimization bypasses callback function overhead during layout calculations.
+    const targetDates = new Array(globalSlice.length);
+    for (let i = 0, len = globalSlice.length; i < len; i++) {
+      targetDates[i] = globalSlice[i].date;
+    }
     const firstTargetDate = targetDates.length > 0 ? targetDates[0] : null;
 
     let preSliceGlobalTime = 0;
@@ -57,12 +63,16 @@ export function getReviewStatsData(rangeKey = DEFAULT_RANGE, byDeck = false) {
         time: preSliceTime,
       };
 
-      const paddedEntries = targetDates.map((date) => {
+      // Bolt: Use a pre-allocated array and a native for loop to initialize padded entries.
+      // Doing this minimizes Date instantiations and object allocations compared to .map() chains.
+      const paddedEntries = new Array(targetDates.length);
+      for (let i = 0, len = targetDates.length; i < len; i++) {
+        const date = targetDates[i];
         if (entryMap.has(date)) {
-          return entryMap.get(date);
+          paddedEntries[i] = entryMap.get(date);
         } else {
           // Empty entry
-          return {
+          paddedEntries[i] = {
             date: date,
             count: 0,
             time: 0,
@@ -83,7 +93,7 @@ export function getReviewStatsData(rangeKey = DEFAULT_RANGE, byDeck = false) {
             filtered: 0,
           };
         }
-      });
+      }
       processedByDeck[deckName] = paddedEntries;
     }
 
