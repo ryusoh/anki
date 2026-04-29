@@ -112,3 +112,8 @@
 
 **Learning:** When generating a Set of unique properties from an array (like unique decks), doing `[...new Set(data.nodes.map(n => n.deck))]` maps an entirely new temporary array in memory purely to feed the Set constructor, creating severe and unnecessary Garbage Collection overhead when parsing large datasets.
 **Action:** Use a fast native `for` loop to iteratively `add()` values into a `new Set()` directly, entirely bypassing the intermediate array `.map()` allocation step when extracting unique properties.
+
+## 2025-05-19 - [Optimize Array allocations in Review Calculations]
+
+**Learning:** In `js/commands/reviews.js`, deriving target dates (`targetDates = globalSlice.map((d) => d.date)`) and padding missing entries (`paddedEntries = targetDates.map((date) => { ... })`) created multiple unneeded array allocations on every invocation, putting unnecessary pressure on garbage collection.
+**Action:** Replace functional array `.map()` derivations in frequently-executed code with standard `for` loops using pre-allocated arrays (`new Array(length)`) to minimize object instantiation overhead and reduce garbage collection impact.
