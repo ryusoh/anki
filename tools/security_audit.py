@@ -116,7 +116,7 @@ def check_for_private_data(filepath, content):
         return _check_code_file_for_private_data(content)
     
     if filepath.endswith('.json'):
-        return _check_json_file_for_private_data(filepath, content)
+        return _check_json_file_for_private_data(content)
     
     return []
 

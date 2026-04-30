@@ -125,3 +125,8 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Vulnerability:** A `requests.post` call to the ElevenLabs API in `awesome_tts/awesometts/service/elevenlabs.py` lacked a `timeout` parameter, allowing the application thread to hang indefinitely if the API server failed to respond.
 **Learning:** Network calls to external APIs without explicit timeouts introduce Denial of Service (DoS) and application hang risks.
 **Prevention:** Always include a `timeout` parameter (e.g., `timeout=10`) when using the `requests` library to interact with external services.
+
+## 2026-04-30 - Prevent DOM-based XSS by removing innerHTML in graph data error handler
+**Vulnerability:** Emptying DOM elements using `loading.innerHTML = ...` in `js/graph/graph.js` to render graph fetch error messages, which injects `e.message` into the DOM.
+**Learning:** Even internal error objects should be treated as potentially unsafe input. Assigning variables to `innerHTML` without sanitization is a recurrent pattern in vanilla JS development that bypasses modern framework protections.
+**Prevention:** When dynamically rendering text content inside an element, use safe DOM methods like `document.createElement()` and `element.textContent = value` instead of template strings assigned to `innerHTML`.
