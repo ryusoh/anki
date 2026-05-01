@@ -111,7 +111,11 @@ class Watson(Service):
             }
 
             self._logger.info(f'data: {data}')
-            response = requests.post(constructed_url, data=json.dumps(data), auth=('apikey', api_key), headers=headers)
+            try:
+                response = requests.post(constructed_url, data=json.dumps(data), auth=('apikey', api_key), headers=headers, timeout=10)
+            except requests.exceptions.RequestException as e:
+                self._logger.error(f"Network error: {e}")
+                raise ValueError(f"Network error: {e}")
 
             if response.status_code == 200:
                 with open(path, 'wb') as audio:

@@ -125,7 +125,11 @@ class FptAi(Service):
 
             api_url = "https://api.fpt.ai/hmi/tts/v5"
             body = text
-            response = requests.post(api_url, headers=headers, data=body.encode('utf-8'))
+            try:
+                response = requests.post(api_url, headers=headers, data=body.encode('utf-8'), timeout=10)
+            except requests.exceptions.RequestException as e:
+                self._logger.error(f"Network error: {e}")
+                raise ValueError(f"Network error: {e}")
 
             self._logger.debug(f'executing POST on {api_url} with headers {headers}, text: {text}')
 
@@ -152,7 +156,12 @@ class FptAi(Service):
             wait_time = 0.2
             while audio_available == False and max_tries > 0:
                 time.sleep(wait_time)
-                r = requests.get(async_url, allow_redirects=True)
+                try:
+                    r = requests.get(async_url, allow_redirects=True, timeout=10)
+                except requests.exceptions.RequestException as e:
+                    self._logger.error(f"Network error: {e}")
+                    audio_available = False
+                    break
                 self._logger.debug(f"status code: {r.status_code}")
                 if r.status_code == 200:
                     audio_available = True

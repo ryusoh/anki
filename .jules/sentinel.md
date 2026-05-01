@@ -130,3 +130,8 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Vulnerability:** Emptying DOM elements using `loading.innerHTML = ...` in `js/graph/graph.js` to render graph fetch error messages, which injects `e.message` into the DOM.
 **Learning:** Even internal error objects should be treated as potentially unsafe input. Assigning variables to `innerHTML` without sanitization is a recurrent pattern in vanilla JS development that bypasses modern framework protections.
 **Prevention:** When dynamically rendering text content inside an element, use safe DOM methods like `document.createElement()` and `element.textContent = value` instead of template strings assigned to `innerHTML`.
+
+## 2024-05-01 - [Missing Timeout Parameter in requests]
+**Vulnerability:** Several API integrations using Python's `requests` library lacked a `timeout` parameter.
+**Learning:** External network calls without explicit timeouts can cause the application thread to hang indefinitely, resulting in DoS vulnerabilities or unresponsive applications when the external service is slow or unresponsive.
+**Prevention:** Always include a `timeout` parameter (e.g., `timeout=10`) wrapped within a `try...except requests.exceptions.RequestException` block when using the `requests` library to interact with external services.
