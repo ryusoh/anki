@@ -101,7 +101,10 @@ class VocalWare(Service):
             url_parameters = f"""EID={voice_key['engine_id']}&LID={voice_key['language_id']}&VID={voice_key['voice_id']}&TXT={urlencoded_text}&ACC={account_id}&API={api_id}&CS={checksum}"""
             url = f"""http://www.vocalware.com/tts/gen.php?{url_parameters}"""
 
-            response = requests.get(url)
+            try:
+                response = requests.get(url, timeout=10)
+            except requests.exceptions.RequestException as e:
+                raise ValueError(f"Network error: {e}")
             if response.status_code == 200:
                 with open(path, 'wb') as audio:
                     audio.write(response.content)

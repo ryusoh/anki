@@ -232,7 +232,10 @@ class Naver(Service):
         )        
         headers = _generate_headers()
         self._logger.info(f'executing POST request on {url} with headers={headers}, data={params}')
-        response = requests.post(url, headers=headers, data=params)
+        try:
+            response = requests.post(url, headers=headers, data=params, timeout=10)
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Network error: {e}")
         if response.status_code != 200:
             raise Exception(f'got status_code {response.status_code} from {url}: {response.content} ')
 

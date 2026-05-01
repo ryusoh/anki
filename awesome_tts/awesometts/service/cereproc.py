@@ -74,7 +74,10 @@ class CereProc(Service):
         headers = {'authorization': f'Basic {auth_string}'}
 
         auth_url = 'https://api.cerevoice.com/v2/auth'
-        response = requests.get(auth_url, headers=headers)
+        try:
+            response = requests.get(auth_url, headers=headers, timeout=10)
+        except requests.exceptions.RequestException as e:
+            raise ValueError(f"Network error: {e}")
 
         access_token = response.json()['access_token']
         return access_token
@@ -109,7 +112,11 @@ class CereProc(Service):
 
             url = f'https://api.cerevoice.com/v2/speak?voice={voice_name}&audio_format=mp3'
             # logging.debug(f'querying url: {url}')            
-            response = requests.post(url, data=ssml_text, headers=self.get_auth_headers(username, password))
+            try:
+                response = requests.post(url, data=ssml_text, headers=self.get_auth_headers(username, password), timeout=10)
+            except requests.exceptions.RequestException as e:
+                self._logger.error(f"Network error: {e}")
+                raise ValueError(f"Network error: {e}")
 
             if response.status_code == 200:
                 with open(path, 'wb') as audio:

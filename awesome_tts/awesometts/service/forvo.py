@@ -823,7 +823,7 @@ class Forvo(Service):
             # run request
             headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0'}
             try:
-                response = requests.get(url, headers=headers)
+                response = requests.get(url, headers=headers, timeout=10)
                 self._logger.debug(f'response.content: {response.content}')
             except requests.exceptions.SSLError as e:
                 message = f"SSL Certificate verification failed when contacting Forvo API. This is usually due to Forvo's servers having an invalid or expired certificate. Details: {e}"
@@ -852,7 +852,7 @@ class Forvo(Service):
                         break
 
                 try:
-                    response = requests.get(audio_url)
+                    response = requests.get(audio_url, timeout=10)
                     response.raise_for_status()
                 except requests.exceptions.SSLError as e:
                     message = f"SSL Certificate verification failed when downloading audio from Forvo. Details: {e}"
