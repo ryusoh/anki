@@ -72,7 +72,16 @@ try {
 
   if (historyRes.ok) historyData = await historyRes.json();
 } catch (e) {
-  loading.innerHTML = `<div style="color:#f5576c;">Failed to load graph data<br><small>${e.message}</small></div>`;
+  loading.textContent = "";
+  const errDiv = document.createElement("div");
+  errDiv.style.color = "#f5576c";
+  errDiv.textContent = "Failed to load graph data";
+  const br = document.createElement("br");
+  const small = document.createElement("small");
+  small.textContent = e.message;
+  errDiv.appendChild(br);
+  errDiv.appendChild(small);
+  loading.appendChild(errDiv);
   throw e;
 }
 
