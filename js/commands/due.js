@@ -39,9 +39,15 @@ export function getFutureDueData(rangeKey = DEFAULT_RANGE, byDeck = false) {
     const limitedData = {};
     for (const [deckName, entries] of Object.entries(allData)) {
       if (Array.isArray(entries)) {
-        // Find indices within the day range
+        // Bolt: Optimize sorted array filtering with early exit to avoid O(N) traversal.
         // Since entries are sorted by day in the Python export, we can stop at `day >= days`
-        limitedData[deckName] = entries.filter((e) => e.day < days);
+        const filtered = [];
+        for (let i = 0, len = entries.length; i < len; i++) {
+          const e = entries[i];
+          if (e.day >= days) break;
+          filtered.push(e);
+        }
+        limitedData[deckName] = filtered;
       }
     }
     return limitedData;
