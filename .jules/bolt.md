@@ -122,3 +122,13 @@
 
 **Learning:** When filtering data arrays that are already guaranteed to be sorted by the backend (like chronological days in `futureDue`), using `Array.prototype.filter()` iterates over the entire O(N) collection, creating severe Garbage Collection pressure from closure allocation and wasting execution time on guaranteed-invalid subsequent elements.
 **Action:** Replace `Array.prototype.filter()` with a native `for` loop combined with an early `break` statement when the condition is guaranteed to no longer match, reducing operations from O(N) to O(K) where K is the number of valid matches.
+
+## 2025-05-19 - [Optimize Array Allocations in Review Calculations]
+
+**Learning:** In `js/commands/reviews.js`, deriving target dates (`labels = data.map((entry) => entry.date)`) created multiple unneeded array allocations on every invocation, putting unnecessary pressure on garbage collection.
+**Action:** Replace functional array `.map()` derivations in frequently-executed code with standard `for` loops using pre-allocated arrays (`new Array(length)`) to minimize object instantiation overhead and reduce garbage collection impact.
+
+## 2025-05-19 - [Optimize Object allocations in Prefetch Chains]
+
+**Learning:** In `js/ui/nav_prefetch.js`, chaining `.filter().forEach()` over `Object.keys()` combined with an inner `.forEach()` created unnecessary intermediate array allocations, increasing garbage collection pressure during the background prefetch initialization.
+**Action:** Replace `Array.prototype.filter().forEach()` chains over Object properties with standard native `for` loops, adding early `continue` statements to emulate the filter, to eliminate intermediate array closures and minimize GC overhead.

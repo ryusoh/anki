@@ -330,35 +330,32 @@
       cssDiscoveryTasks,
     );
 
-    Object.keys(routePaths)
-      .filter((key) => key !== currentRoute)
-      .forEach((key) => {
-        const assets = MEDIA_MANIFEST[key];
-        if (!assets || !assets.length) {
-          return;
+    const routeKeys = Object.keys(routePaths);
+    for (let i = 0, len = routeKeys.length; i < len; i++) {
+      const key = routeKeys[i];
+      if (key === currentRoute) continue;
+      const assets = MEDIA_MANIFEST[key];
+      if (!assets || !assets.length) {
+        continue;
+      }
+      for (let j = 0, alen = assets.length; j < alen; j++) {
+        const asset = assets[j];
+        if (!asset || !asset.url) continue;
+        if (shouldSkipAsset(asset, connection)) continue;
+        const assetUrl = resolveAssetUrl(appBase, asset);
+        if (assetUrl) {
+          queueFetchTask(assetUrl, queue, seen);
         }
-        assets.forEach((asset) => {
-          if (!asset || !asset.url) {
-            return;
-          }
-          if (shouldSkipAsset(asset, connection)) {
-            return;
-          }
-          const assetUrl = resolveAssetUrl(appBase, asset);
-          if (assetUrl) {
-            queueFetchTask(assetUrl, queue, seen);
-          }
-        });
-
-        queueCssBackgrounds(
-          key,
-          appBase,
-          connection,
-          queue,
-          seen,
-          cssDiscoveryTasks,
-        );
-      });
+      }
+      queueCssBackgrounds(
+        key,
+        appBase,
+        connection,
+        queue,
+        seen,
+        cssDiscoveryTasks,
+      );
+    }
 
     const finalizePrefetch = () => {
       if (!queue.length) {
