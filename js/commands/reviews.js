@@ -466,7 +466,11 @@ export function renderReviewsChart(
       legend.style.flexWrap = "nowrap"; // reset
     }
 
-    labels = data.map((entry) => entry.date);
+    // Bolt: Use pre-allocated array instead of .map() to reduce garbage collection pressure.
+    labels = new Array(data.length);
+    for (let i = 0, len = data.length; i < len; i++) {
+      labels[i] = data[i].date;
+    }
     isDense = labels.length > 100;
     const radius = isDense ? 0 : 4;
     const preSumObj = data.preSliceSum || {
