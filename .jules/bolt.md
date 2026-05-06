@@ -132,3 +132,8 @@
 
 **Learning:** In `js/ui/nav_prefetch.js`, chaining `.filter().forEach()` over `Object.keys()` combined with an inner `.forEach()` created unnecessary intermediate array allocations, increasing garbage collection pressure during the background prefetch initialization.
 **Action:** Replace `Array.prototype.filter().forEach()` chains over Object properties with standard native `for` loops, adding early `continue` statements to emulate the filter, to eliminate intermediate array closures and minimize GC overhead.
+
+## 2025-05-19 - [Optimize Array.from with dummy objects]
+
+**Learning:** Using `Array.from({ length: N }, callback)` for mapping creates an intermediate array-like object with a `length` property which causes callback overhead and object allocation garbage collection pressure inside chart rendering loops.
+**Action:** Replace `Array.from()` map initializations in hot paths with pre-allocated native arrays (`new Array(N)`) combined with standard native `for` loops to directly assign values. This completely eliminates dummy array-like object instantiations and callback function GC overhead.

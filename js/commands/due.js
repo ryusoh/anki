@@ -127,11 +127,12 @@ export function renderFutureDueChart(data, byDeck = false, rangeDays = null) {
   }
 
   const numDays = maxDay + 1;
-  const labels = Array.from({ length: numDays }, (_, i) => {
-    if (i === 0) return "Today";
-    if (i === 1) return "Tomorrow";
-    return `+${i}d`;
-  });
+  const labels = new Array(numDays);
+  for (let i = 0; i < numDays; i++) {
+    if (i === 0) labels[i] = "Today";
+    else if (i === 1) labels[i] = "Tomorrow";
+    else labels[i] = `+${i}d`;
+  }
 
   const datasets = [];
 
@@ -158,10 +159,10 @@ export function renderFutureDueChart(data, byDeck = false, rangeDays = null) {
           daySparseMap[e.day] = (e.mature || 0) + (e.young || 0);
         }
 
-        const counts = Array.from(
-          { length: numDays },
-          (_, i) => daySparseMap[i] || 0,
-        );
+        const counts = new Array(numDays);
+        for (let i = 0; i < numDays; i++) {
+          counts[i] = daySparseMap[i] || 0;
+        }
 
         const color = getGroupedDeckColor(
           deckInfo.groupIndex,
@@ -208,14 +209,12 @@ export function renderFutureDueChart(data, byDeck = false, rangeDays = null) {
       dayMapYoung[e.day] = e.young || 0;
     }
 
-    const matureDataset = Array.from(
-      { length: numDays },
-      (_, i) => dayMapMature[i] || 0,
-    );
-    const youngDataset = Array.from(
-      { length: numDays },
-      (_, i) => dayMapYoung[i] || 0,
-    );
+    const matureDataset = new Array(numDays);
+    const youngDataset = new Array(numDays);
+    for (let i = 0; i < numDays; i++) {
+      matureDataset[i] = dayMapMature[i] || 0;
+      youngDataset[i] = dayMapYoung[i] || 0;
+    }
 
     /* c8 ignore next */
     const radius = numDays > 100 ? 0 : 4;
