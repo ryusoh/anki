@@ -100,7 +100,6 @@ Colors are assigned consistently based on deck name hash. Predefined colors:
 | 言語英語 | #45B7D1 (Blue)   |
 | 言語呉語 | #96CEB4 (Green)  |
 | 言語台語 | #FFEAA7 (Yellow) |
-| 金融産研 | #DDA0DD (Plum)   |
-| 金融理論 | #98D8C8 (Mint)   |
+| 金融     | #DDA0DD (Plum)   |
 
 Unknown decks get auto-generated HSL colors.

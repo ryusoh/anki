@@ -53,13 +53,12 @@ class TestDeckAliases:
         assert DECK_ALIASES['5'] == '言語台語'
     
     def test_alias_f_resolves(self):
-        """Test that 'F' alias resolves to Finance (generic)."""
+        """Test that 'F' alias resolves to Finance (merged deck)."""
         from graph.analyze import DECK_ALIASES
-        
+
         assert DECK_ALIASES['F'] == '金融'
         assert DECK_ALIASES['f'] == '金融'
-        assert DECK_ALIASES['6'] == '金融産研'
-        assert DECK_ALIASES['7'] == '金融理論'
+        assert DECK_ALIASES['6'] == '金融'
 
 
 class TestResolveDeckAlias:
@@ -119,17 +118,17 @@ class TestGetDeckNotes:
         assert result[0]['deck'] == '言語日語'
     
     def test_get_finance_notes(self):
-        """Test getting notes from both finance decks with 'F' alias."""
+        """Test getting notes from merged finance deck with 'F' alias."""
         from graph.analyze import get_deck_notes
-        
+
         notes = [
-            {'deck': '金融産研', 'guid': 'n1'},
-            {'deck': '金融理論', 'guid': 'n2'},
+            {'deck': '金融', 'guid': 'n1'},
+            {'deck': '金融', 'guid': 'n2'},
             {'deck': '言語日語', 'guid': 'n3'},
         ]
-        
+
         result = get_deck_notes(notes, 'F')
-        
+
         assert len(result) == 2
         assert set(n['guid'] for n in result) == {'n1', 'n2'}
     
@@ -144,6 +143,48 @@ class TestGetDeckNotes:
         result = get_deck_notes(notes, 'Nonexistent')
         
         assert len(result) == 0
+
+
+class TestBuildDeckMapFromCards:
+    """Test build_deck_map_from_cards resolves via decks.json."""
+
+    def test_uses_decks_json_over_stale_deck_name(self, tmp_path):
+        """Cards with stale deck_name should resolve via did + decks.json."""
+        from graph.analyze import build_deck_map_from_cards
+        import gzip, json
+
+        cards = [
+            {"nid": 1, "did": 100, "deck_name": "金融\x1f産研"},
+            {"nid": 2, "did": 100, "deck_name": "金融\x1f理論"},
+            {"nid": 3, "did": 200, "deck_name": "言語\x1f英語"},
+        ]
+        cards_file = tmp_path / "cards.json.gz"
+        with gzip.open(cards_file, 'wt', encoding='utf-8') as f:
+            json.dump(cards, f)
+
+        decks_file = tmp_path / "decks.json"
+        with open(decks_file, 'w') as f:
+            json.dump({"100": "金融", "200": "言語\x1f英語"}, f)
+
+        result = build_deck_map_from_cards([], cards_file, decks_file)
+        assert result[1]['deck_name'] == '金融'
+        assert result[2]['deck_name'] == '金融'
+        assert result[3]['deck_name'] == '言語\x1f英語'
+
+    def test_falls_back_to_deck_name_without_decks_file(self, tmp_path):
+        """Without decks.json, use per-card deck_name."""
+        from graph.analyze import build_deck_map_from_cards
+        import gzip, json
+
+        cards = [
+            {"nid": 1, "did": 100, "deck_name": "TestDeck"},
+        ]
+        cards_file = tmp_path / "cards.json.gz"
+        with gzip.open(cards_file, 'wt', encoding='utf-8') as f:
+            json.dump(cards, f)
+
+        result = build_deck_map_from_cards([], cards_file)
+        assert result[1]['deck_name'] == 'TestDeck'
 
 
 class TestLoadNotesFromFile:

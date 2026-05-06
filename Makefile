@@ -76,7 +76,7 @@ graph-deck:
 		echo "  E, 3  - 言語英語 (English)"; \
 		echo "  S, 4  - 言語呉語 (Wu/Shanghai)"; \
 		echo "  T, 5  - 言語台語 (Taiwanese)"; \
-		echo "  F, 67 - 金融 (Finance - both decks)"; \
+		echo "  F, 6  - 金融 (Finance)"; \
 	else \
 		python3 graph/analyze.py --deck "$(DECK)" --top 10 --hubs --isolated; \
 	fi

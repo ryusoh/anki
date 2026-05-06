@@ -4,14 +4,14 @@ Quick reference for deck aliases.
 
 ## Aliases
 
-| Alias         | Deck Name | Language       | Notes  |
-| ------------- | --------- | -------------- | ------ |
-| `J`, `1`      | 言語日語  | Japanese       | 50,193 |
-| `C`, `2`      | 言語粵語  | Cantonese      | 34,463 |
-| `E`, `3`      | 言語英語  | English        | 29,610 |
-| `S`, `4`      | 言語呉語  | Wu/Shanghai    | 18,600 |
-| `T`, `5`      | 言語台語  | Taiwanese      | 15,163 |
-| `F`, `6`, `7` | 金融      | Finance (both) | 13,147 |
+| Alias    | Deck Name | Language    | Notes  |
+| -------- | --------- | ----------- | ------ |
+| `J`, `1` | 言語日語  | Japanese    | 50,193 |
+| `C`, `2` | 言語粵語  | Cantonese   | 34,463 |
+| `E`, `3` | 言語英語  | English     | 29,610 |
+| `S`, `4` | 言語呉語  | Wu/Shanghai | 18,600 |
+| `T`, `5` | 言語台語  | Taiwanese   | 15,163 |
+| `F`, `6` | 金融      | Finance     | 13,147 |
 
 ## Usage
 

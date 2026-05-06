@@ -13,6 +13,7 @@ from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).parent
 CARDS_FILE = SCRIPT_DIR / "cards.json.gz"
+DECKS_FILE = SCRIPT_DIR / "decks.json"
 # Output to data/anki for web terminal and stats_page_customizer add-on
 OUTPUT_FILE = SCRIPT_DIR / "custom_stats_data.json"
 
@@ -54,6 +55,30 @@ def get_anki_today():
         anki_epoch = datetime(2007, 1, 1)
         today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         return (today - anki_epoch).days
+
+
+def build_cid_to_deck(cards, decks_map=None):
+    """Build card-ID-to-deck-name mapping using did + decks.json for current names.
+
+    Prefers resolving via did -> decks_map (canonical, always current).
+    Falls back to per-card deck_name (may be stale after deck merges/renames).
+    """
+    if decks_map is None:
+        decks_map = {}
+    cid_to_deck = {}
+    for card in cards:
+        cid = card.get("id")
+        if cid is None:
+            continue
+        did = card.get("did")
+        if did is not None and did in decks_map:
+            raw = decks_map[did]
+        elif "deck_name" in card:
+            raw = card["deck_name"]
+        else:
+            continue
+        cid_to_deck[cid] = raw.replace('\x1f', '::')
+    return cid_to_deck
 
 
 def calculate_future_due(cards_data, cid_to_deck=None, max_days=None, anki_today=None):
@@ -222,18 +247,17 @@ def main():
 
     print(f"   Loaded {len(cards_data):,} cards")
 
-    # Load cid -> deck_name mapping
-    cid_to_deck = {}
-    if CARDS_FILE.exists():
+    # Load deck ID -> current name mapping from decks.json
+    decks_map = {}
+    if DECKS_FILE.exists():
         try:
-            with gzip.open(CARDS_FILE, "rt", encoding="utf-8") as f:
-                cards = json.load(f)
-                for card in cards:
-                    if "id" in card and "deck_name" in card:
-                        # deck_name often contains the full path like Language\x1fEnglish
-                        cid_to_deck[card["id"]] = card["deck_name"].replace('\x1f', '::')
+            with open(DECKS_FILE, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+            decks_map = {int(k): v for k, v in raw.items()}
         except Exception as e:
-            print(f"Warning: Failed to load cards mapping: {e}")
+            print(f"Warning: Failed to load decks.json: {e}")
+
+    cid_to_deck = build_cid_to_deck(cards_data, decks_map)
 
     # Generate stats for web terminal and stats_page_customizer add-on
     web_stats, web_by_deck = calculate_future_due(cards_data, cid_to_deck, max_days=None)

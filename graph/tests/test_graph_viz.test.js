@@ -50,8 +50,7 @@ describe("Deck Color Assignment", () => {
     言語英語: "#45B7D1",
     言語呉語: "#96CEB4",
     言語台語: "#FFEAA7",
-    金融産研: "#DDA0DD",
-    金融理論: "#98D8C8",
+    金融: "#DDA0DD",
   };
 
   it("assigns consistent color per deck", () => {

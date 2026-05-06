@@ -53,9 +53,8 @@ DECK_ALIASES = {
     't': '言語台語',
     'T': '言語台語',
     
-    '6': '金融産研',
-    '7': '金融理論',
-    'f': '金融',  # Matches both finance decks
+    '6': '金融',
+    'f': '金融',
     'F': '金融',
 }
 
@@ -129,8 +128,9 @@ def load_notes_with_decks():
         if notes:
             # Try to get deck info from cards.json.gz
             cards_file = Path(__file__).parent.parent / "data" / "anki" / "cards.json.gz"
+            decks_file = Path(__file__).parent.parent / "data" / "anki" / "decks.json"
             if cards_file.exists():
-                deck_map = build_deck_map_from_cards(notes, cards_file)
+                deck_map = build_deck_map_from_cards(notes, cards_file, decks_file)
                 for note in notes:
                     if note['id'] in deck_map:
                         note['deck'] = deck_map[note['id']]['deck_name']
@@ -141,14 +141,16 @@ def load_notes_with_decks():
     return []
 
 
-def build_deck_map_from_cards(notes, cards_file):
+def build_deck_map_from_cards(notes, cards_file, decks_file=None):
     """
     Build deck map from cards.json.gz.
-    
-    Maps note IDs to deck information.
+
+    Maps note IDs to deck information. When decks_file is provided,
+    resolves deck names via did -> decks.json (canonical, always current)
+    instead of per-card deck_name which can be stale after merges/renames.
     """
     import gzip
-    
+
     try:
         if cards_file.suffix == '.gz':
             with gzip.open(cards_file, 'rt', encoding='utf-8') as f:
@@ -156,19 +158,31 @@ def build_deck_map_from_cards(notes, cards_file):
         else:
             with open(cards_file, 'r', encoding='utf-8') as f:
                 cards = json.load(f)
-        
+
+        # Load did -> current name from decks.json
+        did_to_name = {}
+        if decks_file and decks_file.exists():
+            try:
+                with open(decks_file, 'r', encoding='utf-8') as f:
+                    raw = json.load(f)
+                did_to_name = {int(k): v for k, v in raw.items()}
+            except Exception as e:
+                print(f"Warning: Failed to load decks.json: {e}", file=sys.stderr)
+
         # Build map: note_id -> deck info
         deck_map = {}
         for card in cards:
             nid = card['nid']
             if nid not in deck_map:
+                did = card['did']
+                deck_name = did_to_name.get(did, card.get('deck_name', 'Unknown'))
                 deck_map[nid] = {
-                    'did': card['did'],
-                    'deck_name': card.get('deck_name', 'Unknown')
+                    'did': did,
+                    'deck_name': deck_name
                 }
-        
+
         return deck_map
-    
+
     except Exception as e:
         print(f"⚠️  Could not load cards: {e}", file=sys.stderr)
         return {}
@@ -195,22 +209,11 @@ def resolve_deck_alias(alias):
 
 def get_deck_notes(notes, deck_name):
     """
-    Get notes for a deck name (supports aliases and partial matching).
+    Get notes for a deck name (supports aliases and exact matching).
     """
-    # Check if it's an alias
     resolved = resolve_deck_alias(deck_name)
-    
-    if resolved and resolved != '金融':
-        return [n for n in notes if n.get('deck') == resolved]
-    elif deck_name in ['f', 'F', '金融']:
-        # Match both finance decks
-        return [n for n in notes if n.get('deck', '').startswith('金融')]
-    elif resolved == '金融':
-        # F alias - match both finance decks
-        return [n for n in notes if n.get('deck', '').startswith('金融')]
-    else:
-        # Exact match
-        return [n for n in notes if n.get('deck') == deck_name]
+    target = resolved if resolved else deck_name
+    return [n for n in notes if n.get('deck') == target]
 
 
 def print_deck_list(notes):
@@ -395,8 +398,6 @@ def main():
         if resolved:
             deck_to_analyze = resolved
             print(f"📍 Alias '{args.deck}' → '{resolved}'")
-        elif args.deck in ['f', 'F', '金融']:
-            print(f"📍 Analyzing finance decks (金融)")
         elif args.deck not in decks:
             print(f"❌ Deck not found: {args.deck}", file=sys.stderr)
             print(f"\nAvailable decks:", file=sys.stderr)

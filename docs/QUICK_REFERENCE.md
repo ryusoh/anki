@@ -8,14 +8,14 @@
 
 **Use these instead of typing full deck names!**
 
-| Alias         | Deck                   | Cards |
-| ------------- | ---------------------- | ----- |
-| `J`, `1`      | 言語日語 (Japanese)    | 50K   |
-| `C`, `2`      | 言語粵語 (Cantonese)   | 34K   |
-| `E`, `3`      | 言語英語 (English)     | 30K   |
-| `S`, `4`      | 言語呉語 (Wu/Shanghai) | 19K   |
-| `T`, `5`      | 言語台語 (Taiwanese)   | 15K   |
-| `F`, `6`, `7` | 金融 (Finance)         | 13K   |
+| Alias    | Deck                   | Cards |
+| -------- | ---------------------- | ----- |
+| `J`, `1` | 言語日語 (Japanese)    | 50K   |
+| `C`, `2` | 言語粵語 (Cantonese)   | 34K   |
+| `E`, `3` | 言語英語 (English)     | 30K   |
+| `S`, `4` | 言語呉語 (Wu/Shanghai) | 19K   |
+| `T`, `5` | 言語台語 (Taiwanese)   | 15K   |
+| `F`, `6` | 金融 (Finance)         | 13K   |
 
 ---
 
