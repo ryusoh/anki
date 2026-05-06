@@ -4,7 +4,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from search import score_front_match, extract_terms, sort_tier1_by_score
+from search import score_front_match, extract_terms
 
 @pytest.mark.parametrize("text, term, expected_score", [
     ("tiff", "tiff", 4),           # Exact match
@@ -27,6 +27,16 @@ def test_score_front_match_html():
     assert score_front_match("<i>blow up a tiff</i>", "tiff") == 3
     assert score_front_match("<u>stiff</u>", "tiff") == 2
     assert score_front_match("<div class='foo'>working stiff</div>", "tiff") == 1
+    assert score_front_match("<ruby>強</ruby>がる", "強がる") == 4
+    
+    # Should strip contents of rt, rp, style, script tags
+    assert score_front_match("<h3><ruby>連<rt>つ</rt></ruby>れ</h3>", "連れ") == 4
+    assert score_front_match("<ruby>連<rp>(</rp><rt>つ</rt><rp>)</rp></ruby>れ", "連れ") == 4
+    assert score_front_match("<style>.red { color: red; }</style>連れ", "連れ") == 4
+    assert score_front_match("<script>alert(1);</script>連れ", "連れ") == 4
+    
+    # Should strip Anki sound tags
+    assert score_front_match("連れ[sound:test.mp3]", "連れ") == 4
 
 def test_extract_terms():
     assert extract_terms("apple banana") == ["apple", "banana"]
@@ -34,27 +44,3 @@ def test_extract_terms():
     assert extract_terms('apple OR banana') == ["apple", "banana"]
     assert extract_terms('Front:*tiff*') == ["tiff"] # Should remove wildcards
     assert extract_terms('Front:tiff') == ["tiff"]
-
-def test_sort_tier1_by_score():
-    ids = [1, 2, 3, 4]
-    note_data = {
-        1: "working stiff", # score 1
-        2: "tiff",          # score 4
-        3: "stiff",          # score 2
-        4: "a tiff"          # score 3
-    }
-    terms = ["tiff"]
-    sorted_ids = sort_tier1_by_score(ids, note_data, terms)
-    assert sorted_ids == [2, 4, 3, 1]
-
-def test_sort_tier1_stable():
-    # Items with same score should preserve original order
-    ids = [1, 2, 3]
-    note_data = {
-        1: "tiff one", # score 3
-        2: "tiff two", # score 3
-        3: "tiff"      # score 4
-    }
-    terms = ["tiff"]
-    sorted_ids = sort_tier1_by_score(ids, note_data, terms)
-    assert sorted_ids == [3, 1, 2] # 3 is highest, 1 and 2 same score so 1 then 2

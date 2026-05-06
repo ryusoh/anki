@@ -2,8 +2,12 @@ import re
 
 def strip_html(text: str) -> str:
     """Very basic HTML stripping for scoring purposes."""
-    # Remove HTML tags
+    # Strip <rt>, <rp>, <style>, <script> tags and their contents
+    text = re.sub(r'<(rt|rp|style|script)[^>]*>.*?</\1>', '', text, flags=re.IGNORECASE | re.DOTALL)
+    # Remove all other HTML tags
     text = re.sub(r'<[^>]+>', '', text)
+    # Remove Anki sound tags
+    text = re.sub(r'\[sound:[^]]+\]', '', text)
     # Basic entity replacement
     text = text.replace('&nbsp;', ' ').replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&')
     return text
@@ -83,57 +87,3 @@ def extract_terms(query: str) -> list[str]:
                 terms.append(term)
 
     return terms
-
-
-def _transform_tier1_part(part: str) -> tuple[str, bool]:
-    """Helper to transform a single query part for Tier 1."""
-    if part.upper() == "OR" or re.match(r'^-?[a-zA-Z0-9_]+:', part) or (part.startswith('-') and not part == '-'):
-        return part, False
-
-    if part.startswith('"') and part.endswith('"') and len(part) >= 2:
-        return f'"Front:*{part[1:-1]}*"', True
-
-    if '*' in part:
-        return f'Front:{part}', True
-
-    return f'Front:*{part}*', True
-
-def build_tier1_query(query: str) -> str:
-    """
-    Given a raw Anki query string, transforms it into a Tier 1 query
-    where normal terms are enforced to match the Front field.
-    Special directives (deck:, is:, OR, -, etc) are left intact.
-    """
-    if not query:
-        return ""
-
-    tier_1_parts = []
-    has_normal_terms = False
-
-    for match in re.finditer(r'[a-zA-Z0-9_-]+:"(?:[^"\\]|\\.)*"|[^"\s]+|"(?:[^"\\]|\\.)*"', query):
-        transformed, is_normal = _transform_tier1_part(match.group(0))
-        tier_1_parts.append(transformed)
-        has_normal_terms = has_normal_terms or is_normal
-
-    if not has_normal_terms:
-        return ""
-
-    return " ".join(tier_1_parts).strip()
-
-def sort_tier1_by_score(ids: list[int], note_data: dict[int, str], terms: list[str]) -> list[int]:
-    """
-    Sorts a list of IDs by their match score in the Front field.
-    Preserves original order for items with equal scores (stable sort).
-    """
-    if not terms or not ids:
-        return ids
-
-    score_map = {}
-    for item_id in ids:
-        front_text = note_data.get(item_id, "")
-        # Calculate total score across all terms
-        score = sum(score_front_match(front_text, term) for term in terms)
-        score_map[item_id] = score
-
-    # Sort descending by score. Python's sort is stable.
-    return sorted(ids, key=lambda x: score_map[x], reverse=True)
