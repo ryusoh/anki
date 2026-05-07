@@ -137,3 +137,8 @@
 
 **Learning:** Using `Array.from({ length: N }, callback)` for mapping creates an intermediate array-like object with a `length` property which causes callback overhead and object allocation garbage collection pressure inside chart rendering loops.
 **Action:** Replace `Array.from()` map initializations in hot paths with pre-allocated native arrays (`new Array(N)`) combined with standard native `for` loops to directly assign values. This completely eliminates dummy array-like object instantiations and callback function GC overhead.
+
+## 2025-05-19 - [Optimize Set Iterations in Hot Paths]
+
+**Learning:** When executing rapid UI callbacks (such as scrubbing a timeline slider), iterating over Sets using `Set.prototype.forEach((item) => { ... })` incurs significant garbage collection (GC) overhead due to the constant allocation of anonymous callback functions on every execution.
+**Action:** Replace `Set.prototype.forEach()` in high-frequency or animation hot paths with native `for...of` loops (e.g., `for (const item of mySet) { ... }`) to eliminate closure allocations and minimize GC spikes.
