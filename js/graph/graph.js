@@ -465,7 +465,7 @@ function updateTimeline() {
   }
   const degree1 = new Set();
 
-  activeSet.forEach((id) => {
+  for (const id of activeSet) {
     const neighbors = adjacency.get(id);
     if (neighbors) {
       for (let j = 0; j < neighbors.length; j++) {
@@ -473,7 +473,7 @@ function updateTimeline() {
         if (!activeSet.has(targetId)) degree1.add(targetId);
       }
     }
-  });
+  }
 
   const dateTop =
     document.getElementById("date-top") ||
@@ -489,11 +489,11 @@ function updateTimeline() {
   // Update Highlight Nodes (Now O(1) Lookups)
   let hiIdx = 0;
 
-  activeSet.forEach((id) => {
-    if (hiIdx >= MAX_HI) return;
+  for (const id of activeSet) {
+    if (hiIdx >= MAX_HI) break;
     const p = nodeMap.get(id);
     const c = nodeColorMap.get(id) || fallbackColor;
-    if (!p) return;
+    if (!p) continue;
 
     hiPos[hiIdx * 3] = p.x;
     hiPos[hiIdx * 3 + 1] = p.y;
@@ -504,13 +504,13 @@ function updateTimeline() {
     hiSiz[hiIdx] = p.size * 65; // Proportional to PageRank
     hiAlp[hiIdx] = 1.0;
     hiIdx++;
-  });
+  }
 
-  degree1.forEach((id) => {
-    if (hiIdx >= MAX_HI) return;
+  for (const id of degree1) {
+    if (hiIdx >= MAX_HI) break;
     const p = nodeMap.get(id);
     const c = nodeColorMap.get(id) || fallbackColor;
-    if (!p) return;
+    if (!p) continue;
 
     hiPos[hiIdx * 3] = p.x;
     hiPos[hiIdx * 3 + 1] = p.y;
@@ -521,7 +521,7 @@ function updateTimeline() {
     hiSiz[hiIdx] = p.size * 25; // Sub-highlights also proportional
     hiAlp[hiIdx] = 0.4;
     hiIdx++;
-  });
+  }
 
   // Zero out rest to hide them
   for (let i = hiIdx; i < MAX_HI; i++) {
@@ -537,12 +537,15 @@ function updateTimeline() {
 
   // Update Highlight Edges
   let hiEIdx = 0;
-  activeSet.forEach((sId) => {
-    (adjacency.get(sId) || []).forEach((l) => {
-      if (hiEIdx >= MAX_HI) return;
+  for (const sId of activeSet) {
+    if (hiEIdx >= MAX_HI) break;
+    const edges = adjacency.get(sId) || [];
+    for (let i = 0; i < edges.length; i++) {
+      if (hiEIdx >= MAX_HI) break;
+      const l = edges[i];
       const s = nodeMap.get(sId),
         t = nodeMap.get(l.target);
-      if (!s || !t) return;
+      if (!s || !t) continue;
       const o = hiEIdx * 6;
       hiEdgePos[o] = s.x;
       hiEdgePos[o + 1] = s.y;
@@ -577,8 +580,8 @@ function updateTimeline() {
       hiEdgeAlp[hiEIdx * 2] = a;
       hiEdgeAlp[hiEIdx * 2 + 1] = a;
       hiEIdx++;
-    });
-  });
+    }
+  }
   hiEdgeGeom.setDrawRange(0, hiEIdx * 2);
   hiEdgeGeom.attributes.position.needsUpdate = true;
   hiEdgeGeom.attributes.aColor.needsUpdate = true;
