@@ -393,34 +393,42 @@ export class TableGlassEffect {
 
   // Helper to get point along rounded rectangle path
   // Helper to get point along rounded rectangle path
-  getPointAtProgressZeroRadius(progress) {
+  getPointAtProgressZeroRadius(progress, out = { x: 0, y: 0 }) {
     const w = this.width;
     const h = this.height;
     const perimeter = 2 * w + 2 * h;
     const dist = progress * perimeter;
     if (dist <= w) {
-      return { x: dist, y: 0 };
+      out.x = dist;
+      out.y = 0;
+      return out;
     }
     if (dist <= w + h) {
-      return { x: w, y: dist - w };
+      out.x = w;
+      out.y = dist - w;
+      return out;
     }
     if (dist <= 2 * w + h) {
-      return { x: w - (dist - (w + h)), y: h };
+      out.x = w - (dist - (w + h));
+      out.y = h;
+      return out;
     }
-    return { x: 0, y: h - (dist - (2 * w + h)) };
+    out.x = 0;
+    out.y = h - (dist - (2 * w + h));
+    return out;
   }
 
-  getPointAtProgress(progress, radius) {
+  getPointAtProgress(progress, radius, out = { x: 0, y: 0 }) {
     progress = progress % 1;
     if (progress < 0) {
       progress += 1;
     }
 
     if (radius === 0) {
-      return this.getPointAtProgressZeroRadius(progress);
+      return this.getPointAtProgressZeroRadius(progress, out);
     }
 
-    // ⚡ Bolt: Inline mathematical calculations inside high-frequency
+    // Bolt: Inline mathematical calculations inside high-frequency
     // animation loops to eliminate Array.reduce and object generation GC pressure.
     const w = this.width;
     const h = this.height;
@@ -432,57 +440,61 @@ export class TableGlassEffect {
     let dist = progress * perimeter;
 
     if (dist <= lineW) {
-      return { x: radius + dist, y: 0 };
+      out.x = radius + dist;
+      out.y = 0;
+      return out;
     }
     dist -= lineW;
 
     if (dist <= cornerLen) {
       const angle = -Math.PI / 2 + (dist / cornerLen) * (Math.PI / 2);
-      return {
-        x: w - radius + Math.cos(angle) * radius,
-        y: radius + Math.sin(angle) * radius,
-      };
+      out.x = w - radius + Math.cos(angle) * radius;
+      out.y = radius + Math.sin(angle) * radius;
+      return out;
     }
     dist -= cornerLen;
 
     if (dist <= lineH) {
-      return { x: w, y: radius + dist };
+      out.x = w;
+      out.y = radius + dist;
+      return out;
     }
     dist -= lineH;
 
     if (dist <= cornerLen) {
       const angle = (dist / cornerLen) * (Math.PI / 2);
-      return {
-        x: w - radius + Math.cos(angle) * radius,
-        y: h - radius + Math.sin(angle) * radius,
-      };
+      out.x = w - radius + Math.cos(angle) * radius;
+      out.y = h - radius + Math.sin(angle) * radius;
+      return out;
     }
     dist -= cornerLen;
 
     if (dist <= lineW) {
-      return { x: w - radius - dist, y: h };
+      out.x = w - radius - dist;
+      out.y = h;
+      return out;
     }
     dist -= lineW;
 
     if (dist <= cornerLen) {
       const angle = Math.PI / 2 + (dist / cornerLen) * (Math.PI / 2);
-      return {
-        x: radius + Math.cos(angle) * radius,
-        y: h - radius + Math.sin(angle) * radius,
-      };
+      out.x = radius + Math.cos(angle) * radius;
+      out.y = h - radius + Math.sin(angle) * radius;
+      return out;
     }
     dist -= cornerLen;
 
     if (dist <= lineH) {
-      return { x: 0, y: h - radius - dist };
+      out.x = 0;
+      out.y = h - radius - dist;
+      return out;
     }
     dist -= lineH;
 
     const angle = Math.PI + (dist / cornerLen) * (Math.PI / 2);
-    return {
-      x: radius + Math.cos(angle) * radius,
-      y: radius + Math.sin(angle) * radius,
-    };
+    out.x = radius + Math.cos(angle) * radius;
+    out.y = radius + Math.sin(angle) * radius;
+    return out;
   }
 
   // Better path follower that respects corners
@@ -535,6 +547,11 @@ export class TableGlassEffect {
       return;
     }
 
+    // Bolt: Cache out objects to avoid creating object allocations in high
+    // frequency animation loops, which puts heavy pressure on GC.
+    this._p1 = this._p1 || { x: 0, y: 0 };
+    this._p2 = this._p2 || { x: 0, y: 0 };
+
     const colors = electric.colors || {};
     const rawPalette = [colors.primary, colors.secondary, colors.tertiary];
     let validPaletteCount = 0;
@@ -582,8 +599,8 @@ export class TableGlassEffect {
         const p1 = headProgress - segmentProgress * trailWidth;
         const p2 = headProgress - ((j + 1) / segments) * trailWidth;
 
-        const point1 = this.getPointAtProgress(p1, radius);
-        const point2 = this.getPointAtProgress(p2, radius);
+        const point1 = this.getPointAtProgress(p1, radius, this._p1);
+        const point2 = this.getPointAtProgress(p2, radius, this._p2);
 
         // Smooth fade out
         // Use a power curve for more elegant falloff
@@ -617,6 +634,7 @@ export class TableGlassEffect {
     this.ctx.save();
     this.ctx.globalCompositeOperation = "screen";
 
+    this._pParticle = this._pParticle || { x: 0, y: 0 };
     const particles = this.state.energyParticles;
     for (let i = 0; i < particles.length; i++) {
       const p = particles[i];
@@ -625,7 +643,7 @@ export class TableGlassEffect {
         continue;
       }
 
-      const pos = this.getPointAtProgress(p.progress, radius);
+      const pos = this.getPointAtProgress(p.progress, radius, this._pParticle);
 
       // Add some jitter/offset
       const flicker =

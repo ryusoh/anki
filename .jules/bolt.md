@@ -142,3 +142,8 @@
 
 **Learning:** When executing rapid UI callbacks (such as scrubbing a timeline slider), iterating over Sets using `Set.prototype.forEach((item) => { ... })` incurs significant garbage collection (GC) overhead due to the constant allocation of anonymous callback functions on every execution.
 **Action:** Replace `Set.prototype.forEach()` in high-frequency or animation hot paths with native `for...of` loops (e.g., `for (const item of mySet) { ... }`) to eliminate closure allocations and minimize GC spikes.
+
+## 2025-05-19 - [Optimize Object allocations in Animation Hot Paths]
+
+**Learning:** Re-instantiating small objects (like `{ x, y }` points) inside high-frequency execution loops, such as HTML Canvas rendering layers bound to `requestAnimationFrame`, creates heavy and continuous Garbage Collection overhead, increasing the chance of UI jank.
+**Action:** When a method returns newly instantiated objects inside a render loop, refactor it to accept an `out` parameter object. Mutate and return this cached pre-allocated object to drastically reduce memory allocation spikes.
