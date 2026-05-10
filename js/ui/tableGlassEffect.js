@@ -116,13 +116,18 @@ export class TableGlassEffect {
   initParticles() {
     const electric = this.options.threeD?.electric || {};
     const count = Math.max(12, (electric.arcCount || 3) * 8);
-    this.state.energyParticles = Array.from({ length: count }, () => ({
-      progress: Math.random(), // 0 to 1 along the path
-      speed: 0.2 + Math.random() * 0.5,
-      size: 1.2 + Math.random() * 1.6,
-      flickerOffset: Math.random() * Math.PI * 2,
-      offset: (Math.random() - 0.5) * 10, // Perpendicular offset
-    }));
+    // Bolt: Use pre-allocated native array and native for loop instead of Array.from
+    // to bypass dummy object creation and callback allocations inside hot paths.
+    this.state.energyParticles = new Array(count);
+    for (let i = 0; i < count; i++) {
+      this.state.energyParticles[i] = {
+        progress: Math.random(), // 0 to 1 along the path
+        speed: 0.2 + Math.random() * 0.5,
+        size: 1.2 + Math.random() * 1.6,
+        flickerOffset: Math.random() * Math.PI * 2,
+        offset: (Math.random() - 0.5) * 10, // Perpendicular offset
+      };
+    }
   }
 
   resize() {
