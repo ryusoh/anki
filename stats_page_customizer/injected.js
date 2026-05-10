@@ -115,8 +115,9 @@
       b;
     do {
       b = arr[i++];
-      if (shift < 31) val += (b & 0x7f) << shift;
-      else val += (b & 0x7f) * Math.pow(2, shift);
+      if (shift < 28) val |= (b & 0x7f) << shift;
+      else if (shift === 28) val |= (b & 0x0f) << 28;
+      // shifts > 28: consume but discard (only need lower 32 bits)
       shift += 7;
     } while (b & 0x80 && i < arr.length);
     return { value: val | 0, next: i };

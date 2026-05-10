@@ -32,7 +32,7 @@ const INJECTED_JS_PATH = path.join(
 );
 
 function testDecodeVarint() {
-  // Replicate the exact decodeVarint from injected.js
+  // Replicate the exact decodeVarint from injected.js (fixed version)
   const decodeVarint = function (arr, offset) {
     var val = 0,
       shift = 0,
@@ -40,8 +40,9 @@ function testDecodeVarint() {
     var b;
     do {
       b = arr[i++];
-      if (shift < 31) val += (b & 0x7f) << shift;
-      else val += (b & 0x7f) * Math.pow(2, shift);
+      if (shift < 28) val |= (b & 0x7f) << shift;
+      else if (shift === 28) val |= (b & 0x0f) << 28;
+      // shifts > 28: consume but discard (only need lower 32 bits)
       shift += 7;
     } while (b & 0x80 && i < arr.length);
     return { value: val | 0, next: i };
