@@ -36,7 +36,7 @@ help:
 
 install:
 	@echo "📦 Installing Python dependencies..."
-	@pip3 install -r requirements.txt
+	@pip3 install -q -r requirements.txt
 	@echo "✅ Dependencies installed"
 
 # -----------------------------------------------------------------------------
