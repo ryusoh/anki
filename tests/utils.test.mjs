@@ -33,9 +33,26 @@ test("formatCurrencyCompact handles magnitudes from small to Trillions", async (
   assert.strictEqual(formatCurrencyCompact(1_500_000_000), "$1.50B");
   assert.strictEqual(formatCurrencyCompact(150_000_000), "$150M");
   assert.strictEqual(formatCurrencyCompact(1_500_000), "$1.50M");
+
+  // missing millions coverage
+  assert.strictEqual(formatCurrencyCompact(15_150_000), "$15.2M");
+
   assert.strictEqual(formatCurrencyCompact(150_000), "$150k");
   assert.strictEqual(formatCurrencyCompact(1_500), "$1.5k");
+
+  // missing thousands coverage
+  assert.strictEqual(formatCurrencyCompact(15_150), "$15.2k");
+
   assert.strictEqual(formatCurrencyCompact(10.5), "$11"); // Rounds below thousands
+
+  // missing absolute >= 1 integer coverage for non-cjk
+  assert.strictEqual(formatCurrencyCompact(15.001), "$15");
+
+  // missing hundreds millions and thousands coverage
+  assert.strictEqual(formatCurrencyCompact(150_500_000_000), "$151B");
+  assert.strictEqual(formatCurrencyCompact(150_500_000), "$151M");
+  assert.strictEqual(formatCurrencyCompact(150_500), "$151k");
+
   assert.strictEqual(formatCurrencyCompact(0.01), "$0.01");
   assert.strictEqual(formatCurrencyCompact(0), "$0");
   assert.strictEqual(formatCurrencyCompact(-1234000), "-$1.23M");

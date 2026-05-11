@@ -170,6 +170,12 @@ def test_get_anki_today_db_error():
             today = generate_custom_stats.get_anki_today()
             assert today > 6000 # Fallback 2007 logic
 
+        with patch('generate_custom_stats.find_anki_collection', return_value=Path(db_path)), \
+             patch('sqlite3.connect') as mock_connect:
+            mock_connect.return_value.cursor.return_value.execute.side_effect = Exception("DB error")
+            today = generate_custom_stats.get_anki_today()
+            assert today > 6000 # Fallback 2007 logic
+
     finally:
         os.unlink(db_path)
 
@@ -238,6 +244,60 @@ def test_build_cid_to_deck_no_decks_map():
     ]
     result = generate_custom_stats.build_cid_to_deck(cards, None)
     assert result[1] == "言語::英語"
+
+
+def test_main_read_output_exception():
+    import gzip
+    with tempfile.TemporaryDirectory() as tempdir:
+        temp_path = Path(tempdir)
+        output_file = temp_path / "custom_stats_data.json"
+        cards_file = temp_path / "cards.json.gz"
+
+        cards_data = []
+        with gzip.open(cards_file, 'wt') as f:
+            json.dump(cards_data, f)
+
+        # Ensure output file doesn't exist
+        if output_file.exists():
+            output_file.unlink()
+
+        # We need to simulate gzip.open failing here
+        original_gzip_open = gzip.open
+        def mock_gzip_open(filename, *args, **kwargs):
+            if "full_forecast.json.gz" in str(filename) and args and args[0] == "rt":
+                raise Exception("Gzip Error")
+            return original_gzip_open(filename, *args, **kwargs)
+
+        with patch('generate_custom_stats.OUTPUT_FILE', output_file), \
+             patch('generate_custom_stats.CARDS_FILE', cards_file), \
+             patch('generate_custom_stats.get_anki_today', return_value=90), \
+             patch('generate_custom_stats.SCRIPT_DIR', temp_path):
+            with patch('gzip.open', side_effect=mock_gzip_open) as mock_gzip:
+                assert generate_custom_stats.main() == True
+
+
+def test_main_decks_json_exception():
+    import gzip
+    with tempfile.TemporaryDirectory() as tempdir:
+        temp_path = Path(tempdir)
+        output_file = temp_path / "custom_stats_data.json"
+        cards_file = temp_path / "cards.json.gz"
+
+        cards_data = []
+        with gzip.open(cards_file, 'wt') as f:
+            json.dump(cards_data, f)
+
+        decks_file = temp_path / "decks.json"
+        # Write invalid JSON
+        with open(decks_file, 'w') as f:
+            f.write("invalid json")
+
+        with patch('generate_custom_stats.OUTPUT_FILE', output_file), \
+             patch('generate_custom_stats.CARDS_FILE', cards_file), \
+             patch('generate_custom_stats.DECKS_FILE', decks_file), \
+             patch('generate_custom_stats.get_anki_today', return_value=90), \
+             patch('generate_custom_stats.SCRIPT_DIR', temp_path):
+            assert generate_custom_stats.main() == True
 
 
 def test_main_uses_decks_json_for_deck_names():
