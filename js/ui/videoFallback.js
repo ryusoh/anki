@@ -30,8 +30,10 @@ export function initVideoFallback() {
   const playPromise = video.play();
 
   if (playPromise !== undefined) {
-    playPromise.catch(() => {
+    playPromise.catch((error) => {
       // Autoplay failed, use fallback
+      // eslint-disable-next-line no-console
+      console.warn("Autoplay failed, falling back to static image:", error);
       fallbackToStaticImage();
     });
   } else {

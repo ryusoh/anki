@@ -231,7 +231,8 @@ def _scan_tracked_file(filepath, project_root):
         else:
             with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
-    except Exception:
+    except Exception as e:
+        print(f"Warning: Failed to read file {filepath}: {e}")
         return []
 
     # Check for private data
