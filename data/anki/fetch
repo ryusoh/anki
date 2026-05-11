@@ -385,7 +385,8 @@ def files_are_identical(new_data, existing_file):
         
         new_json = json.dumps(new_data, ensure_ascii=False)
         return existing_data == new_json
-    except Exception:
+    except Exception as e:
+        print(f"Warning: Exception parsing {existing_file}: {e}")
         return False
 
 
