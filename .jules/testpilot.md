@@ -46,3 +46,11 @@
 **Action:** Always inject required DOM mock dependencies into the `global` object before using dynamic `await import()` on frontend modules under test in our Node test runner.
 **Learning:** Adding test coverage for basic configuration and utilities that are often skipped.
 **Action:** Created missing tests to reach 100% test coverage for js/config.js, js/config/assetClasses.js, and js/utils/host.js.
+
+## 2026-05-11 - Zoom toggle edge cases & JS formatting tolerances
+**Learning:** When asserting tolerance or specific behaviors of custom JS formatters (like `formatCurrencyCompact`), branch coverage relies heavily on testing decimals exactly over/under rounding thresholds alongside edge cases like missing DOM nodes (e.g. testing  returning null).
+**Action:** Use specific numerical boundary inputs (e.g. `15_000_000.08`) rather than just random values to hit internal thresholds and reliably assert specific decimal precision paths.
+
+## 2026-05-11 - Zoom toggle edge cases and JS formatting tolerances
+**Learning:** When asserting tolerance or specific behaviors of custom JS formatters (like formatCurrencyCompact), branch coverage relies heavily on testing decimals exactly over/under rounding thresholds alongside edge cases like missing DOM nodes.
+**Action:** Use specific numerical boundary inputs (e.g., 15_000_000.08) rather than just random values to hit internal thresholds and reliably assert specific decimal precision paths.
