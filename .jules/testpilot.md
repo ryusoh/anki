@@ -46,3 +46,8 @@
 **Action:** Always inject required DOM mock dependencies into the `global` object before using dynamic `await import()` on frontend modules under test in our Node test runner.
 **Learning:** Adding test coverage for basic configuration and utilities that are often skipped.
 **Action:** Created missing tests to reach 100% test coverage for js/config.js, js/config/assetClasses.js, and js/utils/host.js.
+
+## 2024-05-10 - Three missing test coverage a day
+
+**Learning:** Added test coverage for missing logic paths in `data/anki/generate_custom_stats.py` and `js/transactions/utils.js`. Found that testing the `__main__` entry block of a python script via `runpy` can be problematic if the file has side-effects (like sys.exit or sqlite queries without proper mocks) or is not cleanly isolatable, and can be considered a "fake coverage" antipattern if exceptions are just swallowed.
+**Action:** Focus on testing actual modular functions. I've added tests for formatCurrencyCompact missing coverage in `tests/utils.test.mjs` and `tests/utils_tx.test.mjs`, and tests for missing SQLite fallback and missing files in `data/anki/tests/test_generate_custom_stats.py`.
