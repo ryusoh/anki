@@ -51,3 +51,13 @@
 
 **Learning:** Added test coverage for missing logic paths in `data/anki/generate_custom_stats.py` and `js/transactions/utils.js`. Found that testing the `__main__` entry block of a python script via `runpy` can be problematic if the file has side-effects (like sys.exit or sqlite queries without proper mocks) or is not cleanly isolatable, and can be considered a "fake coverage" antipattern if exceptions are just swallowed.
 **Action:** Focus on testing actual modular functions. I've added tests for formatCurrencyCompact missing coverage in `tests/utils.test.mjs` and `tests/utils_tx.test.mjs`, and tests for missing SQLite fallback and missing files in `data/anki/tests/test_generate_custom_stats.py`.
+
+## 2026-05-11 - Zoom toggle edge cases & JS formatting tolerances
+
+**Learning:** When asserting tolerance or specific behaviors of custom JS formatters (like `formatCurrencyCompact`), branch coverage relies heavily on testing decimals exactly over/under rounding thresholds alongside edge cases like missing DOM nodes (e.g. testing  returning null).
+**Action:** Use specific numerical boundary inputs (e.g. `15_000_000.08`) rather than just random values to hit internal thresholds and reliably assert specific decimal precision paths.
+
+## 2026-05-11 - Zoom toggle edge cases and JS formatting tolerances
+
+**Learning:** When asserting tolerance or specific behaviors of custom JS formatters (like formatCurrencyCompact), branch coverage relies heavily on testing decimals exactly over/under rounding thresholds alongside edge cases like missing DOM nodes.
+**Action:** Use specific numerical boundary inputs (e.g., 15_000_000.08) rather than just random values to hit internal thresholds and reliably assert specific decimal precision paths.

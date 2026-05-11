@@ -597,8 +597,9 @@ R2 Directory Structure:
                     
                     if old_hash is None or old_hash != current_hash:
                         notes_to_upload.append((guid, note_file, current_hash))
-                except Exception:
+                except Exception as e:
                     # Corrupted file, skip
+                    print(f"Warning: Failed to process note {note_file}: {e}")
                     continue
             
             if args.verbose:
