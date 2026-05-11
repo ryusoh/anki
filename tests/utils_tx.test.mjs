@@ -10,7 +10,7 @@ test('utils/transactions basic utilities', async () => {
         getElementById: () => null
     };
 
-    const { formatDate, escapeHtml, parseCSVLine } = await import('../js/transactions/utils.js');
+    const { formatDate, escapeHtml, parseCSVLine, formatCurrencyCompact } = await import('../js/transactions/utils.js');
 
     assert.strictEqual(formatDate('2023-01-05T12:00:00Z'), '2023-01-05');
 
@@ -20,6 +20,20 @@ test('utils/transactions basic utilities', async () => {
     assert.deepStrictEqual(parseCSVLine('a,b,c'), ['a', 'b', 'c']);
     assert.deepStrictEqual(parseCSVLine('a,"b,c",d'), ['a', 'b,c', 'd']);
     assert.deepStrictEqual(parseCSVLine('a,"b""c",d'), ['a', 'b"c', 'd']);
+
+    // coverage for formatCurrencyCompact missing lines
+    // 267-268 (millions >= 10 but not 100 with non-CJK currencies)
+    assert.strictEqual(formatCurrencyCompact(15_150_000, { currency: 'USD' }), '$15.2M');
+    assert.strictEqual(formatCurrencyCompact(-15_150_000, { currency: 'USD' }), '-$15.2M');
+    assert.strictEqual(formatCurrencyCompact(100_100_000, { currency: 'USD' }), '$100M');
+
+    // 290-294 (thousands >= 10 and >= 100 with non-CJK currencies)
+    assert.strictEqual(formatCurrencyCompact(150_000, { currency: 'USD' }), '$150k');
+    assert.strictEqual(formatCurrencyCompact(15_150, { currency: 'USD' }), '$15.2k');
+    assert.strictEqual(formatCurrencyCompact(1_500, { currency: 'USD' }), '$1.5k');
+
+    // 304-305 (absolute >= 1, non-CJK, check for integer)
+    assert.strictEqual(formatCurrencyCompact(15.001, { currency: 'USD' }), '$15');
 });
 
 test("formatCurrencyCompact handles non-CJK exact thousands and millions edge cases and tolerances", async () => {
