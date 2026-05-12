@@ -61,3 +61,9 @@
 
 **Learning:** When asserting tolerance or specific behaviors of custom JS formatters (like formatCurrencyCompact), branch coverage relies heavily on testing decimals exactly over/under rounding thresholds alongside edge cases like missing DOM nodes.
 **Action:** Use specific numerical boundary inputs (e.g., 15_000_000.08) rather than just random values to hit internal thresholds and reliably assert specific decimal precision paths.
+
+## 2024-05-24 - Test Python tooling scripts
+
+**Learning:** Testing standalone scripts that interact heavily with the filesystem and use simple logic patterns (like `security_check.py` or `export_for_git.py`) requires thorough use of Pytest's `monkeypatch` and `tempfile.TemporaryDirectory`. When testing modules with side-effects upon import, mock dependencies *before* executing the module using `importlib.util.spec_from_file_location`.
+
+**Action:** Ensure temporary files are cleaned up using `tempfile`, and strategically patch functions like `subprocess.run` and built-ins like `sys.stderr` to prevent tests from bleeding side-effects.
