@@ -147,3 +147,8 @@
 
 **Learning:** Re-instantiating small objects (like `{ x, y }` points) inside high-frequency execution loops, such as HTML Canvas rendering layers bound to `requestAnimationFrame`, creates heavy and continuous Garbage Collection overhead, increasing the chance of UI jank.
 **Action:** When a method returns newly instantiated objects inside a render loop, refactor it to accept an `out` parameter object. Mutate and return this cached pre-allocated object to drastically reduce memory allocation spikes.
+
+## 2025-05-19 - [Optimize DOM Rect Calculations in Render Loops]
+
+**Learning:** Calling `getBoundingClientRect()` or accessing `offsetHeight` inside a `requestAnimationFrame` loop (e.g., drawing row hover effects on a canvas 60fps) forces synchronous layout recalculations (layout thrashing) on every frame. This completely blocks the main thread and causes severe stuttering.
+**Action:** Replace synchronous DOM layout queries in animation loops with pre-calculated, cached dimensions computed once during layout/initialization (or via ResizeObserver). Only read from these cached properties inside the render function.
