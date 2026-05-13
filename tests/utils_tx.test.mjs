@@ -58,3 +58,43 @@ test("formatCurrencyCompact handles non-CJK exact thousands and millions edge ca
     assert.strictEqual(formatCurrencyCompact(1.08), "$1"); // Check for absolute < 1000 but not an integer and <0.1 tol
     assert.strictEqual(formatCurrencyCompact(1.5), "$2"); // Rounds below thousands
 });
+
+test("formatCurrencyCompact falls back to default zero for invalid or non-numeric values", async () => {
+    // Arrange
+    const { formatCurrencyCompact } = await import("../js/transactions/utils.js");
+    const testCases = ["invalid", "not a number", NaN];
+
+    // Act & Assert
+    for (const testCase of testCases) {
+        assert.strictEqual(formatCurrencyCompact(testCase, { currency: "USD" }), "$0");
+    }
+});
+
+test("convertValueToCurrency returns unchanged original amount when target currency is USD or omitted", async () => {
+    // Arrange
+    const { convertValueToCurrency } = await import("../js/transactions/utils.js");
+    const amount = 100;
+    const date = "2023-01-01";
+
+    // Act
+    const resultMissingCurrency = convertValueToCurrency(amount, date, null);
+    const resultUsd = convertValueToCurrency(amount, date, "USD");
+
+    // Assert
+    assert.strictEqual(resultMissingCurrency, amount);
+    assert.strictEqual(resultUsd, amount);
+});
+
+test("convertBetweenCurrencies returns unchanged original amount for identical source and target currencies", async () => {
+    // Arrange
+    const { convertBetweenCurrencies } = await import("../js/transactions/utils.js");
+    const amount = 100;
+
+    // Act
+    const resultUsdToUsd = convertBetweenCurrencies(amount, "USD", "2023-01-01", "USD");
+    const resultEurToEur = convertBetweenCurrencies(amount, "EUR", "2023-01-01", "EUR");
+
+    // Assert
+    assert.strictEqual(resultUsdToUsd, amount);
+    assert.strictEqual(resultEurToEur, amount);
+});
