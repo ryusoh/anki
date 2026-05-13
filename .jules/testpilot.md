@@ -64,6 +64,6 @@
 
 ## 2024-05-24 - Test Python tooling scripts
 
-**Learning:** Testing standalone scripts that interact heavily with the filesystem and use simple logic patterns (like `security_check.py` or `export_for_git.py`) requires thorough use of Pytest's `monkeypatch` and `tempfile.TemporaryDirectory`. When testing modules with side-effects upon import, mock dependencies *before* executing the module using `importlib.util.spec_from_file_location`.
+**Learning:** Testing standalone scripts that interact heavily with the filesystem and use simple logic patterns (like `security_check.py` or `export_for_git.py`) requires thorough use of Pytest's `monkeypatch` and `tempfile.TemporaryDirectory`. When testing modules with side-effects upon import, mock dependencies _before_ executing the module using `importlib.util.spec_from_file_location`.
 
 **Action:** Ensure temporary files are cleaned up using `tempfile`, and strategically patch functions like `subprocess.run` and built-ins like `sys.stderr` to prevent tests from bleeding side-effects.
