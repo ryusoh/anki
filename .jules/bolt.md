@@ -147,3 +147,8 @@
 
 **Learning:** Re-instantiating small objects (like `{ x, y }` points) inside high-frequency execution loops, such as HTML Canvas rendering layers bound to `requestAnimationFrame`, creates heavy and continuous Garbage Collection overhead, increasing the chance of UI jank.
 **Action:** When a method returns newly instantiated objects inside a render loop, refactor it to accept an `out` parameter object. Mutate and return this cached pre-allocated object to drastically reduce memory allocation spikes.
+
+## 2025-05-19 - [Optimize Object allocations in Render Check Loops]
+
+**Learning:** Re-instantiating small objects (like `{ x, y }` points) and mapping intermediate Arrays (`new Array(N)`) inside high-frequency execution loops, such as `gsap.ticker` or `requestAnimationFrame` render layers, creates heavy and continuous Garbage Collection overhead, increasing the chance of UI jank.
+**Action:** When calculating positions or distances inside a render loop, refactor it to pre-allocate an array of `{ x, y }` objects. Mutate and read these cached pre-allocated objects iteratively to drastically reduce memory allocation spikes.
