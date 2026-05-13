@@ -67,3 +67,7 @@
 **Learning:** Testing standalone scripts that interact heavily with the filesystem and use simple logic patterns (like `security_check.py` or `export_for_git.py`) requires thorough use of Pytest's `monkeypatch` and `tempfile.TemporaryDirectory`. When testing modules with side-effects upon import, mock dependencies *before* executing the module using `importlib.util.spec_from_file_location`.
 
 **Action:** Ensure temporary files are cleaned up using `tempfile`, and strategically patch functions like `subprocess.run` and built-ins like `sys.stderr` to prevent tests from bleeding side-effects.
+
+## 2024-05-13 - Added Tests for hide_deck_collapse, unify_review_count_colors, and rewrite_text_of_study_cards
+**Learning:** Anki `aqt` UI classes such as `DeckBrowser` or `Overview` must be mocked fully at the module scope level inside `conftest.py` (including setting `builtins.DeckBrowser` if code expects class instantiation without module prefixes) to successfully run python unit tests targeting UI code.
+**Action:** When creating tests for untested UI logic that rely on complex external dependencies (`aqt`), always update `conftest.py` with the complete path tree of required modules (`aqt.deckbrowser`, `aqt.overview`) and ensure `builtins` are appropriately patched to pass module loading.
