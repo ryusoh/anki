@@ -104,7 +104,7 @@ function initGravitationalDistortion(widget, charGroups) {
   const radiusSq = influenceRadius * influenceRadius;
 
   // Bolt: Pre-allocate positions cache to avoid object and array creation GC pressure in hot path
-  charGroups.forEach(group => {
+  charGroups.forEach((group) => {
     group.cachedPositions = new Array(group.spans.length);
     for (let i = 0; i < group.spans.length; i++) {
       group.cachedPositions[i] = { x: 0, y: 0 };
