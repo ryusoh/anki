@@ -152,3 +152,8 @@
 
 **Learning:** Re-instantiating small objects (like `{ x, y }` points) and mapping intermediate Arrays (`new Array(N)`) inside high-frequency execution loops, such as `gsap.ticker` or `requestAnimationFrame` render layers, creates heavy and continuous Garbage Collection overhead, increasing the chance of UI jank.
 **Action:** When calculating positions or distances inside a render loop, refactor it to pre-allocate an array of `{ x, y }` objects. Mutate and read these cached pre-allocated objects iteratively to drastically reduce memory allocation spikes.
+
+## 2025-05-19 - [Optimize Gradient allocations in Render Check Loops]
+
+**Learning:** Re-instantiating Canvas gradients using `createLinearGradient()` inside high-frequency execution loops, such as `requestAnimationFrame` render layers, creates heavy and continuous Garbage Collection overhead and unneeded CPU burn.
+**Action:** Cache the Canvas gradients on the class instance. Calculate the gradients during layout initializations or `resize` events, and read the cached gradient references iteratively inside the render loop to drastically reduce memory allocation spikes.

@@ -193,6 +193,9 @@ export class TableGlassEffect {
     this.canvas.height = this.height * dpr;
     this.ctx.scale(dpr, dpr);
 
+    // Bolt: Invalidate cached ambient glow gradient since canvas dimensions have changed
+    this._ambientGradientCache = null;
+
     // Track rows for hover effect
     this.rows = [];
     if (this.options.rowHoverEffect?.enabled) {
@@ -530,18 +533,20 @@ export class TableGlassEffect {
     this.drawPath(this.ctx, radius);
     this.ctx.clip();
 
-    // Inner glow
-    const gradient = this.ctx.createLinearGradient(
-      0,
-      0,
-      this.width,
-      this.height,
-    );
-    gradient.addColorStop(0, glow.innerColor || "rgba(118, 183, 229, 0.2)");
-    gradient.addColorStop(1, "rgba(0,0,0,0)");
+    // Bolt: Cache Canvas gradients to eliminate heavy object allocations in the high-frequency render loop
+    if (!this._ambientGradientCache) {
+      this._ambientGradientCache = this.ctx.createLinearGradient(
+        0,
+        0,
+        this.width,
+        this.height,
+      );
+      this._ambientGradientCache.addColorStop(0, glow.innerColor || "rgba(118, 183, 229, 0.2)");
+      this._ambientGradientCache.addColorStop(1, "rgba(0,0,0,0)");
+    }
 
     this.ctx.globalAlpha = (glow.innerOpacity || 0.15) * (0.8 + pulse * 0.2);
-    this.ctx.fillStyle = gradient;
+    this.ctx.fillStyle = this._ambientGradientCache;
     this.ctx.fill();
     this.ctx.restore();
   }
