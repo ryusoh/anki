@@ -137,3 +137,9 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Vulnerability:** Several API integrations using Python's `requests` library lacked a `timeout` parameter.
 **Learning:** External network calls without explicit timeouts can cause the application thread to hang indefinitely, resulting in DoS vulnerabilities or unresponsive applications when the external service is slow or unresponsive.
 **Prevention:** Always include a `timeout` parameter (e.g., `timeout=10`) wrapped within a `try...except requests.exceptions.RequestException` block when using the `requests` library to interact with external services.
+
+## 2024-05-13 - Prevent DOM-based XSS by removing `innerHTML` in chart legends
+
+**Vulnerability:** In `js/commands/retention.js`, `js/commands/due.js`, and `js/commands/reviews.js`, chart legends were constructed by interpolating data into HTML template strings and injecting them into the DOM using `legend.innerHTML = ...`.
+**Learning:** Constructing DOM nodes with string concatenation and `innerHTML` bypasses modern framework protections and trains developers to use unsafe DOM APIs. If a user can inject a malicious payload into a deck name or chart label, it could be executed.
+**Prevention:** When dynamically rendering and constructing HTML structures, always use safe native DOM methods like `document.createElement()`, `element.textContent`, and `element.replaceChildren()` instead of template strings assigned to `innerHTML`.
