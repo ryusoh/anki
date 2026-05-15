@@ -324,13 +324,11 @@ export class TableGlassEffect {
     }
 
     // Get the position of the row relative to the canvas
-    // We use getBoundingClientRect for both to ensure 1:1 visual alignment
-    const canvasRect = this.canvas.getBoundingClientRect();
-    const rowRect = row.element.getBoundingClientRect();
-
-    // Calculate Y relative to the canvas origin (0,0 of the drawing context)
-    const rowTopRelativeToCanvas = rowRect.top - canvasRect.top;
-    const actualHeight = row.element.offsetHeight;
+    // Bolt: Use pre-calculated row positions (row.top, row.height) instead of
+    // getBoundingClientRect() and offsetHeight to prevent synchronous layout
+    // thrashing during the requestAnimationFrame render loop.
+    const rowTopRelativeToCanvas = row.top;
+    const actualHeight = row.height;
 
     const settings = this.options.rowHoverEffect;
 
