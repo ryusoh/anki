@@ -16,6 +16,8 @@ global.window = {
   }
 };
 global.document = {
+  createTextNode: (text) => ({ nodeType: 3, textContent: text }),
+  createElement: (tag) => ({ tagName: tag.toUpperCase(), setAttribute: () => {}, appendChild: () => {}, style: {}, classList: { add: () => {}, remove: () => {}, contains: () => false } }),
   getElementById: () => null,
   querySelector: () => null
 };
@@ -106,7 +108,7 @@ async function runTests() {
   global.document.getElementById = (id) => {
     if (id === 'runningAmountCanvas') return { getContext: () => ({}) };
     if (id === 'runningAmountSection') return { classList: { remove: () => {}, contains: () => false } };
-    if (id === 'chartLegend') return { style: {}, innerHTML: '', querySelectorAll: () => [] };
+    if (id === 'chartLegend') return { style: {}, textContent: '', appendChild: () => {}, innerHTML: '', querySelectorAll: () => [] };
     if (id === 'runningAmountEmpty') return { style: {}, display: '', textContent: '', classList: { remove: () => {} } };
     return null;
   };
@@ -234,7 +236,7 @@ async function runTests() {
   global.document.getElementById = (id) => {
     if (id === 'runningAmountCanvas') return { getContext: () => ({}) };
     if (id === 'runningAmountSection') return { classList: { remove: () => {}, contains: () => false } };
-    if (id === 'chartLegend') return { style: {}, innerHTML: '', querySelectorAll: () => [] };
+    if (id === 'chartLegend') return { style: {}, textContent: '', appendChild: () => {}, innerHTML: '', querySelectorAll: () => [] };
     if (id === 'runningAmountEmpty') return { style: {}, textContent: '', classList: { remove: () => {} } };
     return null;
   };

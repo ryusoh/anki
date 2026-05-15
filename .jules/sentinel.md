@@ -143,3 +143,9 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Vulnerability:** In `js/commands/retention.js`, `js/commands/due.js`, and `js/commands/reviews.js`, chart legends were constructed by interpolating data into HTML template strings and injecting them into the DOM using `legend.innerHTML = ...`.
 **Learning:** Constructing DOM nodes with string concatenation and `innerHTML` bypasses modern framework protections and trains developers to use unsafe DOM APIs. If a user can inject a malicious payload into a deck name or chart label, it could be executed.
 **Prevention:** When dynamically rendering and constructing HTML structures, always use safe native DOM methods like `document.createElement()`, `element.textContent`, and `element.replaceChildren()` instead of template strings assigned to `innerHTML`.
+
+## 2026-05-05 - Prevent DOM-based XSS by removing innerHTML in chart legends
+
+**Vulnerability:** Dynamic chart legends in `js/commands/retention.js`, `js/commands/due.js`, and `js/commands/reviews.js` were using string concatenation assigned to `legend.innerHTML`. Even though user inputs like deck names were escaped, this pattern violated defense-in-depth secure coding principles.
+**Learning:** Assigning dynamically built strings to `innerHTML`—even with escaped variables—violates modern SAST rules and risks accidental XSS introduction during future modifications. Safe DOM APIs should be the standard everywhere.
+**Prevention:** Always use safe DOM manipulation methods like `document.createElement`, `document.createTextNode`, and `appendChild` when building HTML structures, and use `element.textContent = ""` or `element.replaceChildren()` to clear elements securely instead of `element.innerHTML = ""`.

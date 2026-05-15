@@ -103,6 +103,14 @@ function initGravitationalDistortion(widget, charGroups) {
   } = GRAVITY;
   const radiusSq = influenceRadius * influenceRadius;
 
+  // Bolt: Pre-allocate positions cache to avoid object and array creation GC pressure in hot path
+  charGroups.forEach((group) => {
+    group.cachedPositions = new Array(group.spans.length);
+    for (let i = 0; i < group.spans.length; i++) {
+      group.cachedPositions[i] = { x: 0, y: 0 };
+    }
+  });
+
   window.gsap.ticker.add(() => {
     const wRect = widget.getBoundingClientRect();
     if (wRect.width === 0) {
@@ -111,18 +119,18 @@ function initGravitationalDistortion(widget, charGroups) {
     const wcx = wRect.left + wRect.width / 2;
     const wcy = wRect.top + wRect.height / 2;
 
-    for (const { spans, direction } of charGroups) {
+    for (const { spans, direction, cachedPositions } of charGroups) {
       // Batch read all positions first to avoid layout thrashing
-      const positions = new Array(spans.length);
       for (let i = 0; i < spans.length; i += 1) {
         const r = spans[i].getBoundingClientRect();
-        positions[i] = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+        cachedPositions[i].x = r.left + r.width / 2;
+        cachedPositions[i].y = r.top + r.height / 2;
       }
 
       // Batch write transforms
       for (let i = 0; i < spans.length; i += 1) {
-        const dx = wcx - positions[i].x;
-        const dy = wcy - positions[i].y;
+        const dx = wcx - cachedPositions[i].x;
+        const dy = wcy - cachedPositions[i].y;
         const distSq = dx * dx + dy * dy;
 
         if (distSq >= radiusSq || distSq < 1) {
