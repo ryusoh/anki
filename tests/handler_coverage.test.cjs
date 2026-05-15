@@ -17,7 +17,7 @@ const defaultGetElementById = (id) => {
         dataset: {}
     };
 
-    if (id === 'chartLegend') return { style: {}, innerHTML: '', querySelectorAll: () => [] };
+    if (id === 'chartLegend') return { style: {}, textContent: '', appendChild: () => {}, innerHTML: '', querySelectorAll: () => [] };
     if (id === 'terminal') return mockElement;
     if (id === 'terminalOutput') return mockElement;
     if (id === 'mainContainer') return mockElement;

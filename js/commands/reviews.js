@@ -353,7 +353,7 @@ export function renderReviewsChart(
     }
 
     let datasetIndex = 0;
-    const legendHTML = [];
+    const legendSpans = [];
 
     const groupedDecks = groupAndSortDecks(data.allTimeByDeck, showTime);
 
@@ -440,14 +440,23 @@ export function renderReviewsChart(
         ...datasetParams,
       });
 
-      legendHTML.push(
-        `<span data-dataset-index="${datasetIndex}"><i class="legend-color" style="background:${escapeHtml(color)}"></i> ${escapeHtml(deckName)}</span>`,
-      );
+      const span = document.createElement("span");
+      span.setAttribute("data-dataset-index", datasetIndex.toString());
+      const i = document.createElement("i");
+      i.className = "legend-color";
+      i.style.background = color;
+      span.appendChild(i);
+      span.appendChild(document.createTextNode(" " + deckName));
+      legendSpans.push(span);
+
       datasetIndex++;
     }
 
     if (legend) {
-      legend.innerHTML = legendHTML.join("");
+      legend.textContent = "";
+      for (const span of legendSpans) {
+        legend.appendChild(span);
+      }
       legend.style.display = "flex";
       // Ensure wrap for many decks
       legend.style.flexWrap = "wrap";
@@ -456,12 +465,25 @@ export function renderReviewsChart(
   } else {
     // Normal mature/young/etc
     if (legend) {
-      legend.innerHTML = `
-              <span data-dataset-index="0"><i class="legend-color color-mature"></i> Mature</span>
-              <span data-dataset-index="1"><i class="legend-color color-young"></i> Young</span>
-              <span data-dataset-index="2"><i class="legend-color color-relearn"></i> Relearn</span>
-              <span data-dataset-index="3"><i class="legend-color color-learn"></i> Learn</span>
-          `;
+      legend.textContent = "";
+
+      const categories = [
+        { id: "0", name: "Mature", cls: "legend-color color-mature" },
+        { id: "1", name: "Young", cls: "legend-color color-young" },
+        { id: "2", name: "Relearn", cls: "legend-color color-relearn" },
+        { id: "3", name: "Learn", cls: "legend-color color-learn" },
+      ];
+
+      for (const cat of categories) {
+        const span = document.createElement("span");
+        span.setAttribute("data-dataset-index", cat.id);
+        const i = document.createElement("i");
+        i.className = cat.cls;
+        span.appendChild(i);
+        span.appendChild(document.createTextNode(" " + cat.name));
+        legend.appendChild(span);
+      }
+
       legend.style.display = "flex";
       legend.style.flexWrap = "nowrap"; // reset
     }

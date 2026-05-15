@@ -26,10 +26,12 @@ global.window = {
 };
 
 global.document = {
+    createTextNode: (text) => ({ nodeType: 3, textContent: text }),
+    createElement: (tag) => ({ tagName: tag.toUpperCase(), setAttribute: () => {}, appendChild: () => {}, style: {}, classList: { add: () => {}, remove: () => {}, contains: () => false } }),
     getElementById: (id) => {
         if (id === 'runningAmountCanvas') return { getContext: () => ({}) };
         if (id === 'runningAmountSection') return { classList: { remove: () => {} } };
-        if (id === 'chartLegend') return { style: {}, innerHTML: '', querySelectorAll: () => [] };
+        if (id === 'chartLegend') return { style: {}, textContent: '', appendChild: () => {}, innerHTML: '', querySelectorAll: () => [] };
         if (id === 'runningAmountEmpty') return { style: {}, textContent: '' };
         return null;
     },
@@ -111,7 +113,7 @@ async function fixRetentionCoverage() {
     if (id === 'runningAmountCanvas') return { getContext: () => ({}) };
     if (id === 'runningAmountSection') return { classList: { remove: () => {}, contains: () => false } };
     if (id === 'runningAmountEmpty') return { style: {}, textContent: '', classList: { remove: () => {} } };
-    if (id === 'chartLegend') return { style: {}, innerHTML: '', querySelectorAll: () => [] };
+    if (id === 'chartLegend') return { style: {}, textContent: '', appendChild: () => {}, innerHTML: '', querySelectorAll: () => [] };
     return null;
   }
   showRetention('all');
@@ -138,7 +140,7 @@ async function fixTooltipCoverage() {
   global.document.getElementById = (id) => {
     if (id === 'runningAmountCanvas') return { getContext: () => ({}) };
     if (id === 'runningAmountSection') return { classList: { remove: () => {} } };
-    if (id === 'chartLegend') return { style: {}, innerHTML: '', querySelectorAll: () => [] };
+    if (id === 'chartLegend') return { style: {}, textContent: '', appendChild: () => {}, innerHTML: '', querySelectorAll: () => [] };
     if (id === 'runningAmountEmpty') return { style: {}, textContent: '' };
     return null;
   };
@@ -170,7 +172,7 @@ async function fixYAxisTickCoverage() {
   global.document.getElementById = (id) => {
     if (id === 'runningAmountCanvas') return { getContext: () => ({}) };
     if (id === 'runningAmountSection') return { classList: { remove: () => {} } };
-    if (id === 'chartLegend') return { style: {}, innerHTML: '', querySelectorAll: () => [] };
+    if (id === 'chartLegend') return { style: {}, textContent: '', appendChild: () => {}, innerHTML: '', querySelectorAll: () => [] };
     if (id === 'runningAmountEmpty') return { style: {}, textContent: '' };
     return null;
   };

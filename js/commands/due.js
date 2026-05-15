@@ -147,7 +147,7 @@ export function renderFutureDueChart(data, byDeck = false, rangeDays = null) {
       );
 
       let datasetIdx = 0;
-      let legendHtml = "";
+      const legendSpans = [];
 
       for (const deckInfo of layout) {
         const deckName = deckInfo.deckName;
@@ -185,13 +185,24 @@ export function renderFutureDueChart(data, byDeck = false, rangeDays = null) {
           stack: "future",
         });
 
-        legendHtml += `<span data-dataset-index="${datasetIdx}"><i class="legend-color" style="background:${escapeHtml(color)};"></i> ${escapeHtml(deckName)}</span>`;
+        const span = document.createElement("span");
+        span.setAttribute("data-dataset-index", datasetIdx.toString());
+        const i = document.createElement("i");
+        i.className = "legend-color";
+        i.style.background = color;
+        span.appendChild(i);
+        span.appendChild(document.createTextNode(" " + deckName));
+        legendSpans.push(span);
+
         datasetIdx++;
       }
 
-      /* c8 ignore next 4 */
+      /* c8 ignore next 7 */
       if (legend) {
-        legend.innerHTML = legendHtml;
+        legend.textContent = "";
+        for (const span of legendSpans) {
+          legend.appendChild(span);
+        }
         legend.style.display = "flex";
       }
 
@@ -242,12 +253,26 @@ export function renderFutureDueChart(data, byDeck = false, rangeDays = null) {
       stack: "future",
     });
 
-    /* c8 ignore next 6 */
+    /* c8 ignore next 17 */
     if (legend) {
-      legend.innerHTML = `
-        <span data-dataset-index="0"><i class="legend-color color-mature"></i> Mature</span>
-        <span data-dataset-index="1"><i class="legend-color color-young"></i> Young</span>
-      `;
+      legend.textContent = "";
+
+      const spanMature = document.createElement("span");
+      spanMature.setAttribute("data-dataset-index", "0");
+      const iMature = document.createElement("i");
+      iMature.className = "legend-color color-mature";
+      spanMature.appendChild(iMature);
+      spanMature.appendChild(document.createTextNode(" Mature"));
+      legend.appendChild(spanMature);
+
+      const spanYoung = document.createElement("span");
+      spanYoung.setAttribute("data-dataset-index", "1");
+      const iYoung = document.createElement("i");
+      iYoung.className = "legend-color color-young";
+      spanYoung.appendChild(iYoung);
+      spanYoung.appendChild(document.createTextNode(" Young"));
+      legend.appendChild(spanYoung);
+
       legend.style.display = "flex";
     }
 
