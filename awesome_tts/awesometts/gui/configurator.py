@@ -158,8 +158,7 @@ class Configurator(Dialog):
             subtabs.addTab(subwidget, sublabel)
 
         layout = aqt.qt.QVBoxLayout()
-        # TODO
-        # layout.setCanvasMargin(0)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(subtabs)
 
         group = aqt.qt.QGroupBox(label)

@@ -45,3 +45,8 @@
 - **Silent Failures:** Fixed remaining bare `except Exception:` blocks in `tools/security_audit.py` (JSON/file reading), `awesome_tts/awesometts/service/ispeech.py` (error parsing), `awesome_tts/awesometts/service/base.py` (response payload setup), and `awesome_tts/awesometts/gui/listviews.py` (rule regex compilation). By passing these exceptions to our standard loggers (`print/logging.getLogger`), we ensure debugging context is retained while maintaining necessary fallback behaviors.
 
 - **Silent Failure Audit:** To improve resilience, located and fixed empty catch blocks and generic error suppressions (`except Exception:`) across Python and JavaScript files (`data/anki/security_check.py`, `data/anki/upload-to-r2`, `data/anki/fetch`, `js/mobile_ambient_bootstrap.js`, `js/ui/videoFallback.js`). These were updated to explicitly capture the error object and log it with context using `print` or `console.warn` (respecting linter rules with `eslint-disable-next-line`), ensuring silent failures are now visible.
+
+## 2024-05-14 - Structural Health & Code Hygiene
+
+**Learning:** When executing Code Health & Cleanup tasks ('Architect' / 'Janitor' roles), focus on reducing cyclomatic complexity (e.g., verified via `radon`), replacing empty `catch`/`except` blocks with context-aware logging, and pruning dead code/TODOs.
+**Action:** Consistently replace bare `except:` with `except Exception as e: logging.getLogger(__name__).debug(e)` and ensure long multple condition methods are extracted to helper functions.

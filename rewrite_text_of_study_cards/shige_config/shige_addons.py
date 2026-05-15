@@ -32,7 +32,9 @@ def add_shige_addons_tab(self, tab_widget:"QTabWidget"):
         response = requests.get(url, timeout=3)
         response.raise_for_status()
         html_content = response.text
-    except Exception:
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Failed to fetch shige addons HTML: {e}")
         return
 
     tab4 = QWidget(self)

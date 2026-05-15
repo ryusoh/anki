@@ -42,7 +42,6 @@ from aqt import mw
 from ..platform import PLATFORM
 from .basic.dialog_basic import BasicDialog
 
-# TODO: Refactor
 
 class WebViewer(BasicDialog):
     def __init__(

@@ -364,8 +364,6 @@ class OverviewInjector(HeatmapInjector):
 # Legacy stats window
 ######################################################################
 
-# TODO: NewDeckStats
-
 
 class DeckStatsInjector(HeatmapInjector):
 
