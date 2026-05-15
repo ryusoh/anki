@@ -14,8 +14,10 @@ const assert = require("assert");
 // ============================================================================
 
 class MockElement {
-  constructor() {
-    this.innerHTML = "";
+  constructor(tagName = "div") {
+    this.tagName = tagName.toUpperCase();
+    this.childNodes = [];
+    this.attributes = {};
     this.style = { display: "" };
     this.classList = {
       _classes: new Set(),
@@ -40,16 +42,58 @@ class MockElement {
       },
     };
     this._listeners = {};
+    this.textContent = "";
+  }
+
+  appendChild(child) {
+    this.childNodes.push(child);
   }
 
   setAttribute(name, value) {
-    this[name] = value;
+    this.attributes[name] = value;
+  }
+
+  get innerHTML() {
+    let html = "";
+    for (const child of this.childNodes) {
+      if (child.nodeType === 3) {
+        html += child.textContent;
+      } else {
+        html += `<${child.tagName.toLowerCase()}`;
+        for (const [key, value] of Object.entries(child.attributes)) {
+          html += ` ${key}="${value}"`;
+        }
+        if (child.className) {
+          html += ` class="${child.className}"`;
+        }
+        if (child.style && Object.keys(child.style).length > 0) {
+          let styleStr = "";
+          for (const [k, v] of Object.entries(child.style)) {
+            if (v && k !== 'display') styleStr += `${k}:${v};`;
+          }
+          if (styleStr) {
+            html += ` style="${styleStr}"`;
+          }
+        }
+        html += `>${child.innerHTML}</${child.tagName.toLowerCase()}>`;
+      }
+    }
+    return html;
+  }
+
+  set innerHTML(val) {
+    // Basic mock implementation for setting innerHTML in tests
+    this.childNodes = [];
+    if (val) {
+      const textNode = { nodeType: 3, textContent: val };
+      this.childNodes.push(textNode);
+    }
   }
 
   querySelectorAll(selector) {
     // Parse data-dataset-index spans from innerHTML
     if (!selector.includes("data-dataset-index")) return [];
-    const matches = this.innerHTML.match(/data-dataset-index="(\d+)"/g);
+    const matches = this.innerHTML.match(/data-dataset-index="[0-9]+"/g);
     if (!matches) return [];
     return matches.map((m) => {
       const index = m.match(/\d+/)[0];

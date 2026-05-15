@@ -23,6 +23,8 @@ global.window = {
 };
 
 global.document = {
+    createTextNode: (text) => ({ nodeType: 3, textContent: text }),
+    createElement: (tag) => ({ tagName: tag.toUpperCase(), setAttribute: () => {}, appendChild: () => {}, style: {}, classList: { add: () => {}, remove: () => {}, contains: () => false } }),
     getElementById: (id) => {
         if (id === 'runningAmountCanvas') return { getContext: () => ({}) };
         if (id === 'runningAmountSection') return {
@@ -31,7 +33,7 @@ global.document = {
                 remove: function(val) { if(val === 'is-hidden') this.hiddenState = false; }
             }
         };
-        if (id === 'chartLegend') return { style: {}, innerHTML: '', querySelectorAll: () => [] };
+        if (id === 'chartLegend') return { style: {}, textContent: '', appendChild: () => {}, innerHTML: '', querySelectorAll: () => [] };
         if (id === 'runningAmountEmpty') return { style: {}, textContent: '' };
         return null;
     },
@@ -534,7 +536,7 @@ async function fixReviewsCoverage() {
     if (id === 'runningAmountCanvas') return { getContext: () => ({}) };
     if (id === 'runningAmountSection') return { classList: { remove: () => {}, contains: () => false } };
     if (id === 'runningAmountEmpty') return { style: {}, textContent: '', classList: { remove: () => {} } };
-    if (id === 'chartLegend') return { style: {}, innerHTML: '', querySelectorAll: () => [] };
+    if (id === 'chartLegend') return { style: {}, textContent: '', appendChild: () => {}, innerHTML: '', querySelectorAll: () => [] };
     return null;
   }
 
@@ -612,7 +614,7 @@ async function fixReviewsTooltipCoverage() {
   global.document.getElementById = (id) => {
     if (id === 'runningAmountCanvas') return { getContext: () => ({}) };
     if (id === 'runningAmountSection') return { classList: { remove: () => {} } };
-    if (id === 'chartLegend') return { style: {}, innerHTML: '', querySelectorAll: () => [] };
+    if (id === 'chartLegend') return { style: {}, textContent: '', appendChild: () => {}, innerHTML: '', querySelectorAll: () => [] };
     if (id === 'runningAmountEmpty') return { style: {}, textContent: '' };
     return null;
   };

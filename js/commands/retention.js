@@ -29,9 +29,14 @@ export function renderRetentionChart(data) {
 
   // Update legend for retention chart
   if (legend) {
-    legend.innerHTML = `
-            <span data-dataset-index="0"><i class="legend-color color-retention"></i> Retention Rate</span>
-        `;
+    legend.textContent = "";
+    const span = document.createElement("span");
+    span.setAttribute("data-dataset-index", "0");
+    const i = document.createElement("i");
+    i.className = "legend-color color-retention";
+    span.appendChild(i);
+    span.appendChild(document.createTextNode(" Retention Rate"));
+    legend.appendChild(span);
     legend.style.display = "flex";
   }
 
