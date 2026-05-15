@@ -31,7 +31,10 @@ def idFromOldNode(node):
     try:
         (_, did, _, _, _, _) = node
         return did
-    except Exception:
+    except Exception as e:
+        # Fallback for Anki versions where node is an object, not a tuple
+        import logging
+        logging.getLogger(__name__).debug("idFromOldNode fallback triggered: %s", e)
         return node.deck_id
 
 
@@ -92,8 +95,10 @@ class DeckNode:
         self.givenUpParent = givenUpParent
         try:
             self.name, self.did, self.dueRevCards, self.dueLrnReps, self.newCardsToday, self.oldChildren = oldNode
-        except Exception:
+        except Exception as e:
             # Fallback for Anki versions where oldNode is an object, not a tuple
+            import logging
+            logging.getLogger(__name__).debug("DeckNode.__init__ fallback triggered: %s", e)
             self.name = oldNode.name; self.did = oldNode.deck_id; self.dueRevCards = oldNode.review_count; self.dueLrnReps = oldNode.learn_count; self.newCardsToday = oldNode.new_count; self.oldChildren = oldNode.children;
         self.deck = mw.col.decks.get(self.did)
 
@@ -684,8 +689,10 @@ def renderDeckTree(self, nodes, depth=0):
         # convert nodes
         try:
             nodes = [make(node) for node in nodes]
-        except Exception:
+        except Exception as e:
             # Fallback for Anki versions where nodes list is wrapped in an object
+            import logging
+            logging.getLogger(__name__).debug("renderDeckTree fallback triggered: %s", e)
             nodes = [make(node) for node in nodes.children]
         buf = _render_deck_tree_header(nodes)
         buf += self._topLevelDragRow()

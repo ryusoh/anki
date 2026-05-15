@@ -364,8 +364,6 @@ class OverviewInjector(HeatmapInjector):
 # Legacy stats window
 ######################################################################
 
-# TODO: NewDeckStats
-
 
 class DeckStatsInjector(HeatmapInjector):
 
@@ -377,6 +375,11 @@ class DeckStatsInjector(HeatmapInjector):
         )
         DeckStats.__init__ = wrap(DeckStats.__init__, self.on_deck_stats_init, "after")
         DeckStats.reject = wrap(DeckStats.reject, self.on_deck_stats_reject, "after")
+
+        import aqt.stats
+        if hasattr(aqt.stats, "NewDeckStats"):
+            aqt.stats.NewDeckStats.__init__ = wrap(aqt.stats.NewDeckStats.__init__, self.on_deck_stats_init, "after")
+            aqt.stats.NewDeckStats.reject = wrap(aqt.stats.NewDeckStats.reject, self.on_deck_stats_reject, "after")
 
     def on_deck_stats_init(self, deck_stats: DeckStats, mw: AnkiQt):
         deck_stats.form.web.onBridgeCmd = deck_stats._linkHandler  # type: ignore
