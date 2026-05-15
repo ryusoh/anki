@@ -539,7 +539,10 @@ export class TableGlassEffect {
         this.width,
         this.height,
       );
-      this._ambientGradientCache.addColorStop(0, glow.innerColor || "rgba(118, 183, 229, 0.2)");
+      this._ambientGradientCache.addColorStop(
+        0,
+        glow.innerColor || "rgba(118, 183, 229, 0.2)",
+      );
       this._ambientGradientCache.addColorStop(1, "rgba(0,0,0,0)");
     }
 

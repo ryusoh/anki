@@ -49,6 +49,7 @@
 ## 2024-05-18 - Scheduled Task: Code Health & Cleanup
 
 **Learnings:**
+
 - **Structural Health:** Refactored `on_browser_did_search` in `prioritize_front_field_search/__init__.py`. Extracted the complex SQL query execution and field parsing logic into a helper function `_fetch_front_fields(col, all_sorted_ids, is_notes_mode)`. This reduced cyclomatic complexity significantly and improved maintainability.
 - **Silent Failures:** Audited codebase for empty `except:` blocks and `except Exception:` blocks where errors were suppressed. Added logging to `rewrite_text_of_study_cards/shige_config/shige_addons.py`, `enhance_main_window/node.py` and `js/graph/graph.js` to ensure tracebacks are caught securely but not suppressed blindly.
 - **Cleanup Logic:** Cleaned up pending `TODO: NewDeckStats` entries in `review_heatmap/views.py` and `review_heatmap/web_bridge.py` by introducing conditional support for `aqt.stats.NewDeckStats` if the attribute exists on `aqt.stats` in the user's specific Anki version.
