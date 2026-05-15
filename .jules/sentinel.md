@@ -137,3 +137,9 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Vulnerability:** Several API integrations using Python's `requests` library lacked a `timeout` parameter.
 **Learning:** External network calls without explicit timeouts can cause the application thread to hang indefinitely, resulting in DoS vulnerabilities or unresponsive applications when the external service is slow or unresponsive.
 **Prevention:** Always include a `timeout` parameter (e.g., `timeout=10`) wrapped within a `try...except requests.exceptions.RequestException` block when using the `requests` library to interact with external services.
+
+## 2026-05-04 - Prevent DOM-based XSS by replacing `innerHTML` in chart legends with native DOM APIs
+
+**Vulnerability:** In `js/commands/retention.js`, `js/commands/due.js`, and `js/commands/reviews.js`, dynamic chart legends (including `deckName` strings and colors) were constructed via string accumulation and injected directly into the DOM using `legend.innerHTML = ...`.
+**Learning:** While some dynamic properties may seem harmless or appear properly escaped within template strings, assigning strings directly to `.innerHTML` in application logic violates strict defense-in-depth secure coding standards. It trains developers to reach for unsafe DOM manipulation APIs, keeps the codebase non-compliant with modern SAST linters (like `no-inner-html`), and creates brittle points where future modifications could accidentally bypass escaping and introduce DOM-based Cross-Site Scripting (XSS). Custom testing mocks will also need updates to support native APIs if they were originally designed around reading `.innerHTML`.
+**Prevention:** Always use safe DOM APIs like `document.createElement()`, `document.createTextNode()`, and `element.appendChild()` to dynamically construct UI elements rather than assigning HTML strings to `.innerHTML`. When clearing elements, use `element.textContent = ""` or `element.replaceChildren()`.

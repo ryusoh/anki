@@ -31,7 +31,7 @@ global.document = {
                 remove: function(val) { if(val === 'is-hidden') this.hiddenState = false; }
             }
         };
-        if (id === 'chartLegend') return { style: {}, innerHTML: '', querySelectorAll: () => [] };
+        if (id === 'chartLegend') return { style: {}, innerHTML: '', querySelectorAll: () => [], replaceChildren: () => {}, appendChild: () => {} };
         if (id === 'runningAmountEmpty') return { style: {}, textContent: '' };
         return null;
     },
@@ -534,7 +534,7 @@ async function fixReviewsCoverage() {
     if (id === 'runningAmountCanvas') return { getContext: () => ({}) };
     if (id === 'runningAmountSection') return { classList: { remove: () => {}, contains: () => false } };
     if (id === 'runningAmountEmpty') return { style: {}, textContent: '', classList: { remove: () => {} } };
-    if (id === 'chartLegend') return { style: {}, innerHTML: '', querySelectorAll: () => [] };
+    if (id === 'chartLegend') return { style: {}, innerHTML: '', querySelectorAll: () => [], replaceChildren: () => {}, appendChild: () => {} };
     return null;
   }
 
@@ -612,7 +612,7 @@ async function fixReviewsTooltipCoverage() {
   global.document.getElementById = (id) => {
     if (id === 'runningAmountCanvas') return { getContext: () => ({}) };
     if (id === 'runningAmountSection') return { classList: { remove: () => {} } };
-    if (id === 'chartLegend') return { style: {}, innerHTML: '', querySelectorAll: () => [] };
+    if (id === 'chartLegend') return { style: {}, innerHTML: '', querySelectorAll: () => [], replaceChildren: () => {}, appendChild: () => {} };
     if (id === 'runningAmountEmpty') return { style: {}, textContent: '' };
     return null;
   };
