@@ -3,7 +3,7 @@ from aqt import gui_hooks
 from aqt.editor import Editor
 from aqt.utils import tooltip
 
-from .utils import clean_html_text, detect_language, fetch_wiktionary_html, parse_wiktionary_html, merge_definition, get_wiktionary_candidates, format_candidates_html
+from .utils import clean_html_text, detect_language, fetch_wiktionary_html, parse_wiktionary_html, merge_definition, get_wiktionary_candidates, format_candidates_html, detect_kanji_redirect
 
 ADDON_DIR = os.path.dirname(__file__)
 ICON_PATH = os.path.join(ADDON_DIR, "icon.png")
@@ -33,6 +33,15 @@ def _apply_wiktionary(editor, text_to_search):
         tooltip(f"Wiktionary API {html_res}")
         return
     else:
+        # Check for kanji redirect (e.g. 血眼 → ちまなこ)
+        redirect_reading = detect_kanji_redirect(html_res)
+        if redirect_reading:
+            html_res = fetch_wiktionary_html(redirect_reading, lang)
+            if not html_res or html_res.startswith("Error:"):
+                tooltip(f"Could not fetch redirected reading '{redirect_reading}'.")
+                return
+            text = redirect_reading
+
         parsed_definition = parse_wiktionary_html(html_res, lang)
         if not parsed_definition:
             tooltip(f"Could not parse definition for '{text}'.")

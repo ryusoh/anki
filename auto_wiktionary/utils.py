@@ -72,6 +72,38 @@ def fetch_wiktionary_html(word, lang):
     except Exception as e:
         return f"Error: {str(e)}"
 
+def detect_kanji_redirect(html_text):
+    """
+    Detects if a Japanese Wiktionary page is just a kanji notation redirect.
+    For example, 血眼 redirects to ちまなこ with "ちまなこの漢字表記。"
+    Returns the kana reading to follow, or None if not a redirect.
+    """
+    if not html_text or html_text.startswith("Error:"):
+        return None
+
+    soup = BeautifulSoup(html_text, 'html.parser')
+
+    ols = soup.find_all('ol')
+    if not ols:
+        return None
+
+    # Collect all <li> items across all <ol>s
+    all_lis = []
+    for ol in ols:
+        all_lis.extend(ol.find_all('li', recursive=False))
+
+    # A redirect page has exactly one <li> matching "Xの漢字表記。"
+    if len(all_lis) != 1:
+        return None
+
+    li_text = all_lis[0].get_text().strip()
+    match = re.match(r'^(.+)の漢字表記。$', li_text)
+    if not match:
+        return None
+
+    return match.group(1)
+
+
 def parse_wiktionary_html(html_text, lang="en"):
     """
     Parses the raw HTML from Wiktionary into a cleaner <ul><li> format suitable for Anki.
