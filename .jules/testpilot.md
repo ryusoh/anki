@@ -72,3 +72,8 @@
 
 **Learning:** Anki `aqt` UI classes such as `DeckBrowser` or `Overview` must be mocked fully at the module scope level inside `conftest.py` (including setting `builtins.DeckBrowser` if code expects class instantiation without module prefixes) to successfully run python unit tests targeting UI code.
 **Action:** When creating tests for untested UI logic that rely on complex external dependencies (`aqt`), always update `conftest.py` with the complete path tree of required modules (`aqt.deckbrowser`, `aqt.overview`) and ensure `builtins` are appropriately patched to pass module loading.
+
+## 2024-05-15 - Improve test coverage for tools/security_audit.py
+
+**Learning:** When generating test coverage for a Python script using `subprocess` from another test or running `sys.exit()`, the normal coverage tracking might not pick it up correctly unless you invoke the functions explicitly inside the tests or configure `coverage` to track subprocesses. Also, mocking builtins like `open` can cause issues if not done correctly, and you must pass all arguments as required by the mocked functions.
+**Action:** Wrote exhaustive unit tests explicitly calling the functions in `tools/security_audit.py` to drive coverage to >99%, avoiding using `subprocess` where we could just call the function directly and patching internal implementations (like `sys.exit`) for testability.

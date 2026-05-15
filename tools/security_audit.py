@@ -92,7 +92,7 @@ def _check_code_file_for_private_data(content: str) -> list:
             issues.append("HARDCODED: ACCOUNT_ID with value")
     return issues
 
-def _check_json_file_for_private_data(content: str) -> list:
+def _check_json_file_for_private_data(content: str, filepath: str = "unknown") -> list:
     """Check JSON files for private data patterns."""
     issues = []
     try:
@@ -116,7 +116,7 @@ def check_for_private_data(filepath, content):
         return _check_code_file_for_private_data(content)
     
     if filepath.endswith('.json'):
-        return _check_json_file_for_private_data(content)
+        return _check_json_file_for_private_data(content, filepath)
     
     return []
 
