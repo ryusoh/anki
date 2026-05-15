@@ -687,6 +687,12 @@ setTimeout(() => {
 }, 200);
 // --- INTERACTION & NAVIGATION ---
 const keyState = {};
+
+// Bolt: Hoist Vector3 allocations outside the requestAnimationFrame loop
+// to prevent 120 object instantiations per second and reduce GC pressure.
+const _forward = new THREE.Vector3();
+const _right = new THREE.Vector3();
+
 window.addEventListener("keydown", (e) => {
   keyState[e.key] = true;
   if (!historyData) return;
@@ -717,11 +723,9 @@ function animate() {
 
   // WASD Camera Move
   const speed = 25;
-  const forward = new THREE.Vector3();
-  camera.getWorldDirection(forward);
-  const right = new THREE.Vector3()
-    .crossVectors(forward, camera.up)
-    .normalize();
+  camera.getWorldDirection(_forward);
+  _right.crossVectors(_forward, camera.up).normalize();
+
   if (keyState["w"]) {
     camera.position.addScaledVector(camera.up, speed);
     controls.target.addScaledVector(camera.up, speed);
@@ -731,12 +735,12 @@ function animate() {
     controls.target.addScaledVector(camera.up, -speed);
   }
   if (keyState["a"]) {
-    camera.position.addScaledVector(right, -speed);
-    controls.target.addScaledVector(right, -speed);
+    camera.position.addScaledVector(_right, -speed);
+    controls.target.addScaledVector(_right, -speed);
   }
   if (keyState["d"]) {
-    camera.position.addScaledVector(right, speed);
-    controls.target.addScaledVector(right, speed);
+    camera.position.addScaledVector(_right, speed);
+    controls.target.addScaledVector(_right, speed);
   }
 
   controls.update();

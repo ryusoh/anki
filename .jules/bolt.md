@@ -162,3 +162,8 @@
 
 **Learning:** Re-instantiating Canvas gradients using `createLinearGradient()` inside high-frequency execution loops, such as `requestAnimationFrame` render layers, creates heavy and continuous Garbage Collection overhead and unneeded CPU burn.
 **Action:** Cache the Canvas gradients on the class instance. Calculate the gradients during layout initializations or `resize` events, and read the cached gradient references iteratively inside the render loop to drastically reduce memory allocation spikes.
+
+## 2025-05-20 - [Optimize Object allocations in Three.js Render Loops]
+
+**Learning:** Re-instantiating `THREE.Vector3` objects inside high-frequency execution loops, such as `requestAnimationFrame` render layers, creates heavy and continuous Garbage Collection overhead, increasing the chance of UI jank.
+**Action:** Pre-allocate vectors outside of the render loop and reuse them inside the loop, relying on methods that overwrite values instead of returning new objects.
