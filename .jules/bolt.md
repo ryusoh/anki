@@ -152,3 +152,8 @@
 
 **Learning:** Calling `getBoundingClientRect()` or accessing `offsetHeight` inside a `requestAnimationFrame` loop (e.g., drawing row hover effects on a canvas 60fps) forces synchronous layout recalculations (layout thrashing) on every frame. This completely blocks the main thread and causes severe stuttering.
 **Action:** Replace synchronous DOM layout queries in animation loops with pre-calculated, cached dimensions computed once during layout/initialization (or via ResizeObserver). Only read from these cached properties inside the render function.
+
+## 2025-05-19 - [Optimize Object allocations in Render Check Loops]
+
+**Learning:** Re-instantiating small objects (like `{ x, y }` points) and mapping intermediate Arrays (`new Array(N)`) inside high-frequency execution loops, such as `gsap.ticker` or `requestAnimationFrame` render layers, creates heavy and continuous Garbage Collection overhead, increasing the chance of UI jank.
+**Action:** When calculating positions or distances inside a render loop, refactor it to pre-allocate an array of `{ x, y }` objects. Mutate and read these cached pre-allocated objects iteratively to drastically reduce memory allocation spikes.

@@ -1,21 +1,18 @@
-import sys
-from pathlib import Path
-import tempfile
-import gzip
-import json
+import pytest
 import os
+import tempfile
+import json
+import gzip
+from pathlib import Path
 from unittest.mock import patch, MagicMock
+import sys
 
-# Add the directory to sys.path so we can import the script properly
-script_dir = Path(__file__).parent.parent
-if str(script_dir) not in sys.path:
-    sys.path.insert(0, str(script_dir))
+# Change directory and add to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import importlib.util
-spec = importlib.util.spec_from_file_location("migrate_hash_map", str(script_dir / "migrate-hash-map.py"))
+spec = importlib.util.spec_from_file_location("migrate_hash_map", str(Path(__file__).parent.parent / "migrate-hash-map.py"))
 migrate_hash_map = importlib.util.module_from_spec(spec)
-
-import pytest
 
 @pytest.fixture(autouse=True)
 def setup_module_mocks(monkeypatch):
@@ -124,6 +121,15 @@ def test_migrate_hash_map_continue_anyway(setup_module_mocks):
         with gzip.open(notes_dir / "corrupt.json.gz", "wt") as f:
             f.write("not valid json")
 
+        # Also add more than 10 corrupt notes to hit that branch
+        for i in range(12):
+            with gzip.open(notes_dir / f"corrupt_{i}.json.gz", "wt") as f:
+                f.write("not valid json")
+
+        # Add an empty note to hit the ValueError("Empty file")
+        with gzip.open(notes_dir / "empty.json.gz", "wt") as f:
+            pass
+
         setup_module_mocks.save_hash_map.reset_mock()
         with patch('migrate_hash_map.get_staging_dir', return_value=staging_dir):
             with patch('builtins.input', return_value='y'):
@@ -163,3 +169,28 @@ def test_missing_files_hash_map(setup_module_mocks):
                 with patch('builtins.input', return_value='y'):
                     migrate_hash_map.main()
                     setup_module_mocks.save_hash_map.assert_called()
+
+def test_main_with_hash_map_exists_and_overwrite(setup_module_mocks):
+    with tempfile.TemporaryDirectory() as tempdir:
+        staging_dir = Path(tempdir)
+        hash_map_file = staging_dir / "hash_map.json"
+        hash_map_file.touch()
+
+        setup_module_mocks.save_hash_map.reset_mock()
+        with patch('migrate_hash_map.get_staging_dir', return_value=staging_dir):
+            with patch('builtins.input', return_value='y'):
+                migrate_hash_map.main()
+                setup_module_mocks.save_hash_map.assert_called()
+
+def test_get_staging_dir_walk_up():
+    with tempfile.TemporaryDirectory() as tempdir:
+        base = Path(tempdir)
+        data_dir = base / "data" / "cloudflare"
+        data_dir.mkdir(parents=True)
+
+        deep_dir = base / "some" / "deep" / "dir"
+        deep_dir.mkdir(parents=True)
+
+        with patch('pathlib.Path.cwd') as mock_cwd:
+            mock_cwd.return_value = deep_dir
+            assert migrate_hash_map.get_staging_dir() == data_dir

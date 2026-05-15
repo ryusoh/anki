@@ -54,10 +54,21 @@
 
 ## 2026-05-11 - Zoom toggle edge cases & JS formatting tolerances
 
-**Learning:** When asserting tolerance or specific behaviors of custom JS formatters (like `formatCurrencyCompact`), branch coverage relies heavily on testing decimals exactly over/under rounding thresholds alongside edge cases like missing DOM nodes (e.g. testing  returning null).
+**Learning:** When asserting tolerance or specific behaviors of custom JS formatters (like `formatCurrencyCompact`), branch coverage relies heavily on testing decimals exactly over/under rounding thresholds alongside edge cases like missing DOM nodes (e.g. testing returning null).
 **Action:** Use specific numerical boundary inputs (e.g. `15_000_000.08`) rather than just random values to hit internal thresholds and reliably assert specific decimal precision paths.
 
 ## 2026-05-11 - Zoom toggle edge cases and JS formatting tolerances
 
 **Learning:** When asserting tolerance or specific behaviors of custom JS formatters (like formatCurrencyCompact), branch coverage relies heavily on testing decimals exactly over/under rounding thresholds alongside edge cases like missing DOM nodes.
 **Action:** Use specific numerical boundary inputs (e.g., 15_000_000.08) rather than just random values to hit internal thresholds and reliably assert specific decimal precision paths.
+
+## 2024-05-24 - Test Python tooling scripts
+
+**Learning:** Testing standalone scripts that interact heavily with the filesystem and use simple logic patterns (like `security_check.py` or `export_for_git.py`) requires thorough use of Pytest's `monkeypatch` and `tempfile.TemporaryDirectory`. When testing modules with side-effects upon import, mock dependencies _before_ executing the module using `importlib.util.spec_from_file_location`.
+
+**Action:** Ensure temporary files are cleaned up using `tempfile`, and strategically patch functions like `subprocess.run` and built-ins like `sys.stderr` to prevent tests from bleeding side-effects.
+
+## 2024-05-13 - Added Tests for hide_deck_collapse, unify_review_count_colors, and rewrite_text_of_study_cards
+
+**Learning:** Anki `aqt` UI classes such as `DeckBrowser` or `Overview` must be mocked fully at the module scope level inside `conftest.py` (including setting `builtins.DeckBrowser` if code expects class instantiation without module prefixes) to successfully run python unit tests targeting UI code.
+**Action:** When creating tests for untested UI logic that rely on complex external dependencies (`aqt`), always update `conftest.py` with the complete path tree of required modules (`aqt.deckbrowser`, `aqt.overview`) and ensure `builtins` are appropriately patched to pass module loading.
