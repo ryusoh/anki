@@ -45,3 +45,12 @@
 - **Silent Failures:** Fixed remaining bare `except Exception:` blocks in `tools/security_audit.py` (JSON/file reading), `awesome_tts/awesometts/service/ispeech.py` (error parsing), `awesome_tts/awesometts/service/base.py` (response payload setup), and `awesome_tts/awesometts/gui/listviews.py` (rule regex compilation). By passing these exceptions to our standard loggers (`print/logging.getLogger`), we ensure debugging context is retained while maintaining necessary fallback behaviors.
 
 - **Silent Failure Audit:** To improve resilience, located and fixed empty catch blocks and generic error suppressions (`except Exception:`) across Python and JavaScript files (`data/anki/security_check.py`, `data/anki/upload-to-r2`, `data/anki/fetch`, `js/mobile_ambient_bootstrap.js`, `js/ui/videoFallback.js`). These were updated to explicitly capture the error object and log it with context using `print` or `console.warn` (respecting linter rules with `eslint-disable-next-line`), ensuring silent failures are now visible.
+
+## 2024-05-18 - Scheduled Task: Code Health & Cleanup
+
+**Learnings:**
+- **Structural Health:** Refactored `on_browser_did_search` in `prioritize_front_field_search/__init__.py`. Extracted the complex SQL query execution and field parsing logic into a helper function `_fetch_front_fields(col, all_sorted_ids, is_notes_mode)`. This reduced cyclomatic complexity significantly and improved maintainability.
+- **Silent Failures:** Audited codebase for empty `except:` blocks and `except Exception:` blocks where errors were suppressed. Added logging to `rewrite_text_of_study_cards/shige_config/shige_addons.py`, `enhance_main_window/node.py` and `js/graph/graph.js` to ensure tracebacks are caught securely but not suppressed blindly.
+- **Cleanup Logic:** Cleaned up pending `TODO: NewDeckStats` entries in `review_heatmap/views.py` and `review_heatmap/web_bridge.py` by introducing conditional support for `aqt.stats.NewDeckStats` if the attribute exists on `aqt.stats` in the user's specific Anki version.
+
+**Action:** Continually audit cyclomatic complexity using `radon` when touching large legacy Python functions, and always attach exceptions to logged warnings when patching legacy `catch` or `except:` clauses.

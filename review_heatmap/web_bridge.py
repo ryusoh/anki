@@ -63,12 +63,14 @@ class HeatmapBridge:
     _command_splitter: str = "_"
     _payload_splitter: str = ":"
 
-    # TODO: new deck stats
-    _supported_contexts: Tuple[Type[DeckBrowser], Type[Overview], Type[DeckStats]] = (
+    _supported_contexts = [
         DeckBrowser,
         Overview,
         DeckStats,
-    )
+    ]
+    if hasattr(aqt.stats, "NewDeckStats"):
+        _supported_contexts.append(aqt.stats.NewDeckStats)
+    _supported_contexts = tuple(_supported_contexts)
 
     def __init__(self, mw: AnkiQt, config: "ConfigManager"):
         self._mw: AnkiQt = mw
@@ -79,8 +81,9 @@ class HeatmapBridge:
         from aqt.gui_hooks import webview_did_receive_js_message
 
         webview_did_receive_js_message.append(self.bridge)
-        # TODO: NewDeckStats
         DeckStats._linkHandler = lambda context, url: self.bridge_legacy(context, url)  # type: ignore
+        if hasattr(aqt.stats, "NewDeckStats"):
+            aqt.stats.NewDeckStats._linkHandler = lambda context, url: self.bridge_legacy(context, url)  # type: ignore
 
     def bridge(self, handled: HANDLED_TYPE, message: str, context: Any) -> HANDLED_TYPE:
         if not message.startswith(self._identifier):

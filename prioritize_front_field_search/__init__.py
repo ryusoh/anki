@@ -3,6 +3,38 @@
 import traceback
 from .search import extract_terms, score_front_match
 
+def _fetch_front_fields(col, all_sorted_ids, is_notes_mode):
+    note_data = {}
+    model_cache = {}
+    chunk_size = 900
+
+    for i in range(0, len(all_sorted_ids), chunk_size):
+        chunk = all_sorted_ids[i:i + chunk_size]
+        id_list = ",".join(map(str, chunk))
+
+        if is_notes_mode:
+            rows = col.db.all(f"select id, mid, flds from notes where id in ({id_list})")
+        else:
+            rows = col.db.all(f"select c.id, n.mid, n.flds from cards c join notes n on c.nid = n.id where c.id in ({id_list})")
+
+        for item_id, mid, flds in rows:
+            if mid not in model_cache:
+                model_cache[mid] = col.models.get(mid)
+            model = model_cache[mid]
+
+            idx = 0
+            if model:
+                for f in model['flds']:
+                    if f['name'] == "Front":
+                        idx = f['ord']
+                        break
+
+            flds_list = flds.split('\x1f')
+            if idx < len(flds_list):
+                note_data[item_id] = flds_list[idx]
+
+    return note_data
+
 def on_browser_did_search(search_context):
     """
     Hook to perform two-tiered reordering of search results:
@@ -33,51 +65,7 @@ def on_browser_did_search(search_context):
         is_notes_mode = search_context.browser.table.is_notes_mode()
 
         # Fetch Front field data for all initially matched items
-        note_data = {}
-        model_cache = {}
-        
-        # SQLite limit for IN clause is usually 999 or 1000
-        chunk_size = 900
-        for i in range(0, len(all_sorted_ids), chunk_size):
-            chunk = all_sorted_ids[i:i + chunk_size]
-            id_list = ",".join(map(str, chunk))
-            
-            if is_notes_mode:
-                # IDs are note IDs
-                rows = col.db.all(f"select id, mid, flds from notes where id in ({id_list})")
-                for nid, mid, flds in rows:
-                    if mid not in model_cache:
-                        model_cache[mid] = col.models.get(mid)
-                    model = model_cache[mid]
-                    
-                    idx = 0
-                    if model:
-                        for f in model['flds']:
-                            if f['name'] == "Front":
-                                idx = f['ord']
-                                break
-                    
-                    flds_list = flds.split('\x1f')
-                    if idx < len(flds_list):
-                        note_data[nid] = flds_list[idx]
-            else:
-                # IDs are card IDs
-                rows = col.db.all(f"select c.id, n.mid, n.flds from cards c join notes n on c.nid = n.id where c.id in ({id_list})")
-                for cid, mid, flds in rows:
-                    if mid not in model_cache:
-                        model_cache[mid] = col.models.get(mid)
-                    model = model_cache[mid]
-                    
-                    idx = 0
-                    if model:
-                        for f in model['flds']:
-                            if f['name'] == "Front":
-                                idx = f['ord']
-                                break
-                    
-                    flds_list = flds.split('\x1f')
-                    if idx < len(flds_list):
-                        note_data[cid] = flds_list[idx]
+        note_data = _fetch_front_fields(col, all_sorted_ids, is_notes_mode)
         
         tier_1 = []
         tier_2 = []
