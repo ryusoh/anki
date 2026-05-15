@@ -164,33 +164,57 @@ def parse_wiktionary_html(html_text, lang="en"):
                 tag.attrs = {}
             p_tag.attrs = {}
             
-            hit_parenthesis = False
-            for child in list(p_tag.contents):
-                if child.name is None: # Text node
-                    text_val = str(child)
-                    if not hit_parenthesis and ('(' in text_val or '（' in text_val):
-                        hit_parenthesis = True
-                        idx = -1
-                        if '(' in text_val and '（' in text_val:
-                            idx = min(text_val.find('('), text_val.find('（'))
-                        elif '(' in text_val:
-                            idx = text_val.find('(')
-                        elif '（' in text_val:
-                            idx = text_val.find('（')
-                        
-                        if idx != -1:
-                            child.replace_with(text_val[idx:])
-                        continue
-                
-                if not hit_parenthesis:
-                    child.extract()
-            
-            inner_html = "".join(str(c) for c in p_tag.contents).strip(" \t\n\r\xa0")
-            if inner_html.startswith("(") or inner_html.startswith("（"):
-                inner_html = inner_html[1:]
-            if inner_html.endswith(")") or inner_html.endswith("）"):
-                inner_html = inner_html[:-1]
-            inner_html = inner_html.strip(" \t\n\r\xa0")
+            # Check if this is a 【】 bracket pattern (e.g. くちべた【口下手】)
+            # For 【】: the reading is BEFORE the bracket — keep before, discard after
+            # For ()/（）: the pronunciation is INSIDE — discard before, keep inside
+            full_text = p_tag.get_text()
+            use_square_bracket = '【' in full_text and ('(' not in full_text and '（' not in full_text)
+
+            if use_square_bracket:
+                # Keep content before 【, discard from 【 onward
+                hit_bracket = False
+                for child in list(p_tag.contents):
+                    if child.name is None:
+                        text_val = str(child)
+                        if not hit_bracket and '【' in text_val:
+                            hit_bracket = True
+                            before = text_val[:text_val.index('【')]
+                            if before.strip():
+                                child.replace_with(before)
+                            else:
+                                child.extract()
+                            continue
+                    if hit_bracket:
+                        child.extract()
+                inner_html = "".join(str(c) for c in p_tag.contents).strip(" \t\n\r\xa0")
+            else:
+                hit_parenthesis = False
+                for child in list(p_tag.contents):
+                    if child.name is None: # Text node
+                        text_val = str(child)
+                        if not hit_parenthesis and ('(' in text_val or '（' in text_val):
+                            hit_parenthesis = True
+                            idx = -1
+                            if '(' in text_val and '（' in text_val:
+                                idx = min(text_val.find('('), text_val.find('（'))
+                            elif '(' in text_val:
+                                idx = text_val.find('(')
+                            elif '（' in text_val:
+                                idx = text_val.find('（')
+
+                            if idx != -1:
+                                child.replace_with(text_val[idx:])
+                            continue
+
+                    if not hit_parenthesis:
+                        child.extract()
+
+                inner_html = "".join(str(c) for c in p_tag.contents).strip(" \t\n\r\xa0")
+                if inner_html.startswith("(") or inner_html.startswith("（"):
+                    inner_html = inner_html[1:]
+                if inner_html.endswith(")") or inner_html.endswith("）"):
+                    inner_html = inner_html[:-1]
+                inner_html = inner_html.strip(" \t\n\r\xa0")
             
             if inner_html:
                 results.append(f"<p>{inner_html}</p>")

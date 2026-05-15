@@ -159,3 +159,59 @@ def test_full_redirect_flow_with_mock_fetch(mock_fetch):
     parsed = parse_wiktionary_html(html, lang="ja")
     assert "逆上" in parsed
     assert "夢中" in parsed
+
+
+# ---- 口下手 (くちべた) test fixtures ----
+
+# Real HTML from ja.wiktionary for 口下手 (redirects to くちべた)
+KUCHIBETA_REDIRECT_HTML = """
+<html>
+    <body>
+        <section>
+            <h2>日本語</h2>
+            <section>
+                <h3>和語の漢字表記</h3>
+                <p><strong class="Jpan headword" lang="ja"><a href="./口#日本語" title="口">口</a><a href="./下#日本語" title="下">下</a><a href="./手#日本語" title="手">手</a></strong> (くちべた)</p>
+                <ol><li><b><a href="./くちべた" title="くちべた">くちべた</a></b>の漢字表記。</li></ol>
+            </section>
+        </section>
+    </body>
+</html>
+"""
+
+# Real HTML from ja.wiktionary for くちべた (the target after redirect)
+# Note: pronunciation uses 【】 brackets, not () parentheses
+KUCHIBETA_REAL_HTML = """
+<html>
+    <body>
+        <section>
+            <h2>日本語</h2>
+            <section>
+                <h3>名詞</h3>
+                <p><strong class="Jpan headword" lang="ja">くちべた</strong>【<b class="Jpan" lang="ja"><a href="./口下手#日本語" title="口下手">口下手</a></b>】</p>
+                <ol>
+                    <li>人に思ったことを伝えるのが下手なこと。</li>
+                </ol>
+            </section>
+        </section>
+    </body>
+</html>
+"""
+
+
+def test_detect_kanji_redirect_kuchibeta():
+    """口下手 should redirect to くちべた"""
+    result = detect_kanji_redirect(KUCHIBETA_REDIRECT_HTML)
+    assert result == "くちべた"
+
+
+def test_kuchibeta_redirect_preserves_pronunciation():
+    """After redirecting 口下手 → くちべた, the pronunciation くちべた must appear in parsed output."""
+    redirect = detect_kanji_redirect(KUCHIBETA_REDIRECT_HTML)
+    assert redirect == "くちべた"
+
+    parsed = parse_wiktionary_html(KUCHIBETA_REAL_HTML, lang="ja")
+    # The definition should be present
+    assert "下手" in parsed
+    # The pronunciation (reading) must be present — this is the bug
+    assert "くちべた" in parsed
