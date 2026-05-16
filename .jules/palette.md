@@ -55,3 +55,8 @@
 
 **Learning:** When making table headers (`th` elements) sortable, overriding their inherent `columnheader` role by adding `role="button"` breaks their ability to convey sorting state to screen readers. `aria-sort` is only a valid attribute on elements with `columnheader` or `rowheader` roles.
 **Action:** Do not use `role="button"` on interactive `th` elements. Instead, apply `tabindex="0"` for keyboard accessibility and initialize them with `aria-sort="none"` (or `ascending`/`descending` as appropriate) to correctly expose the sortable semantics and state.
+
+## 2026-05-16 - ARIA Sort States on Table Headers Fix
+
+**Learning:** When making table headers (`th` elements) sortable, overriding their inherent `columnheader` role by adding `role="button"` breaks their ability to convey sorting state to screen readers. `aria-sort` is only a valid attribute on elements with `columnheader` or `rowheader` roles.
+**Action:** Do not use `role="button"` on interactive `th` elements. Instead, apply `tabindex="0"` for keyboard accessibility and initialize them with `aria-sort="none"` (or `ascending`/`descending` as appropriate) to correctly expose the sortable semantics and state.
