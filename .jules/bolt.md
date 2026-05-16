@@ -167,3 +167,8 @@
 
 **Learning:** Re-instantiating `THREE.Vector3` objects inside high-frequency execution loops, such as `requestAnimationFrame` render layers, creates heavy and continuous Garbage Collection overhead, increasing the chance of UI jank.
 **Action:** Pre-allocate vectors outside of the render loop and reuse them inside the loop, relying on methods that overwrite values instead of returning new objects.
+
+## 2025-05-20 - [O(1) Table Row Hover Lookup]
+
+**Learning:** In applications where table rows have hover effects driven by mouse tracking, continuously resolving hovered rows via `document.elementFromPoint(e.clientX, e.clientY)` followed by an O(N) `findIndex` lookup over row collections causes severe layout thrashing and main-thread blocking, particularly with large datasets.
+**Action:** Always prefer retrieving the interacted element via `e.target` directly in mouse events. Pair this with a `WeakMap` during initialization to associate DOM nodes to their corresponding index or metadata for O(1) constant-time lookup instead of iterating through arrays.
