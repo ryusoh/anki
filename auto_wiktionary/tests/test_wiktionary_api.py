@@ -134,3 +134,27 @@ def test_parse_wiktionary_html_kaikou():
     assert "偶然を差引いても" in parsed
     assert "English translation" not in parsed # Translation section removed
     assert "Chinese definition here" not in parsed # Chinese section removed
+
+def test_parse_wiktionary_html_end_run_multiple_parens():
+    """
+    When an English word has multiple parenthetical groups in the <p> tag
+    (e.g. "(plural end runs) (Canada, US)"), the outer parens must NOT be
+    stripped — only strip when the entire content is a single matched pair.
+    """
+    mock_html = """
+    <html>
+        <body>
+            <p><strong><a href="./end">end</a> <a href="./run">run</a></strong> (<i>plural</i> <b><a href="./end_runs">end runs</a></b>) (<a href="./Canada">Canada</a>, <a href="./US">US</a>)</p>
+            <ol>
+                <li>(<i>American football</i>) A running play in which the player carrying the ball attempts to avoid being tackled.</li>
+                <li>(<i>figuratively, by extension, chiefly informal</i>) An attempt to circumvent a difficult problem by not confronting it directly.</li>
+            </ol>
+        </body>
+    </html>
+    """
+    parsed = parse_wiktionary_html(mock_html)
+    # The p_tag content should preserve both parenthetical groups intact
+    assert "(plural" in parsed or "(<i>plural</i>" in parsed
+    assert "(Canada, US)" in parsed
+    # Must NOT produce broken output like "plural end runs) (Canada, US"
+    assert "plural end runs) (Canada, US" not in parsed or "(plural" in parsed

@@ -210,10 +210,25 @@ def parse_wiktionary_html(html_text, lang="en"):
                         child.extract()
 
                 inner_html = "".join(str(c) for c in p_tag.contents).strip(" \t\n\r\xa0")
+                # Only strip outer parens if the opening paren's match is the final closing paren
                 if inner_html.startswith("(") or inner_html.startswith("（"):
-                    inner_html = inner_html[1:]
-                if inner_html.endswith(")") or inner_html.endswith("）"):
-                    inner_html = inner_html[:-1]
+                    open_c = inner_html[0]
+                    close_c = ')' if open_c == '(' else '）'
+                    plain = re.sub(r'<[^>]+>', '', inner_html)
+                    depth = 0
+                    match_end = -1
+                    for i, ch in enumerate(plain):
+                        if ch == open_c:
+                            depth += 1
+                        elif ch == close_c:
+                            depth -= 1
+                            if depth == 0:
+                                match_end = i
+                                break
+                    if match_end == len(plain.rstrip()) - 1:
+                        inner_html = inner_html[1:]
+                        if inner_html.endswith(close_c):
+                            inner_html = inner_html[:-1]
                 inner_html = inner_html.strip(" \t\n\r\xa0")
             
             if inner_html:
