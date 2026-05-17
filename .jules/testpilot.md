@@ -77,6 +77,8 @@
 
 **Learning:** When generating test coverage for a Python script using `subprocess` from another test or running `sys.exit()`, the normal coverage tracking might not pick it up correctly unless you invoke the functions explicitly inside the tests or configure `coverage` to track subprocesses. Also, mocking builtins like `open` can cause issues if not done correctly, and you must pass all arguments as required by the mocked functions.
 **Action:** Wrote exhaustive unit tests explicitly calling the functions in `tools/security_audit.py` to drive coverage to >99%, avoiding using `subprocess` where we could just call the function directly and patching internal implementations (like `sys.exit`) for testability.
+
 ## 2025-02-14 - Isolate DOM Globals for Node.js ES Modules Tests
+
 **Learning:** When testing ES modules in Node.js that require DOM-like environments (like `transactionState` checking `document.querySelector`), the globals (`global.window`, `global.document`) must be mocked **before** dynamically importing the module with `await import(...)`. Failing to do so causes ReferenceErrors during module initialization.
 **Action:** Use setup blocks in test suites to instantiate mock `global.window` and `global.document` objects before importing the target files, and remember to clean them up afterward.

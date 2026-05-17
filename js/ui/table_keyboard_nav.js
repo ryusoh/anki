@@ -5,7 +5,10 @@ export function initTableKeyboardNav() {
       header.setAttribute("tabindex", "0");
     }
 
-    if (header.classList.contains("sortable") && !header.hasAttribute("aria-sort")) {
+    if (
+      header.classList.contains("sortable") &&
+      !header.hasAttribute("aria-sort")
+    ) {
       header.setAttribute("aria-sort", "none");
     }
 
