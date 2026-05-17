@@ -149,3 +149,9 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Vulnerability:** Dynamic chart legends in `js/commands/retention.js`, `js/commands/due.js`, and `js/commands/reviews.js` were using string concatenation assigned to `legend.innerHTML`. Even though user inputs like deck names were escaped, this pattern violated defense-in-depth secure coding principles.
 **Learning:** Assigning dynamically built strings to `innerHTML`—even with escaped variables—violates modern SAST rules and risks accidental XSS introduction during future modifications. Safe DOM APIs should be the standard everywhere.
 **Prevention:** Always use safe DOM manipulation methods like `document.createElement`, `document.createTextNode`, and `appendChild` when building HTML structures, and use `element.textContent = ""` or `element.replaceChildren()` to clear elements securely instead of `element.innerHTML = ""`.
+
+## 2024-05-18 - Prevent unhandled exception and stack trace leakage in external requests
+
+**Vulnerability:** External HTTP requests (using `requests.get` and `requests.post`) in `awesome_tts/awesometts/languagetools.py` were not wrapped in exception handlers, allowing potential network issues (like timeouts or connection drops) to raise unhandled exceptions and potentially expose sensitive stack traces to users.
+**Learning:** Third-party libraries like `requests` can raise a variety of exceptions (e.g., `requests.exceptions.RequestException`) during connection failures, read timeouts, or protocol errors. Failing to catch these exceptions safely allows the application to crash or expose internal state.
+**Prevention:** When making external HTTP requests in Python (e.g., using the `requests` library), always wrap the call within a `try...except requests.exceptions.RequestException` block. Log the error context securely and return or raise a controlled, sanitized exception to prevent unhandled network errors from crashing the application and to fail securely.
