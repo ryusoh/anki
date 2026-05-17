@@ -47,34 +47,41 @@ class LanguageTools:
 
     def verify_api_key(self, api_key):
         # first , try to verify API key with vocab API
-        response = requests.get(self.vocab_api_base_url + '/account', headers={'Authorization': f'Api-Key {api_key}'}, timeout=10)
-        if response.status_code == 200:
-            # API key is valid on vocab API
-            self.api_key = api_key
-            self.api_key_verified = True
-            self.use_vocabai_api = True
-            return {
-                'key_valid': True,
-            }
-
-        # now check with cloudlanguagetools API
-        response = requests.get(self.base_url + '/account', headers={
-            'api_key': api_key
-        }, timeout=10)
-        if response.status_code == 200:
-            data = response.json()
-            if 'error' in data:
+        try:
+            response = requests.get(self.vocab_api_base_url + '/account', headers={'Authorization': f'Api-Key {api_key}'}, timeout=10)
+            if response.status_code == 200:
+                # API key is valid on vocab API
+                self.api_key = api_key
+                self.api_key_verified = True
+                self.use_vocabai_api = True
                 return {
-                    'key_valid': False,
-                    'msg': data['error']
-                }                    
-            # key valid
-            self.api_key = api_key
-            self.api_key_verified = True
-            self.use_vocabai_api = False
+                    'key_valid': True,
+                }
+
+            # now check with cloudlanguagetools API
+            response = requests.get(self.base_url + '/account', headers={
+                'api_key': api_key
+            }, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                if 'error' in data:
+                    return {
+                        'key_valid': False,
+                        'msg': data['error']
+                    }
+                # key valid
+                self.api_key = api_key
+                self.api_key_verified = True
+                self.use_vocabai_api = False
+                return {
+                    'key_valid': True,
+                    'msg': f'api key: {api_key}'
+                }
+        except requests.exceptions.RequestException as e:
+            self.logger.error(f"Error verifying API key: {e}")
             return {
-                'key_valid': True,
-                'msg': f'api key: {api_key}'
+                'key_valid': False,
+                'msg': f'api key not valid'
             }
         
         # by default, key is invalid
@@ -92,12 +99,16 @@ class LanguageTools:
     def account_info(self):
         self.ensure_key_verified()
 
-        if self.use_vocabai_api:
-            response = requests.get(self.vocab_api_base_url + '/account', headers={'Authorization': f'Api-Key {self.api_key}'}, timeout=10)
-        else:
-            response = requests.get(self.base_url + '/account', headers={'api_key': self.api_key}, timeout=10)
-        data = json.loads(response.content)
-        return data
+        try:
+            if self.use_vocabai_api:
+                response = requests.get(self.vocab_api_base_url + '/account', headers={'Authorization': f'Api-Key {self.api_key}'}, timeout=10)
+            else:
+                response = requests.get(self.base_url + '/account', headers={'api_key': self.api_key}, timeout=10)
+            data = json.loads(response.content)
+            return data
+        except requests.exceptions.RequestException as e:
+            self.logger.error(f"Network error in account_info: {e}")
+            raise ValueError(f"Network error: {e}")
 
     # def request_trial_key(self, email):
     #     self.logger.info(f'requesting trial key for email {email}')
@@ -123,28 +134,32 @@ class LanguageTools:
             'options': options
         }
 
-        if self.use_vocabai_api:
-            headers={
-                'Authorization': f'Api-Key {self.api_key}',
-                'User-Agent': f'anki-awesometts/{self.client_version}',
-                'X-Vocab-Addon-ID': self.client_uuid
-            }
-            full_url = self.vocab_api_base_url + '/audio'         
-            response = requests.post(full_url, json=data, headers=headers, timeout=10)
-        else:
-            url_path = '/audio_v2'
-            full_url = self.base_url + url_path
-            self.logger.info(f'request url: {full_url}, data: {data}')
-            response = requests.post(full_url, json=data, headers={'api_key': self.get_api_key(), 'client': 'awesometts', 'client_version': self.client_version}, timeout=10)
+        try:
+            if self.use_vocabai_api:
+                headers={
+                    'Authorization': f'Api-Key {self.api_key}',
+                    'User-Agent': f'anki-awesometts/{self.client_version}',
+                    'X-Vocab-Addon-ID': self.client_uuid
+                }
+                full_url = self.vocab_api_base_url + '/audio'
+                response = requests.post(full_url, json=data, headers=headers, timeout=10)
+            else:
+                url_path = '/audio_v2'
+                full_url = self.base_url + url_path
+                self.logger.info(f'request url: {full_url}, data: {data}')
+                response = requests.post(full_url, json=data, headers={'api_key': self.get_api_key(), 'client': 'awesometts', 'client_version': self.client_version}, timeout=10)
 
-        if response.status_code == 200:
-            self.logger.info('success, receiving audio')
-            with open(path, 'wb') as f:
-                f.write(response.content)
-        else:
-            error_message = f"Status code: {response.status_code} ({response.content})"
-            self.logger.error(error_message)
-            raise ValueError(error_message)                    
+            if response.status_code == 200:
+                self.logger.info('success, receiving audio')
+                with open(path, 'wb') as f:
+                    f.write(response.content)
+            else:
+                error_message = f"Status code: {response.status_code} ({response.content})"
+                self.logger.error(error_message)
+                raise ValueError(error_message)
+        except requests.exceptions.RequestException as e:
+            self.logger.error(f"Network error in generate_audio_v2: {e}")
+            raise ValueError(f"Network error: {e}")
 
 
     def compute_hmac_signature(self, email, client_uuid, machine_id):
@@ -194,12 +209,11 @@ class LanguageTools:
         else:
             base_url = self.vocab_api_base_url
             
-        response = requests.post(base_url + '/register_trial', 
-                                 json=data,
-                                 headers=headers,
-                                 timeout=10)
-        
         try:
+            response = requests.post(base_url + '/register_trial',
+                                     json=data,
+                                     headers=headers,
+                                     timeout=10)
             data = json.loads(response.content)
             self.logger.info(f'retrieved {data}, status_code: {response.status_code}')
 
