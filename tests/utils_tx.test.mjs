@@ -98,3 +98,127 @@ test("convertBetweenCurrencies returns unchanged original amount for identical s
     assert.strictEqual(resultUsdToUsd, amount);
     assert.strictEqual(resultEurToEur, amount);
 });
+
+test("formatCurrencyCompact handles CJK currency edge cases correctly", async () => {
+    const originalDocument = global.document;
+    const originalWindow = global.window;
+    global.document = {
+        querySelector: () => null,
+        getElementById: () => null
+    };
+    global.window = { innerWidth: 1000 };
+
+    const { formatCurrencyCompact } = await import("../js/transactions/utils.js");
+
+    // Test CJK billion edge cases
+    assert.strictEqual(formatCurrencyCompact(150_000_000_000, { currency: "JPY" }), "¥150B");
+    assert.strictEqual(formatCurrencyCompact(15_150_000_000, { currency: "JPY" }), "¥15.2B");
+    assert.strictEqual(formatCurrencyCompact(1_150_000_000, { currency: "JPY" }), "¥1.15B");
+
+    // Test CJK million edge cases
+    assert.strictEqual(formatCurrencyCompact(1_150_000, { currency: "JPY" }), "¥1.1M");
+    assert.strictEqual(formatCurrencyCompact(1_000_000, { currency: "JPY" }), "¥1M");
+
+    global.document = originalDocument;
+    global.window = originalWindow;
+});
+
+test("formatCurrencyInlineValue falls back to selected currency when explicitly not provided", async () => {
+    const originalDocument = global.document;
+    const originalWindow = global.window;
+    global.document = {
+        querySelector: () => null,
+        getElementById: () => null
+    };
+    global.window = { innerWidth: 1000 };
+
+    const { formatCurrencyInlineValue } = await import("../js/transactions/utils.js");
+    const { transactionState } = await import("../js/transactions/state.js");
+
+    const originalSelected = transactionState.selectedCurrency;
+    const originalSymbol = transactionState.currencySymbol;
+
+    // Test transactionState selectedCurrency fallback
+    transactionState.selectedCurrency = "GBP";
+    transactionState.currencySymbol = "£";
+    assert.strictEqual(formatCurrencyInlineValue(100), "£100");
+    assert.strictEqual(formatCurrencyInlineValue(-100.5, { digits: 1 }), "-£100.5");
+
+    // Reset state and test currencySymbol fallback
+    transactionState.selectedCurrency = "XYZ";
+    transactionState.currencySymbol = "€";
+    assert.strictEqual(formatCurrencyInlineValue(100), "€100");
+
+    // Test invalid arguments fallback (isFinite handling)
+    assert.strictEqual(formatCurrencyInlineValue("invalid", { currency: "USD" }), "$0");
+    assert.strictEqual(formatCurrencyInlineValue(NaN, { currency: "USD" }), "$0");
+
+    transactionState.selectedCurrency = originalSelected;
+    transactionState.currencySymbol = originalSymbol;
+    global.document = originalDocument;
+    global.window = originalWindow;
+});
+
+test("convertBetweenCurrencies uses closest historical FX rate when exact date is not available", async () => {
+    const originalDocument = global.document;
+    const originalWindow = global.window;
+    global.document = {
+        querySelector: () => null,
+        getElementById: () => null
+    };
+    global.window = { innerWidth: 1000 };
+
+    const { convertBetweenCurrencies } = await import("../js/transactions/utils.js");
+    const { transactionState } = await import("../js/transactions/state.js");
+
+    const originalRates = transactionState.fxRatesByCurrency;
+
+    // Inject fake fx rates to hit the binary search code path
+    transactionState.fxRatesByCurrency = {
+        "EUR": {
+            map: new Map([
+                ["2023-01-01", 0.9],
+                ["2023-01-03", 0.95],
+                ["2023-01-05", 0.92]
+            ]),
+            sorted: [
+                { date: "2023-01-01", ts: Date.parse("2023-01-01") },
+                { date: "2023-01-03", ts: Date.parse("2023-01-03") },
+                { date: "2023-01-05", ts: Date.parse("2023-01-05") }
+            ]
+        },
+        "GBP": {
+            map: new Map([
+                ["2023-01-04", 0.8]
+            ]),
+            sorted: [
+                { date: "2023-01-04", ts: Date.parse("2023-01-04") }
+            ]
+        }
+    };
+
+    // Exact match in map
+    const amountMap = convertBetweenCurrencies(100, "USD", "2023-01-03", "EUR");
+    assert.strictEqual(amountMap, 95);
+
+    // Date between 01-03 and 01-05 (Not in Map, finds previous closest historical rate)
+    const amountSearch = convertBetweenCurrencies(100, "USD", "2023-01-04", "EUR");
+    assert.strictEqual(amountSearch, 95);
+
+    // Convert source that is not USD
+    const amountGbpToEur = convertBetweenCurrencies(100, "GBP", "2023-01-04", "EUR");
+    // 100 GBP / 0.8 GBP/USD = 125 USD. 125 USD * 0.95 EUR/USD = 118.75 EUR
+    assert.strictEqual(amountGbpToEur, 118.75);
+
+    // Coverage for default handling in convertBetweenCurrencies
+    const fallbackToUsdFrom = convertBetweenCurrencies(100, "   ", "2023-01-04", "EUR");
+    assert.strictEqual(fallbackToUsdFrom, 95);
+
+    const fallbackToUsdTo = convertBetweenCurrencies(100, "EUR", "2023-01-04", "   ");
+    // 100 EUR / 0.95 EUR/USD = 105.26315789473685 USD
+    assert.ok(Math.abs(fallbackToUsdTo - 105.263) < 0.01);
+
+    transactionState.fxRatesByCurrency = originalRates;
+    global.document = originalDocument;
+    global.window = originalWindow;
+});
