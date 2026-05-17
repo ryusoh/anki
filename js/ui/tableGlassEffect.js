@@ -198,6 +198,7 @@ export class TableGlassEffect {
 
     // Track rows for hover effect
     this.rows = [];
+    this.rowMap = new WeakMap();
     if (this.options.rowHoverEffect?.enabled) {
       const tbody = this.container.querySelector("tbody");
       if (tbody) {
@@ -206,7 +207,11 @@ export class TableGlassEffect {
         // We need the canvas position to calculate relative row offsets accurately
         const canvasRect = this.canvas.getBoundingClientRect();
 
-        rows.forEach((row) => {
+        // Bolt: Use native for loop and pre-allocate the array to avoid
+        // dummy object creations and callback allocation garbage collection pressure
+        this.rows = new Array(rows.length);
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
           const rowRect = row.getBoundingClientRect();
 
           // Calculate top relative to the canvas itself
@@ -214,12 +219,13 @@ export class TableGlassEffect {
           // we simply ask "where is the row relative to the canvas?"
           const relativeTop = rowRect.top - canvasRect.top;
 
-          this.rows.push({
+          this.rows[i] = {
             top: relativeTop,
             height: rowRect.height,
             element: row,
-          });
-        });
+          };
+          this.rowMap.set(row, i);
+        }
       }
     }
   }
@@ -232,22 +238,18 @@ export class TableGlassEffect {
 
     // Determine hovered row by finding actual element under cursor
     if (this.options.rowHoverEffect?.enabled) {
-      // Find the actual row element under the mouse cursor
-      const elementUnderMouse = document.elementFromPoint(e.clientX, e.clientY);
+      // Bolt: Use e.target directly instead of the costly document.elementFromPoint
+      // which causes layout thrashing and main thread blocking.
+      const elementUnderMouse = e.target;
       if (elementUnderMouse) {
         // Find the closest table row
         const rowElement = elementUnderMouse.closest("tr");
 
         if (rowElement && this.container.contains(rowElement)) {
-          // Find the index of this row in our stored rows array
-          let foundIndex = -1;
-          for (let i = 0; i < this.rows.length; i++) {
-            if (this.rows[i].element === rowElement) {
-              foundIndex = i;
-              break;
-            }
-          }
-          this.state.hoveredRowIndex = foundIndex;
+          // Bolt: Use WeakMap for O(1) constant-time lookup instead of O(N) array iteration
+          const foundIndex = this.rowMap.get(rowElement);
+          this.state.hoveredRowIndex =
+            foundIndex !== undefined ? foundIndex : -1;
         } else {
           this.state.hoveredRowIndex = -1;
         }
