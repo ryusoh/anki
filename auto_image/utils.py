@@ -33,9 +33,8 @@ def _get_vqd_token(query):
 
 def fetch_image_results(query):
     """
-    Fetches a list of valid image URLs using DuckDuckGo's image search API.
-    Validates each URL by attempting to download it.
-    Returns a list of URL strings (may be empty).
+    Fetches candidate image URLs using DuckDuckGo's image search API.
+    Returns raw URLs without downloading — validation is done lazily per click.
     """
     if not query:
         return []
@@ -54,12 +53,7 @@ def fetch_image_results(query):
         with urllib.request.urlopen(req, timeout=10) as response:
             data = json.loads(response.read().decode('utf-8'))
 
-        valid_urls = []
-        for result in data.get("results", [])[:10]:
-            image_url = result.get("image", "")
-            if image_url and download_image(image_url) is not None:
-                valid_urls.append(image_url)
-        return valid_urls
+        return [r["image"] for r in data.get("results", [])[:20] if r.get("image")]
     except Exception:
         pass
 

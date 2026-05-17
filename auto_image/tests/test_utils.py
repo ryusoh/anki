@@ -50,7 +50,8 @@ class TestFetchImageResults:
         assert fetch_image_results("") == []
         assert fetch_image_results(None) == []
 
-    def test_returns_list_of_valid_urls(self):
+    def test_returns_candidate_urls_without_downloading(self):
+        """fetch_image_results returns raw URLs — no download validation."""
         api_response = json.dumps({
             "results": [
                 {"image": "https://example.com/photo.jpg"},
@@ -63,16 +64,14 @@ class TestFetchImageResults:
             call_count[0] += 1
             if call_count[0] == 1:
                 return _mock_response(b'<html>vqd="token123"</html>')
-            elif call_count[0] == 2:
-                return _mock_response(api_response.encode('utf-8'))
             else:
-                mock = _mock_response(b'\x89PNG fake')
-                mock.headers = {"Content-Type": "image/jpeg"}
-                return mock
+                return _mock_response(api_response.encode('utf-8'))
 
         with patch("utils.urllib.request.urlopen", side_effect=fake_urlopen):
             urls = fetch_image_results("cat")
             assert urls == ["https://example.com/photo.jpg", "https://example.com/photo2.jpg"]
+            # Only 2 HTTP calls: vqd + API. No download calls.
+            assert call_count[0] == 2
 
     def test_returns_empty_list_on_no_results(self):
         api_response = json.dumps({"results": []})
@@ -95,54 +94,25 @@ class TestFetchImageResults:
         with patch("utils.urllib.request.urlopen", return_value=_mock_response(b'<html>nothing</html>')):
             assert fetch_image_results("cat") == []
 
-    def test_skips_unreachable_urls(self):
-        """Unreachable URLs are filtered out of results."""
+    def test_filters_empty_urls(self):
         api_response = json.dumps({
             "results": [
-                {"image": "https://blocked-host.com/photo.jpg"},
-                {"image": "https://good-host.com/photo2.jpg"},
+                {"image": ""},
+                {"image": "https://example.com/photo.jpg"},
+                {"other_key": "no image key"},
             ]
         })
-
         call_count = [0]
         def fake_urlopen(req, **kwargs):
             call_count[0] += 1
             if call_count[0] == 1:
                 return _mock_response(b'<html>vqd="token123"</html>')
-            elif call_count[0] == 2:
-                return _mock_response(api_response.encode('utf-8'))
             else:
-                url = req.full_url if hasattr(req, 'full_url') else req
-                if "blocked-host" in url:
-                    raise Exception("403 Forbidden")
-                mock = _mock_response(b'\x89PNG fake')
-                mock.headers = {"Content-Type": "image/png"}
-                return mock
+                return _mock_response(api_response.encode('utf-8'))
 
         with patch("utils.urllib.request.urlopen", side_effect=fake_urlopen):
-            urls = fetch_image_results("lipliner")
-            assert urls == ["https://good-host.com/photo2.jpg"]
-
-    def test_returns_empty_list_when_all_urls_unreachable(self):
-        api_response = json.dumps({
-            "results": [
-                {"image": "https://blocked1.com/a.jpg"},
-                {"image": "https://blocked2.com/b.jpg"},
-            ]
-        })
-
-        call_count = [0]
-        def fake_urlopen(req, **kwargs):
-            call_count[0] += 1
-            if call_count[0] == 1:
-                return _mock_response(b'<html>vqd="token123"</html>')
-            elif call_count[0] == 2:
-                return _mock_response(api_response.encode('utf-8'))
-            else:
-                raise Exception("403 Forbidden")
-
-        with patch("utils.urllib.request.urlopen", side_effect=fake_urlopen):
-            assert fetch_image_results("lipliner") == []
+            urls = fetch_image_results("cat")
+            assert urls == ["https://example.com/photo.jpg"]
 
 
 class TestDownloadImage:

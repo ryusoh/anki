@@ -4,7 +4,7 @@ from aqt import gui_hooks
 from aqt.editor import Editor
 from aqt.utils import tooltip
 
-from .utils import clean_html_text, fetch_image_results, build_image_html
+from .utils import clean_html_text, fetch_image_results, build_image_html, download_image
 
 ADDON_DIR = os.path.dirname(__file__)
 ICON_PATH = os.path.join(ADDON_DIR, "icon.png")
@@ -24,17 +24,29 @@ def _apply_image(editor, text_to_search):
         return
 
     # Get or use cached results
-    if text in _image_cache:
-        cache = _image_cache[text]
-        cache["index"] = (cache["index"] + 1) % len(cache["urls"])
-    else:
+    if text not in _image_cache:
         urls = fetch_image_results(text)
         if not urls:
             tooltip(f"No image found for '{text}'.")
             return
-        _image_cache[text] = {"urls": urls, "index": 0}
+        _image_cache[text] = {"urls": urls, "index": -1}
 
     cache = _image_cache[text]
+
+    # Advance index and find next valid (downloadable) image
+    start = cache["index"]
+    total = len(cache["urls"])
+    found = False
+    for _ in range(total):
+        cache["index"] = (cache["index"] + 1) % total
+        if download_image(cache["urls"][cache["index"]]) is not None:
+            found = True
+            break
+
+    if not found:
+        tooltip(f"No valid image found for '{text}'.")
+        return
+
     image_url = cache["urls"][cache["index"]]
     img_html = build_image_html(image_url)
 
