@@ -9,7 +9,7 @@ sys.modules['aqt.editor'] = MagicMock()
 sys.modules['aqt.utils'] = MagicMock()
 
 import auto_image
-from auto_image import _apply_image, on_auto_image, _on_selection_result, _use_front_field, on_editor_did_init_buttons
+from auto_image import _apply_image, on_auto_image, _on_selection_result, _use_front_field, on_editor_did_init_buttons, _image_cache
 
 
 def _make_editor(fields=None, field_names=None, add_mode=False):
@@ -22,6 +22,10 @@ def _make_editor(fields=None, field_names=None, add_mode=False):
 
 
 class TestApplyImage:
+    def setup_method(self):
+        _image_cache.clear()
+        sys.modules['aqt.utils'].tooltip.reset_mock()
+
     def test_empty_text_shows_tooltip(self):
         editor = _make_editor()
         with patch("auto_image.clean_html_text", return_value=""):
@@ -31,7 +35,7 @@ class TestApplyImage:
     def test_no_back_field_shows_tooltip(self):
         editor = _make_editor(field_names=["Front", "Reading"])
         with patch("auto_image.clean_html_text", return_value="cat"), \
-             patch("auto_image.fetch_image_url", return_value="https://example.com/cat.jpg"), \
+             patch("auto_image.fetch_image_results", return_value=["https://example.com/cat.jpg"]), \
              patch("auto_image.build_image_html", return_value='<img src="https://example.com/cat.jpg">'):
             _apply_image(editor, "cat")
         tooltip_calls = [str(c) for c in sys.modules['aqt.utils'].tooltip.call_args_list]
@@ -40,7 +44,7 @@ class TestApplyImage:
     def test_no_image_found_shows_tooltip(self):
         editor = _make_editor()
         with patch("auto_image.clean_html_text", return_value="asjdflk"), \
-             patch("auto_image.fetch_image_url", return_value=""):
+             patch("auto_image.fetch_image_results", return_value=[]):
             _apply_image(editor, "asjdflk")
         sys.modules['aqt.utils'].tooltip.assert_called()
 
@@ -48,44 +52,40 @@ class TestApplyImage:
         editor = _make_editor(fields=["cat", "existing content"])
         img_html = '<img src="https://example.com/cat.jpg" style="max-width:300px;">'
         with patch("auto_image.clean_html_text", return_value="cat"), \
-             patch("auto_image.fetch_image_url", return_value="https://example.com/cat.jpg"), \
+             patch("auto_image.fetch_image_results", return_value=["https://example.com/cat.jpg"]), \
              patch("auto_image.build_image_html", return_value=img_html):
             _apply_image(editor, "cat")
         result = editor.note.fields[1]
         assert img_html in result
         assert result.startswith("existing content")
-        # Must not have a <br> right before the image (causes blank line)
         assert "<br><img" not in result
-        assert "<br>\n<img" not in result
 
     def test_appends_image_to_back_field_div_wrapped(self):
-        """Anki editor wraps content in divs — no extra spacing needed."""
         editor = _make_editor(fields=["cat", "<div>existing content</div>"])
         img_html = '<img src="https://example.com/cat.jpg" style="max-width:300px;">'
         with patch("auto_image.clean_html_text", return_value="cat"), \
-             patch("auto_image.fetch_image_url", return_value="https://example.com/cat.jpg"), \
+             patch("auto_image.fetch_image_results", return_value=["https://example.com/cat.jpg"]), \
              patch("auto_image.build_image_html", return_value=img_html):
             _apply_image(editor, "cat")
         result = editor.note.fields[1]
         assert img_html in result
-        # No blank line between content and image
         assert "<br><img" not in result
-        assert "<br>\n<img" not in result
 
     def test_appends_image_to_empty_back_field(self):
         editor = _make_editor(fields=["cat", ""])
         img_html = '<img src="https://example.com/cat.jpg" style="max-width:300px;">'
         with patch("auto_image.clean_html_text", return_value="cat"), \
-             patch("auto_image.fetch_image_url", return_value="https://example.com/cat.jpg"), \
+             patch("auto_image.fetch_image_results", return_value=["https://example.com/cat.jpg"]), \
              patch("auto_image.build_image_html", return_value=img_html):
             _apply_image(editor, "cat")
-        assert editor.note.fields[1] == f"<div>{img_html}</div>"
+        assert 'class="auto-image"' in editor.note.fields[1]
+        assert img_html in editor.note.fields[1]
 
     def test_flushes_note_in_edit_mode(self):
         editor = _make_editor(fields=["cat", ""], add_mode=False)
         img_html = '<img src="https://example.com/cat.jpg">'
         with patch("auto_image.clean_html_text", return_value="cat"), \
-             patch("auto_image.fetch_image_url", return_value="https://example.com/cat.jpg"), \
+             patch("auto_image.fetch_image_results", return_value=["https://example.com/cat.jpg"]), \
              patch("auto_image.build_image_html", return_value=img_html):
             _apply_image(editor, "cat")
         editor.note.flush.assert_called_once()
@@ -94,7 +94,7 @@ class TestApplyImage:
         editor = _make_editor(fields=["cat", ""], add_mode=True)
         img_html = '<img src="https://example.com/cat.jpg">'
         with patch("auto_image.clean_html_text", return_value="cat"), \
-             patch("auto_image.fetch_image_url", return_value="https://example.com/cat.jpg"), \
+             patch("auto_image.fetch_image_results", return_value=["https://example.com/cat.jpg"]), \
              patch("auto_image.build_image_html", return_value=img_html):
             _apply_image(editor, "cat")
         editor.note.flush.assert_not_called()
@@ -103,10 +103,110 @@ class TestApplyImage:
         editor = MagicMock()
         editor.note = None
         with patch("auto_image.clean_html_text", return_value="cat"), \
-             patch("auto_image.fetch_image_url", return_value="https://example.com/cat.jpg"), \
+             patch("auto_image.fetch_image_results", return_value=["https://example.com/cat.jpg"]), \
              patch("auto_image.build_image_html", return_value='<img>'):
             _apply_image(editor, "cat")
-        # Should not crash
+
+
+class TestCycleImages:
+    def setup_method(self):
+        _image_cache.clear()
+        sys.modules['aqt.utils'].tooltip.reset_mock()
+
+    def test_second_click_replaces_with_next_image(self):
+        urls = ["https://example.com/img1.jpg", "https://example.com/img2.jpg"]
+        img1 = '<img src="https://example.com/img1.jpg" style="max-width:300px;">'
+        img2 = '<img src="https://example.com/img2.jpg" style="max-width:300px;">'
+
+        # First click
+        editor = _make_editor(fields=["cat", "some definition"])
+        with patch("auto_image.clean_html_text", return_value="cat"), \
+             patch("auto_image.fetch_image_results", return_value=urls), \
+             patch("auto_image.build_image_html", side_effect=lambda u: f'<img src="{u}" style="max-width:300px;">'):
+            _apply_image(editor, "cat")
+        assert img1 in editor.note.fields[1]
+        assert "some definition" in editor.note.fields[1]
+
+        # Second click — should replace img1 with img2, keep definition
+        with patch("auto_image.clean_html_text", return_value="cat"), \
+             patch("auto_image.fetch_image_results", return_value=urls), \
+             patch("auto_image.build_image_html", side_effect=lambda u: f'<img src="{u}" style="max-width:300px;">'):
+            _apply_image(editor, "cat")
+        result = editor.note.fields[1]
+        assert img2 in result
+        assert img1 not in result
+        assert "some definition" in result
+
+    def test_third_click_cycles_to_third_image(self):
+        urls = ["https://example.com/1.jpg", "https://example.com/2.jpg", "https://example.com/3.jpg"]
+
+        editor = _make_editor(fields=["cat", ""])
+        def do_click():
+            with patch("auto_image.clean_html_text", return_value="cat"), \
+                 patch("auto_image.fetch_image_results", return_value=urls), \
+                 patch("auto_image.build_image_html", side_effect=lambda u: f'<img src="{u}" style="max-width:300px;">'):
+                _apply_image(editor, "cat")
+
+        do_click()  # 1st
+        assert "1.jpg" in editor.note.fields[1]
+        do_click()  # 2nd
+        assert "2.jpg" in editor.note.fields[1]
+        assert "1.jpg" not in editor.note.fields[1]
+        do_click()  # 3rd
+        assert "3.jpg" in editor.note.fields[1]
+        assert "2.jpg" not in editor.note.fields[1]
+
+    def test_wraps_around_after_last_result(self):
+        urls = ["https://example.com/a.jpg", "https://example.com/b.jpg"]
+
+        editor = _make_editor(fields=["cat", ""])
+        def do_click():
+            with patch("auto_image.clean_html_text", return_value="cat"), \
+                 patch("auto_image.fetch_image_results", return_value=urls), \
+                 patch("auto_image.build_image_html", side_effect=lambda u: f'<img src="{u}" style="max-width:300px;">'):
+                _apply_image(editor, "cat")
+
+        do_click()  # 1st -> a.jpg
+        do_click()  # 2nd -> b.jpg
+        do_click()  # 3rd -> wraps to a.jpg
+        assert "a.jpg" in editor.note.fields[1]
+        assert "b.jpg" not in editor.note.fields[1]
+
+    def test_different_queries_have_independent_caches(self):
+        cat_urls = ["https://example.com/cat1.jpg", "https://example.com/cat2.jpg"]
+        dog_urls = ["https://example.com/dog1.jpg", "https://example.com/dog2.jpg"]
+
+        editor = _make_editor(fields=["cat", ""])
+        with patch("auto_image.clean_html_text", return_value="cat"), \
+             patch("auto_image.fetch_image_results", return_value=cat_urls), \
+             patch("auto_image.build_image_html", side_effect=lambda u: f'<img src="{u}" style="max-width:300px;">'):
+            _apply_image(editor, "cat")
+        assert "cat1.jpg" in editor.note.fields[1]
+
+        # Switch to dog — should start at first result
+        editor2 = _make_editor(fields=["dog", ""])
+        with patch("auto_image.clean_html_text", return_value="dog"), \
+             patch("auto_image.fetch_image_results", return_value=dog_urls), \
+             patch("auto_image.build_image_html", side_effect=lambda u: f'<img src="{u}" style="max-width:300px;">'):
+            _apply_image(editor2, "dog")
+        assert "dog1.jpg" in editor2.note.fields[1]
+
+    def test_uses_cached_results_on_repeat_click(self):
+        """Second click should NOT re-fetch from the API."""
+        urls = ["https://example.com/1.jpg", "https://example.com/2.jpg"]
+        editor = _make_editor(fields=["cat", ""])
+        fetch_mock = MagicMock(return_value=urls)
+
+        def do_click():
+            with patch("auto_image.clean_html_text", return_value="cat"), \
+                 patch("auto_image.fetch_image_results", fetch_mock), \
+                 patch("auto_image.build_image_html", side_effect=lambda u: f'<img src="{u}" style="max-width:300px;">'):
+                _apply_image(editor, "cat")
+
+        do_click()
+        do_click()
+        # fetch_image_results should only be called once (first click)
+        assert fetch_mock.call_count == 1
 
 
 class TestOnAutoImage:

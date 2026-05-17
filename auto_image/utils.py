@@ -31,18 +31,19 @@ def _get_vqd_token(query):
     return match.group(1) if match else None
 
 
-def fetch_image_url(query):
+def fetch_image_results(query):
     """
-    Fetches the first image URL using DuckDuckGo's image search API.
-    Returns the URL string, or empty string on failure.
+    Fetches a list of valid image URLs using DuckDuckGo's image search API.
+    Validates each URL by attempting to download it.
+    Returns a list of URL strings (may be empty).
     """
     if not query:
-        return ""
+        return []
 
     try:
         vqd = _get_vqd_token(query)
         if not vqd:
-            return ""
+            return []
 
         encoded_query = urllib.parse.quote_plus(query)
         api_url = f"https://duckduckgo.com/i.js?l=us-en&o=json&q={encoded_query}&vqd={vqd}&f=,,,,,&p=1"
@@ -53,15 +54,16 @@ def fetch_image_url(query):
         with urllib.request.urlopen(req, timeout=10) as response:
             data = json.loads(response.read().decode('utf-8'))
 
-        results = data.get("results", [])
-        for result in results[:5]:
+        valid_urls = []
+        for result in data.get("results", [])[:10]:
             image_url = result.get("image", "")
             if image_url and download_image(image_url) is not None:
-                return image_url
+                valid_urls.append(image_url)
+        return valid_urls
     except Exception:
         pass
 
-    return ""
+    return []
 
 
 def download_image(url):
