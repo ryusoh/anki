@@ -39,14 +39,13 @@ class TestApplyImage:
         return (
             patch("auto_image.clean_html_text", return_value="cat"),
             patch("auto_image.fetch_image_results", return_value=urls),
-            patch("auto_image.download_image", return_value=b'fake'),
             patch("auto_image.build_image_html", return_value=img_html),
         )
 
     def test_no_back_field_shows_tooltip(self):
         editor = _make_editor(field_names=["Front", "Reading"])
         p = self._std_patches()
-        with p[0], p[1], p[2], p[3]:
+        with p[0], p[1], p[2]:
             _apply_image(editor, "cat")
         tooltip_calls = [str(c) for c in sys.modules['aqt.utils'].tooltip.call_args_list]
         assert any("Back" in c for c in tooltip_calls)
@@ -62,7 +61,7 @@ class TestApplyImage:
         editor = _make_editor(fields=["cat", "existing content"])
         img_html = '<img src="https://example.com/cat.jpg" style="max-width:300px;">'
         p = self._std_patches(img_html=img_html)
-        with p[0], p[1], p[2], p[3]:
+        with p[0], p[1], p[2]:
             _apply_image(editor, "cat")
         result = editor.note.fields[1]
         assert img_html in result
@@ -73,7 +72,7 @@ class TestApplyImage:
         editor = _make_editor(fields=["cat", "<div>existing content</div>"])
         img_html = '<img src="https://example.com/cat.jpg" style="max-width:300px;">'
         p = self._std_patches(img_html=img_html)
-        with p[0], p[1], p[2], p[3]:
+        with p[0], p[1], p[2]:
             _apply_image(editor, "cat")
         result = editor.note.fields[1]
         assert img_html in result
@@ -83,7 +82,7 @@ class TestApplyImage:
         editor = _make_editor(fields=["cat", ""])
         img_html = '<img src="https://example.com/cat.jpg" style="max-width:300px;">'
         p = self._std_patches(img_html=img_html)
-        with p[0], p[1], p[2], p[3]:
+        with p[0], p[1], p[2]:
             _apply_image(editor, "cat")
         assert 'class="auto-image"' in editor.note.fields[1]
         assert img_html in editor.note.fields[1]
@@ -91,14 +90,14 @@ class TestApplyImage:
     def test_flushes_note_in_edit_mode(self):
         editor = _make_editor(fields=["cat", ""], add_mode=False)
         p = self._std_patches()
-        with p[0], p[1], p[2], p[3]:
+        with p[0], p[1], p[2]:
             _apply_image(editor, "cat")
         editor.note.flush.assert_called_once()
 
     def test_does_not_flush_in_add_mode(self):
         editor = _make_editor(fields=["cat", ""], add_mode=True)
         p = self._std_patches()
-        with p[0], p[1], p[2], p[3]:
+        with p[0], p[1], p[2]:
             _apply_image(editor, "cat")
         editor.note.flush.assert_not_called()
 
@@ -106,7 +105,7 @@ class TestApplyImage:
         editor = MagicMock()
         editor.note = None
         p = self._std_patches()
-        with p[0], p[1], p[2], p[3]:
+        with p[0], p[1], p[2]:
             _apply_image(editor, "cat")
 
 
@@ -119,7 +118,6 @@ class TestCycleImages:
         return (
             patch("auto_image.clean_html_text", side_effect=lambda t: t),
             patch("auto_image.fetch_image_results", return_value=urls),
-            patch("auto_image.download_image", return_value=b'fake'),
             patch("auto_image.build_image_html", side_effect=lambda u: f'<img src="{u}" style="max-width:300px;">'),
         )
 
@@ -127,12 +125,12 @@ class TestCycleImages:
         urls = ["https://example.com/img1.jpg", "https://example.com/img2.jpg"]
 
         editor = _make_editor(fields=["cat", "some definition"])
-        with self._patches(urls)[0], self._patches(urls)[1], self._patches(urls)[2], self._patches(urls)[3]:
+        with self._patches(urls)[0], self._patches(urls)[1], self._patches(urls)[2]:
             _apply_image(editor, "cat")
         assert "img1.jpg" in editor.note.fields[1]
         assert "some definition" in editor.note.fields[1]
 
-        with self._patches(urls)[0], self._patches(urls)[1], self._patches(urls)[2], self._patches(urls)[3]:
+        with self._patches(urls)[0], self._patches(urls)[1], self._patches(urls)[2]:
             _apply_image(editor, "cat")
         result = editor.note.fields[1]
         assert "img2.jpg" in result
@@ -146,8 +144,7 @@ class TestCycleImages:
         def do_click():
             with patch("auto_image.clean_html_text", return_value="cat"), \
                  patch("auto_image.fetch_image_results", return_value=urls), \
-                 patch("auto_image.download_image", return_value=b'fake'), \
-                 patch("auto_image.build_image_html", side_effect=lambda u: f'<img src="{u}" style="max-width:300px;">'):
+                     patch("auto_image.build_image_html", side_effect=lambda u: f'<img src="{u}" style="max-width:300px;">'):
                 _apply_image(editor, "cat")
 
         do_click()
@@ -166,8 +163,7 @@ class TestCycleImages:
         def do_click():
             with patch("auto_image.clean_html_text", return_value="cat"), \
                  patch("auto_image.fetch_image_results", return_value=urls), \
-                 patch("auto_image.download_image", return_value=b'fake'), \
-                 patch("auto_image.build_image_html", side_effect=lambda u: f'<img src="{u}" style="max-width:300px;">'):
+                     patch("auto_image.build_image_html", side_effect=lambda u: f'<img src="{u}" style="max-width:300px;">'):
                 _apply_image(editor, "cat")
 
         do_click()  # a.jpg
@@ -183,7 +179,6 @@ class TestCycleImages:
         editor = _make_editor(fields=["cat", ""])
         with patch("auto_image.clean_html_text", return_value="cat"), \
              patch("auto_image.fetch_image_results", return_value=cat_urls), \
-             patch("auto_image.download_image", return_value=b'fake'), \
              patch("auto_image.build_image_html", side_effect=lambda u: f'<img src="{u}" style="max-width:300px;">'):
             _apply_image(editor, "cat")
         assert "cat1.jpg" in editor.note.fields[1]
@@ -191,7 +186,6 @@ class TestCycleImages:
         editor2 = _make_editor(fields=["dog", ""])
         with patch("auto_image.clean_html_text", return_value="dog"), \
              patch("auto_image.fetch_image_results", return_value=dog_urls), \
-             patch("auto_image.download_image", return_value=b'fake'), \
              patch("auto_image.build_image_html", side_effect=lambda u: f'<img src="{u}" style="max-width:300px;">'):
             _apply_image(editor2, "dog")
         assert "dog1.jpg" in editor2.note.fields[1]
@@ -205,47 +199,13 @@ class TestCycleImages:
         def do_click():
             with patch("auto_image.clean_html_text", return_value="cat"), \
                  patch("auto_image.fetch_image_results", fetch_mock), \
-                 patch("auto_image.download_image", return_value=b'fake'), \
-                 patch("auto_image.build_image_html", side_effect=lambda u: f'<img src="{u}" style="max-width:300px;">'):
+                     patch("auto_image.build_image_html", side_effect=lambda u: f'<img src="{u}" style="max-width:300px;">'):
                 _apply_image(editor, "cat")
 
         do_click()
         do_click()
         # fetch_image_results should only be called once (first click)
         assert fetch_mock.call_count == 1
-
-    def test_skips_broken_url_on_click(self):
-        """If current URL fails download validation, skip to next valid one."""
-        urls = ["https://broken.com/a.jpg", "https://good.com/b.jpg", "https://good.com/c.jpg"]
-        editor = _make_editor(fields=["cat", ""])
-
-        def fake_download(url):
-            if "broken" in url:
-                return None
-            return b'fake image'
-
-        with patch("auto_image.clean_html_text", return_value="cat"), \
-             patch("auto_image.fetch_image_results", return_value=urls), \
-             patch("auto_image.download_image", side_effect=fake_download), \
-             patch("auto_image.build_image_html", side_effect=lambda u: f'<img src="{u}" style="max-width:300px;">'):
-            _apply_image(editor, "cat")
-        # Should skip broken and show b.jpg
-        assert "b.jpg" in editor.note.fields[1]
-        assert "broken" not in editor.note.fields[1]
-
-    def test_shows_tooltip_when_all_candidates_broken(self):
-        """If every candidate fails download, show error tooltip."""
-        urls = ["https://broken1.com/a.jpg", "https://broken2.com/b.jpg"]
-        editor = _make_editor(fields=["cat", ""])
-
-        with patch("auto_image.clean_html_text", return_value="cat"), \
-             patch("auto_image.fetch_image_results", return_value=urls), \
-             patch("auto_image.download_image", return_value=None):
-            _apply_image(editor, "cat")
-        tooltip_calls = [str(c) for c in sys.modules['aqt.utils'].tooltip.call_args_list]
-        assert any("No" in c and "image" in c.lower() for c in tooltip_calls) or \
-               any("no" in c.lower() and "image" in c.lower() for c in tooltip_calls)
-
 
 class TestOnAutoImage:
     def test_none_note_returns_early(self):

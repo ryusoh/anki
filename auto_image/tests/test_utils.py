@@ -4,7 +4,7 @@ from unittest.mock import patch, MagicMock
 import json
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from utils import clean_html_text, fetch_image_results, build_image_html, _get_vqd_token, download_image
+from utils import clean_html_text, fetch_image_results, build_image_html, _get_vqd_token
 
 
 def _mock_response(data):
@@ -50,12 +50,12 @@ class TestFetchImageResults:
         assert fetch_image_results("") == []
         assert fetch_image_results(None) == []
 
-    def test_returns_candidate_urls_without_downloading(self):
-        """fetch_image_results returns raw URLs — no download validation."""
+    def test_returns_thumbnail_urls(self):
+        """fetch_image_results returns thumbnail URLs from results."""
         api_response = json.dumps({
             "results": [
-                {"image": "https://example.com/photo.jpg"},
-                {"image": "https://example.com/photo2.jpg"}
+                {"image": "https://example.com/photo.jpg", "thumbnail": "https://tse1.mm.bing.net/th?id=1"},
+                {"image": "https://example.com/photo2.jpg", "thumbnail": "https://tse2.mm.bing.net/th?id=2"}
             ]
         })
 
@@ -69,8 +69,7 @@ class TestFetchImageResults:
 
         with patch("utils.urllib.request.urlopen", side_effect=fake_urlopen):
             urls = fetch_image_results("cat")
-            assert urls == ["https://example.com/photo.jpg", "https://example.com/photo2.jpg"]
-            # Only 2 HTTP calls: vqd + API. No download calls.
+            assert urls == ["https://tse1.mm.bing.net/th?id=1", "https://tse2.mm.bing.net/th?id=2"]
             assert call_count[0] == 2
 
     def test_returns_empty_list_on_no_results(self):
@@ -94,12 +93,12 @@ class TestFetchImageResults:
         with patch("utils.urllib.request.urlopen", return_value=_mock_response(b'<html>nothing</html>')):
             assert fetch_image_results("cat") == []
 
-    def test_filters_empty_urls(self):
+    def test_filters_empty_thumbnails(self):
         api_response = json.dumps({
             "results": [
-                {"image": ""},
-                {"image": "https://example.com/photo.jpg"},
-                {"other_key": "no image key"},
+                {"image": "https://a.com/1.jpg", "thumbnail": ""},
+                {"image": "https://b.com/2.jpg", "thumbnail": "https://tse1.mm.bing.net/th?id=2"},
+                {"image": "https://c.com/3.jpg"},
             ]
         })
         call_count = [0]
@@ -112,37 +111,7 @@ class TestFetchImageResults:
 
         with patch("utils.urllib.request.urlopen", side_effect=fake_urlopen):
             urls = fetch_image_results("cat")
-            assert urls == ["https://example.com/photo.jpg"]
-
-
-class TestDownloadImage:
-    def test_downloads_successfully(self):
-        fake_bytes = b'\x89PNG\r\n\x1a\n fake image data'
-        mock = _mock_response(fake_bytes)
-        mock.headers = {"Content-Type": "image/png"}
-        with patch("utils.urllib.request.urlopen", return_value=mock):
-            data = download_image("https://example.com/photo.png")
-            assert data == fake_bytes
-
-    def test_returns_none_on_network_error(self):
-        with patch("utils.urllib.request.urlopen", side_effect=Exception("timeout")):
-            assert download_image("https://example.com/photo.png") is None
-
-    def test_returns_none_on_non_image_content_type(self):
-        mock = _mock_response(b'<html>not an image</html>')
-        mock.headers = {"Content-Type": "text/html"}
-        with patch("utils.urllib.request.urlopen", return_value=mock):
-            assert download_image("https://example.com/photo.png") is None
-
-    def test_returns_none_on_empty_body(self):
-        mock = _mock_response(b'')
-        mock.headers = {"Content-Type": "image/jpeg"}
-        with patch("utils.urllib.request.urlopen", return_value=mock):
-            assert download_image("https://example.com/photo.jpg") is None
-
-    def test_empty_url_returns_none(self):
-        assert download_image("") is None
-        assert download_image(None) is None
+            assert urls == ["https://tse1.mm.bing.net/th?id=2"]
 
 
 class TestBuildImageHtml:

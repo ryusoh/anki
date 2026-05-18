@@ -53,36 +53,12 @@ def fetch_image_results(query):
         with urllib.request.urlopen(req, timeout=10) as response:
             data = json.loads(response.read().decode('utf-8'))
 
-        return [r["image"] for r in data.get("results", [])[:20] if r.get("image")]
+        return [r["thumbnail"] for r in data.get("results", [])[:20] if r.get("thumbnail")]
     except Exception:
         pass
 
     return []
 
-
-def download_image(url):
-    """
-    Downloads image bytes from a URL. Returns the bytes if successful,
-    or None if the URL is unreachable, not an image, or empty.
-    """
-    if not url:
-        return None
-
-    req = urllib.request.Request(url, headers={
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
-    })
-
-    try:
-        with urllib.request.urlopen(req, timeout=10) as response:
-            content_type = response.headers.get("Content-Type", "")
-            if not content_type.startswith("image/"):
-                return None
-            data = response.read()
-            if not data:
-                return None
-            return data
-    except Exception:
-        return None
 
 
 def build_image_html(url):
