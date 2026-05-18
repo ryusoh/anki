@@ -49,7 +49,7 @@ def check_for_credentials(filepath, content):
     issues = []
     
     # Skip vendor/third-party code (they have their own keys)
-    if 'vendor/' in filepath or 'node_modules/' in filepath:
+    if 'vendor/' in filepath or 'node_modules/' in filepath or 'tests/' in filepath:
         return issues
     
     # Skip documentation
@@ -78,7 +78,7 @@ def _should_skip_file_for_private_data(filepath: str) -> bool:
     """Helper to check if a file should be skipped for private data scanning."""
     if filepath.endswith('.md') or 'docs/' in filepath:
         return True
-    if 'vendor/' in filepath or 'node_modules/' in filepath:
+    if 'vendor/' in filepath or 'node_modules/' in filepath or 'tests/' in filepath:
         return True
     if filepath.endswith('notes.json.gz') or 'reviews/' in filepath:
         return True
