@@ -76,7 +76,9 @@ class RHVoice(Service):
                         tokens = line.split('=', 1)
                         lookup[tokens[0]] = tokens[1].strip()
                 return lookup
-            except Exception:
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).debug(f"Failed to read RHVoice info from {voice_file}: {e}")
                 return {}
 
         def get_voices_from(path):
@@ -131,7 +133,9 @@ class RHVoice(Service):
             try:
                 self._voice_list = get_voices_from(path)
                 break
-            except Exception:
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).debug(f"Failed to get RHVoice voices from {path}: {e}")
                 continue
         else:
             raise EnvironmentError("No usable voices could be found")

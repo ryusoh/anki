@@ -60,8 +60,7 @@ class Groups(Dialog):
                              aqt.qt.QSizePolicy.Policy.Preferred)
         groups.activated.connect(self._on_group_activated)
 
-        # TODO: icons do not work with 2.1
-        delete = aqt.qt.QPushButton(aqt.qt.QIcon(f'{ICONS}/editdelete.png'), "")
+        delete = aqt.qt.QPushButton(aqt.qt.QIcon(f'{ICONS}/editdelete.png'), "✖")
         delete.setObjectName('delete')
         delete.setIconSize(aqt.qt.QSize(16, 16))
         delete.setFixedSize(18, 18)

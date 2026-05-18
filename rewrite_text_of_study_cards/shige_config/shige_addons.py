@@ -33,7 +33,8 @@ def add_shige_addons_tab(self, tab_widget:"QTabWidget"):
         response.raise_for_status()
         html_content = response.text
     except Exception as e:
-        print(f"Warning: Failed to fetch shige addons tab content from {url}: {e}")
+        import logging
+        logging.getLogger(__name__).warning(f"Failed to fetch shige addons HTML: {e}")
         return
 
     tab4 = QWidget(self)

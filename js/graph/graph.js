@@ -73,7 +73,7 @@ try {
   if (historyRes.ok) historyData = await historyRes.json();
 } catch (e) {
   // eslint-disable-next-line no-console
-  console.error("Failed to load graph data:", e);
+  console.warn("Caught exception initializing graph:", e);
   loading.textContent = "";
   const errDiv = document.createElement("div");
   errDiv.style.color = "#f5576c";

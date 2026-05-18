@@ -55,7 +55,6 @@ class RevHmContrib(ContribDialog):
         # manually adjust title label font sizes on Windows
         # gap between default windows font sizes and sizes that work well
         # on Linux and macOS is simply too big
-        # TODO: find a better solution
         if PLATFORM == "win":
             default_size = QApplication.font().pointSize()
             for label in [self.form.fmtLabContrib]:

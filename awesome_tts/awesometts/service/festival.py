@@ -44,9 +44,6 @@ class Festival(Service):
         """
         Verifies existence of the `festival` and `text2wave` binaries
         and scans `/usr/share/festival/voices` for available voices.
-
-        TODO: Is it possible to get Festival on Windows or Mac OS X? If
-        so, what paths or binary location differences might there be?
         """
 
         if not self.IS_LINUX:

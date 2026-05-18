@@ -57,8 +57,6 @@ __all__ = [
 ]
 
 
-# TODO: SUBCLASS DOCSTRINGS
-
 
 class AnkiConfigStorage(ConfigStorage, ABC):
 
@@ -180,7 +178,6 @@ class AnkiConfigStorage(ConfigStorage, ABC):
             )  # returns deepcopied defaults, updated with data
             data["version"] = defaults_version
         elif parsed_version_data > parsed_version_defaults:
-            # TODO: Figure out where to handle
             raise FutureConfigError("Config is newer than add-on release")
         else:
             # ensure that we never operate on base config object directly

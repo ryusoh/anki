@@ -650,9 +650,6 @@ def editor_button():
 
     aqt.gui_hooks.editor_did_init_shortcuts.append(editor_init_shortcuts)
 
-    # TODO: Editor buttons are now in the WebView, not sure how (and if)
-    # we should implement muzzling. Please see:
-    # https://github.com/dae/anki/commit/a001553f66efe75e660eb0702cd29a9d62503fc4
     """
     aqt.editor.Editor.enableButtons = anki.hooks.wrap(
         aqt.editor.Editor.enableButtons,
