@@ -44,25 +44,96 @@ def _render_text(html_str):
     return text.strip()
 
 
-def _strip_selection(html_str, selected_text):
-    """Strip HTML tags only from the portion of html_str that renders as selected_text.
-
-    Returns the modified HTML, or None if the selection can't be mapped.
-    """
-    # 1. Remove zero-width spaces and other invisible formatting characters
-    sel_normalized = re.sub(r'[\u200b\u200c\u200d\ufeff]', '', selected_text)
-    # 2. Normalize ALL unicode spaces (including &nbsp; \xa0 and EN SPACE \u2002) to standard space
-    sel_normalized = re.sub(r'[\s\xa0\u2000-\u200a]+', ' ', sel_normalized).strip()
-    
-    if not sel_normalized:
+def _find_mismatches(sel_normalized, rendered_normalized):
+    idx = rendered_normalized.find(sel_normalized)
+    if idx == -1:
+        import sys
+        print("====== STRIP_HTML_DEBUG: Mismatch ======", file=sys.stderr)
+        print(f"sel_normalized: [{sel_normalized}]", file=sys.stderr)
+        print(f"rendered: [{rendered_normalized}]", file=sys.stderr)
+        for i in range(min(len(sel_normalized), len(rendered_normalized))):
+            if i < len(rendered_normalized) and sel_normalized[i] != rendered_normalized[i]:
+                print(f"Mismatch at index {i}: selected='{sel_normalized[i]}' ({ord(sel_normalized[i])}), rendered='{rendered_normalized[i]}' ({ord(rendered_normalized[i])})", file=sys.stderr)
+                start_c = max(0, i - 10)
+                end_c_sel = min(len(sel_normalized), i + 10)
+                end_c_ren = min(len(rendered_normalized), i + 10)
+                print(f"Context sel: {sel_normalized[start_c:end_c_sel]}", file=sys.stderr)
+                print(f"Context ren: {rendered_normalized[start_c:end_c_ren]}", file=sys.stderr)
+                break
+        print("========================================", file=sys.stderr)
         return None
+    return idx
 
-    # Block-level tags that produce whitespace in browser selection
+
+def _is_only_tags_between(s, start_idx, end_idx):
+    if start_idx >= end_idx:
+        return True
+    slice_str = s[start_idx:end_idx]
+    rendered_slice = re.sub(r'<[^>]+>', '', slice_str)
+    rendered_slice = html_module.unescape(rendered_slice)
+    return not bool(re.sub(r'[\s\xa0\u2000-\u200a\u200b\u200c\u200d\ufeff]+', '', rendered_slice))
+
+
+def _expand_left(html_str, html_start):
+    safe_html_start = html_start
+    needs_block_wrapper = False
+    while safe_html_start > 0:
+        prev_tag_open = html_str.rfind('<', 0, safe_html_start)
+        if prev_tag_open == -1:
+            break
+
+        if _is_only_tags_between(html_str, prev_tag_open, html_start):
+            tag_content = html_str[prev_tag_open:html_str.find('>', prev_tag_open)+1]
+            match = re.match(r'<\s*([a-zA-Z0-9]+)', tag_content)
+            if match:
+                tag_name = match.group(1).lower()
+                if tag_name in ['li', 'td', 'th', 'tr', 'ul', 'ol', 'div']:
+                    break
+                if tag_name in ['p', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
+                    needs_block_wrapper = True
+                    safe_html_start = prev_tag_open
+                    break
+            safe_html_start = prev_tag_open
+        else:
+            break
+    return safe_html_start, needs_block_wrapper
+
+
+def _expand_right(html_str, html_end, needs_block_wrapper):
+    safe_html_end = html_end
+    while safe_html_end < len(html_str):
+        next_tag_close = html_str.find('>', safe_html_end)
+        if next_tag_close == -1:
+            break
+
+        if _is_only_tags_between(html_str, html_end, next_tag_close + 1):
+            tag_content = html_str[safe_html_end:next_tag_close+1]
+            match = re.search(r'<\s*/?\s*([a-zA-Z0-9]+)', tag_content)
+            if match:
+                tag_name = match.group(1).lower()
+                if not tag_content.startswith('</'):
+                    if tag_name in ['li', 'td', 'th', 'tr', 'ul', 'ol', 'div', 'p', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
+                        break
+                if tag_name in ['li', 'td', 'th', 'tr', 'ul', 'ol', 'div']:
+                    break
+                if tag_name in ['p', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
+                    needs_block_wrapper = True
+                    safe_html_end = next_tag_close + 1
+                    break
+                if tag_name in ['br', 'hr']:
+                    safe_html_end = next_tag_close + 1
+                    continue
+            safe_html_end = next_tag_close + 1
+        else:
+            break
+    return safe_html_end, needs_block_wrapper
+
+
+def _map_html_to_text(html_str):
     BLOCK_TAGS = {'p', 'div', 'br', 'hr', 'li', 'ul', 'ol', 'tr', 'td', 'th',
                   'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre',
                   'table', 'thead', 'tbody', 'tfoot', 'dl', 'dt', 'dd'}
 
-    # We need to map from "unescaped, rendered character position" -> "HTML string offset"
     text_pos = 0
     text_to_html = {}
     in_tag = False
@@ -78,13 +149,10 @@ def _strip_selection(html_str, selected_text):
             continue
         elif html_str[i] == '>':
             in_tag = False
-            # Check if this was a block-level tag — insert a space so rendered
-            # text matches what the browser's getSelection().toString() produces
             tag_match = re.match(r'/?\s*([a-zA-Z0-9]+)', tag_buf)
             if tag_match and tag_match.group(1).lower() in BLOCK_TAGS:
-                # Only add space if last rendered char isn't already whitespace
                 if rendered_chars and not re.match(r'[\s\xa0]', rendered_chars[-1]):
-                    text_to_html[text_pos] = i + 1  # map to position after '>'
+                    text_to_html[text_pos] = i + 1
                     rendered_chars.append(' ')
                     text_pos += 1
             i += 1
@@ -101,7 +169,6 @@ def _strip_selection(html_str, selected_text):
                 entity = html_str[i:end_idx+1]
                 unescaped = html_module.unescape(entity)
                 for unescaped_char in unescaped:
-                    # Remove zero-width spaces from rendered HTML as well
                     if unescaped_char not in ['\u200b', '\u200c', '\u200d', '\ufeff']:
                         text_to_html[text_pos] = i 
                         rendered_chars.append(unescaped_char)
@@ -109,23 +176,23 @@ def _strip_selection(html_str, selected_text):
                 i = end_idx + 1
                 continue
                 
-        # Remove zero-width spaces from rendered HTML
         if html_str[i] not in ['\u200b', '\u200c', '\u200d', '\ufeff']:
             text_to_html[text_pos] = i
             rendered_chars.append(html_str[i])
             text_pos += 1
         i += 1
 
+    return text_to_html, rendered_chars
+
+
+def _normalize_rendered_chars(rendered_chars):
     rendered = ''.join(rendered_chars)
-    
-    # Map from normalized whitespace string back to the rendered character positions
     norm_pos = 0
     norm_to_text = {}
     norm_chars = []
     
     in_whitespace = False
     for t_pos, ch in enumerate(rendered):
-        # Treat non-breaking space (0xa0) and ALL unicode spaces as whitespace for mapping
         if re.match(r'[\s\xa0\u2000-\u200a]', ch):
             if not in_whitespace:
                 norm_to_text[norm_pos] = t_pos
@@ -138,26 +205,27 @@ def _strip_selection(html_str, selected_text):
             norm_chars.append(ch)
             norm_pos += 1
             
-    rendered_normalized = ''.join(norm_chars)
+    return ''.join(norm_chars), norm_to_text
+
+
+def _strip_selection(html_str, selected_text):
+    """Strip HTML tags only from the portion of html_str that renders as selected_text.
+
+    Returns the modified HTML, or None if the selection can't be mapped.
+    """
+    # 1. Remove zero-width spaces and other invisible formatting characters
+    sel_normalized = re.sub(r'[\u200b\u200c\u200d\ufeff]', '', selected_text)
+    # 2. Normalize ALL unicode spaces (including &nbsp; \xa0 and EN SPACE \u2002) to standard space
+    sel_normalized = re.sub(r'[\s\xa0\u2000-\u200a]+', ' ', sel_normalized).strip()
     
-    idx = rendered_normalized.find(sel_normalized)
-    if idx == -1:
-        import sys
-        print("====== STRIP_HTML_DEBUG: Mismatch ======", file=sys.stderr)
-        print(f"sel_normalized: [{sel_normalized}]", file=sys.stderr)
-        print(f"rendered: [{rendered_normalized}]", file=sys.stderr)
-        # Try to find the closest match or where it breaks
-        for i in range(min(len(sel_normalized), len(rendered_normalized))):
-            if i < len(rendered_normalized) and sel_normalized[i] != rendered_normalized[i]:
-                print(f"Mismatch at index {i}: selected='{sel_normalized[i]}' ({ord(sel_normalized[i])}), rendered='{rendered_normalized[i]}' ({ord(rendered_normalized[i])})", file=sys.stderr)
-                # Show surrounding context
-                start_c = max(0, i - 10)
-                end_c_sel = min(len(sel_normalized), i + 10)
-                end_c_ren = min(len(rendered_normalized), i + 10)
-                print(f"Context sel: {sel_normalized[start_c:end_c_sel]}", file=sys.stderr)
-                print(f"Context ren: {rendered_normalized[start_c:end_c_ren]}", file=sys.stderr)
-                break
-        print("========================================", file=sys.stderr)
+    if not sel_normalized:
+        return None
+
+    text_to_html, rendered_chars = _map_html_to_text(html_str)
+    rendered_normalized, norm_to_text = _normalize_rendered_chars(rendered_chars)
+
+    idx = _find_mismatches(sel_normalized, rendered_normalized)
+    if idx is None:
         return None
         
     start_norm_pos = idx
@@ -186,79 +254,8 @@ def _strip_selection(html_str, selected_text):
         html_end += 1
         
     # --- SMART TAG EXPANSION WITH BLOCK REPLACEMENT ---
-    
-    def is_only_tags_between(s, start_idx, end_idx):
-        if start_idx >= end_idx:
-            return True
-        slice_str = s[start_idx:end_idx]
-        rendered_slice = re.sub(r'<[^>]+>', '', slice_str)
-        rendered_slice = html_module.unescape(rendered_slice)
-        return not bool(re.sub(r'[\s\xa0\u2000-\u200a\u200b\u200c\u200d\ufeff]+', '', rendered_slice))
-
-    needs_block_wrapper = False
-
-    # Expand left
-    safe_html_start = html_start
-    while safe_html_start > 0:
-        prev_tag_open = html_str.rfind('<', 0, safe_html_start)
-        if prev_tag_open == -1:
-            break
-            
-        if is_only_tags_between(html_str, prev_tag_open, html_start):
-            tag_content = html_str[prev_tag_open:html_str.find('>', prev_tag_open)+1]
-            match = re.match(r'<\s*([a-zA-Z0-9]+)', tag_content)
-            if match:
-                tag_name = match.group(1).lower()
-                
-                # Stop BEFORE consuming structural containers
-                if tag_name in ['li', 'td', 'th', 'tr', 'ul', 'ol', 'div']:
-                    break
-                    
-                # Consume formatting blocks (H1-H6, P) but flag that we need to replace them with a DIV
-                if tag_name in ['p', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
-                    needs_block_wrapper = True
-                    safe_html_start = prev_tag_open
-                    break 
-                    
-            safe_html_start = prev_tag_open
-        else:
-            break
-            
-    # Expand right
-    safe_html_end = html_end
-    while safe_html_end < len(html_str):
-        next_tag_close = html_str.find('>', safe_html_end)
-        if next_tag_close == -1:
-            break
-            
-        if is_only_tags_between(html_str, html_end, next_tag_close + 1):
-            tag_content = html_str[safe_html_end:next_tag_close+1]
-            match = re.search(r'<\s*/?\s*([a-zA-Z0-9]+)', tag_content)
-            if match:
-                tag_name = match.group(1).lower()
-                
-                # If we encounter an open tag for a struct block that belongs to the NEXT item
-                # e.g. <ul>, <li>, <div>, we must STOP BEFORE consuming it!
-                if not tag_content.startswith('</'):
-                    if tag_name in ['li', 'td', 'th', 'tr', 'ul', 'ol', 'div', 'p', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
-                        break
-                
-                if tag_name in ['li', 'td', 'th', 'tr', 'ul', 'ol', 'div']:
-                    # Stop BEFORE consuming closing structural containers
-                    break
-                    
-                if tag_name in ['p', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
-                    needs_block_wrapper = True
-                    safe_html_end = next_tag_close + 1
-                    break
-                    
-                if tag_name in ['br', 'hr']:
-                    safe_html_end = next_tag_close + 1
-                    continue
-
-            safe_html_end = next_tag_close + 1
-        else:
-            break
+    safe_html_start, needs_block_wrapper = _expand_left(html_str, html_start)
+    safe_html_end, needs_block_wrapper = _expand_right(html_str, html_end, needs_block_wrapper)
             
     html_slice = html_str[safe_html_start:safe_html_end]
     stripped = re.sub(r'<[^>]+>', '', html_slice)

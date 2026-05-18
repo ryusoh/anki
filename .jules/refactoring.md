@@ -55,3 +55,12 @@
 - **Cleanup Logic:** Cleaned up pending `TODO: NewDeckStats` entries in `review_heatmap/views.py` and `review_heatmap/web_bridge.py` by introducing conditional support for `aqt.stats.NewDeckStats` if the attribute exists on `aqt.stats` in the user's specific Anki version.
 
 **Action:** Continually audit cyclomatic complexity using `radon` when touching large legacy Python functions, and always attach exceptions to logged warnings when patching legacy `catch` or `except:` clauses.
+
+## 2024-05-19 - Code Health & Cleanup
+
+**Learnings:**
+
+- **Structural Health:** Refactored complex multi-conditional functions to dramatically reduce cyclomatic complexity using `radon`. In `auto_wiktionary/utils.py`, `parse_wiktionary_html` (F grade, 56 complexity) was broken down into manageable helpers (B grade). In `data/anki/generate_review_stats.py`, `aggregate_reviews` (D grade, 25 complexity) had logic extracted for stat accumulation. In `strip_html_tags/__init__.py`, `_strip_selection` (F grade, 46 complexity) was simplified into six helper functions (C grade).
+- **Silent Failures:** Identified and fixed empty `except Exception:` blocks in `auto_image/utils.py` that were suppressing API and network errors during DuckDuckGo image searches and downloads. Properly bound `except Exception as e:` and logged using `logging.getLogger(__name__)` to retain debugging context while maintaining control flow.
+
+**Action:** Continually execute `radon cc -s` audits to ensure functions maintain C grade or better. Always instantiate a module logger and log tracebacks when implementing fallback logic inside generic exception handlers.
