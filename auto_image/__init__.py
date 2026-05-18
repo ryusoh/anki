@@ -4,7 +4,8 @@ from aqt import gui_hooks
 from aqt.editor import Editor
 from aqt.utils import tooltip
 
-from .utils import clean_html_text, fetch_image_results, build_image_html
+from aqt import mw
+from .utils import clean_html_text, fetch_image_results, build_image_html, download_image
 
 ADDON_DIR = os.path.dirname(__file__)
 ICON_PATH = os.path.join(ADDON_DIR, "icon.png")
@@ -12,8 +13,15 @@ ICON_PATH = os.path.join(ADDON_DIR, "icon.png")
 # Cache: query -> {"urls": [...], "index": int}
 _image_cache = {}
 
-_AUTO_IMAGE_MARKER = 'class="auto-image"'
 _AUTO_IMAGE_PATTERN = re.compile(r'<div class="auto-image">.*?</div>')
+
+
+def _save_to_media(data, query, index):
+    """Save image bytes to Anki's media collection. Returns the filename."""
+    safe_query = re.sub(r'[^\w]', '_', query)[:50]
+    filename = f"auto_image_{safe_query}_{index}.jpg"
+    mw.col.media.write_data(filename, data)
+    return filename
 
 
 def _apply_image(editor, text_to_search):
@@ -32,9 +40,23 @@ def _apply_image(editor, text_to_search):
         _image_cache[text] = {"urls": urls, "index": -1}
 
     cache = _image_cache[text]
-    cache["index"] = (cache["index"] + 1) % len(cache["urls"])
-    image_url = cache["urls"][cache["index"]]
-    img_html = build_image_html(image_url)
+    total = len(cache["urls"])
+
+    # Try to find a downloadable image starting from next index
+    found = False
+    for _ in range(total):
+        cache["index"] = (cache["index"] + 1) % total
+        data = download_image(cache["urls"][cache["index"]])
+        if data is not None:
+            found = True
+            break
+
+    if not found:
+        tooltip(f"No downloadable image found for '{text}'.")
+        return
+
+    filename = _save_to_media(data, text, cache["index"])
+    img_html = build_image_html(filename)
 
     if editor.note is None:
         return

@@ -61,6 +61,21 @@ def fetch_image_results(query):
 
 
 
+def download_image(url):
+    """Downloads image bytes from a URL. Returns bytes or None on failure."""
+    if not url:
+        return None
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=10) as response:
+            data = response.read()
+            return data if data else None
+    except Exception:
+        return None
+
+
 def build_image_html(url):
     """Builds an img tag with the given URL, constrained to max-width."""
     if not url:

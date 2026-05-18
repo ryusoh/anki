@@ -4,7 +4,7 @@ from unittest.mock import patch, MagicMock
 import json
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from utils import clean_html_text, fetch_image_results, build_image_html, _get_vqd_token
+from utils import clean_html_text, fetch_image_results, build_image_html, _get_vqd_token, download_image
 
 
 def _mock_response(data):
@@ -112,6 +112,27 @@ class TestFetchImageResults:
         with patch("utils.urllib.request.urlopen", side_effect=fake_urlopen):
             urls = fetch_image_results("cat")
             assert urls == ["https://tse1.mm.bing.net/th?id=2"]
+
+
+class TestDownloadImage:
+    def test_returns_bytes_on_success(self):
+        fake_bytes = b'\x89PNG\r\n\x1a\nfake'
+        mock = _mock_response(fake_bytes)
+        with patch("utils.urllib.request.urlopen", return_value=mock):
+            assert download_image("https://tse1.mm.bing.net/th?id=1") == fake_bytes
+
+    def test_returns_none_on_error(self):
+        with patch("utils.urllib.request.urlopen", side_effect=Exception("fail")):
+            assert download_image("https://tse1.mm.bing.net/th?id=1") is None
+
+    def test_returns_none_on_empty(self):
+        assert download_image("") is None
+        assert download_image(None) is None
+
+    def test_returns_none_on_empty_body(self):
+        mock = _mock_response(b'')
+        with patch("utils.urllib.request.urlopen", return_value=mock):
+            assert download_image("https://tse1.mm.bing.net/th?id=1") is None
 
 
 class TestBuildImageHtml:
