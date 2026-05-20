@@ -60,3 +60,8 @@
 
 **Learning:** When making table headers (`th` elements) sortable, overriding their inherent `columnheader` role by adding `role="button"` breaks their ability to convey sorting state to screen readers. `aria-sort` is only a valid attribute on elements with `columnheader` or `rowheader` roles.
 **Action:** Do not use `role="button"` on interactive `th` elements. Instead, apply `tabindex="0"` for keyboard accessibility and initialize them with `aria-sort="none"` (or `ascending`/`descending` as appropriate) to correctly expose the sortable semantics and state.
+
+## 2024-06-21 - Range Slider Keyboard Accessibility
+
+**Learning:** Range sliders (`input[type="range"]`) often have their native thumbs hidden and customized for aesthetics using custom pseudo-elements or sibling elements, but they still need visible focus indicators for keyboard users.
+**Action:** Always provide a `:focus-visible` state for range sliders (e.g., `outline: 2px solid rgba(255, 255, 255, 0.5)`) to ensure keyboard accessibility.
