@@ -18,13 +18,14 @@ class TestFindReferences:
         edges = find_references(ENGLISH_NOTES)
 
         # eng001 front "flamboyant" appears in eng002 back
-        eng001_eng002 = [e for e in edges if e['source'] == 'eng001' and e['target'] == 'eng002']
-        assert len(eng001_eng002) == 1
-        assert eng001_eng002[0]['type'] == 'front_in_back'
+        # The code creates edges with source=text_owner (eng002) and target=pattern_owner (eng001)
+        eng002_eng001 = [e for e in edges if e['source'] == 'eng002' and e['target'] == 'eng001']
+        assert len(eng002_eng001) == 1
+        assert eng002_eng001[0]['type'] == 'front_in_back'
 
         # eng005 front "style" appears in eng002 back ("A style of...")
-        eng005_eng002 = [e for e in edges if e['source'] == 'eng005' and e['target'] == 'eng002']
-        assert len(eng005_eng002) == 1
+        eng002_eng005 = [e for e in edges if e['source'] == 'eng002' and e['target'] == 'eng005']
+        assert len(eng002_eng005) == 1
 
     def test_find_references_no_cross_deck(self):
         """Test that cross-deck references are NOT created."""
@@ -54,9 +55,9 @@ class TestFindReferences:
         edges = find_references(CALCULUS_NOTES)
 
         # calc001 front "derivative" appears in calc002 back
-        calc001_calc002 = [e for e in edges if e['source'] == 'calc001' and e['target'] == 'calc002']
-        assert len(calc001_calc002) == 1
-        assert calc001_calc002[0]['type'] == 'front_in_back'
+        calc002_calc001 = [e for e in edges if e['source'] == 'calc002' and e['target'] == 'calc001']
+        assert len(calc002_calc001) == 1
+        assert calc002_calc001[0]['type'] == 'front_in_back'
 
     def test_find_references_biology_deck(self):
         """Test finding references within Biology deck."""
@@ -65,12 +66,12 @@ class TestFindReferences:
         edges = find_references(BIOLOGY_NOTES)
 
         # bio001 front "mitochondria" appears in bio002 back
-        bio001_bio002 = [e for e in edges if e['source'] == 'bio001' and e['target'] == 'bio002']
-        assert len(bio001_bio002) == 1
-
-        # bio002 front "atp" appears in bio001 back ("produces ATP")
         bio002_bio001 = [e for e in edges if e['source'] == 'bio002' and e['target'] == 'bio001']
         assert len(bio002_bio001) == 1
+
+        # bio002 front "atp" appears in bio001 back ("produces ATP")
+        bio001_bio002 = [e for e in edges if e['source'] == 'bio001' and e['target'] == 'bio002']
+        assert len(bio001_bio002) == 1
 
     def test_find_references_empty(self):
         """Test finding references in empty list."""
@@ -113,9 +114,9 @@ class TestFindReferences:
         ]
         edges = find_references(notes)
 
-        a_to_b = [e for e in edges if e['source'] == 'a' and e['target'] == 'b']
-        assert len(a_to_b) == 1
-        assert a_to_b[0]['type'] == 'front_in_front'
+        b_to_a = [e for e in edges if e['source'] == 'b' and e['target'] == 'a']
+        assert len(b_to_a) == 1
+        assert b_to_a[0]['type'] == 'front_in_front'
 
     def test_short_fronts_ignored(self):
         """Test that very short front fields (< 2 chars) don't create edges."""
