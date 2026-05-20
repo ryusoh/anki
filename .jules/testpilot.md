@@ -82,3 +82,18 @@
 
 **Learning:** When testing ES modules in Node.js that require DOM-like environments (like `transactionState` checking `document.querySelector`), the globals (`global.window`, `global.document`) must be mocked **before** dynamically importing the module with `await import(...)`. Failing to do so causes ReferenceErrors during module initialization.
 **Action:** Use setup blocks in test suites to instantiate mock `global.window` and `global.document` objects before importing the target files, and remember to clean them up afterward.
+
+## 2025-05-20 - Reference Testing Adjustments
+
+**Learning:** Found an error where test validations were backwards for `find_references()` edge direction.
+**Action:** When evaluating `find_references` output, ensure that tests assert `target` is the referenced card (the pattern owner) and `source` is the text owner (the card doing the referencing).
+
+## 2025-05-20 - Subprocess and Test Coverage
+
+**Learning:** Found an issue where the `security_audit.py` was being run using `subprocess` with mocked builtins in a test that couldn't properly apply or clear the mock in `test_tools_coverage.py`, which failed actual `python3 tools/security_audit.py` checks as it left dummy API keys in test code that the audit checked itself.
+**Action:** When testing scripts like `security_audit.py`, explicitly call the functions in the test file instead of using `subprocess.run()`. This also improves test coverage and avoids leaking mock data into tracked files that the audit script is scanning.
+
+## 2025-05-20 - Testing Top Level Execution Logic
+
+**Learning:** Found an issue where the main execution logic in `graph/quick_3d.py` was being executed immediately on import because it wasn't behind an `if __name__ == '__main__':` block. This caused unit tests importing functions from it to crash when files didn't exist or global state was altered.
+**Action:** Move main execution logic behind an `if __name__ == '__main__':` block to ensure testability of functions within the module. Use exceptions to catch `FileNotFoundError` gracefully for dependencies.
