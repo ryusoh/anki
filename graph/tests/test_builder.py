@@ -200,3 +200,88 @@ class TestExportGraph:
         
         for node in data['nodes']:
             assert 'pagerank' in node
+
+class TestNodeAnalysisUtilities:
+    """Test node analysis utility functions."""
+
+    def test_get_top_nodes_sorts_by_metric(self):
+        """Test get_top_nodes correctly sorts and limits by a specified metric."""
+        import networkx as nx
+        from graph.builder import get_top_nodes
+
+        # Arrange
+        G = nx.DiGraph()
+        G.add_node("node1", custom_score=10)
+        G.add_node("node2", custom_score=30)
+        G.add_node("node3", custom_score=20)
+
+        # Act
+        top_nodes = get_top_nodes(G, n=2, by='custom_score')
+
+        # Assert
+        assert len(top_nodes) == 2
+        assert top_nodes[0][0] == "node2"
+        assert top_nodes[0][1]['custom_score'] == 30
+        assert top_nodes[1][0] == "node3"
+        assert top_nodes[1][1]['custom_score'] == 20
+
+    def test_get_isolated_nodes_finds_unconnected(self):
+        """Test get_isolated_nodes identifies nodes with zero in/out degrees."""
+        import networkx as nx
+        from graph.builder import get_isolated_nodes
+
+        # Arrange
+        G = nx.DiGraph()
+        G.add_node("isolated1")
+        G.add_node("isolated2")
+        G.add_node("connected1")
+        G.add_node("connected2")
+        G.add_edge("connected1", "connected2")
+
+        # Act
+        isolated = get_isolated_nodes(G)
+
+        # Assert
+        assert len(isolated) == 2
+        assert "isolated1" in isolated
+        assert "isolated2" in isolated
+        assert "connected1" not in isolated
+        assert "connected2" not in isolated
+
+    def test_get_hub_nodes_filters_and_sorts_by_pagerank(self):
+        """Test get_hub_nodes correctly filters by pagerank/in-degree and sorts."""
+        import networkx as nx
+        from graph.builder import get_hub_nodes
+
+        # Arrange
+        G = nx.DiGraph()
+        # Hub 1: high pagerank, has incoming edge
+        G.add_node("hub1", pagerank=0.05)
+        # Hub 2: higher pagerank, has incoming edge
+        G.add_node("hub2", pagerank=0.08)
+        # Not hub: below threshold
+        G.add_node("low_pr", pagerank=0.005)
+        # Not hub: no incoming edges
+        G.add_node("no_in", pagerank=0.05)
+
+        # Add edges to setup degrees
+        G.add_edge("no_in", "hub1")
+        G.add_edge("no_in", "hub2")
+        G.add_edge("hub1", "hub2")
+        G.add_edge("hub2", "low_pr")
+
+        # Act
+        hubs = get_hub_nodes(G, threshold=0.01)
+
+        # Assert
+        assert len(hubs) == 2
+        # Should be sorted by pagerank descending
+        assert hubs[0][0] == "hub2"
+        assert hubs[0][1]['pagerank'] == 0.08
+        assert hubs[0][1]['in_degree'] == 2
+        assert hubs[0][1]['out_degree'] == 1
+
+        assert hubs[1][0] == "hub1"
+        assert hubs[1][1]['pagerank'] == 0.05
+        assert hubs[1][1]['in_degree'] == 1
+        assert hubs[1][1]['out_degree'] == 1

@@ -97,3 +97,8 @@
 
 **Learning:** Found an issue where the main execution logic in `graph/quick_3d.py` was being executed immediately on import because it wasn't behind an `if __name__ == '__main__':` block. This caused unit tests importing functions from it to crash when files didn't exist or global state was altered.
 **Action:** Move main execution logic behind an `if __name__ == '__main__':` block to ensure testability of functions within the module. Use exceptions to catch `FileNotFoundError` gracefully for dependencies.
+
+## 2025-10-23 - Python Graph Analysis Testing Pattern
+
+**Learning:** When testing Python graph analysis utilities that use NetworkX (e.g., `get_hub_nodes` or `get_top_nodes`), instantiate minimal synthetic `nx.DiGraph` objects and directly inject expected node attributes (e.g., `G.add_node('id', pagerank=0.05)`) instead of executing the entire graph building pipeline.
+**Action:** This practice strictly isolates specific analysis logic and ensures reliable boundary testing.
