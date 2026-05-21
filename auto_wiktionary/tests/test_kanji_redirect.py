@@ -3,7 +3,7 @@ import os
 from unittest.mock import patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from utils import detect_kanji_redirect, parse_wiktionary_html, fetch_wiktionary_html
+from utils import detect_kanji_redirect, parse_wiktionary_html, fetch_wiktionary_html, inject_redirect_pronunciation
 
 # Real HTML from ja.wiktionary for 血眼 (redirects to ちまなこ)
 CHIMANAKO_REDIRECT_HTML = """
@@ -71,14 +71,16 @@ MULTI_DEFINITION_HTML = """
 
 def test_detect_kanji_redirect_chimanako():
     """血眼 should redirect to ちまなこ"""
-    result = detect_kanji_redirect(CHIMANAKO_REDIRECT_HTML)
-    assert result == "ちまなこ"
+    reading, all_readings = detect_kanji_redirect(CHIMANAKO_REDIRECT_HTML)
+    assert reading == "ちまなこ"
+    assert all_readings == ["ちまなこ"]
 
 
 def test_detect_kanji_redirect_detarame():
     """出鱈目 should redirect to でたらめ"""
-    result = detect_kanji_redirect(DETARAME_REDIRECT_HTML)
-    assert result == "でたらめ"
+    reading, all_readings = detect_kanji_redirect(DETARAME_REDIRECT_HTML)
+    assert reading == "でたらめ"
+    assert all_readings == ["でたらめ"]
 
 
 def test_no_redirect_for_normal_definition():
@@ -130,8 +132,8 @@ CHIMANAKO_REAL_HTML = """
 
 def test_redirect_then_parse_gives_real_definition():
     """Simulates the full flow: detect redirect from 血眼 HTML, then parse the target HTML."""
-    redirect = detect_kanji_redirect(CHIMANAKO_REDIRECT_HTML)
-    assert redirect == "ちまなこ"
+    reading, _ = detect_kanji_redirect(CHIMANAKO_REDIRECT_HTML)
+    assert reading == "ちまなこ"
 
     # Parse the real definition page
     parsed = parse_wiktionary_html(CHIMANAKO_REAL_HTML, lang="ja")
@@ -149,11 +151,11 @@ def test_full_redirect_flow_with_mock_fetch(mock_fetch):
 
     # Step 1: fetch the kanji word
     html = fetch_wiktionary_html("血眼", "ja")
-    redirect = detect_kanji_redirect(html)
-    assert redirect == "ちまなこ"
+    reading, _ = detect_kanji_redirect(html)
+    assert reading == "ちまなこ"
 
     # Step 2: fetch the redirect target
-    html = fetch_wiktionary_html(redirect, "ja")
+    html = fetch_wiktionary_html(reading, "ja")
     assert detect_kanji_redirect(html) is None  # not another redirect
 
     parsed = parse_wiktionary_html(html, lang="ja")
@@ -201,14 +203,15 @@ KUCHIBETA_REAL_HTML = """
 
 def test_detect_kanji_redirect_kuchibeta():
     """口下手 should redirect to くちべた"""
-    result = detect_kanji_redirect(KUCHIBETA_REDIRECT_HTML)
-    assert result == "くちべた"
+    reading, all_readings = detect_kanji_redirect(KUCHIBETA_REDIRECT_HTML)
+    assert reading == "くちべた"
+    assert all_readings == ["くちべた"]
 
 
 def test_kuchibeta_redirect_preserves_pronunciation():
     """After redirecting 口下手 → くちべた, the pronunciation くちべた must appear in parsed output."""
-    redirect = detect_kanji_redirect(KUCHIBETA_REDIRECT_HTML)
-    assert redirect == "くちべた"
+    reading, _ = detect_kanji_redirect(KUCHIBETA_REDIRECT_HTML)
+    assert reading == "くちべた"
 
     parsed = parse_wiktionary_html(KUCHIBETA_REAL_HTML, lang="ja")
     # The definition should be present
@@ -258,9 +261,10 @@ TSUKU_REAL_HTML = """
 
 
 def test_detect_kanji_redirect_multi_reading_tsuku():
-    """着く has two readings (つく, はく), both 漢字表記 — should redirect to first reading."""
-    result = detect_kanji_redirect(TSUKU_REDIRECT_HTML)
-    assert result == "つく"
+    """着く has two readings (つく, はく), both 漢字表記 — should redirect to first reading and return all readings."""
+    reading, all_readings = detect_kanji_redirect(TSUKU_REDIRECT_HTML)
+    assert reading == "つく"
+    assert all_readings == ["つく", "はく"]
 
 
 def test_no_redirect_when_mixed_li_content():
@@ -277,21 +281,88 @@ def test_no_redirect_when_mixed_li_content():
     assert result is None
 
 
-@patch('utils.fetch_wiktionary_html')
-def test_full_redirect_flow_multi_reading(mock_fetch):
-    """End-to-end: fetching 着く triggers redirect to つく, then fetches real definition."""
-    mock_fetch.side_effect = lambda word, lang: {
-        "着く": TSUKU_REDIRECT_HTML,
-        "つく": TSUKU_REAL_HTML,
-    }.get(word, "")
+def test_inject_pronunciation_multi_reading():
+    """inject_redirect_pronunciation should prepend all readings at the top when multiple exist."""
+    parsed = '<ul><p><strong>つく</strong></p><li>目的地に達する。到着する。</li></ul>'
+    result = inject_redirect_pronunciation(parsed, ["つく", "はく"])
+    assert "つく" in result
+    assert "はく" in result
+    assert "目的地" in result
+    # Pronunciation must be at the very start (right after <ul>)
+    assert result.startswith("<ul><p>つく 又は はく</p>")
 
-    html = fetch_wiktionary_html("着く", "ja")
-    redirect = detect_kanji_redirect(html)
-    assert redirect == "つく"
 
-    html = fetch_wiktionary_html(redirect, "ja")
-    assert detect_kanji_redirect(html) is None
+def test_inject_pronunciation_single_reading_noop():
+    """inject_redirect_pronunciation should not change output for single reading."""
+    parsed = '<ul><p><strong>ちまなこ</strong></p><li>逆上などで血走った眼。</li></ul>'
+    result = inject_redirect_pronunciation(parsed, ["ちまなこ"])
+    assert result == parsed
 
-    parsed = parse_wiktionary_html(html, lang="ja")
+
+def test_inject_pronunciation_multi_section_no_leading_p():
+    """When parsed output starts with <li> (no leading <p>), pronunciation must be prepended.
+
+    The real つく page has multiple <p> tags mid-content (one per verb section).
+    inject_redirect_pronunciation must NOT replace one of those — it must prepend.
+    """
+    # Simulates the real つく page structure: starts with <li>, has <p> tags mid-content
+    multi_section = (
+        '<ul>'
+        '<li>自動詞:付く・点く・着く・就く</li>'
+        '<p><strong>つく</strong></p>'
+        '<li>別々のものが、隙間なく合わさること。付着する。</li>'
+        '<p><strong>つく</strong></p>'
+        '<li>離れていたところから、目的地に移動しおえる。到着する。</li>'
+        '<p><strong>つく</strong></p>'
+        '<li>擬声語・擬態語に付いてある状態になってくる意を示す。</li>'
+        '</ul>'
+    )
+    result = inject_redirect_pronunciation(multi_section, ["つく", "はく"])
+
+    # 1. Pronunciation must be at the very start
+    assert result.startswith("<ul><p>つく 又は はく</p>")
+
+    # 2. All original <p> tags must survive (not be eaten by a greedy regex)
+    import re
+    original_p_count = len(re.findall(r'<p>', multi_section))
+    result_p_count = len(re.findall(r'<p>', result))
+    # +1 for the prepended pronunciation <p>
+    assert result_p_count == original_p_count + 1, (
+        f"Expected {original_p_count + 1} <p> tags, got {result_p_count}"
+    )
+
+    # 3. All original content must be preserved
+    assert "自動詞:付く" in result
+    assert "付着する" in result
+    assert "目的地" in result
+    assert "擬声語" in result
+
+    # 4. No extra blank lines
+    assert "\n\n" not in result
+
+
+def test_inject_pronunciation_no_extra_blank_lines():
+    """Ensure inject_redirect_pronunciation does not add any blank lines."""
+    parsed = '<ul><li>some definition</li></ul>'
+    result = inject_redirect_pronunciation(parsed, ["つく", "はく"])
+    assert "\n\n" not in result
+
+
+def test_full_redirect_flow_multi_reading():
+    """Full flow: detect redirect from 着く, parse つく definition, inject both readings."""
+    reading, all_readings = detect_kanji_redirect(TSUKU_REDIRECT_HTML)
+    assert reading == "つく"
+    assert all_readings == ["つく", "はく"]
+
+    # Target page is not a redirect
+    assert detect_kanji_redirect(TSUKU_REAL_HTML) is None
+
+    parsed = parse_wiktionary_html(TSUKU_REAL_HTML, lang="ja")
+    parsed = inject_redirect_pronunciation(parsed, all_readings)
     assert "目的地" in parsed
     assert "到着" in parsed
+    # Both readings must be present in pronunciation
+    assert "つく" in parsed
+    assert "はく" in parsed
+    # Pronunciation must be at the top
+    assert parsed.startswith("<ul><p>つく 又は はく</p>")

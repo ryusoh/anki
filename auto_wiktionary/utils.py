@@ -96,16 +96,30 @@ def detect_kanji_redirect(html_text):
     if not all_lis:
         return None
 
-    first_reading = None
+    readings = []
     for li in all_lis:
         li_text = li.get_text().strip()
         match = re.match(r'^(.+)の漢字表記。$', li_text)
         if not match:
             return None
-        if first_reading is None:
-            first_reading = match.group(1)
+        readings.append(match.group(1))
 
-    return first_reading
+    return (readings[0], readings)
+
+
+def inject_redirect_pronunciation(parsed_html, all_readings):
+    """
+    When a kanji redirect has multiple readings, prepends a <p> with all readings
+    at the top of the parsed output (right after the opening <ul>).
+    For single readings, returns the parsed HTML unchanged.
+    """
+    if len(all_readings) <= 1:
+        return parsed_html
+
+    pronunciation = " 又は ".join(all_readings)
+    if parsed_html.startswith("<ul>"):
+        return "<ul><p>" + pronunciation + "</p>" + parsed_html[4:]
+    return "<p>" + pronunciation + "</p>" + parsed_html
 
 
 def _filter_language_sections(soup, lang):
