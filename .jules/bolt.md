@@ -172,3 +172,8 @@
 
 **Learning:** In applications where table rows have hover effects driven by mouse tracking, continuously resolving hovered rows via `document.elementFromPoint(e.clientX, e.clientY)` followed by an O(N) `findIndex` lookup over row collections causes severe layout thrashing and main-thread blocking, particularly with large datasets.
 **Action:** Always prefer retrieving the interacted element via `e.target` directly in mouse events. Pair this with a `WeakMap` during initialization to associate DOM nodes to their corresponding index or metadata for O(1) constant-time lookup instead of iterating through arrays.
+
+## 2024-05-14 - Cache Expensive Operations in High-Frequency Listeners
+
+**Learning:** Calling getBoundingClientRect() and querySelector() inside high-frequency UI events like mousemove causes layout thrashing and unnecessary O(N) DOM query overhead.
+**Action:** Always pre-calculate element associations and cache layout dimensions on mouseenter to guarantee O(1) performance and avoid main-thread blocking during interactions.
