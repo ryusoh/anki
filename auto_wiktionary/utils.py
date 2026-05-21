@@ -109,14 +109,23 @@ def detect_kanji_redirect(html_text):
 
 def inject_redirect_pronunciation(parsed_html, all_readings):
     """
-    When a kanji redirect has multiple readings, prepends a <p> with all readings
-    at the top of the parsed output (right after the opening <ul>).
-    For single readings, returns the parsed HTML unchanged.
+    When a kanji redirect occurs, ensures the pronunciation appears at the top
+    of the parsed output (right after the opening <ul>).
+    - Multi-reading: always prepends "reading1 又は reading2"
+    - Single-reading: prepends if the pronunciation isn't already the first <p>
     """
-    if len(all_readings) <= 1:
+    if not all_readings:
         return parsed_html
 
     pronunciation = " 又は ".join(all_readings)
+
+    # Check if pronunciation is already at the top (e.g. <ul><p><strong>つく</strong></p>...)
+    if len(all_readings) == 1:
+        # Match <ul><p> ... reading ... </p> at the start
+        match = re.match(r'^<ul><p>(?:<[^>]+>)*' + re.escape(all_readings[0]) + r'(?:<[^>]+>)*</p>', parsed_html)
+        if match:
+            return parsed_html
+
     if parsed_html.startswith("<ul>"):
         return "<ul><p>" + pronunciation + "</p>" + parsed_html[4:]
     return "<p>" + pronunciation + "</p>" + parsed_html

@@ -292,11 +292,29 @@ def test_inject_pronunciation_multi_reading():
     assert result.startswith("<ul><p>つく 又は はく</p>")
 
 
-def test_inject_pronunciation_single_reading_noop():
-    """inject_redirect_pronunciation should not change output for single reading."""
+def test_inject_pronunciation_single_reading_noop_when_already_present():
+    """inject_redirect_pronunciation should not change output when pronunciation already at the top."""
     parsed = '<ul><p><strong>ちまなこ</strong></p><li>逆上などで血走った眼。</li></ul>'
     result = inject_redirect_pronunciation(parsed, ["ちまなこ"])
     assert result == parsed
+
+
+def test_inject_pronunciation_single_reading_prepends_when_missing():
+    """付く regression: single-reading redirect must prepend pronunciation when target page has no leading <p>."""
+    # The real つく page starts with <li>, not <p> — pronunciation is missing
+    parsed = (
+        '<ul>'
+        '<li>自動詞:付く・点く・着く・就く</li>'
+        '<p><strong>つく</strong></p>'
+        '<li>別々のものが、隙間なく合わさること。付着する。</li>'
+        '</ul>'
+    )
+    result = inject_redirect_pronunciation(parsed, ["つく"])
+    # Must prepend pronunciation at the top
+    assert result.startswith('<ul><p>つく</p>')
+    # All original content preserved
+    assert '自動詞:付く' in result
+    assert '付着する' in result
 
 
 def test_inject_pronunciation_multi_section_no_leading_p():
@@ -366,3 +384,73 @@ def test_full_redirect_flow_multi_reading():
     assert "はく" in parsed
     # Pronunciation must be at the top
     assert parsed.startswith("<ul><p>つく 又は はく</p>")
+
+
+def test_full_redirect_flow_single_reading_tsuku():
+    """付く regression: single-reading redirect to つく must still show pronunciation at the top."""
+    # 付く redirect page (single reading)
+    TSUKU_SINGLE_REDIRECT_HTML = """
+    <html>
+        <body>
+            <section>
+                <h2>日本語</h2>
+                <section>
+                    <h3>和語の漢字表記</h3>
+                    <p><strong class="Jpan headword" lang="ja"><a href="./付#日本語" title="付">付</a>く</strong> (つく)</p>
+                    <ol>
+                        <li><b><a href="./つく" title="つく">つく</a></b>の漢字表記。</li>
+                    </ol>
+                </section>
+            </section>
+        </body>
+    </html>
+    """
+
+    reading, all_readings = detect_kanji_redirect(TSUKU_SINGLE_REDIRECT_HTML)
+    assert reading == "つく"
+    assert all_readings == ["つく"]
+
+    # The real つく page has an overview section WITHOUT a preceding <p>,
+    # followed by individual verb sections that DO have <p> tags.
+    TSUKU_MULTI_SECTION_HTML = """
+    <html>
+        <body>
+            <section>
+                <h2>日本語</h2>
+                <section>
+                    <h3>動詞</h3>
+                    <ol>
+                        <li>自動詞:付く・点く・着く・就く
+                            <ol>
+                                <li>「離れていた種火が、隙間なく本体へ移る」→<b>点く</b></li>
+                                <li>「離れていたところから、隙間なく近い場所へ移動する」→<b>着く</b></li>
+                            </ol>
+                        </li>
+                    </ol>
+                </section>
+                <section>
+                    <h3>動詞:付く</h3>
+                    <p><strong class="Jpan headword" lang="ja">つく</strong>【<b class="Jpan" lang="ja"><a href="./付く#日本語" title="付く">付く</a></b>】</p>
+                    <ol>
+                        <li>別々のものが、隙間なく合わさること。付着する。</li>
+                    </ol>
+                </section>
+                <section>
+                    <h3>動詞:着く</h3>
+                    <p><strong class="Jpan headword" lang="ja">つく</strong>【<b class="Jpan" lang="ja"><a href="./着く#日本語" title="着く">着く</a></b>】</p>
+                    <ol>
+                        <li>目的地に達する。到着する。</li>
+                    </ol>
+                </section>
+            </section>
+        </body>
+    </html>
+    """
+
+    parsed = parse_wiktionary_html(TSUKU_MULTI_SECTION_HTML, lang="ja")
+    parsed = inject_redirect_pronunciation(parsed, all_readings)
+    # Pronunciation must be at the top
+    assert parsed.startswith('<ul><p>つく</p>')
+    assert "付着する" in parsed
+    assert "目的地" in parsed
+    assert "到着" in parsed
