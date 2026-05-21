@@ -14,12 +14,22 @@ export function initTiltEffect() {
     "nav.container, .quantum-widget, .marquee-container",
   );
   tiltContainers.forEach((container) => {
+    let rect = null;
+
     window.gsap.set(container, {
       transformPerspective: 1000,
       transformStyle: "preserve-3d",
     });
+
+    container.addEventListener("mouseenter", () => {
+      rect = container.getBoundingClientRect();
+    });
+
     container.addEventListener("mousemove", (e) => {
-      const rect = container.getBoundingClientRect();
+      if (!rect) {
+        rect = container.getBoundingClientRect();
+      }
+
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       const centerX = rect.width / 2;
@@ -35,6 +45,7 @@ export function initTiltEffect() {
       });
     });
     container.addEventListener("mouseleave", () => {
+      rect = null;
       window.gsap.to(container, {
         rotateX: 0,
         rotateY: 0,

@@ -16,8 +16,17 @@ export function initMagneticNav() {
   );
 
   magneticElements.forEach((el) => {
+    const child = el.querySelector("a, i");
+    let rect = null;
+
+    el.addEventListener("mouseenter", () => {
+      rect = el.getBoundingClientRect();
+    });
+
     el.addEventListener("mousemove", (e) => {
-      const rect = el.getBoundingClientRect();
+      if (!rect) {
+        rect = el.getBoundingClientRect();
+      }
 
       // Calculate center of element
       const centerX = rect.left + rect.width / 2;
@@ -39,7 +48,6 @@ export function initMagneticNav() {
       });
 
       // Pull the child element (e.g. <a> or <i>) slightly more for a parallax effect
-      const child = el.querySelector("a, i");
       if (child) {
         window.gsap.to(child, {
           x: distX * (strength * 1.5),
@@ -51,6 +59,7 @@ export function initMagneticNav() {
     });
 
     el.addEventListener("mouseleave", () => {
+      rect = null;
       // Elastic snap back to origin
       window.gsap.to(el, {
         x: 0,
@@ -59,7 +68,6 @@ export function initMagneticNav() {
         ease: "elastic.out(1, 0.3)",
       });
 
-      const child = el.querySelector("a, i");
       if (child) {
         window.gsap.to(child, {
           x: 0,
