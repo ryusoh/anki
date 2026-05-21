@@ -92,16 +92,20 @@ def detect_kanji_redirect(html_text):
     for ol in ols:
         all_lis.extend(ol.find_all('li', recursive=False))
 
-    # A redirect page has exactly one <li> matching "Xの漢字表記。"
-    if len(all_lis) != 1:
+    # A redirect page has all <li> items matching "Xの漢字表記。"
+    if not all_lis:
         return None
 
-    li_text = all_lis[0].get_text().strip()
-    match = re.match(r'^(.+)の漢字表記。$', li_text)
-    if not match:
-        return None
+    first_reading = None
+    for li in all_lis:
+        li_text = li.get_text().strip()
+        match = re.match(r'^(.+)の漢字表記。$', li_text)
+        if not match:
+            return None
+        if first_reading is None:
+            first_reading = match.group(1)
 
-    return match.group(1)
+    return first_reading
 
 
 def _filter_language_sections(soup, lang):

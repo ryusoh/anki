@@ -215,3 +215,83 @@ def test_kuchibeta_redirect_preserves_pronunciation():
     assert "下手" in parsed
     # The pronunciation (reading) must be present — this is the bug
     assert "くちべた" in parsed
+
+
+# ---- 着く (つく / はく) multi-reading redirect test fixtures ----
+
+# Real HTML from ja.wiktionary for 着く (redirects to both つく and はく)
+TSUKU_REDIRECT_HTML = """
+<html>
+    <body>
+        <section>
+            <h2>日本語</h2>
+            <section>
+                <h3>和語の漢字表記</h3>
+                <p><strong class="Jpan headword" lang="ja"><a href="./着#日本語" title="着">着</a>く</strong> (つく 又は はく)</p>
+                <ol>
+                    <li><b><a href="./つく" title="つく">つく</a></b>の漢字表記。</li>
+                    <li><b><a href="./はく" title="はく">はく</a></b>の漢字表記。</li>
+                </ol>
+            </section>
+        </section>
+    </body>
+</html>
+"""
+
+TSUKU_REAL_HTML = """
+<html>
+    <body>
+        <section>
+            <h2>日本語</h2>
+            <section>
+                <h3>動詞</h3>
+                <p><strong class="Jpan headword" lang="ja">つく</strong>【<b class="Jpan" lang="ja"><a href="./着く#日本語" title="着く">着く</a></b>】</p>
+                <ol>
+                    <li>目的地に達する。到着する。</li>
+                    <li>ある位置を占める。</li>
+                </ol>
+            </section>
+        </section>
+    </body>
+</html>
+"""
+
+
+def test_detect_kanji_redirect_multi_reading_tsuku():
+    """着く has two readings (つく, はく), both 漢字表記 — should redirect to first reading."""
+    result = detect_kanji_redirect(TSUKU_REDIRECT_HTML)
+    assert result == "つく"
+
+
+def test_no_redirect_when_mixed_li_content():
+    """If some <li> items are 漢字表記 and some are real definitions, it's NOT a redirect."""
+    mixed_html = """
+    <html><body><section><h2>日本語</h2>
+        <ol>
+            <li><b><a href="./つく">つく</a></b>の漢字表記。</li>
+            <li>目的地に達する。到着する。</li>
+        </ol>
+    </section></body></html>
+    """
+    result = detect_kanji_redirect(mixed_html)
+    assert result is None
+
+
+@patch('utils.fetch_wiktionary_html')
+def test_full_redirect_flow_multi_reading(mock_fetch):
+    """End-to-end: fetching 着く triggers redirect to つく, then fetches real definition."""
+    mock_fetch.side_effect = lambda word, lang: {
+        "着く": TSUKU_REDIRECT_HTML,
+        "つく": TSUKU_REAL_HTML,
+    }.get(word, "")
+
+    html = fetch_wiktionary_html("着く", "ja")
+    redirect = detect_kanji_redirect(html)
+    assert redirect == "つく"
+
+    html = fetch_wiktionary_html(redirect, "ja")
+    assert detect_kanji_redirect(html) is None
+
+    parsed = parse_wiktionary_html(html, lang="ja")
+    assert "目的地" in parsed
+    assert "到着" in parsed
