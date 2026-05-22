@@ -103,11 +103,26 @@ function initGravitationalDistortion(widget, charGroups) {
   } = GRAVITY;
   const radiusSq = influenceRadius * influenceRadius;
 
-  // Bolt: Pre-allocate positions cache to avoid object and array creation GC pressure in hot path
+  // Bolt: Pre-calculate static character positions relative to their parent container
+  // to avoid calling O(N) getBoundingClientRect() inside the gsap.ticker animation loop,
+  // which causes severe layout thrashing and main-thread blocking.
   charGroups.forEach((group) => {
-    group.cachedPositions = new Array(group.spans.length);
+    if (group.spans.length === 0) return;
+
+    // The wrapper that moves horizontally (e.g. .marquee-content)
+    const container = group.spans[0].parentElement;
+    group.container = container;
+
+    // We cache their static offsets relative to the parent container
+    const containerRect = container.getBoundingClientRect();
+    group.cachedRelativePositions = new Array(group.spans.length);
+
     for (let i = 0; i < group.spans.length; i++) {
-      group.cachedPositions[i] = { x: 0, y: 0 };
+      const r = group.spans[i].getBoundingClientRect();
+      group.cachedRelativePositions[i] = {
+        xOffset: (r.left + r.width / 2) - containerRect.left,
+        yOffset: (r.top + r.height / 2) - containerRect.top
+      };
     }
   });
 
@@ -119,18 +134,19 @@ function initGravitationalDistortion(widget, charGroups) {
     const wcx = wRect.left + wRect.width / 2;
     const wcy = wRect.top + wRect.height / 2;
 
-    for (const { spans, direction, cachedPositions } of charGroups) {
-      // Batch read all positions first to avoid layout thrashing
-      for (let i = 0; i < spans.length; i += 1) {
-        const r = spans[i].getBoundingClientRect();
-        cachedPositions[i].x = r.left + r.width / 2;
-        cachedPositions[i].y = r.top + r.height / 2;
-      }
+    for (const { spans, direction, cachedRelativePositions, container } of charGroups) {
+      // We only query the parent container's moving bounds once per frame
+      const containerRect = container.getBoundingClientRect();
+      const cLeft = containerRect.left;
+      const cTop = containerRect.top;
 
-      // Batch write transforms
+      // Batch write transforms based on dynamically computed absolute positions
       for (let i = 0; i < spans.length; i += 1) {
-        const dx = wcx - cachedPositions[i].x;
-        const dy = wcy - cachedPositions[i].y;
+        const absX = cLeft + cachedRelativePositions[i].xOffset;
+        const absY = cTop + cachedRelativePositions[i].yOffset;
+
+        const dx = wcx - absX;
+        const dy = wcy - absY;
         const distSq = dx * dx + dy * dy;
 
         if (distSq >= radiusSq || distSq < 1) {
