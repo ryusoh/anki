@@ -177,3 +177,8 @@
 
 **Learning:** Calling getBoundingClientRect() and querySelector() inside high-frequency UI events like mousemove causes layout thrashing and unnecessary O(N) DOM query overhead.
 **Action:** Always pre-calculate element associations and cache layout dimensions on mouseenter to guarantee O(1) performance and avoid main-thread blocking during interactions.
+
+## 2025-05-21 - [Optimize getBoundingClientRect in GSAP Ticker]
+
+**Learning:** Calling `getBoundingClientRect()` on multiple child elements inside a high-frequency `gsap.ticker` render loop causes severe layout thrashing and main-thread blocking, drastically dropping the framerate of UI animations.
+**Action:** Pre-calculate and cache the static positions or relative offsets of child elements outside the ticker loop. Inside the loop, only query the single parent container's `getBoundingClientRect()` to compute absolute positions dynamically.
