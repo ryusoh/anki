@@ -60,3 +60,8 @@
 
 **Learning:** When making table headers (`th` elements) sortable, overriding their inherent `columnheader` role by adding `role="button"` breaks their ability to convey sorting state to screen readers. `aria-sort` is only a valid attribute on elements with `columnheader` or `rowheader` roles.
 **Action:** Do not use `role="button"` on interactive `th` elements. Instead, apply `tabindex="0"` for keyboard accessibility and initialize them with `aria-sort="none"` (or `ascending`/`descending` as appropriate) to correctly expose the sortable semantics and state.
+
+## 2024-06-08 - Screen Reader Redundancy with Icon Links
+
+**Learning:** FontAwesome icons (`<i class="fa ...">`) placed inside semantic interactive elements like `<a aria-label="...">` are often read out loud by screen readers as arbitrary Unicode characters or irrelevant text, which adds confusing noise and redundancy when an `aria-label` already perfectly describes the element's purpose.
+**Action:** Always explicitly hide decorative or redundant icon elements from screen readers by adding `aria-hidden="true"` to the `<i>` or `<svg>` tag when the parent interactive element already provides an adequate accessible name via `aria-label` or text content.
