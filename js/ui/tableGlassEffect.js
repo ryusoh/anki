@@ -195,6 +195,8 @@ export class TableGlassEffect {
 
     // Bolt: Invalidate cached ambient glow gradient since canvas dimensions have changed
     this._ambientGradientCache = null;
+    this._hoverSpotlightGradientCache = null;
+    this._hoverBorderGradientCache = null;
 
     // Track rows for hover effect
     this.rows = [];
@@ -347,53 +349,38 @@ export class TableGlassEffect {
     const mouseX = ((this.state.pointer.x + 1) / 2) * this.width;
     const spotlightRadius = settings.spotlightRadius || 300;
 
-    // 1. Spotlight Background (Radial Gradient)
-    // Center the gradient on the mouse X, but vertically centered on the row
-    const gradient = this.ctx.createRadialGradient(
-      mouseX,
-      rowTopRelativeToCanvas + actualHeight / 2,
-      0,
-      mouseX,
-      rowTopRelativeToCanvas + actualHeight / 2,
-      spotlightRadius,
-    );
+    // Bolt: Cache radial gradients centered at (0, 0) to avoid re-instantiating objects on every 60fps frame.
+    // We translate the canvas context to the target coordinates before drawing instead.
+    if (!this._hoverSpotlightGradientCache) {
+      this._hoverSpotlightGradientCache = this.ctx.createRadialGradient(
+        0, 0, 0, 0, 0, spotlightRadius,
+      );
+      this._hoverSpotlightGradientCache.addColorStop(0, settings.color || "rgba(255, 255, 255, 0.05)");
+      this._hoverSpotlightGradientCache.addColorStop(1, "rgba(0, 0, 0, 0)");
 
-    gradient.addColorStop(0, settings.color || "rgba(255, 255, 255, 0.05)");
-    gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+      this._hoverBorderGradientCache = this.ctx.createRadialGradient(
+        0, 0, 0, 0, 0, spotlightRadius * 0.8,
+      );
+      this._hoverBorderGradientCache.addColorStop(0, settings.borderColor || "rgba(255, 255, 255, 0.2)");
+      this._hoverBorderGradientCache.addColorStop(1, "rgba(0, 0, 0, 0)");
+    }
 
-    this.ctx.fillStyle = gradient;
-    this.ctx.fillRect(0, rowTopRelativeToCanvas, this.width, actualHeight);
+    // Translate context to center of row hover spotlight
+    this.ctx.translate(mouseX, rowTopRelativeToCanvas + actualHeight / 2);
 
-    // 2. Border Reveal (Masked by the same spotlight gradient)
-    // We want the borders to be visible only near the mouse
+    // 1. Spotlight Background
+    this.ctx.fillStyle = this._hoverSpotlightGradientCache;
+    this.ctx.fillRect(-mouseX, -actualHeight / 2, this.width, actualHeight);
 
-    const borderGradient = this.ctx.createRadialGradient(
-      mouseX,
-      rowTopRelativeToCanvas + actualHeight / 2,
-      0,
-      mouseX,
-      rowTopRelativeToCanvas + actualHeight / 2,
-      spotlightRadius * 0.8,
-    );
-    borderGradient.addColorStop(
-      0,
-      settings.borderColor || "rgba(255, 255, 255, 0.2)",
-    );
-    borderGradient.addColorStop(1, "rgba(0, 0, 0, 0)");
-
-    this.ctx.strokeStyle = borderGradient;
+    // 2. Border Reveal
+    this.ctx.strokeStyle = this._hoverBorderGradientCache;
     this.ctx.lineWidth = 1;
 
-    // Top border
     this.ctx.beginPath();
-    this.ctx.moveTo(0, rowTopRelativeToCanvas);
-    this.ctx.lineTo(this.width, rowTopRelativeToCanvas);
-    this.ctx.stroke();
-
-    // Bottom border
-    this.ctx.beginPath();
-    this.ctx.moveTo(0, rowTopRelativeToCanvas + actualHeight);
-    this.ctx.lineTo(this.width, rowTopRelativeToCanvas + actualHeight);
+    this.ctx.moveTo(-mouseX, -actualHeight / 2);
+    this.ctx.lineTo(this.width - mouseX, -actualHeight / 2);
+    this.ctx.moveTo(-mouseX, actualHeight / 2);
+    this.ctx.lineTo(this.width - mouseX, actualHeight / 2);
     this.ctx.stroke();
 
     this.ctx.restore();
