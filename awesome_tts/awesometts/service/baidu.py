@@ -184,7 +184,7 @@ class Baidu(Service):
         
         post_data = urlencode(params).encode('utf-8')
         req = Request('http://tsn.baidu.com/text2audio', post_data)
-        audio_content = urlopen(req).read()
+        audio_content = urlopen(req, timeout=10).read()
         
         if options['encoding'] == 3:
             # Write MP3 audio content direct to file

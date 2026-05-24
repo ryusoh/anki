@@ -161,3 +161,9 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Vulnerability:** Dynamic chart legends in `js/commands/retention.js`, `js/commands/due.js`, and `js/commands/reviews.js` were using string concatenation assigned to `legend.innerHTML`. Even though user inputs like deck names were escaped, this pattern violated defense-in-depth secure coding principles.
 **Learning:** Assigning dynamically built strings to `innerHTML`—even with escaped variables—violates modern SAST rules and risks accidental XSS introduction during future modifications. Safe DOM APIs should be the standard everywhere.
 **Prevention:** Always use safe DOM manipulation methods like `document.createElement`, `document.createTextNode`, and `appendChild` when building HTML structures, and use `element.textContent = ""` or `element.replaceChildren()` to clear elements securely instead of `element.innerHTML = ""`.
+
+## 2024-05-24 - Prevent Denial of Service by adding timeouts to urlopen calls
+
+**Vulnerability:** External HTTP requests made using `urllib.request.urlopen` in `awesome_tts/awesometts/service/baidu.py`, `awesome_tts/awesometts/service/naverclova.py`, and `awesome_tts/awesometts/service/naverclovapremium.py` lacked a `timeout` parameter.
+**Learning:** Making network calls to external APIs without specifying an explicit timeout allows the application thread to block indefinitely if the remote server hangs or is unresponsive, leading to application freezes and Denial of Service (DoS) vulnerabilities.
+**Prevention:** Always include a explicit `timeout` parameter (e.g., `timeout=10`) when invoking `urlopen()` or any other external network request method in Python.
