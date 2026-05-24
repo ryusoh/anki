@@ -187,3 +187,8 @@
 
 **Learning:** Calling `getBoundingClientRect()` directly inside high-frequency `mousemove` event listeners causes layout thrashing and main thread blocking, as it forces the browser to synchronously recalculate layout on every mouse movement. This leads to dropped frames and severe performance degradation for continuous interactive effects like the magnetic thumb effect.
 **Action:** Always pre-calculate and cache the bounding rectangle dimensions via `getBoundingClientRect()` on the `mouseenter` event, and reuse those cached dimensions during `mousemove`. Invalidate the cache on `mouseleave` to assure positional accuracy upon the next interaction without paying the continuous layout calculation cost.
+
+## 2026-05-24 - [Optimize radial gradient allocations in render loops]
+
+**Learning:** Instantiating new `CanvasGradient` objects via `createRadialGradient()` inside high-frequency animation loops (like `requestAnimationFrame`) creates heavy garbage collection (GC) overhead. If the gradient moves dynamically (e.g., following a mouse pointer), caching it at static coordinates doesn't work.
+**Action:** Create and cache the gradient object centered at `(0, 0)` during initialization or resize. Inside the render loop, use `ctx.translate()` to move the canvas context to the dynamic target coordinates, draw the shape using the cached gradient relative to the translated origin, and then call `ctx.restore()`. This completely eliminates gradient object allocation overhead on every frame.
