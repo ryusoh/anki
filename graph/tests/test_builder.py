@@ -10,6 +10,20 @@ import pytest
 class TestBuildGraph:
     """Test graph building."""
     
+    def test_build_graph_with_anonymization(self):
+        """Test that graph node front and tags are hashed when anonymization is enabled."""
+        from graph.builder import build_graph
+        from graph.tests.fixtures import ENGLISH_NOTES
+
+        G = build_graph(ENGLISH_NOTES, with_anonymization=True)
+
+        # Check that original text is not present in the graph
+        for node, data in G.nodes(data=True):
+            assert 'Note_' in data['front']
+            assert 'Note_' in data['label']
+            assert 'flamboyant' not in data['front'].lower()
+            assert 'vocabulary' not in data['tags'].lower()
+
     def test_build_graph_creates_nodes(self):
         """Test that graph has nodes for all notes."""
         from graph.builder import build_graph
