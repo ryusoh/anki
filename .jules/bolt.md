@@ -192,3 +192,6 @@
 
 **Learning:** Instantiating new `CanvasGradient` objects via `createRadialGradient()` inside high-frequency animation loops (like `requestAnimationFrame`) creates heavy garbage collection (GC) overhead. If the gradient moves dynamically (e.g., following a mouse pointer), caching it at static coordinates doesn't work.
 **Action:** Create and cache the gradient object centered at `(0, 0)` during initialization or resize. Inside the render loop, use `ctx.translate()` to move the canvas context to the dynamic target coordinates, draw the shape using the cached gradient relative to the translated origin, and then call `ctx.restore()`. This completely eliminates gradient object allocation overhead on every frame.
+## 2025-05-25 - Use gsap.quickTo for mousemove events
+**Learning:** Using `gsap.to()` repeatedly inside high-frequency event listeners like `mousemove` instantiates a new tween on every event, leading to significant GC (Garbage Collection) pressure and potential animation jitter.
+**Action:** Always pre-allocate `gsap.quickTo()` functions outside the event listener and invoke them with updated values to reuse the internal GSAP mechanism efficiently.
