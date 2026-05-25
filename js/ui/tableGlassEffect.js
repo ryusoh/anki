@@ -353,15 +353,31 @@ export class TableGlassEffect {
     // We translate the canvas context to the target coordinates before drawing instead.
     if (!this._hoverSpotlightGradientCache) {
       this._hoverSpotlightGradientCache = this.ctx.createRadialGradient(
-        0, 0, 0, 0, 0, spotlightRadius,
+        0,
+        0,
+        0,
+        0,
+        0,
+        spotlightRadius,
       );
-      this._hoverSpotlightGradientCache.addColorStop(0, settings.color || "rgba(255, 255, 255, 0.05)");
+      this._hoverSpotlightGradientCache.addColorStop(
+        0,
+        settings.color || "rgba(255, 255, 255, 0.05)",
+      );
       this._hoverSpotlightGradientCache.addColorStop(1, "rgba(0, 0, 0, 0)");
 
       this._hoverBorderGradientCache = this.ctx.createRadialGradient(
-        0, 0, 0, 0, 0, spotlightRadius * 0.8,
+        0,
+        0,
+        0,
+        0,
+        0,
+        spotlightRadius * 0.8,
       );
-      this._hoverBorderGradientCache.addColorStop(0, settings.borderColor || "rgba(255, 255, 255, 0.2)");
+      this._hoverBorderGradientCache.addColorStop(
+        0,
+        settings.borderColor || "rgba(255, 255, 255, 0.2)",
+      );
       this._hoverBorderGradientCache.addColorStop(1, "rgba(0, 0, 0, 0)");
     }
 
