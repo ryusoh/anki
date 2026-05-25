@@ -19,6 +19,17 @@ export function initMagneticNav() {
     const child = el.querySelector("a, i");
     let rect = null;
 
+    // Pre-allocate gsap quickTo functions to avoid creating new Tweens on every mousemove
+    const xTo = window.gsap.quickTo(el, "x", { duration: 0.3, ease: "power2.out" });
+    const yTo = window.gsap.quickTo(el, "y", { duration: 0.3, ease: "power2.out" });
+
+    let childXTo = null;
+    let childYTo = null;
+    if (child) {
+      childXTo = window.gsap.quickTo(child, "x", { duration: 0.3, ease: "power2.out" });
+      childYTo = window.gsap.quickTo(child, "y", { duration: 0.3, ease: "power2.out" });
+    }
+
     el.addEventListener("mouseenter", () => {
       rect = el.getBoundingClientRect();
     });
@@ -40,21 +51,13 @@ export function initMagneticNav() {
       // Strength of pull factor (lower = less pull)
       const strength = 0.4;
 
-      window.gsap.to(el, {
-        x: distX * strength,
-        y: distY * strength,
-        duration: 0.3,
-        ease: "power2.out",
-      });
+      xTo(distX * strength);
+      yTo(distY * strength);
 
       // Pull the child element (e.g. <a> or <i>) slightly more for a parallax effect
-      if (child) {
-        window.gsap.to(child, {
-          x: distX * (strength * 1.5),
-          y: distY * (strength * 1.5),
-          duration: 0.3,
-          ease: "power2.out",
-        });
+      if (child && childXTo && childYTo) {
+        childXTo(distX * (strength * 1.5));
+        childYTo(distY * (strength * 1.5));
       }
     });
 
@@ -66,6 +69,7 @@ export function initMagneticNav() {
         y: 0,
         duration: 0.7,
         ease: "elastic.out(1, 0.3)",
+        overwrite: true,
       });
 
       if (child) {
@@ -74,6 +78,7 @@ export function initMagneticNav() {
           y: 0,
           duration: 0.7,
           ease: "elastic.out(1, 0.3)",
+          overwrite: true,
         });
       }
     });
