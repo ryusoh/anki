@@ -65,3 +65,8 @@
 
 **Learning:** FontAwesome icons (`<i class="fa ...">`) placed inside semantic interactive elements like `<a aria-label="...">` are often read out loud by screen readers as arbitrary Unicode characters or irrelevant text, which adds confusing noise and redundancy when an `aria-label` already perfectly describes the element's purpose.
 **Action:** Always explicitly hide decorative or redundant icon elements from screen readers by adding `aria-hidden="true"` to the `<i>` or `<svg>` tag when the parent interactive element already provides an adequate accessible name via `aria-label` or text content.
+
+## 2024-06-09 - Range Input Focus Visibility
+
+**Learning:** Native `<input type="range">`, especially when styled with `outline: none`, becomes invisible to keyboard users as they navigate through the UI, breaking accessibility.
+**Action:** Always ensure that range inputs have an explicit `:focus-visible` style defined (e.g., `outline: 2px solid rgba(255, 255, 255, 0.8)`) so keyboard focus remains perceptible to the user.
