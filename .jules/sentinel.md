@@ -164,6 +164,15 @@ element.innerHTML = `<p>${error.message}</p>`;
 
 ## 2024-05-24 - Prevent Denial of Service by adding timeouts to urlopen calls
 
+**Vulnerability:** External HTTP requests (using `requests.get` and `requests.post`) in `awesome_tts/awesometts/languagetools.py` were not wrapped in exception handlers, allowing potential network issues (like timeouts or connection drops) to raise unhandled exceptions and potentially expose sensitive stack traces to users.
+**Learning:** Third-party libraries like `requests` can raise a variety of exceptions (e.g., `requests.exceptions.RequestException`) during connection failures, read timeouts, or protocol errors. Failing to catch these exceptions safely allows the application to crash or expose internal state.
+**Prevention:** When making external HTTP requests in Python (e.g., using the `requests` library), always wrap the call within a `try...except requests.exceptions.RequestException` block. Log the error context securely and return or raise a controlled, sanitized exception to prevent unhandled network errors from crashing the application and to fail securely.
 **Vulnerability:** External HTTP requests made using `urllib.request.urlopen` in `awesome_tts/awesometts/service/baidu.py`, `awesome_tts/awesometts/service/naverclova.py`, and `awesome_tts/awesometts/service/naverclovapremium.py` lacked a `timeout` parameter.
 **Learning:** Making network calls to external APIs without specifying an explicit timeout allows the application thread to block indefinitely if the remote server hangs or is unresponsive, leading to application freezes and Denial of Service (DoS) vulnerabilities.
 **Prevention:** Always include a explicit `timeout` parameter (e.g., `timeout=10`) when invoking `urlopen()` or any other external network request method in Python.
+
+## 2024-05-18 - Fix Security Audit Tool False Positives
+
+**Vulnerability:** Security audit tool (tools/security_audit.py) flagged its own unit tests as containing hardcoded secrets and private data.
+**Learning:** Static analysis tools that look for explicit string matches for secrets or private data structures will trigger false positives when scanning their own unit tests, as tests necessarily contain mock examples of the exact strings or structures the tool is designed to find.
+**Prevention:** Specifically exclude test directories (e.g., 'tests/') from the security audit scan paths to prevent false positives from mock data, ensuring the audit accurately reflects the state of production code without failing on valid test cases.
