@@ -66,6 +66,11 @@
 **Learning:** FontAwesome icons (`<i class="fa ...">`) inside semantic interactive elements (like `<a aria-label="...">`) or purely decorative icons without `aria-hidden="true"` will cause screen readers to announce redundant or confusing Unicode characters, cluttering the user experience.
 **Action:** Always add `aria-hidden="true"` to FontAwesome icons that are used inside interactive elements with their own labels or that are purely visual decorations.
 
+## 2024-06-21 - Range Slider Keyboard Accessibility
+
+**Learning:** Range sliders (`input[type="range"]`) often have their native thumbs hidden and customized for aesthetics using custom pseudo-elements or sibling elements, but they still need visible focus indicators for keyboard users.
+**Action:** Always provide a `:focus-visible` state for range sliders (e.g., `outline: 2px solid rgba(255, 255, 255, 0.5)`) to ensure keyboard accessibility.
+
 ## 2024-06-08 - Screen Reader Redundancy with Icon Links
 
 **Learning:** FontAwesome icons (`<i class="fa ...">`) placed inside semantic interactive elements like `<a aria-label="...">` are often read out loud by screen readers as arbitrary Unicode characters or irrelevant text, which adds confusing noise and redundancy when an `aria-label` already perfectly describes the element's purpose.

@@ -200,8 +200,9 @@ canvas {
 }
 
 #timeline-slider:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.8);
+  outline: 2px solid rgba(255, 255, 255, 0.5);
   outline-offset: 4px;
+  border-radius: 4px;
 }
 
 #timeline-slider::-webkit-slider-thumb {
