@@ -70,3 +70,8 @@
 
 **Learning:** When custom styling inputs (like `<input type="range">`) or toggle buttons, removing the default browser outlines (`outline: none`) breaks keyboard navigation accessibility because users can no longer perceive which element has focus.
 **Action:** Always restore keyboard accessibility by adding a `:focus-visible` pseudo-class with a distinct outline (e.g., `outline: 2px solid rgba(255, 255, 255, 0.5)`) and appropriate `outline-offset` so keyboard users can perceive focus without affecting mouse users.
+
+## 2024-06-09 - Range Input Focus Visibility
+
+**Learning:** Native `<input type="range">`, especially when styled with `outline: none`, becomes invisible to keyboard users as they navigate through the UI, breaking accessibility.
+**Action:** Always ensure that range inputs have an explicit `:focus-visible` style defined (e.g., `outline: 2px solid rgba(255, 255, 255, 0.8)`) so keyboard focus remains perceptible to the user.

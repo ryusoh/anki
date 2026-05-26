@@ -120,8 +120,8 @@ function initGravitationalDistortion(widget, charGroups) {
     for (let i = 0; i < group.spans.length; i++) {
       const r = group.spans[i].getBoundingClientRect();
       group.cachedRelativePositions[i] = {
-        xOffset: (r.left + r.width / 2) - containerRect.left,
-        yOffset: (r.top + r.height / 2) - containerRect.top
+        xOffset: r.left + r.width / 2 - containerRect.left,
+        yOffset: r.top + r.height / 2 - containerRect.top,
       };
     }
   });
@@ -134,7 +134,12 @@ function initGravitationalDistortion(widget, charGroups) {
     const wcx = wRect.left + wRect.width / 2;
     const wcy = wRect.top + wRect.height / 2;
 
-    for (const { spans, direction, cachedRelativePositions, container } of charGroups) {
+    for (const {
+      spans,
+      direction,
+      cachedRelativePositions,
+      container,
+    } of charGroups) {
       // We only query the parent container's moving bounds once per frame
       const containerRect = container.getBoundingClientRect();
       const cLeft = containerRect.left;

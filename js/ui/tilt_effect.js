@@ -21,6 +21,10 @@ export function initTiltEffect() {
       transformStyle: "preserve-3d",
     });
 
+    // Pre-allocate gsap quickTo functions to avoid creating new Tweens on every mousemove
+    const rotateXTo = window.gsap.quickTo(container, "rotateX", { duration: 0.5, ease: "power2.out" });
+    const rotateYTo = window.gsap.quickTo(container, "rotateY", { duration: 0.5, ease: "power2.out" });
+
     container.addEventListener("mouseenter", () => {
       rect = container.getBoundingClientRect();
     });
@@ -36,13 +40,9 @@ export function initTiltEffect() {
       const centerY = rect.height / 2;
       const rotateX = ((y - centerY) / centerY) * -10;
       const rotateY = ((x - centerX) / centerX) * 10;
-      window.gsap.to(container, {
-        rotateX: rotateX,
-        rotateY: rotateY,
-        duration: 0.5,
-        ease: "power2.out",
-        overwrite: true,
-      });
+
+      rotateXTo(rotateX);
+      rotateYTo(rotateY);
     });
     container.addEventListener("mouseleave", () => {
       rect = null;
