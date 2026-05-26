@@ -105,6 +105,15 @@ export class TableGlassEffect {
     this.startLoop();
 
     // Mouse movement for parallax/interaction
+    this.container.addEventListener("mouseenter", () => {
+      const r = this.container.getBoundingClientRect();
+      this.containerRect = {
+        left: r.left + window.scrollX,
+        top: r.top + window.scrollY,
+        width: r.width,
+        height: r.height,
+      };
+    });
     this.container.addEventListener("mousemove", (e) =>
       this.handleMouseMove(e),
     );
@@ -198,6 +207,8 @@ export class TableGlassEffect {
     this._hoverSpotlightGradientCache = null;
     this._hoverBorderGradientCache = null;
 
+    this.containerRect = null; // Invalidate cached layout
+
     // Track rows for hover effect
     this.rows = [];
     this.rowMap = new WeakMap();
@@ -232,9 +243,18 @@ export class TableGlassEffect {
     }
   }
   handleMouseMove(e) {
-    const rect = this.container.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    if (!this.containerRect) {
+      const r = this.container.getBoundingClientRect();
+      this.containerRect = {
+        left: r.left + window.scrollX,
+        top: r.top + window.scrollY,
+        width: r.width,
+        height: r.height,
+      };
+    }
+    const rect = this.containerRect;
+    const x = (e.pageX - rect.left) / rect.width - 0.5;
+    const y = (e.pageY - rect.top) / rect.height - 0.5;
     this.state.pointer.x = x * 2; // -1 to 1
     this.state.pointer.y = y * 2; // -1 to 1
 
@@ -265,6 +285,7 @@ export class TableGlassEffect {
     this.state.pointer.x = 0;
     this.state.pointer.y = 0;
     this.state.hoveredRowIndex = -1;
+    this.containerRect = null;
   }
 
   startLoop() {

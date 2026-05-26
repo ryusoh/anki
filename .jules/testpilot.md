@@ -109,6 +109,7 @@
 **Action:** Remember to use `@patch('builtins.open')` across the board to ensure consistent, stable mocking behavior without needing the target module to explicitly import the built-in.
 
 ## 2024-05-26 - Increased unit test coverage in `graph` modules
+
 **Action:** Added tests for edge cases and CLI argument parsing branches in `graph/builder.py`, `graph/incremental_export.py`, and `graph/watch_and_update.py`.
 **Learning:** Found an existing bug where `get_top_nodes` was calling `compute_pagerank` instead of `_compute_pagerank`, which would raise a NameError.
 **Learning:** Mocking module executions directly via `runpy.run_module(..., run_name="__main__")` properly checks if `main()` was invoked from `if __name__ == '__main__':` while isolating variables and tracking statement coverage appropriately. Used `unittest.mock.patch('sys.exit')` to avoid terminating test runners during execution.
