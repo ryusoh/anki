@@ -137,7 +137,7 @@ class NaverClovaPremium(Service):
             request = urllib.request.Request(url)
             request.add_header("X-NCP-APIGW-API-KEY-ID",client_id)
             request.add_header("X-NCP-APIGW-API-KEY",client_secret)
-            response = urllib.request.urlopen(request, data=data.encode('utf-8'))
+            response = urllib.request.urlopen(request, data=data.encode('utf-8'), timeout=10)
             rescode = response.getcode()
             if(rescode==200):
                 self._logger.debug("successful response")

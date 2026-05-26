@@ -75,7 +75,9 @@ class Pico2Wave(Service):
                     self._binary = binary
                     break
 
-            except Exception:
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).debug(f"Failed to initialize pico2wave with binary {binary}: {e}")
                 continue
 
         else:

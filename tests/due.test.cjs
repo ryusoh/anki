@@ -108,7 +108,7 @@ async function runTests() {
   global.document.getElementById = (id) => {
     if (id === 'runningAmountCanvas') return { getContext: () => ({}) };
     if (id === 'runningAmountSection') return { classList: { remove: () => {}, contains: () => false } };
-    if (id === 'chartLegend') return { style: {}, textContent: '', appendChild: () => {}, innerHTML: '', querySelectorAll: () => [] };
+    if (id === 'chartLegend') return { style: {}, textContent: '', appendChild: () => {}, replaceChildren: () => {}, innerHTML: '', querySelectorAll: () => [] };
     if (id === 'runningAmountEmpty') return { style: {}, display: '', textContent: '', classList: { remove: () => {} } };
     return null;
   };
@@ -236,7 +236,7 @@ async function runTests() {
   global.document.getElementById = (id) => {
     if (id === 'runningAmountCanvas') return { getContext: () => ({}) };
     if (id === 'runningAmountSection') return { classList: { remove: () => {}, contains: () => false } };
-    if (id === 'chartLegend') return { style: {}, textContent: '', appendChild: () => {}, innerHTML: '', querySelectorAll: () => [] };
+    if (id === 'chartLegend') return { style: {}, textContent: '', appendChild: () => {}, replaceChildren: () => {}, innerHTML: '', querySelectorAll: () => [] };
     if (id === 'runningAmountEmpty') return { style: {}, textContent: '', classList: { remove: () => {} } };
     return null;
   };

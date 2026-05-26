@@ -157,8 +157,7 @@ deck's configured limit. (review due - review today)
 Cards whose last successful review was today. (A card deleted after
 review is not counted anymore. A card reviewed and moved is counted in
 its new deck. A card reviewed many times is counted once. Cards in
-learning are not counted. TODO: find how to easily find how to count
-cards in learning whose last review is today)
+learning are not counted.)
 
 ### repeated today
 

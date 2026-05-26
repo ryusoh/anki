@@ -25,34 +25,39 @@ def scale_node_size(pagerank):
     """Scale node size based on PageRank."""
     return min(3, max(0.5, pagerank * 100))
 
-# Load and take only 100
-notes_file = "./data/cloudflare/collection/notes.json.gz"
-with gzip.open(notes_file, 'rt') as f:
-    all_notes = json.load(f)
+if __name__ == '__main__':
+    # Load and take only 100
+    notes_file = "./data/cloudflare/collection/notes.json.gz"
+    try:
+        with gzip.open(notes_file, 'rt') as f:
+            all_notes = json.load(f)
+    except FileNotFoundError:
+        print(f"File {notes_file} not found. Skipping main execution.")
+        sys.exit(0)
 
-sample_notes = all_notes[:100]
-print(f"Using {len(sample_notes)} notes for quick test...")
+    sample_notes = all_notes[:100]
+    print(f"Using {len(sample_notes)} notes for quick test...")
 
-graph = build_graph(sample_notes, with_pagerank=True)
-print(f"Graph: {len(graph.nodes())} nodes, {len(graph.edges())} edges")
+    graph = build_graph(sample_notes, with_pagerank=True)
+    print(f"Graph: {len(graph.nodes())} nodes, {len(graph.edges())} edges")
 
-nodes = []
-for node_id, data in graph.nodes(data=True):
-    front = strip_html(data.get('front', 'Unknown'))
-    pagerank = data.get('pagerank', 0)
-    nodes.append({
-        'id': node_id, 'label': front,
-        'pagerank': round(pagerank, 6),
-        'size': min(3, max(0.5, pagerank * 100)),
-        'color': '#00ff88' if pagerank > 0.01 else '#00a8ff' if pagerank > 0.001 else '#888888'
-    })
+    nodes = []
+    for node_id, data in graph.nodes(data=True):
+        front = strip_html(data.get('front', 'Unknown'))
+        pagerank = data.get('pagerank', 0)
+        nodes.append({
+            'id': node_id, 'label': front,
+            'pagerank': round(pagerank, 6),
+            'size': min(3, max(0.5, pagerank * 100)),
+            'color': '#00ff88' if pagerank > 0.01 else '#00a8ff' if pagerank > 0.001 else '#888888'
+        })
 
-links = [{'source': s, 'target': t, 'weight': round(d.get('weight', 1), 2)} 
-         for s, t, d in graph.edges(data=True)]
+    links = [{'source': s, 'target': t, 'weight': round(d.get('weight', 1), 2)}
+             for s, t, d in graph.edges(data=True)]
 
-nodes.sort(key=lambda x: x['pagerank'], reverse=True)
+    nodes.sort(key=lambda x: x['pagerank'], reverse=True)
 
-html = f'''<!DOCTYPE html>
+    html = f'''<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
@@ -235,9 +240,9 @@ window.addEventListener('resize',()=>{{
 </body>
 </html>'''
 
-output_file = Path("./graph/index.html")
-with open(output_file, 'w', encoding='utf-8') as f:
-    f.write(html)
+    output_file = Path("./graph/index.html")
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write(html)
 
-print(f"✅ FAST! Created 3D viz with 100 cards")
-print(f"🌐 Open: open {output_file}")
+    print(f"✅ FAST! Created 3D viz with 100 cards")
+    print(f"🌐 Open: open {output_file}")

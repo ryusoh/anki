@@ -204,7 +204,8 @@ class Router(object):
             )
             try:
                 service['desc'] = service['instance'].desc()
-            except Exception:  # catch all, pylint:disable=broad-except
+            except Exception as e:  # catch all, pylint:disable=broad-except
+                self._logger.debug("Failed to retrieve description for %s: %s", service['name'], e)
                 service['desc'] = svc_id + " service"
 
         return service['desc']
@@ -845,7 +846,7 @@ class Router(object):
 
             self._logger.info("%s service initialized", service['name'])
 
-        except Exception:  # catch all, pylint:disable=W0703
+        except Exception as e:  # catch all, pylint:disable=W0703
             service['instance'] = None  # flag this service as unavailable
 
             from traceback import format_exc

@@ -3,7 +3,7 @@ from aqt import gui_hooks
 from aqt.editor import Editor
 from aqt.utils import tooltip
 
-from .utils import clean_html_text, detect_language, fetch_wiktionary_html, parse_wiktionary_html, merge_definition, get_wiktionary_candidates, format_candidates_html, detect_kanji_redirect
+from .utils import clean_html_text, detect_language, fetch_wiktionary_html, parse_wiktionary_html, merge_definition, get_wiktionary_candidates, format_candidates_html, detect_kanji_redirect, inject_redirect_pronunciation
 
 ADDON_DIR = os.path.dirname(__file__)
 ICON_PATH = os.path.join(ADDON_DIR, "icon.png")
@@ -33,9 +33,11 @@ def _apply_wiktionary(editor, text_to_search):
         tooltip(f"Wiktionary API {html_res}")
         return
     else:
-        # Check for kanji redirect (e.g. 血眼 → ちまなこ)
-        redirect_reading = detect_kanji_redirect(html_res)
-        if redirect_reading:
+        # Check for kanji redirect (e.g. 血眼 → ちまなこ, 着く → つく/はく)
+        redirect_result = detect_kanji_redirect(html_res)
+        all_readings = None
+        if redirect_result:
+            redirect_reading, all_readings = redirect_result
             html_res = fetch_wiktionary_html(redirect_reading, lang)
             if not html_res or html_res.startswith("Error:"):
                 tooltip(f"Could not fetch redirected reading '{redirect_reading}'.")
@@ -43,6 +45,8 @@ def _apply_wiktionary(editor, text_to_search):
             text = redirect_reading
 
         parsed_definition = parse_wiktionary_html(html_res, lang)
+        if all_readings:
+            parsed_definition = inject_redirect_pronunciation(parsed_definition, all_readings)
         if not parsed_definition:
             tooltip(f"Could not parse definition for '{text}'.")
             return

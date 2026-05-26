@@ -81,7 +81,9 @@ class ESpeak(Service):
         for alt in ['mbrola', 'variant']:
             try:
                 output[alt] = self.cli_output(self._binary, '--voices=' + alt)
-            except Exception:  # catch-all, pylint:disable=broad-except
+            except Exception as e:  # catch-all, pylint:disable=broad-except
+                import logging
+                logging.getLogger(__name__).debug(f"Failed to fetch espeak alt voices '{alt}': {e}")
                 output[alt] = []
 
         import re

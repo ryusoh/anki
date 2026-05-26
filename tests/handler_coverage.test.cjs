@@ -17,7 +17,7 @@ const defaultGetElementById = (id) => {
         dataset: {}
     };
 
-    if (id === 'chartLegend') return { style: {}, textContent: '', appendChild: () => {}, innerHTML: '', querySelectorAll: () => [] };
+    if (id === 'chartLegend') return { style: {}, textContent: '', appendChild: () => {}, replaceChildren: () => {}, innerHTML: '', querySelectorAll: () => [] };
     if (id === 'terminal') return mockElement;
     if (id === 'terminalOutput') return mockElement;
     if (id === 'mainContainer') return mockElement;
@@ -30,7 +30,9 @@ const defaultGetElementById = (id) => {
 global.document = {
   querySelector: () => null,
   getElementById: defaultGetElementById,
-  querySelectorAll: () => []
+  querySelectorAll: () => [],
+  createElement: () => ({ dataset: {}, appendChild: () => {}, classList: { add: () => {} }, style: {} }),
+  createTextNode: () => ({})
 };
 
 global.window = {

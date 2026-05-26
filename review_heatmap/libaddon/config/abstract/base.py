@@ -104,13 +104,6 @@ class ConfigStorage(ConfigInterface, ABC):
     def dirty(self) -> bool:
         return self._dirty
 
-    # TODO: CRUCIAL – perform config validation
-    # if invalid:
-    #   config.reset()
-    #   and perhaps notify user
-    # CONSIDER: perform these only at load/save time or with every access?
-    # (expensive!)
-
     def initialize(self) -> bool:
         """Performs one-shot setup steps. Should only be fired once.
         Separated out of __init__ in order to provide more granular control
@@ -154,8 +147,6 @@ class ConfigStorage(ConfigInterface, ABC):
 
     def unload(self):
         self.signals.unloaded.emit()
-        # TODO: is this necessary? throws errors for now ↓
-        # self.signals.disconnect()
         if not self._loaded:
             return
         try:

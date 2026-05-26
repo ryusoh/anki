@@ -49,7 +49,9 @@ def deserialized_dict(json_str):
 
     try:
         obj = json.loads(json_str)
-    except Exception:
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).debug(f"Failed to load json in safe_json_dict: {e}")
         return {}
 
     return obj if isinstance(obj, dict) else {}
@@ -104,7 +106,9 @@ def nullable_int(value):
 
     try:
         return int(value)
-    except Exception:
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).debug(f"Failed to convert {value} to int in safe_int: {e}")
         return None
 
 
@@ -162,7 +166,9 @@ def substitution_list(json_str):
         if not isinstance(candidates, list):
             raise ValueError
 
-    except Exception:
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).debug(f"Failed to load json in safe_substitutions: {e}")
         return []
 
     rules = []
@@ -178,7 +184,9 @@ def substitution_list(json_str):
 
         try:
             candidate['compiled'] = substitution_compiled(candidate)
-        except Exception:  # sre_constants.error, pylint:disable=broad-except
+        except Exception as e:  # sre_constants.error, pylint:disable=broad-except
+            import logging
+            logging.getLogger(__name__).debug(f"Failed to compile substitution {candidate}: {e}")
             continue
 
         rules.append(candidate)

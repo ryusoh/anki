@@ -92,16 +92,43 @@ def detect_kanji_redirect(html_text):
     for ol in ols:
         all_lis.extend(ol.find_all('li', recursive=False))
 
-    # A redirect page has exactly one <li> matching "Xの漢字表記。"
-    if len(all_lis) != 1:
+    # A redirect page has all <li> items matching "Xの漢字表記。"
+    if not all_lis:
         return None
 
-    li_text = all_lis[0].get_text().strip()
-    match = re.match(r'^(.+)の漢字表記。$', li_text)
-    if not match:
-        return None
+    readings = []
+    for li in all_lis:
+        li_text = li.get_text().strip()
+        match = re.match(r'^(.+)の漢字表記。$', li_text)
+        if not match:
+            return None
+        readings.append(match.group(1))
 
-    return match.group(1)
+    return (readings[0], readings)
+
+
+def inject_redirect_pronunciation(parsed_html, all_readings):
+    """
+    When a kanji redirect occurs, ensures the pronunciation appears at the top
+    of the parsed output (right after the opening <ul>).
+    - Multi-reading: always prepends "reading1 又は reading2"
+    - Single-reading: prepends if the pronunciation isn't already the first <p>
+    """
+    if not all_readings:
+        return parsed_html
+
+    pronunciation = " 又は ".join(all_readings)
+
+    # Check if pronunciation is already at the top (e.g. <ul><p><strong>つく</strong></p>...)
+    if len(all_readings) == 1:
+        # Match <ul><p> ... reading ... </p> at the start
+        match = re.match(r'^<ul><p>(?:<[^>]+>)*' + re.escape(all_readings[0]) + r'(?:<[^>]+>)*</p>', parsed_html)
+        if match:
+            return parsed_html
+
+    if parsed_html.startswith("<ul>"):
+        return "<ul><p>" + pronunciation + "</p>" + parsed_html[4:]
+    return "<p>" + pronunciation + "</p>" + parsed_html
 
 
 def _filter_language_sections(soup, lang):
@@ -216,6 +243,69 @@ def _clean_p_tag_content(p_tag):
     return inner_html
 
 
+def _extract_inline_reading(ol):
+    """
+    For kanji character pages where the <ol> has no preceding <p>,
+    the first <li> may start with <b>reading</b>。definition...
+    or <b>r1</b> 又は <b>r2</b>。definition...
+    Extracts the reading(s) and removes them from the <li>.
+    Returns the reading string, or None.
+    """
+    first_li = ol.find('li', recursive=False)
+    if not first_li:
+        return None
+
+    # Check if first child is <b> (possibly containing <a>)
+    first_child = None
+    for child in first_li.children:
+        if isinstance(child, str) and not child.strip():
+            continue
+        first_child = child
+        break
+
+    if not first_child or getattr(first_child, 'name', None) != 'b':
+        return None
+
+    # Collect reading parts: <b>r1</b> [又は <b>r2</b>]*。
+    reading_parts = []
+    nodes_to_remove = []
+
+    for child in list(first_li.children):
+        if isinstance(child, str) and not child.strip() and not reading_parts:
+            continue
+
+        if getattr(child, 'name', None) == 'b':
+            reading_parts.append(child.get_text())
+            nodes_to_remove.append(child)
+        elif isinstance(child, str):
+            text = child.strip()
+            if text.startswith('又は') and reading_parts:
+                nodes_to_remove.append(child)
+                continue
+            if text.startswith('。') and reading_parts:
+                # Found the separator — remove the 。 and stop
+                remaining = str(child).replace('。', '', 1)
+                if remaining.strip():
+                    child.replace_with(remaining)
+                else:
+                    child.extract()
+                break
+            # Not a reading pattern
+            return None
+        else:
+            # Non-text, non-<b> element before 。 — not a reading pattern
+            return None
+
+    if not reading_parts:
+        return None
+
+    # Remove collected reading nodes
+    for node in nodes_to_remove:
+        node.extract()
+
+    return " 又は ".join(reading_parts)
+
+
 def _process_ol_items(ol):
     items = []
     for li in ol.find_all('li', recursive=False):
@@ -251,6 +341,10 @@ def parse_wiktionary_html(html_text, lang="en"):
             inner_html = _clean_p_tag_content(p_tag)
             if inner_html:
                 results.append(f"<p>{inner_html}</p>")
+        else:
+            reading = _extract_inline_reading(ol)
+            if reading:
+                results.append(f"<p>{reading}</p>")
 
         results.append(_process_ol_items(ol))
 
