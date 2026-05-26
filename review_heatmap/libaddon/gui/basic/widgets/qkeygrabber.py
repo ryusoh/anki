@@ -155,7 +155,6 @@ class QKeyGrab(QDialog):
             # at least 1 key still held
             return
 
-        # TODO: platform-specific messages
         msg = None
         if not (self.shift or self.ctrl or self.alt or self.meta or self.other):
             msg = ("Please use at least one keyboard modifier\n"

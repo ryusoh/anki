@@ -368,7 +368,6 @@ def _mac_binary_formats(version, cpu_arch):
         formats.extend(["intel", "fat32", "fat"])
 
     elif cpu_arch == "ppc64":
-        # TODO: Need to care about 32-bit PPC for ppc64 through 10.2?
         if version > (10, 5) or version < (10, 4):
             return []
         formats.append("fat64")

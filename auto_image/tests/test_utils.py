@@ -86,8 +86,11 @@ class TestFetchImageResults:
             assert fetch_image_results("asjdflkajsdflkajsdf") == []
 
     def test_returns_empty_list_on_network_error(self):
-        with patch("utils.urllib.request.urlopen", side_effect=Exception("timeout")):
+        with patch("utils.urllib.request.urlopen", side_effect=Exception("timeout")), \
+             patch("utils.logger.warning") as mock_warning:
             assert fetch_image_results("cat") == []
+            mock_warning.assert_called_once()
+            assert "Failed to fetch image results for query 'cat'" in mock_warning.call_args[0][0]
 
     def test_returns_empty_list_when_no_vqd_token(self):
         with patch("utils.urllib.request.urlopen", return_value=_mock_response(b'<html>nothing</html>')):
@@ -122,8 +125,11 @@ class TestDownloadImage:
             assert download_image("https://tse1.mm.bing.net/th?id=1") == fake_bytes
 
     def test_returns_none_on_error(self):
-        with patch("utils.urllib.request.urlopen", side_effect=Exception("fail")):
+        with patch("utils.urllib.request.urlopen", side_effect=Exception("fail")), \
+             patch("utils.logger.warning") as mock_warning:
             assert download_image("https://tse1.mm.bing.net/th?id=1") is None
+            mock_warning.assert_called_once()
+            assert "Failed to download image from https://tse1.mm.bing.net/th?id=1" in mock_warning.call_args[0][0]
 
     def test_returns_none_on_empty(self):
         assert download_image("") is None

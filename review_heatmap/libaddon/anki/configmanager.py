@@ -309,7 +309,6 @@ class ConfigManager(object):
         self._config = config_dict
         # Reminder: setting self.all resets defaults, so it's important
         # that it's followed up by setting self.defaults
-        # TODO: Think of a better way to handle this
         self._storages = {
             name: {"default": {}, "dirty": False, "loaded": False}
             for name in config_dict
@@ -445,10 +444,6 @@ class ConfigManager(object):
     def _setupAnkiHooks(self, conf_action):
         if "local" in self._storages:
             self.setConfigUpdatedAction(self.onLocalConfigUpdated)
-            # TODO: setConfigAction to save local config before invoking
-            # Anki's native config editor. Currently not feasible with
-            # the existing config action implementation. NOTE: Make sure
-            # to save local config when updating outside of config editor
         self.setConfigAction(conf_action)
         if ANKI20:
             self._setupAddonMenus20()

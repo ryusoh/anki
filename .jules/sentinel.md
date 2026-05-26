@@ -144,14 +144,26 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Learning:** Constructing DOM nodes with string concatenation and `innerHTML` bypasses modern framework protections and trains developers to use unsafe DOM APIs. If a user can inject a malicious payload into a deck name or chart label, it could be executed.
 **Prevention:** When dynamically rendering and constructing HTML structures, always use safe native DOM methods like `document.createElement()`, `element.textContent`, and `element.replaceChildren()` instead of template strings assigned to `innerHTML`.
 
+## 2024-05-18 - Prevent unhandled exception and stack trace leakage in external requests
+
+**Vulnerability:** External HTTP requests (using `requests.get` and `requests.post`) in `awesome_tts/awesometts/languagetools.py` were not wrapped in exception handlers, allowing potential network issues (like timeouts or connection drops) to raise unhandled exceptions and potentially expose sensitive stack traces to users.
+**Learning:** Third-party libraries like `requests` can raise a variety of exceptions (e.g., `requests.exceptions.RequestException`) during connection failures, read timeouts, or protocol errors. Failing to catch these exceptions safely allows the application to crash or expose internal state.
+**Prevention:** When making external HTTP requests in Python (e.g., using the `requests` library), always wrap the call within a `try...except requests.exceptions.RequestException` block. Log the error context securely and return or raise a controlled, sanitized exception to prevent unhandled network errors from crashing the application and to fail securely.
+
+## 2026-05-04 - Prevent DOM-based XSS by replacing `innerHTML` in chart legends with native DOM APIs
+
+**Vulnerability:** In `js/commands/retention.js`, `js/commands/due.js`, and `js/commands/reviews.js`, dynamic chart legends (including `deckName` strings and colors) were constructed via string accumulation and injected directly into the DOM using `legend.innerHTML = ...`.
+**Learning:** While some dynamic properties may seem harmless or appear properly escaped within template strings, assigning strings directly to `.innerHTML` in application logic violates strict defense-in-depth secure coding standards. It trains developers to reach for unsafe DOM manipulation APIs, keeps the codebase non-compliant with modern SAST linters (like `no-inner-html`), and risks accidental introduction of XSS if the string assignment is later modified to include untrusted variables. Custom testing mocks will also need updates to support native APIs if they were originally designed around reading `.innerHTML`.
+**Prevention:** Always use safe DOM APIs like `document.createElement()`, `document.createTextNode()`, and `element.appendChild()` to dynamically construct UI elements rather than assigning HTML strings to `.innerHTML`. When clearing elements, use `element.textContent = ""` or `element.replaceChildren()`.
+
 ## 2026-05-05 - Prevent DOM-based XSS by removing innerHTML in chart legends
 
 **Vulnerability:** Dynamic chart legends in `js/commands/retention.js`, `js/commands/due.js`, and `js/commands/reviews.js` were using string concatenation assigned to `legend.innerHTML`. Even though user inputs like deck names were escaped, this pattern violated defense-in-depth secure coding principles.
 **Learning:** Assigning dynamically built strings to `innerHTML`—even with escaped variables—violates modern SAST rules and risks accidental XSS introduction during future modifications. Safe DOM APIs should be the standard everywhere.
 **Prevention:** Always use safe DOM manipulation methods like `document.createElement`, `document.createTextNode`, and `appendChild` when building HTML structures, and use `element.textContent = ""` or `element.replaceChildren()` to clear elements securely instead of `element.innerHTML = ""`.
 
-## 2024-05-18 - Prevent unhandled exception and stack trace leakage in external requests
+## 2024-05-24 - Prevent Denial of Service by adding timeouts to urlopen calls
 
-**Vulnerability:** External HTTP requests (using `requests.get` and `requests.post`) in `awesome_tts/awesometts/languagetools.py` were not wrapped in exception handlers, allowing potential network issues (like timeouts or connection drops) to raise unhandled exceptions and potentially expose sensitive stack traces to users.
-**Learning:** Third-party libraries like `requests` can raise a variety of exceptions (e.g., `requests.exceptions.RequestException`) during connection failures, read timeouts, or protocol errors. Failing to catch these exceptions safely allows the application to crash or expose internal state.
-**Prevention:** When making external HTTP requests in Python (e.g., using the `requests` library), always wrap the call within a `try...except requests.exceptions.RequestException` block. Log the error context securely and return or raise a controlled, sanitized exception to prevent unhandled network errors from crashing the application and to fail securely.
+**Vulnerability:** External HTTP requests made using `urllib.request.urlopen` in `awesome_tts/awesometts/service/baidu.py`, `awesome_tts/awesometts/service/naverclova.py`, and `awesome_tts/awesometts/service/naverclovapremium.py` lacked a `timeout` parameter.
+**Learning:** Making network calls to external APIs without specifying an explicit timeout allows the application thread to block indefinitely if the remote server hangs or is unresponsive, leading to application freezes and Denial of Service (DoS) vulnerabilities.
+**Prevention:** Always include a explicit `timeout` parameter (e.g., `timeout=10`) when invoking `urlopen()` or any other external network request method in Python.

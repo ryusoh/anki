@@ -42,6 +42,10 @@ from aqt.main import AnkiQt
 from aqt.overview import Overview
 from aqt.qt import QWidget
 from aqt.stats import DeckStats
+try:
+    from aqt.stats import NewDeckStats
+except ImportError:
+    NewDeckStats = type(None)
 
 from .config import heatmap_colors, heatmap_modes
 from .errors import CommandError
@@ -63,14 +67,12 @@ class HeatmapBridge:
     _command_splitter: str = "_"
     _payload_splitter: str = ":"
 
-    _supported_contexts = [
+    _supported_contexts = (
         DeckBrowser,
         Overview,
         DeckStats,
-    ]
-    if hasattr(aqt.stats, "NewDeckStats"):
-        _supported_contexts.append(aqt.stats.NewDeckStats)
-    _supported_contexts = tuple(_supported_contexts)
+        NewDeckStats,
+    )
 
     def __init__(self, mw: AnkiQt, config: "ConfigManager"):
         self._mw: AnkiQt = mw
@@ -82,8 +84,8 @@ class HeatmapBridge:
 
         webview_did_receive_js_message.append(self.bridge)
         DeckStats._linkHandler = lambda context, url: self.bridge_legacy(context, url)  # type: ignore
-        if hasattr(aqt.stats, "NewDeckStats"):
-            aqt.stats.NewDeckStats._linkHandler = lambda context, url: self.bridge_legacy(context, url)  # type: ignore
+        if NewDeckStats is not type(None):
+            NewDeckStats._linkHandler = lambda context, url: self.bridge_legacy(context, url)  # type: ignore
 
     def bridge(self, handled: HANDLED_TYPE, message: str, context: Any) -> HANDLED_TYPE:
         if not message.startswith(self._identifier):

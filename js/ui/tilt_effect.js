@@ -14,27 +14,38 @@ export function initTiltEffect() {
     "nav.container, .quantum-widget, .marquee-container",
   );
   tiltContainers.forEach((container) => {
+    let rect = null;
+
     window.gsap.set(container, {
       transformPerspective: 1000,
       transformStyle: "preserve-3d",
     });
+
+    // Pre-allocate gsap quickTo functions to avoid creating new Tweens on every mousemove
+    const rotateXTo = window.gsap.quickTo(container, "rotateX", { duration: 0.5, ease: "power2.out" });
+    const rotateYTo = window.gsap.quickTo(container, "rotateY", { duration: 0.5, ease: "power2.out" });
+
+    container.addEventListener("mouseenter", () => {
+      rect = container.getBoundingClientRect();
+    });
+
     container.addEventListener("mousemove", (e) => {
-      const rect = container.getBoundingClientRect();
+      if (!rect) {
+        rect = container.getBoundingClientRect();
+      }
+
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       const centerX = rect.width / 2;
       const centerY = rect.height / 2;
       const rotateX = ((y - centerY) / centerY) * -10;
       const rotateY = ((x - centerX) / centerX) * 10;
-      window.gsap.to(container, {
-        rotateX: rotateX,
-        rotateY: rotateY,
-        duration: 0.5,
-        ease: "power2.out",
-        overwrite: true,
-      });
+
+      rotateXTo(rotateX);
+      rotateYTo(rotateY);
     });
     container.addEventListener("mouseleave", () => {
+      rect = null;
       window.gsap.to(container, {
         rotateX: 0,
         rotateY: 0,

@@ -57,7 +57,6 @@ def initialize_addon():
     from aqt import mw
 
     if not mw:
-        # TODO: better handling
         return
 
     mw.addonManager.setWebExports(__name__, r"web.*")

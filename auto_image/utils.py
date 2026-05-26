@@ -3,6 +3,9 @@ import json
 import urllib.request
 import urllib.parse
 from urllib.error import URLError, HTTPError
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def clean_html_text(html_text):
@@ -54,7 +57,8 @@ def fetch_image_results(query):
             data = json.loads(response.read().decode('utf-8'))
 
         return [r["thumbnail"] for r in data.get("results", [])[:20] if r.get("thumbnail")]
-    except Exception:
+    except Exception as e:
+        logger.warning(f"Failed to fetch image results for query '{query}': {e}")
         pass
 
     return []
@@ -72,7 +76,8 @@ def download_image(url):
         with urllib.request.urlopen(req, timeout=10) as response:
             data = response.read()
             return data if data else None
-    except Exception:
+    except Exception as e:
+        logger.warning(f"Failed to download image from {url}: {e}")
         return None
 
 

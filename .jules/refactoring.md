@@ -46,6 +46,11 @@
 
 - **Silent Failure Audit:** To improve resilience, located and fixed empty catch blocks and generic error suppressions (`except Exception:`) across Python and JavaScript files (`data/anki/security_check.py`, `data/anki/upload-to-r2`, `data/anki/fetch`, `js/mobile_ambient_bootstrap.js`, `js/ui/videoFallback.js`). These were updated to explicitly capture the error object and log it with context using `print` or `console.warn` (respecting linter rules with `eslint-disable-next-line`), ensuring silent failures are now visible.
 
+## 2024-05-14 - Structural Health & Code Hygiene
+
+**Learning:** When executing Code Health & Cleanup tasks ('Architect' / 'Janitor' roles), focus on reducing cyclomatic complexity (e.g., verified via `radon`), replacing empty `catch`/`except` blocks with context-aware logging, and pruning dead code/TODOs.
+**Action:** Consistently replace bare `except:` with `except Exception as e: logging.getLogger(__name__).debug(e)` and ensure long multple condition methods are extracted to helper functions.
+
 ## 2024-05-18 - Scheduled Task: Code Health & Cleanup
 
 **Learnings:**
@@ -55,3 +60,12 @@
 - **Cleanup Logic:** Cleaned up pending `TODO: NewDeckStats` entries in `review_heatmap/views.py` and `review_heatmap/web_bridge.py` by introducing conditional support for `aqt.stats.NewDeckStats` if the attribute exists on `aqt.stats` in the user's specific Anki version.
 
 **Action:** Continually audit cyclomatic complexity using `radon` when touching large legacy Python functions, and always attach exceptions to logged warnings when patching legacy `catch` or `except:` clauses.
+
+## 2024-05-19 - Code Health & Cleanup
+
+**Learnings:**
+
+- **Structural Health:** Refactored complex multi-conditional functions to dramatically reduce cyclomatic complexity using `radon`. In `auto_wiktionary/utils.py`, `parse_wiktionary_html` (F grade, 56 complexity) was broken down into manageable helpers (B grade). In `data/anki/generate_review_stats.py`, `aggregate_reviews` (D grade, 25 complexity) had logic extracted for stat accumulation. In `strip_html_tags/__init__.py`, `_strip_selection` (F grade, 46 complexity) was simplified into six helper functions (C grade).
+- **Silent Failures:** Identified and fixed empty `except Exception:` blocks in `auto_image/utils.py` that were suppressing API and network errors during DuckDuckGo image searches and downloads. Properly bound `except Exception as e:` and logged using `logging.getLogger(__name__)` to retain debugging context while maintaining control flow.
+
+**Action:** Continually execute `radon cc -s` audits to ensure functions maintain C grade or better. Always instantiate a module logger and log tracebacks when implementing fallback logic inside generic exception handlers.

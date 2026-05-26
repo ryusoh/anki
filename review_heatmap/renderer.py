@@ -136,8 +136,6 @@ class HeatmapRenderer:
         self._reporter: ActivityReporter = reporter
         self._render_cache: Optional[_RenderCache] = None
 
-    # TODO: Consider caching on the render-level
-
     def render(
         self,
         view: HeatmapView,
@@ -233,7 +231,6 @@ class HeatmapRenderer:
         mode = heatmap_modes[self._config["synced"]["mode"]]
         cell_shape = self._config["synced"].get("cell_shape", "rectangle")
 
-        # TODO: pass on "whole" to govern browser link "deck:current" addition
         options = {
             "domain": mode["domain"],
             "subdomain": mode["subDomain"],
@@ -305,8 +302,6 @@ class HeatmapRenderer:
     def _save_current_perf(self, activity_report: ActivityReport):
         """
         Store current performance in mw object
-
-        TODO: Make data like this available through a proper API
 
         Just a quick hack that allows us to assess user performance from
         other distant parts of the code / other add-ons

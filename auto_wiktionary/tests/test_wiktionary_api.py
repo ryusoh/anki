@@ -158,3 +158,80 @@ def test_parse_wiktionary_html_end_run_multiple_parens():
     assert "(Canada, US)" in parsed
     # Must NOT produce broken output like "plural end runs) (Canada, US"
     assert "plural end runs) (Canada, US" not in parsed or "(plural" in parsed
+
+
+def test_parse_wiktionary_html_kanji_char_hi():
+    """
+    火 page: the <ol> has no preceding <p> tag. The first <li> starts with
+    <b>ひ</b>。definition... — the reading must be extracted into a standalone
+    <p> line, not glued to the first definition.
+    """
+    mock_html = """
+    <html>
+        <body>
+            <section>
+                <h2>日本語</h2>
+                <section>
+                    <h3>名詞・造語成分</h3>
+                    <ol>
+                        <li><b><a href="./ひ#名詞:火" title="ひ">ひ</a></b>。物が燃えるときに出る炎や熱。
+                            <ul><li>火炎、火山、消火、花火、火遊び。</li></ul>
+                        </li>
+                        <li>燃える。焼く。
+                            <ul><li>火事、大火。</li></ul>
+                        </li>
+                        <li>（か）曜日の一つ。火曜日。</li>
+                    </ol>
+                </section>
+            </section>
+        </body>
+    </html>
+    """
+    parsed = parse_wiktionary_html(mock_html, lang="ja")
+    # Pronunciation must be a standalone <p> at the top
+    assert "<p>ひ</p>" in parsed
+    # First definition must NOT start with ひ。
+    assert "ひ。" not in parsed
+    # Definitions must still be present
+    assert "物が燃えるときに出る炎や熱" in parsed
+    assert "火炎" in parsed
+    assert "燃える" in parsed
+    assert "曜日" in parsed
+
+
+def test_parse_wiktionary_html_kanji_char_multi_reading():
+    """
+    Kanji pages can list multiple readings in the first <li>, e.g.
+    <b>reading1</b> 又は <b>reading2</b>。definition...
+    Both readings should be extracted as pronunciation.
+    """
+    mock_html = """
+    <html>
+        <body>
+            <section>
+                <h2>日本語</h2>
+                <section>
+                    <h3>名詞</h3>
+                    <ol>
+                        <li><b><a href="./あめ">あめ</a></b> 又は <b><a href="./あま">あま</a></b>。空から降る水。
+                            <ul><li>雨天、大雨。</li></ul>
+                        </li>
+                        <li>比喩的に、多量に降り注ぐもの。</li>
+                    </ol>
+                </section>
+            </section>
+        </body>
+    </html>
+    """
+    parsed = parse_wiktionary_html(mock_html, lang="ja")
+    # Both readings must be in a standalone pronunciation <p>
+    assert "<p>" in parsed
+    # Extract the first <p> content
+    import re
+    p_match = re.search(r'<p>(.*?)</p>', parsed)
+    assert p_match is not None, f"No <p> found in: {parsed}"
+    p_content = p_match.group(1)
+    assert "あめ" in p_content
+    assert "あま" in p_content
+    # Definitions must still be present
+    assert "空から降る水" in parsed

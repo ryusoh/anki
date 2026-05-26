@@ -123,6 +123,83 @@ def fetch_and_anonymize(source_db, for_r2=False):
     return result
 
 
+def _stage_collection_files(data, notes_with_deck, collection_dir, old_hash_map, verbose):
+    import hashlib
+    import json
+    import gzip
+
+    def collection_file_changed(key, content):
+        if isinstance(content, (dict, list)):
+            content_str = json.dumps(content, sort_keys=True, ensure_ascii=False).encode('utf-8')
+        else:
+            content_str = content if isinstance(content, bytes) else str(content).encode('utf-8')
+        current_hash = hashlib.sha256(content_str).hexdigest()
+        old_hash = old_hash_map.get(key)
+        return old_hash is None or old_hash != current_hash, current_hash
+
+    changed_files = []
+    collection_hashes = {}
+
+    def process_file(key, content, is_json=False):
+        changed, current_hash = collection_file_changed(key, content)
+        collection_hashes[key] = current_hash
+        if changed:
+            filepath = collection_dir.parent / key
+            if is_json:
+                with open(filepath, 'w', encoding='utf-8') as f:
+                    json.dump(content, f, ensure_ascii=False, indent=2)
+            else:
+                with gzip.open(filepath, 'wt', encoding='utf-8') as f:
+                    json.dump(content, f, ensure_ascii=False)
+            changed_files.append(key)
+            if verbose:
+                print(f"   ✓ Staged {key} ({filepath.stat().st_size:,} bytes) [CHANGED]")
+        elif verbose:
+            print(f"   ⊘ Skipped {key} [UNCHANGED]")
+
+    process_file("collection/notes.json.gz", notes_with_deck)
+    process_file("collection/cards.json.gz", data.get('cards', []))
+    process_file("collection/reviews.json.gz", data.get('reviews', []))
+    process_file("collection/decks.json", data.get('decks', {}), is_json=True)
+    process_file("collection/notetypes.json.gz", data.get('notetypes', []))
+
+    cards_data = data.get('cards_data', [])
+    if cards_data:
+        process_file("collection/cards-data.json.gz", cards_data)
+
+    return changed_files, collection_hashes
+
+def _stage_individual_notes(changed_notes, notes_dir, verbose):
+    import hashlib
+    import json
+    import gzip
+
+    errors = []
+    for i, note in enumerate(changed_notes, 1):
+        try:
+            guid_hash = hashlib.md5(note['guid'].encode()).hexdigest()[:16]
+            note_file = notes_dir / f"{guid_hash}.json.gz"
+            with gzip.open(note_file, 'wt', encoding='utf-8') as f:
+                json.dump(note, f, ensure_ascii=False)
+        except Exception as e:
+            errors.append((note.get('guid', 'unknown'), str(e)))
+
+        if verbose and i % 100 == 0:
+            progress = (i / len(changed_notes)) * 100
+            bar_width = 40
+            filled = int(bar_width * i / len(changed_notes))
+            bar = '█' * filled + '░' * (bar_width - filled)
+            print(f"\r   [{bar}] {i:,}/{len(changed_notes):,} ({progress:.1f}%)", end='', flush=True)
+
+    if errors:
+        print(f"\n   ⚠️  {len(errors)} error(s) while staging notes:")
+        for guid, error in errors[:10]:
+            print(f"      - {guid}: {error}")
+        if len(errors) > 10:
+            print(f"      ... and {len(errors) - 10} more")
+        print(f"   ⚠️  Some notes were NOT staged - check errors above")
+    return errors
+
 def stage_r2_content(data, output_dir, verbose=True):
     """Stage R2 content from fetched data (already in memory).
     
@@ -196,107 +273,7 @@ def stage_r2_content(data, output_dir, verbose=True):
     hash_map_file = staging_dir / "hash_map.json"
     old_hash_map = load_hash_map(hash_map_file)
 
-    # Helper function to check if collection file changed
-    def collection_file_changed(key, content):
-        """Check if collection file content changed based on hash."""
-        import hashlib
-        if isinstance(content, (dict, list)):
-            content_str = json.dumps(content, sort_keys=True, ensure_ascii=False).encode('utf-8')
-        else:
-            content_str = content if isinstance(content, bytes) else str(content).encode('utf-8')
-        current_hash = hashlib.sha256(content_str).hexdigest()
-        old_hash = old_hash_map.get(key)
-        return old_hash is None or old_hash != current_hash, current_hash
-
-    # Track which collection files changed
-    changed_files = []
-    collection_hashes = {}
-
-    # 1. notes.json.gz (full content with deck info)
-    key = "collection/notes.json.gz"
-    changed, current_hash = collection_file_changed(key, notes_with_deck)
-    collection_hashes[key] = current_hash
-    if changed:
-        notes_file = collection_dir / "notes.json.gz"
-        with gzip.open(notes_file, 'wt', encoding='utf-8') as f:
-            json.dump(notes_with_deck, f, ensure_ascii=False)
-        changed_files.append(key)
-        if verbose:
-            print(f"   ✓ Staged collection/notes.json.gz ({notes_file.stat().st_size:,} bytes) [CHANGED]")
-    elif verbose:
-        print(f"   ⊘ Skipped collection/notes.json.gz [UNCHANGED]")
-
-    # 2. cards.json.gz (ALL cards, not just those with data field)
-    key = "collection/cards.json.gz"
-    changed, current_hash = collection_file_changed(key, data.get('cards', []))
-    collection_hashes[key] = current_hash
-    if changed:
-        cards_file = collection_dir / "cards.json.gz"
-        with gzip.open(cards_file, 'wt', encoding='utf-8') as f:
-            json.dump(data.get('cards', []), f, ensure_ascii=False)
-        changed_files.append(key)
-        if verbose:
-            print(f"   ✓ Staged collection/cards.json.gz ({cards_file.stat().st_size:,} bytes) [CHANGED]")
-    elif verbose:
-        print(f"   ⊘ Skipped collection/cards.json.gz [UNCHANGED]")
-
-    # 3. reviews.json.gz (complete review history)
-    key = "collection/reviews.json.gz"
-    changed, current_hash = collection_file_changed(key, data.get('reviews', []))
-    collection_hashes[key] = current_hash
-    if changed:
-        reviews_file = collection_dir / "reviews.json.gz"
-        with gzip.open(reviews_file, 'wt', encoding='utf-8') as f:
-            json.dump(data.get('reviews', []), f, ensure_ascii=False)
-        changed_files.append(key)
-        if verbose:
-            print(f"   ✓ Staged collection/reviews.json.gz ({reviews_file.stat().st_size:,} bytes) [CHANGED]")
-    elif verbose:
-        print(f"   ⊘ Skipped collection/reviews.json.gz [UNCHANGED]")
-
-    # 4. decks.json (deck list)
-    key = "collection/decks.json"
-    changed, current_hash = collection_file_changed(key, data.get('decks', {}))
-    collection_hashes[key] = current_hash
-    if changed:
-        decks_file = collection_dir / "decks.json"
-        with open(decks_file, 'w', encoding='utf-8') as f:
-            json.dump(data.get('decks', {}), f, ensure_ascii=False, indent=2)
-        changed_files.append(key)
-        if verbose:
-            print(f"   ✓ Staged collection/decks.json ({decks_file.stat().st_size:,} bytes) [CHANGED]")
-    elif verbose:
-        print(f"   ⊘ Skipped collection/decks.json [UNCHANGED]")
-
-    # 5. notetypes.json.gz (complete note type definitions)
-    key = "collection/notetypes.json.gz"
-    changed, current_hash = collection_file_changed(key, data.get('notetypes', []))
-    collection_hashes[key] = current_hash
-    if changed:
-        notetypes_file = collection_dir / "notetypes.json.gz"
-        with gzip.open(notetypes_file, 'wt', encoding='utf-8') as f:
-            json.dump(data.get('notetypes', []), f, ensure_ascii=False)
-        changed_files.append(key)
-        if verbose:
-            print(f"   ✓ Staged collection/notetypes.json.gz ({notetypes_file.stat().st_size:,} bytes) [CHANGED]")
-    elif verbose:
-        print(f"   ⊘ Skipped collection/notetypes.json.gz [UNCHANGED]")
-
-    # 6. cards-data.json.gz (subset: cards with custom data field)
-    cards_data = data.get('cards_data', [])
-    if cards_data:
-        key = "collection/cards-data.json.gz"
-        changed, current_hash = collection_file_changed(key, cards_data)
-        collection_hashes[key] = current_hash
-        if changed:
-            cards_data_file = collection_dir / "cards-data.json.gz"
-            with gzip.open(cards_data_file, 'wt', encoding='utf-8') as f:
-                json.dump(cards_data, f, ensure_ascii=False)
-            changed_files.append(key)
-            if verbose:
-                print(f"   ✓ Staged collection/cards-data.json.gz ({cards_data_file.stat().st_size:,} bytes) [CHANGED]")
-        elif verbose:
-            print(f"   ⊘ Skipped collection/cards-data.json.gz [UNCHANGED]")
+    changed_files, collection_hashes = _stage_collection_files(data, notes_with_deck, collection_dir, old_hash_map, verbose)
 
     if verbose and changed_files:
         print(f"\n   Changed collection files: {len(changed_files)}/6")
@@ -324,33 +301,7 @@ def stage_r2_content(data, output_dir, verbose=True):
             print(f"   Copying {len(unchanged_notes):,} unchanged notes from previous staging...")
         # Keep existing files for unchanged notes
 
-    errors = []
-    for i, note in enumerate(changed_notes, 1):
-        try:
-            guid_hash = hashlib.md5(note['guid'].encode()).hexdigest()[:16]
-            note_file = notes_dir / f"{guid_hash}.json.gz"
-            with gzip.open(note_file, 'wt', encoding='utf-8') as f:
-                json.dump(note, f, ensure_ascii=False)
-        except Exception as e:
-            errors.append((note.get('guid', 'unknown'), str(e)))
-        
-        # Show progress every 100 files (fast enough to not slow down, frequent enough to see movement)
-        if verbose and i % 100 == 0:
-            progress = (i / len(changed_notes)) * 100
-            bar_width = 40
-            filled = int(bar_width * i / len(changed_notes))
-            bar = '█' * filled + '░' * (bar_width - filled)
-            # Use carriage return to update in place
-            print(f"\r   [{bar}] {i:,}/{len(changed_notes):,} ({progress:.1f}%)", end='', flush=True)
-
-    # Report errors
-    if errors:
-        print(f"\n   ⚠️  {len(errors)} error(s) while staging notes:")
-        for guid, error in errors[:10]:
-            print(f"      - {guid}: {error}")
-        if len(errors) > 10:
-            print(f"      ... and {len(errors) - 10} more")
-        print(f"   ⚠️  Some notes were NOT staged - check errors above")
+    errors = _stage_individual_notes(changed_notes, notes_dir, verbose)
 
     # Newline after completion
     if verbose:

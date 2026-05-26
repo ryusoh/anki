@@ -20,6 +20,68 @@ def parse_review_timestamp(ts_ms):
     return datetime.fromtimestamp(ts_ms / 1000).date()
 
 
+def _init_stats(date_str):
+    return {
+        "date": date_str, "count": 0, "time": 0,
+        "time_mature": 0, "time_young": 0, "time_learn": 0, "time_relearn": 0, "time_filtered": 0,
+        "mature": 0, "young": 0, "again": 0, "hard": 0, "good": 0, "easy": 0,
+        "learn": 0, "review": 0, "relearn": 0, "filtered": 0
+    }
+
+
+def _accumulate_review_stats(stats, review):
+    stats["count"] += 1
+    rev_time = review.get("time", 0)
+    stats["time"] += rev_time
+
+    if review.get("ivl", 0) >= 21:
+        stats["mature"] += 1
+        stats["time_mature"] += rev_time
+    else:
+        stats["young"] += 1
+        stats["time_young"] += rev_time
+
+    ease = review.get("ease", 0)
+    if ease == 1:
+        stats["again"] += 1
+    elif ease == 2:
+        stats["hard"] += 1
+    elif ease == 3:
+        stats["good"] += 1
+    elif ease == 4:
+        stats["easy"] += 1
+
+    rtype = review.get("type", 0)
+    if rtype == 0:
+        stats["learn"] += 1
+        stats["time_learn"] += rev_time
+    elif rtype == 1:
+        stats["review"] += 1
+    elif rtype == 2:
+        stats["relearn"] += 1
+        stats["time_relearn"] += rev_time
+    elif rtype == 3:
+        stats["filtered"] += 1
+        stats["time_filtered"] += rev_time
+
+
+def _process_stats_dict(s_dict):
+    result_list = []
+    for date_str in sorted(s_dict.keys()):
+        stats = s_dict[date_str]
+        total_answered = stats["again"] + stats["hard"] + stats["good"] + stats["easy"]
+        retention = (stats["good"] + stats["easy"]) / total_answered if total_answered > 0 else 0
+        stats["retention"] = round(retention, 4)
+        stats["time"] = round(stats["time"] / 1000, 1)
+        stats["time_mature"] = round(stats["time_mature"] / 1000, 1)
+        stats["time_young"] = round(stats["time_young"] / 1000, 1)
+        stats["time_learn"] = round(stats["time_learn"] / 1000, 1)
+        stats["time_relearn"] = round(stats["time_relearn"] / 1000, 1)
+        stats["time_filtered"] = round(stats["time_filtered"] / 1000, 1)
+        result_list.append(stats)
+    return result_list
+
+
 def aggregate_reviews():
     """Aggregate all reviews by day, globally and by deck."""
     if not REVIEWS_DIR.exists():
@@ -64,87 +126,23 @@ def aggregate_reviews():
         
         # Initialize global stats for the day if missing
         if date_str not in daily_stats:
-            daily_stats[date_str] = {
-                "date": date_str, "count": 0, "time": 0,
-                "time_mature": 0, "time_young": 0, "time_learn": 0, "time_relearn": 0, "time_filtered": 0,
-                "mature": 0, "young": 0, "again": 0, "hard": 0, "good": 0, "easy": 0,
-                "learn": 0, "review": 0, "relearn": 0, "filtered": 0
-            }
+            daily_stats[date_str] = _init_stats(date_str)
         
         # Initialize deck stats for the day if missing
         if deck_name not in deck_daily_stats:
             deck_daily_stats[deck_name] = {}
         if date_str not in deck_daily_stats[deck_name]:
-            deck_daily_stats[deck_name][date_str] = {
-                "date": date_str, "count": 0, "time": 0,
-                "time_mature": 0, "time_young": 0, "time_learn": 0, "time_relearn": 0, "time_filtered": 0,
-                "mature": 0, "young": 0, "again": 0, "hard": 0, "good": 0, "easy": 0,
-                "learn": 0, "review": 0, "relearn": 0, "filtered": 0
-            }
+            deck_daily_stats[deck_name][date_str] = _init_stats(date_str)
         
         # Accumulate stats
         for stats in (daily_stats[date_str], deck_daily_stats[deck_name][date_str]):
-            stats["count"] += 1
-
-            rev_time = review.get("time", 0)
-            stats["time"] += rev_time
-            
-            # Count by maturity (ivl >= 21 = mature)
-            if review.get("ivl", 0) >= 21:
-                stats["mature"] += 1
-                stats["time_mature"] += rev_time
-            else:
-                stats["young"] += 1
-                stats["time_young"] += rev_time
-            
-            # Count by ease
-            ease = review.get("ease", 0)
-            if ease == 1:
-                stats["again"] += 1
-            elif ease == 2:
-                stats["hard"] += 1
-            elif ease == 3:
-                stats["good"] += 1
-            elif ease == 4:
-                stats["easy"] += 1
-            
-            # Count by type
-            rtype = review.get("type", 0)
-            if rtype == 0:
-                stats["learn"] += 1
-                stats["time_learn"] += rev_time
-            elif rtype == 1:
-                stats["review"] += 1
-            elif rtype == 2:
-                stats["relearn"] += 1
-                stats["time_relearn"] += rev_time
-            elif rtype == 3:
-                stats["filtered"] += 1
-                stats["time_filtered"] += rev_time
+            _accumulate_review_stats(stats, review)
     
-    # Convert to list and calculate retention
-    def process_stats_dict(s_dict):
-        result_list = []
-        for date_str in sorted(s_dict.keys()):
-            stats = s_dict[date_str]
-            # Retention = (good + easy) / (again + hard + good + easy)
-            total_answered = stats["again"] + stats["hard"] + stats["good"] + stats["easy"]
-            retention = (stats["good"] + stats["easy"]) / total_answered if total_answered > 0 else 0
-            stats["retention"] = round(retention, 4)
-            stats["time"] = round(stats["time"] / 1000, 1)  # Convert to seconds
-            stats["time_mature"] = round(stats["time_mature"] / 1000, 1)
-            stats["time_young"] = round(stats["time_young"] / 1000, 1)
-            stats["time_learn"] = round(stats["time_learn"] / 1000, 1)
-            stats["time_relearn"] = round(stats["time_relearn"] / 1000, 1)
-            stats["time_filtered"] = round(stats["time_filtered"] / 1000, 1)
-            result_list.append(stats)
-        return result_list
-
-    result_global = process_stats_dict(daily_stats)
+    result_global = _process_stats_dict(daily_stats)
     
     result_by_deck = {}
     for deck_name, d_stats in deck_daily_stats.items():
-        result_by_deck[deck_name] = process_stats_dict(d_stats)
+        result_by_deck[deck_name] = _process_stats_dict(d_stats)
     
     return result_global, result_by_deck
 
