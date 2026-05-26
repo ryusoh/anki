@@ -61,6 +61,11 @@
 **Learning:** When making table headers (`th` elements) sortable, overriding their inherent `columnheader` role by adding `role="button"` breaks their ability to convey sorting state to screen readers. `aria-sort` is only a valid attribute on elements with `columnheader` or `rowheader` roles.
 **Action:** Do not use `role="button"` on interactive `th` elements. Instead, apply `tabindex="0"` for keyboard accessibility and initialize them with `aria-sort="none"` (or `ascending`/`descending` as appropriate) to correctly expose the sortable semantics and state.
 
+## 2024-03-24 - Hiding Decorative Icons from Screen Readers
+
+**Learning:** FontAwesome icons (`<i class="fa ...">`) inside semantic interactive elements (like `<a aria-label="...">`) or purely decorative icons without `aria-hidden="true"` will cause screen readers to announce redundant or confusing Unicode characters, cluttering the user experience.
+**Action:** Always add `aria-hidden="true"` to FontAwesome icons that are used inside interactive elements with their own labels or that are purely visual decorations.
+
 ## 2024-06-21 - Range Slider Keyboard Accessibility
 
 **Learning:** Range sliders (`input[type="range"]`) often have their native thumbs hidden and customized for aesthetics using custom pseudo-elements or sibling elements, but they still need visible focus indicators for keyboard users.
