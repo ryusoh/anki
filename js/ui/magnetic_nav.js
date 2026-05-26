@@ -16,8 +16,28 @@ export function initMagneticNav() {
   );
 
   magneticElements.forEach((el) => {
+    const child = el.querySelector("a, i");
+    let rect = null;
+
+    // Pre-allocate gsap quickTo functions to avoid creating new Tweens on every mousemove
+    const xTo = window.gsap.quickTo(el, "x", { duration: 0.3, ease: "power2.out" });
+    const yTo = window.gsap.quickTo(el, "y", { duration: 0.3, ease: "power2.out" });
+
+    let childXTo = null;
+    let childYTo = null;
+    if (child) {
+      childXTo = window.gsap.quickTo(child, "x", { duration: 0.3, ease: "power2.out" });
+      childYTo = window.gsap.quickTo(child, "y", { duration: 0.3, ease: "power2.out" });
+    }
+
+    el.addEventListener("mouseenter", () => {
+      rect = el.getBoundingClientRect();
+    });
+
     el.addEventListener("mousemove", (e) => {
-      const rect = el.getBoundingClientRect();
+      if (!rect) {
+        rect = el.getBoundingClientRect();
+      }
 
       // Calculate center of element
       const centerX = rect.left + rect.width / 2;
@@ -31,41 +51,34 @@ export function initMagneticNav() {
       // Strength of pull factor (lower = less pull)
       const strength = 0.4;
 
-      window.gsap.to(el, {
-        x: distX * strength,
-        y: distY * strength,
-        duration: 0.3,
-        ease: "power2.out",
-      });
+      xTo(distX * strength);
+      yTo(distY * strength);
 
       // Pull the child element (e.g. <a> or <i>) slightly more for a parallax effect
-      const child = el.querySelector("a, i");
-      if (child) {
-        window.gsap.to(child, {
-          x: distX * (strength * 1.5),
-          y: distY * (strength * 1.5),
-          duration: 0.3,
-          ease: "power2.out",
-        });
+      if (child && childXTo && childYTo) {
+        childXTo(distX * (strength * 1.5));
+        childYTo(distY * (strength * 1.5));
       }
     });
 
     el.addEventListener("mouseleave", () => {
+      rect = null;
       // Elastic snap back to origin
       window.gsap.to(el, {
         x: 0,
         y: 0,
         duration: 0.7,
         ease: "elastic.out(1, 0.3)",
+        overwrite: true,
       });
 
-      const child = el.querySelector("a, i");
       if (child) {
         window.gsap.to(child, {
           x: 0,
           y: 0,
           duration: 0.7,
           ease: "elastic.out(1, 0.3)",
+          overwrite: true,
         });
       }
     });

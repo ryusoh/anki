@@ -1,3 +1,5 @@
+import unittest
+from unittest.mock import patch, MagicMock
 """
 Tests for incremental export system
 """
@@ -140,6 +142,110 @@ class TestIncrementLogic:
         size = 50000
         next_size = size + 5000
         assert next_size == 55000
+
+class TestExportGraph:
+    """Test exporting graph data."""
+
+    @patch('graph.incremental_export.json.dump')
+    @patch('graph.incremental_export.open', new_callable=unittest.mock.mock_open)
+    @patch('graph.incremental_export.build_graph')
+    @patch('graph.incremental_export.json.load')
+    @patch('graph.incremental_export.gzip.open', new_callable=unittest.mock.mock_open)
+    def test_export_graph(self, mock_gzip_open, mock_json_load, mock_build_graph, mock_open, mock_json_dump):
+        """Test export_graph reads notes, builds graph, and writes to DATA_FILE."""
+        from graph.incremental_export import export_graph
+        import networkx as nx
+
+        # Mock json load
+        mock_json_load.return_value = [{'id': '1', 'front': 'Card 1', 'deck': 'Deck A'}]
+
+        # Mock build graph
+        G = nx.DiGraph()
+        G.add_node('1', front='Card 1', deck='Deck A', pagerank=0.5)
+        mock_build_graph.return_value = G
+
+        # Run
+        num_nodes = export_graph(10)
+
+        # Assertions
+        assert num_nodes == 1
+        mock_json_load.assert_called_once()
+        mock_build_graph.assert_called_once()
+        mock_open.assert_called_once()
+        mock_json_dump.assert_called_once()
+
+        # Verify JSON dump structure
+        args, kwargs = mock_json_dump.call_args
+        data = args[0]
+        assert 'nodes' in data
+        assert 'links' in data
+        assert len(data['nodes']) == 1
+        assert data['nodes'][0]['id'] == '1'
+
+class TestMainExecution:
+    """Test main command-line execution."""
+
+    @patch('graph.incremental_export.export_graph')
+    @patch('graph.incremental_export.save_config')
+    @patch('graph.incremental_export.load_config')
+    @patch('sys.argv', ['incremental_export.py', '--status'])
+    def test_main_status(self, mock_load_config, mock_save_config, mock_export_graph):
+        """Test main running with --status flag."""
+        from graph.incremental_export import main
+        mock_load_config.return_value = {'sample_size': 100, 'increment': 100}
+
+        main()
+
+        mock_load_config.assert_called_once()
+        mock_export_graph.assert_not_called()
+
+    @patch('graph.incremental_export.export_graph')
+    @patch('graph.incremental_export.save_config')
+    @patch('graph.incremental_export.load_config')
+    @patch('sys.argv', ['incremental_export.py', '--reset'])
+    def test_main_reset(self, mock_load_config, mock_save_config, mock_export_graph):
+        """Test main running with --reset flag."""
+        from graph.incremental_export import main
+        mock_load_config.return_value = {'sample_size': 500, 'increment': 100}
+
+        main()
+
+        mock_save_config.assert_called_once()
+        saved_config = mock_save_config.call_args[0][0]
+        assert saved_config['sample_size'] == 100
+        mock_export_graph.assert_called_once_with(100)
+
+    @patch('graph.incremental_export.export_graph')
+    @patch('graph.incremental_export.save_config')
+    @patch('graph.incremental_export.load_config')
+    @patch('sys.argv', ['incremental_export.py', '--size', '200'])
+    def test_main_size(self, mock_load_config, mock_save_config, mock_export_graph):
+        """Test main running with --size flag."""
+        from graph.incremental_export import main
+        mock_load_config.return_value = {'sample_size': 100, 'increment': 100}
+
+        main()
+
+        mock_save_config.assert_called_once()
+        saved_config = mock_save_config.call_args[0][0]
+        assert saved_config['sample_size'] == 200
+        mock_export_graph.assert_called_once_with(200)
+
+    @patch('graph.incremental_export.export_graph')
+    @patch('graph.incremental_export.save_config')
+    @patch('graph.incremental_export.load_config')
+    @patch('sys.argv', ['incremental_export.py', '--next'])
+    def test_main_next(self, mock_load_config, mock_save_config, mock_export_graph):
+        """Test main running with --next flag."""
+        from graph.incremental_export import main
+        mock_load_config.return_value = {'sample_size': 100, 'increment': 100}
+
+        main()
+
+        mock_save_config.assert_called_once()
+        saved_config = mock_save_config.call_args[0][0]
+        assert saved_config['sample_size'] == 200
+        mock_export_graph.assert_called_once_with(200)
 
 
 class TestExportValidation:
