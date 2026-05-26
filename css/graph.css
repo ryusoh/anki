@@ -199,6 +199,11 @@ canvas {
   margin: 10px 0;
 }
 
+#timeline-slider:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.8);
+  outline-offset: 4px;
+}
+
 #timeline-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
