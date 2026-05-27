@@ -176,3 +176,9 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Vulnerability:** Security audit tool (tools/security_audit.py) flagged its own unit tests as containing hardcoded secrets and private data.
 **Learning:** Static analysis tools that look for explicit string matches for secrets or private data structures will trigger false positives when scanning their own unit tests, as tests necessarily contain mock examples of the exact strings or structures the tool is designed to find.
 **Prevention:** Specifically exclude test directories (e.g., 'tests/') from the security audit scan paths to prevent false positives from mock data, ensuring the audit accurately reflects the state of production code without failing on valid test cases.
+
+## 2024-10-25 - Enforce HTTPS for Baidu API
+
+**Vulnerability:** Unencrypted data transmission (HTTP) was used for Baidu API endpoints (`http://openapi.baidu.com` and `http://tsn.baidu.com`), risking MitM exposure of API credentials, OAuth tokens, and audio data.
+**Learning:** Using HTTP for external APIs, even non-critical ones, exposes sensitive request headers and payload data to interception and tampering, failing defense-in-depth principles.
+**Prevention:** Always enforce HTTPS for any external API requests, especially those exchanging authentication tokens or processing user data.
