@@ -202,3 +202,7 @@
 
 **Learning:** Calling `getBoundingClientRect()` synchronously on every `mousemove` event inside interactive effects (like `tableGlassEffect`) forces the browser to recalculate layout continuously, causing layout thrashing and main thread blocking.
 **Action:** Pre-calculate and cache the bounding rectangle on `mouseenter` (adding `window.scrollX/scrollY` to handle scrolling) and reuse those cached dimensions with `e.pageX/pageY` inside `mousemove`. Invalidate the cache on `mouseleave` or `resize`.
+
+## 2024-05-31 - [Hoisting Canvas state properties outside Render Loop]
+**Learning:** Re-assigning native static property strings like `ctx.fillStyle` and `ctx.shadowColor` to the same color values inside rapid `requestAnimationFrame` inner `for` loops places completely unnecessary overhead on string parsing and state mutations by the browser on every 60fps frame tick.
+**Action:** Always extract invariant and static canvas state assignments (like `ctx.fillStyle`, `ctx.shadowColor`, and `ctx.shadowBlur = static`) out of rendering arrays/loops to significantly decrease paint times.
