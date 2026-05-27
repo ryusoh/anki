@@ -52,7 +52,7 @@ def progress_bar(current, total, prefix='', width=40):
 
 def note_fingerprint(note):
     """Hash a note's content for change detection."""
-    key = f"{note['guid']}:{note.get('mod', '')}:{note.get('flds', '')}"
+    key = f"{note['guid']}:{note.get('mod', '')}:{note.get('flds', '')}:{note.get('deck', '')}"
     return hashlib.md5(key.encode()).hexdigest()[:12]
 
 
@@ -67,7 +67,7 @@ def load_cache():
     return None
 
 
-def save_cache(notes, node_count, link_count):
+def save_cache(notes, node_count, link_count, output_file=None):
     """Save cache with guid→fingerprint mapping per deck."""
     deck_data = {}
     for note in notes:
@@ -83,11 +83,13 @@ def save_cache(notes, node_count, link_count):
         'link_count': link_count,
         'decks': deck_data,
     }
+    if output_file:
+        cache['output_file'] = str(output_file)
     with open(CACHE_FILE, 'w') as f:
         json.dump(cache, f)
 
 
-def find_changed_notes(notes, cache):
+def find_changed_notes(notes, cache, output_file=None):
     """
     Compare current notes against cache to find exactly which notes changed per deck.
 
@@ -98,6 +100,12 @@ def find_changed_notes(notes, cache):
     """
     if not cache or cache.get('version') != 4:
         return None  # full rebuild
+
+    # Invalidate cache if it was built for a different output file
+    if output_file:
+        cached_output = cache.get('output_file')
+        if cached_output and str(output_file) != cached_output:
+            return None  # full rebuild
 
     # Build current guid→fingerprint per deck
     current = {}
@@ -341,7 +349,7 @@ if __name__ == '__main__':
     
     # --- Incremental check ---
     cache = load_cache() if not force_full else None
-    changes = find_changed_notes(sample_notes, cache) if cache else None
+    changes = find_changed_notes(sample_notes, cache, output_file=str(OUTPUT_FILE)) if cache else None
 
     if changes is not None and len(changes) == 0 and OUTPUT_FILE.exists():
         print(f'No changes detected — {OUTPUT_FILE.name} is up to date.')
@@ -514,7 +522,7 @@ if __name__ == '__main__':
     print(f'  Written in {time.time() - t2:.1f}s')
     
     if not is_public:
-        save_cache(sample_notes, len(nodes), len(links))
+        save_cache(sample_notes, len(nodes), len(links), output_file=str(OUTPUT_FILE))
     
     print(f'Done — {OUTPUT_FILE}')
     print(f'  {len(nodes)} nodes, {len(links)} links')
