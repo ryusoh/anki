@@ -1002,12 +1002,12 @@
     },
     {
       "day": 200,
-      "mature": 78,
+      "mature": 77,
       "young": 6
     },
     {
       "day": 201,
-      "mature": 81,
+      "mature": 82,
       "young": 3
     },
     {
@@ -1632,7 +1632,7 @@
     },
     {
       "day": 326,
-      "mature": 83,
+      "mature": 82,
       "young": 0
     },
     {
@@ -1827,27 +1827,27 @@
     },
     {
       "day": 365,
-      "mature": 65,
+      "mature": 72,
       "young": 0
     },
     {
       "day": 366,
-      "mature": 73,
+      "mature": 71,
       "young": 0
     },
     {
       "day": 367,
-      "mature": 83,
+      "mature": 88,
       "young": 0
     },
     {
       "day": 368,
-      "mature": 85,
+      "mature": 86,
       "young": 0
     },
     {
       "day": 369,
-      "mature": 72,
+      "mature": 73,
       "young": 0
     },
     {
@@ -1857,7 +1857,7 @@
     },
     {
       "day": 371,
-      "mature": 77,
+      "mature": 78,
       "young": 0
     },
     {
@@ -1872,7 +1872,7 @@
     },
     {
       "day": 374,
-      "mature": 71,
+      "mature": 74,
       "young": 0
     },
     {
@@ -1937,12 +1937,12 @@
     },
     {
       "day": 387,
-      "mature": 77,
+      "mature": 71,
       "young": 0
     },
     {
       "day": 388,
-      "mature": 93,
+      "mature": 95,
       "young": 0
     },
     {
@@ -1967,12 +1967,12 @@
     },
     {
       "day": 393,
-      "mature": 83,
+      "mature": 76,
       "young": 0
     },
     {
       "day": 394,
-      "mature": 88,
+      "mature": 84,
       "young": 0
     },
     {
@@ -2007,12 +2007,12 @@
     },
     {
       "day": 401,
-      "mature": 77,
+      "mature": 76,
       "young": 0
     },
     {
       "day": 402,
-      "mature": 78,
+      "mature": 79,
       "young": 0
     },
     {
@@ -85689,12 +85689,12 @@
       },
       {
         "day": 200,
-        "mature": 14,
+        "mature": 13,
         "young": 2
       },
       {
         "day": 201,
-        "mature": 11,
+        "mature": 12,
         "young": 3
       },
       {
@@ -86319,7 +86319,7 @@
       },
       {
         "day": 326,
-        "mature": 16,
+        "mature": 15,
         "young": 0
       },
       {
@@ -86514,27 +86514,27 @@
       },
       {
         "day": 365,
-        "mature": 8,
+        "mature": 15,
         "young": 0
       },
       {
         "day": 366,
-        "mature": 17,
+        "mature": 15,
         "young": 0
       },
       {
         "day": 367,
-        "mature": 10,
+        "mature": 15,
         "young": 0
       },
       {
         "day": 368,
-        "mature": 14,
+        "mature": 15,
         "young": 0
       },
       {
         "day": 369,
-        "mature": 14,
+        "mature": 15,
         "young": 0
       },
       {
@@ -86544,7 +86544,7 @@
       },
       {
         "day": 371,
-        "mature": 14,
+        "mature": 15,
         "young": 0
       },
       {
@@ -86559,7 +86559,7 @@
       },
       {
         "day": 374,
-        "mature": 9,
+        "mature": 12,
         "young": 0
       },
       {
@@ -86624,12 +86624,12 @@
       },
       {
         "day": 387,
-        "mature": 21,
+        "mature": 15,
         "young": 0
       },
       {
         "day": 388,
-        "mature": 13,
+        "mature": 15,
         "young": 0
       },
       {
@@ -86654,12 +86654,12 @@
       },
       {
         "day": 393,
-        "mature": 22,
+        "mature": 15,
         "young": 0
       },
       {
         "day": 394,
-        "mature": 19,
+        "mature": 15,
         "young": 0
       },
       {
@@ -86694,12 +86694,12 @@
       },
       {
         "day": 401,
-        "mature": 16,
+        "mature": 15,
         "young": 0
       },
       {
         "day": 402,
-        "mature": 13,
+        "mature": 14,
         "young": 0
       },
       {
