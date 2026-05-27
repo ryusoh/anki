@@ -99,7 +99,8 @@ def detect_kanji_redirect(html_text):
     readings = []
     for li in all_lis:
         li_text = li.get_text().strip()
-        match = re.match(r'^(.+)の漢字表記。$', li_text)
+        # Match "Xの漢字表記。" or "X　参照" redirect patterns
+        match = re.match(r'^(.+?)(?:の漢字表記。|[\s　]+参照)$', li_text)
         if not match:
             return None
         readings.append(match.group(1))

@@ -454,3 +454,63 @@ def test_full_redirect_flow_single_reading_tsuku():
     assert "付着する" in parsed
     assert "目的地" in parsed
     assert "到着" in parsed
+
+
+# ---- 落ちる (おちる) "参照" redirect test fixtures ----
+
+# Real HTML from ja.wiktionary for 落ちる (uses "参照" instead of "の漢字表記。")
+OCHIRU_REDIRECT_HTML = """
+<html>
+    <body>
+        <section>
+            <h2>日本語</h2>
+            <section>
+                <h3>和語の漢字表記</h3>
+                <p><b><a href="./落" title="落">落</a>ちる</b>（おちる）</p>
+                <ol><li><b><a href="./おちる" title="おちる">おちる</a></b>　参照</li></ol>
+            </section>
+        </section>
+    </body>
+</html>
+"""
+
+OCHIRU_REAL_HTML = """
+<html>
+    <body>
+        <section>
+            <h2>日本語</h2>
+            <section>
+                <h3>動詞</h3>
+                <p><strong class="Jpan headword" lang="ja">おちる</strong>【<b class="Jpan" lang="ja"><a href="./落ちる#日本語" title="落ちる">落ちる</a></b>】</p>
+                <ol>
+                    <li>上から下へ移動する。落下する。</li>
+                    <li>あるべきものがなくなる。脱落する。</li>
+                </ol>
+            </section>
+        </section>
+    </body>
+</html>
+"""
+
+
+def test_detect_sanshou_redirect_ochiru():
+    """落ちる uses '参照' pattern instead of 'の漢字表記。' — should still redirect to おちる."""
+    result = detect_kanji_redirect(OCHIRU_REDIRECT_HTML)
+    assert result is not None, "detect_kanji_redirect should detect '参照' redirects"
+    reading, all_readings = result
+    assert reading == "おちる"
+    assert all_readings == ["おちる"]
+
+
+def test_full_redirect_flow_sanshou_ochiru():
+    """Full flow: 落ちる (参照 redirect) → fetch おちる → get real definition."""
+    result = detect_kanji_redirect(OCHIRU_REDIRECT_HTML)
+    assert result is not None
+    reading, all_readings = result
+    assert reading == "おちる"
+
+    parsed = parse_wiktionary_html(OCHIRU_REAL_HTML, lang="ja")
+    parsed = inject_redirect_pronunciation(parsed, all_readings)
+    assert "落下" in parsed
+    assert "脱落" in parsed
+    assert "おちる" in parsed
