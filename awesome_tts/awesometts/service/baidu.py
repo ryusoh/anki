@@ -149,7 +149,7 @@ class Baidu(Service):
         
         post_data = urlencode(params).encode('utf-8')
         
-        req = Request('http://openapi.baidu.com/oauth/2.0/token', post_data)
+        req = Request('https://openapi.baidu.com/oauth/2.0/token', post_data)
         result = json.loads(urlopen(req, timeout=5).read().decode())
         
         if 'access_token' in result.keys() and 'scope' in result.keys():
@@ -183,7 +183,7 @@ class Baidu(Service):
         }
         
         post_data = urlencode(params).encode('utf-8')
-        req = Request('http://tsn.baidu.com/text2audio', post_data)
+        req = Request('https://tsn.baidu.com/text2audio', post_data)
         audio_content = urlopen(req, timeout=10).read()
         
         if options['encoding'] == 3:
