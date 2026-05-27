@@ -22,8 +22,14 @@ export function initTiltEffect() {
     });
 
     // Pre-allocate gsap quickTo functions to avoid creating new Tweens on every mousemove
-    const rotateXTo = window.gsap.quickTo(container, "rotateX", { duration: 0.5, ease: "power2.out" });
-    const rotateYTo = window.gsap.quickTo(container, "rotateY", { duration: 0.5, ease: "power2.out" });
+    const rotateXTo = window.gsap.quickTo(container, "rotateX", {
+      duration: 0.5,
+      ease: "power2.out",
+    });
+    const rotateYTo = window.gsap.quickTo(container, "rotateY", {
+      duration: 0.5,
+      ease: "power2.out",
+    });
 
     container.addEventListener("mouseenter", () => {
       rect = container.getBoundingClientRect();

@@ -197,6 +197,7 @@
 
 **Learning:** Using `gsap.to()` repeatedly inside high-frequency event listeners like `mousemove` instantiates a new tween on every event, leading to significant GC (Garbage Collection) pressure and potential animation jitter.
 **Action:** Always pre-allocate `gsap.quickTo()` functions outside the event listener and invoke them with updated values to reuse the internal GSAP mechanism efficiently.
+
 ## 2025-05-25 - [Optimize getBoundingClientRect in mousemove]
 
 **Learning:** Calling `getBoundingClientRect()` synchronously on every `mousemove` event inside interactive effects (like `tableGlassEffect`) forces the browser to recalculate layout continuously, causing layout thrashing and main thread blocking.

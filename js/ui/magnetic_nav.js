@@ -20,14 +20,26 @@ export function initMagneticNav() {
     let rect = null;
 
     // Pre-allocate gsap quickTo functions to avoid creating new Tweens on every mousemove
-    const xTo = window.gsap.quickTo(el, "x", { duration: 0.3, ease: "power2.out" });
-    const yTo = window.gsap.quickTo(el, "y", { duration: 0.3, ease: "power2.out" });
+    const xTo = window.gsap.quickTo(el, "x", {
+      duration: 0.3,
+      ease: "power2.out",
+    });
+    const yTo = window.gsap.quickTo(el, "y", {
+      duration: 0.3,
+      ease: "power2.out",
+    });
 
     let childXTo = null;
     let childYTo = null;
     if (child) {
-      childXTo = window.gsap.quickTo(child, "x", { duration: 0.3, ease: "power2.out" });
-      childYTo = window.gsap.quickTo(child, "y", { duration: 0.3, ease: "power2.out" });
+      childXTo = window.gsap.quickTo(child, "x", {
+        duration: 0.3,
+        ease: "power2.out",
+      });
+      childYTo = window.gsap.quickTo(child, "y", {
+        duration: 0.3,
+        ease: "power2.out",
+      });
     }
 
     el.addEventListener("mouseenter", () => {
