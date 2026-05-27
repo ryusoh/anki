@@ -626,9 +626,10 @@ export class TableGlassEffect {
         this.state.continuousPhase * (electric.streakSpeedMultiplier || 1);
       const headProgress = offset % 1;
 
-      // Subtle shadow
+      // Bolt: Hoist static canvas state assignments out of the inner render loop
       this.ctx.shadowColor = color;
       this.ctx.shadowBlur = 5;
+      this.ctx.strokeStyle = color;
 
       // Draw trail as segments
       for (let j = 0; j < segments; j++) {
@@ -643,13 +644,7 @@ export class TableGlassEffect {
         // Use a power curve for more elegant falloff
         const opacity = Math.pow(1 - segmentProgress, 2);
 
-        // Parse color to apply opacity
-        // Assuming color is rgba or hex, but for simplicity let's rely on globalAlpha
-        // and the fact that the palette colors might already have alpha.
-        // Best to use the base color and apply alpha.
-
         this.ctx.globalAlpha = opacity;
-        this.ctx.strokeStyle = color;
 
         this.ctx.beginPath();
         this.ctx.moveTo(point1.x, point1.y);
@@ -673,6 +668,11 @@ export class TableGlassEffect {
 
     this._pParticle = this._pParticle || { x: 0, y: 0 };
     const particles = this.state.energyParticles;
+
+    // Bolt: Hoist static canvas state assignments out of the inner render loop
+    this.ctx.fillStyle = electric.colors?.primary || "rgba(255, 255, 255, 0.8)";
+    this.ctx.shadowColor = this.ctx.fillStyle;
+
     for (let i = 0; i < particles.length; i++) {
       const p = particles[i];
       // Only draw path particles (those without 'life' property)
@@ -686,9 +686,6 @@ export class TableGlassEffect {
       const flicker =
         0.5 + 0.5 * Math.sin(this.state.phase * 10 + p.flickerOffset);
 
-      this.ctx.fillStyle =
-        electric.colors?.primary || "rgba(255, 255, 255, 0.8)";
-      this.ctx.shadowColor = this.ctx.fillStyle;
       this.ctx.shadowBlur = 3 * flicker; // Reduced blur
 
       this.ctx.beginPath();
