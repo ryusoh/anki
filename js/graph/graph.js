@@ -757,6 +757,16 @@ if (window.gsap) {
     let centerX = 0;
     let centerY = 0;
 
+    // Bolt: Pre-allocate gsap quickTo functions to avoid creating new Tweens on every mousemove
+    const xTo = window.gsap.quickTo(magThumb, "x", {
+      duration: 0.3,
+      ease: "power2.out",
+    });
+    const yTo = window.gsap.quickTo(magThumb, "y", {
+      duration: 0.3,
+      ease: "power2.out",
+    });
+
     sliderGroup.addEventListener("mouseenter", () => {
       // Bolt: Cache bounding box dimensions to prevent layout thrashing inside
       // the high-frequency mousemove listener. Subtract current GSAP x/y transform
@@ -780,12 +790,8 @@ if (window.gsap) {
       const distX = e.pageX - centerX;
       const distY = e.pageY - centerY;
 
-      window.gsap.to(magThumb, {
-        x: distX * 0.15,
-        y: distY * 0.15,
-        duration: 0.3,
-        ease: "power2.out",
-      });
+      xTo(distX * 0.15);
+      yTo(distY * 0.15);
     });
 
     sliderGroup.addEventListener("mouseleave", () => {

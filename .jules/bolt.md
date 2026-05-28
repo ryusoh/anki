@@ -207,3 +207,8 @@
 
 **Learning:** Re-assigning native static property strings like `ctx.fillStyle` and `ctx.shadowColor` to the same color values inside rapid `requestAnimationFrame` inner `for` loops places completely unnecessary overhead on string parsing and state mutations by the browser on every 60fps frame tick.
 **Action:** Always extract invariant and static canvas state assignments (like `ctx.fillStyle`, `ctx.shadowColor`, and `ctx.shadowBlur = static`) out of rendering arrays/loops to significantly decrease paint times.
+
+## 2025-05-28 - [Optimize gsap in high-frequency events]
+
+**Learning:** Using `window.gsap.to()` repeatedly inside high-frequency event listeners like `mousemove` instantiates a new tween on every event, leading to significant GC (Garbage Collection) pressure and potential animation jitter.
+**Action:** Always pre-allocate `window.gsap.quickTo()` functions outside the event listener and invoke them with updated values to reuse the internal GSAP mechanism efficiently.
