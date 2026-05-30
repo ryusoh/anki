@@ -209,11 +209,20 @@
       if (setup) {
         trigger(context.resize);
       }
+      // Bolt: Pre-calculate absolute document offsets during layout initialization/resize
+      // rather than synchronously querying getBoundingClientRect on every pointer event.
+      // This prevents severe layout thrashing and main-thread blocking during continuous
+      // animations or fast mouse movements.
+      if (context.element) {
+        bounds = context.element.getBoundingClientRect();
+        context._offsetX = bounds.left + (win.scrollX || win.pageXOffset);
+        context._offsetY = bounds.top + (win.scrollY || win.pageYOffset);
+      }
     }
     function align(t, tgt) {
-      bounds = tgt.getBoundingClientRect();
-      t.x = t.pageX - bounds.left - (win.scrollX || win.pageXOffset);
-      t.y = t.pageY - bounds.top - (win.scrollY || win.pageYOffset);
+      // Bolt: Read from cached offset properties to ensure O(1) continuous execution overhead.
+      t.x = t.pageX - (context._offsetX || 0);
+      t.y = t.pageY - (context._offsetY || 0);
       return t;
     }
     function augment(t, tgt) {
