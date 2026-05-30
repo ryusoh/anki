@@ -212,3 +212,8 @@
 
 **Learning:** Using `window.gsap.to()` repeatedly inside high-frequency event listeners like `mousemove` instantiates a new tween on every event, leading to significant GC (Garbage Collection) pressure and potential animation jitter.
 **Action:** Always pre-allocate `window.gsap.quickTo()` functions outside the event listener and invoke them with updated values to reuse the internal GSAP mechanism efficiently.
+
+## 2024-05-31 - Cache getBoundingClientRect on resize in sketch.js
+
+**Learning:** Calling `getBoundingClientRect()` synchronously on every mousemove event inside `sketch.js` forces the browser to recalculate layout continuously, causing layout thrashing and main thread blocking.
+**Action:** Pre-calculate and cache the bounding rectangle offset (including scroll) on `resize()` and reuse those cached dimensions inside `align()` for pointer event processing.
