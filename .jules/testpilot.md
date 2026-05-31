@@ -113,3 +113,7 @@
 **Action:** Added tests for edge cases and CLI argument parsing branches in `graph/builder.py`, `graph/incremental_export.py`, and `graph/watch_and_update.py`.
 **Learning:** Found an existing bug where `get_top_nodes` was calling `compute_pagerank` instead of `_compute_pagerank`, which would raise a NameError.
 **Learning:** Mocking module executions directly via `runpy.run_module(..., run_name="__main__")` properly checks if `main()` was invoked from `if __name__ == '__main__':` while isolating variables and tracking statement coverage appropriately. Used `unittest.mock.patch('sys.exit')` to avoid terminating test runners during execution.
+
+## 2026-05-31 - Graph Analysis Output Tests
+**Learning:** When testing formatting and output functions that use `print` (such as `compare_decks` and `print_hub_notes`), use pytest's `capsys` fixture to capture `stdout` and assert on substring presence rather than exact string matching. This prevents brittle tests that fail on minor whitespace or truncation logic changes.
+**Action:** Use `capsys.readouterr().out` and `assert 'substring' in out` for CLI output tests.

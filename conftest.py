@@ -29,3 +29,6 @@ class MockOverviewModule:
 sys.modules['aqt.deckbrowser'] = MockDeckBrowserModule()
 sys.modules['aqt.overview'] = MockOverviewModule()
 builtins.DeckBrowser = MockDeckBrowser
+
+# Mock for fa2_modified in graph analysis
+sys.modules['fa2_modified'] = MagicMock()

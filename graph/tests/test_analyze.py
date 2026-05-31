@@ -1,12 +1,13 @@
 """
 Tests for graph CLI (analyze.py).
-
 Tests command-line interface, deck aliases, and output formatting.
 """
 
-import pytest
+
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
+import pytest
+import networkx as nx
 
 
 class TestDeckAliases:
@@ -297,7 +298,7 @@ class TestPrintTopNotes:
     def test_print_top_notes_format(self, capsys):
         """Test top notes output format."""
         from graph.analyze import print_top_notes
-        import networkx as nx
+
         
         # Create test graph
         G = nx.DiGraph()
@@ -319,7 +320,7 @@ class TestPrintIsolatedNotes:
     def test_print_isolated_notes_format(self, capsys):
         """Test isolated notes output format."""
         from graph.analyze import print_isolated_notes
-        import networkx as nx
+
         
         # Create graph with truly isolated node (no edges at all)
         G = nx.DiGraph()
@@ -341,7 +342,7 @@ class TestExportGraph:
     def test_export_to_json(self, tmp_path):
         """Test exporting graph to JSON."""
         from graph.analyze import export_graph
-        import networkx as nx
+
         
         G = nx.DiGraph()
         G.add_node('n1', front='Test', pagerank=0.5)
@@ -356,7 +357,7 @@ class TestExportGraph:
     def test_export_creates_directory(self, tmp_path):
         """Test that export creates output directory."""
         from graph.analyze import export_graph
-        import networkx as nx
+
         
         G = nx.DiGraph()
         output_dir = tmp_path / "subdir"
@@ -418,3 +419,87 @@ class TestMainCLI:
         
         captured = capsys.readouterr()
         assert 'Available Decks' in captured.out
+
+
+
+
+
+def test_export_to_graphml(tmp_path, capsys):
+    from graph.analyze import export_graph
+    G = nx.DiGraph()
+    G.add_node('n1', front='Test', pagerank=0.5)
+    G.add_edge('n1', 'n2')
+
+    export_graph(G, tmp_path, format='graphml', deck_name='TestDeck')
+
+    files = list(tmp_path.glob('*.graphml'))
+    assert len(files) == 1
+    assert "TestDeck" in files[0].name
+
+    captured = capsys.readouterr()
+    assert "Exported to" in captured.out
+
+def test_export_unknown_format(tmp_path, capsys):
+    from graph.analyze import export_graph
+    G = nx.DiGraph()
+    export_graph(G, tmp_path, format='unknown_format', deck_name='Test')
+
+    captured = capsys.readouterr()
+    assert "Unknown format: unknown_format" in captured.err
+
+def test_compare_decks(capsys):
+    from graph.analyze import compare_decks
+    G1 = nx.DiGraph()
+    G1.add_node('n1', front='Test Node 1', pagerank=0.5)
+    G1.add_node('n2', front='Test Node 2', pagerank=0.3)
+    G1.add_edge('n1', 'n2')
+
+    G2 = nx.DiGraph()
+
+    G3 = nx.DiGraph()
+    G3.add_node('n3', front='Very long name that should be truncated for display purposes', pagerank=0.9)
+
+    graphs = {
+        'Deck 1': G1,
+        'Empty Deck': G2,
+        'Deck 3': G3
+    }
+
+    compare_decks(graphs)
+
+    captured = capsys.readouterr()
+    assert "Deck Comparison" in captured.out
+    assert "Deck 1" in captured.out
+    assert "Empty Deck" in captured.out
+    assert "Deck 3" in captured.out
+    assert "Test Node 1" in captured.out
+    assert "N/A" in captured.out
+    assert "Very long name that should be truncat" in captured.out
+
+def test_print_hub_notes(capsys):
+    from graph.analyze import print_hub_notes
+    G = nx.DiGraph()
+    G.add_node('n0')
+    G.add_node('n1', front='Test Node 1', pagerank=0.05)
+    G.add_edge('n0', 'n1')
+    G.add_node('n2', front='Test Node 2', pagerank=0.001)
+    G.add_edge('n1', 'n2')
+    G.add_node('n3', front='Very long name that should be truncated', pagerank=0.02)
+    G.add_edge('n0', 'n3')
+
+    print_hub_notes(G, deck_name='Test Deck', threshold=0.01)
+
+    captured = capsys.readouterr()
+    assert "Hub Notes in Test Deck" in captured.out
+    assert "Test Node 1" in captured.out
+    assert "Test Node 2" not in captured.out
+    assert "Very long name that should b.." in captured.out
+
+def test_print_hub_notes_empty(capsys):
+    from graph.analyze import print_hub_notes
+    G = nx.DiGraph()
+
+    print_hub_notes(G, deck_name='Empty Deck', threshold=0.01)
+
+    captured = capsys.readouterr()
+    assert "No hub notes found in Empty Deck" in captured.out
