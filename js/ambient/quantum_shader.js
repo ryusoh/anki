@@ -78,10 +78,21 @@ function initControls(container, surface, state, uniforms, onStateChange) {
   let pointerId = null;
   let start = { x: 0, y: 0, nx: state.nx, ny: state.ny };
 
-  const updatePointerUniform = (x, y) => {
-    const rect = surface.getBoundingClientRect();
-    const px = clamp((x - rect.left) / rect.width, 0, 1);
-    const py = clamp((y - rect.top) / rect.height, 0, 1);
+  let cachedRect = null;
+
+  const updatePointerUniform = (pageX, pageY) => {
+    let rect = cachedRect;
+    if (!rect) {
+      const r = surface.getBoundingClientRect();
+      rect = {
+        left: r.left + window.scrollX,
+        top: r.top + window.scrollY,
+        width: r.width,
+        height: r.height,
+      };
+    }
+    const px = clamp((pageX - rect.left) / rect.width, 0, 1);
+    const py = clamp((pageY - rect.top) / rect.height, 0, 1);
     uniforms.pointerTarget.value.set(px, 1 - py);
   };
 
@@ -89,8 +100,8 @@ function initControls(container, surface, state, uniforms, onStateChange) {
     pointerActive = true;
     pointerId = event.pointerId;
     start = {
-      x: event.clientX,
-      y: event.clientY,
+      x: event.pageX,
+      y: event.pageY,
       nx: state.nx,
       ny: state.ny,
     };
@@ -103,21 +114,21 @@ function initControls(container, surface, state, uniforms, onStateChange) {
         // Ignore pointer capture failures on platforms that disallow it.
       }
     }
-    updatePointerUniform(event.clientX, event.clientY);
+    updatePointerUniform(event.pageX, event.pageY);
     container.classList.add("is-dragging");
   };
 
   const onPointerMove = (event) => {
     if (!pointerActive) {
-      updatePointerUniform(event.clientX, event.clientY);
+      updatePointerUniform(event.pageX, event.pageY);
       return;
     }
     if (pointerId !== event.pointerId) {
       return;
     }
 
-    const deltaX = (event.clientX - start.x) / 60;
-    const deltaY = (event.clientY - start.y) / 60;
+    const deltaX = (event.pageX - start.x) / 60;
+    const deltaY = (event.pageY - start.y) / 60;
     const newNx = clamp(Math.round(start.nx + deltaX), 0, MAX_N);
     const newNy = clamp(Math.round(start.ny - deltaY), 0, MAX_N);
 
@@ -132,7 +143,7 @@ function initControls(container, surface, state, uniforms, onStateChange) {
       onStateChange();
     }
 
-    updatePointerUniform(event.clientX, event.clientY);
+    updatePointerUniform(event.pageX, event.pageY);
   };
 
   const releasePointer = (event) => {
@@ -157,11 +168,22 @@ function initControls(container, surface, state, uniforms, onStateChange) {
     container.classList.remove("is-dragging");
   };
 
+  surface.addEventListener("pointerenter", () => {
+    const r = surface.getBoundingClientRect();
+    cachedRect = {
+      left: r.left + window.scrollX,
+      top: r.top + window.scrollY,
+      width: r.width,
+      height: r.height,
+    };
+  });
+
   surface.addEventListener("pointerdown", onPointerDown);
   surface.addEventListener("pointermove", onPointerMove);
   surface.addEventListener("pointerup", releasePointer);
   surface.addEventListener("pointercancel", releasePointer);
   surface.addEventListener("pointerleave", () => {
+    cachedRect = null;
     if (!pointerActive) {
       uniforms.pointerTarget.value.set(0.5, 0.5);
     }
@@ -585,6 +607,7 @@ function init() {
       requestAnimationFrame(render);
 
       const resize = () => {
+        cachedRect = null;
         const width = window.innerWidth;
         const height = window.innerHeight;
         backgroundRenderer.setSize(width, height, false);
