@@ -85,3 +85,8 @@
 
 **Learning:** Native `<input type="range">`, especially when styled with `outline: none`, becomes invisible to keyboard users as they navigate through the UI, breaking accessibility.
 **Action:** Always ensure that range inputs have an explicit `:focus-visible` style defined (e.g., `outline: 2px solid rgba(255, 255, 255, 0.8)`) so keyboard focus remains perceptible to the user.
+
+## 2024-06-25 - Terminal Input Discoverability
+
+**Learning:** Terminal emulators often lack discoverability for new users who may not know which commands are available or how to interact with the interface.
+**Action:** Always include a `placeholder` attribute with a suggestive hint (like "Type 'help' for commands...") on terminal input fields to immediately guide users on how to begin.
