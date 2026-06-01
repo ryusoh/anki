@@ -217,3 +217,8 @@
 
 **Learning:** Calling `getBoundingClientRect()` synchronously on every mousemove event inside `sketch.js` forces the browser to recalculate layout continuously, causing layout thrashing and main thread blocking.
 **Action:** Pre-calculate and cache the bounding rectangle offset (including scroll) on `resize()` and reuse those cached dimensions inside `align()` for pointer event processing.
+
+## 2026-06-02 - [Optimize getBoundingClientRect in pointermove]
+
+**Learning:** Calling `getBoundingClientRect()` synchronously on every `pointermove` event inside high-frequency interactive animations (like `quantum_shader.js`) forces the browser to recalculate layout continuously, causing layout thrashing, severe frame drops, and main thread blocking.
+**Action:** Pre-calculate and cache the bounding rectangle on `pointerenter` (incorporating `window.scrollX/scrollY` offsets) and reuse those cached dimensions with `event.pageX/pageY` inside `pointermove`. Invalidate the cache on `pointerleave` or `resize`.
