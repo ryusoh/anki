@@ -16,8 +16,10 @@ def log(msg):
             config = mw.addonManager.getConfig(__name__)
             if not (config and config.get("debug", False)):
                 return
-        except:
+        except Exception as e:
             # If we can't get config, default to not logging
+            import logging
+            logging.getLogger(__name__).debug(f"Failed to get config: {e}")
             return
     else:
         # If not running in Anki context (e.g. some tests), allow logging
@@ -29,8 +31,9 @@ def log(msg):
     try:
         with open(DEBUG_LOG, "a") as f:
             f.write(msg + "\n")
-    except:
-        pass
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).debug(f"Failed to write to debug log: {e}")
 
 def init_addon():
     log(f"[hsm] init_addon called, aqt loaded: {'aqt' in sys.modules}")

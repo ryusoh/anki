@@ -189,6 +189,25 @@ class BrowserStripper(Dialog):
             fields=dict(proc=0, upd=0, skip=0),
         )
 
+        self._process_notes(fields, mode, stat)
+        messages = self._build_messages(stat)
+
+        self._browser.model.reset()
+        self._addon.config['last_strip_mode'] = mode
+        self.setDisabled(False)
+        self._notes = None
+
+        super(BrowserStripper, self).accept()
+
+        # this alert is done by way of a singleShot() callback to avoid random
+        # crashes on Mac OS X, which happen <5% of the time if called directly
+        aqt.qt.QTimer.singleShot(
+            0,
+            lambda: self._alerts("".join(messages), self._browser),
+        )
+
+    def _process_notes(self, fields, mode, stat):
+        strips = self._addon.strip.sounds
         for note in self._notes:
             note_updated = False
             stat['notes']['proc'] += 1
@@ -201,7 +220,6 @@ class BrowserStripper(Dialog):
                     stat['fields']['skip'] += 1
                     continue
 
-                strips = self._addon.strip.sounds
                 new_value = (strips.ours(old_value) if mode == 'ours'
                              else strips.theirs(old_value) if mode == 'theirs'
                              else strips.univ(old_value))
@@ -221,6 +239,7 @@ class BrowserStripper(Dialog):
                 note.flush()
                 stat['notes']['upd'] += 1
 
+    def _build_messages(self, stat):
         messages = [
             "%d %s processed and %d %s updated." % (
                 stat['notes']['proc'],
@@ -251,17 +270,4 @@ class BrowserStripper(Dialog):
                             'are no longer used in any notes, select "Check '
                             'Media" from the Anki "Tools" menu in the main '
                             "window.")
-
-        self._browser.model.reset()
-        self._addon.config['last_strip_mode'] = mode
-        self.setDisabled(False)
-        self._notes = None
-
-        super(BrowserStripper, self).accept()
-
-        # this alert is done by way of a singleShot() callback to avoid random
-        # crashes on Mac OS X, which happen <5% of the time if called directly
-        aqt.qt.QTimer.singleShot(
-            0,
-            lambda: self._alerts("".join(messages), self._browser),
-        )
+        return messages
