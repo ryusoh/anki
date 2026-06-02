@@ -85,3 +85,8 @@
 
 **Learning:** Native `<input type="range">`, especially when styled with `outline: none`, becomes invisible to keyboard users as they navigate through the UI, breaking accessibility.
 **Action:** Always ensure that range inputs have an explicit `:focus-visible` style defined (e.g., `outline: 2px solid rgba(255, 255, 255, 0.8)`) so keyboard focus remains perceptible to the user.
+
+## 2024-05-24 - Add Terminal Placeholder
+
+**Learning:** Command-line interfaces can be unintuitive for new users if there's no hint of what to type. A placeholder provides immediate discoverability without cluttering the UI.
+**Action:** Always include a suggestive placeholder like "Type 'help' for commands..." in terminal or command-line style input fields.
