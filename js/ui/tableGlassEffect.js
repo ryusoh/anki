@@ -204,6 +204,7 @@ export class TableGlassEffect {
 
     // Bolt: Invalidate cached ambient glow gradient since canvas dimensions have changed
     this._ambientGradientCache = null;
+    this._reflectionGradientCache = null;
     this._hoverSpotlightGradientCache = null;
     this._hoverBorderGradientCache = null;
 
@@ -706,54 +707,43 @@ export class TableGlassEffect {
     this.ctx.save();
     this.ctx.globalCompositeOperation = "overlay";
 
-    // Diagonal sweep
-    const gradient = this.ctx.createLinearGradient(
-      0,
-      0,
-      this.width,
-      this.height,
-    );
-
     const phase = this.state.phase;
-    const start = phase - width;
-    const end = phase + width;
 
     // Calculate fade multiplier for smooth wrap
     // Fade out when approaching 1, fade in when starting from 0
     let fadeMultiplier = 1.0;
     if (phase > 1 - fadeZone) {
-      // Fade out: goes from 1 to 0 as phase goes from (1-fadeZone) to 1
       fadeMultiplier = (1.0 - phase) / fadeZone;
     } else if (phase < fadeZone) {
-      // Fade in: goes from 0 to 1 as phase goes from 0 to fadeZone
       fadeMultiplier = phase / fadeZone;
     }
 
-    // Parse color to apply intensity/alpha
-    // If color is rgba, we can just use it directly if we assume the user handles alpha,
-    // OR we can try to inject intensity.
-    // For simplicity and flexibility, let's assume 'color' is the peak color (e.g. white)
-    // and we modulate opacity via stop colors.
-
-    // Actually, 'overlay' blend mode works best with white/grey.
-    // Let's stick to the existing logic but allow color override.
-    // If the user provides a color, we use it.
-    // We need transparent versions of that color for the edges.
-
-    // Helper to get transparent version of a color
-    // This is tricky without a full color parser.
-    // Let's assume the user provides an rgba string or we default to white.
-
-    // If we just use globalAlpha, it might be easier.
     this.ctx.globalAlpha = intensity * fadeMultiplier;
 
-    gradient.addColorStop(Math.max(0, start), "rgba(255,255,255,0)"); // Start transparent
-    gradient.addColorStop(Math.max(0, Math.min(1, phase)), color); // Peak color
-    gradient.addColorStop(Math.min(1, end), "rgba(255,255,255,0)"); // End transparent
-
-    this.ctx.fillStyle = gradient;
     this.drawPath(this.ctx, radius);
-    this.ctx.fill();
+    this.ctx.clip();
+
+    // Bolt: Cache Canvas gradients to eliminate heavy object allocations in the high-frequency render loop.
+    // For moving gradients, we create them centered at (0, 0) and use ctx.translate() to position them,
+    // avoiding the need to re-instantiate the gradient object on every frame.
+    if (!this._reflectionGradientCache) {
+      this._reflectionGradientCache = this.ctx.createLinearGradient(
+        -width * this.width,
+        -width * this.height,
+        width * this.width,
+        width * this.height,
+      );
+      this._reflectionGradientCache.addColorStop(0, "rgba(255,255,255,0)");
+      this._reflectionGradientCache.addColorStop(0.5, color);
+      this._reflectionGradientCache.addColorStop(1, "rgba(255,255,255,0)");
+    }
+
+    const centerX = phase * this.width;
+    const centerY = phase * this.height;
+
+    this.ctx.translate(centerX, centerY);
+    this.ctx.fillStyle = this._reflectionGradientCache;
+    this.ctx.fillRect(-centerX, -centerY, this.width, this.height);
 
     this.ctx.restore();
   }
