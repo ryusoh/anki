@@ -335,6 +335,45 @@ class TestPrintIsolatedNotes:
         # Should show isolated nodes
         assert 'Isolated' in captured.out or 'isolated' in captured.out
 
+    def test_print_isolated_notes_empty(self, capsys):
+        from graph.analyze import print_isolated_notes
+        G = nx.DiGraph()
+        print_isolated_notes(G, "Test Deck")
+        assert "No isolated notes" in capsys.readouterr().out
+
+    def test_print_isolated_notes_truncation(self, capsys):
+        from graph.analyze import print_isolated_notes
+        G = nx.DiGraph()
+        for i in range(25):
+            G.add_node(f"node_{i}", front=f"Node {i}")
+        print_isolated_notes(G, "Test Deck")
+        out = capsys.readouterr().out
+        assert "Isolated Notes in Test Deck" in out
+        assert "and 5 more" in out
+
+
+class TestPrintHubNotes:
+    """Test print_hub_notes function."""
+
+    def test_print_hub_notes_empty(self, capsys):
+        from graph.analyze import print_hub_notes
+        G = nx.DiGraph()
+        print_hub_notes(G, "Test Deck")
+        assert "No hub notes found" in capsys.readouterr().out
+
+    def test_print_hub_notes_truncation(self, capsys):
+        from graph.analyze import print_hub_notes
+        G = nx.DiGraph()
+        G.add_node("n1", front="A" * 40, pagerank=0.5)
+        G.add_node("n2", front="B" * 40, pagerank=0.1)
+        G.add_edge("n1", "n2")
+        G.add_edge("n2", "n1")
+        print_hub_notes(G, "Test Deck")
+        out = capsys.readouterr().out
+        assert "Hub Notes in Test Deck" in out
+        assert "AAAAAAAAAAAAAAAAAAAAAAAAAAAA.." in out
+        assert "BBBBBBBBBBBBBBBBBBBBBBBBBBBB.." in out
+
 
 class TestExportGraph:
     """Test export_graph function."""
