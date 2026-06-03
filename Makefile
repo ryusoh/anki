@@ -24,6 +24,7 @@ help:
 	@echo "  check          Run all tests"
 	@echo "  precommit      Run all pre-commit checks (no fixes)"
 	@echo "  precommit-fix  Auto-fix issues and run pre-commit checks"
+	@echo "                 YOLO=1 to auto-yes all prompts (background mode)"
 	@echo "  fmt            Format code (Prettier)"
 	@echo "  fmt-check      Check formatting (dry-run)"
 	@echo "  lint           Run linters (ESLint if available)"
@@ -105,10 +106,15 @@ graph-local:
 
 graph-local-prompt:
 	@echo ""
-	@echo "📊 Export local private Knowledge Graph data? (y/n)"
-	@read -r response && \
-	if [ "$$response" = "y" ] || [ "$$response" = "yes" ]; then \
+	@if [ "$(YOLO)" = "1" ]; then \
+		echo "📊 Export local private Knowledge Graph data? auto-yes (YOLO)"; \
 		$(MAKE) graph-local; \
+	else \
+		echo "📊 Export local private Knowledge Graph data? (y/n)"; \
+		read -r response && \
+		if [ "$$response" = "y" ] || [ "$$response" = "yes" ]; then \
+			$(MAKE) graph-local; \
+		fi; \
 	fi
 
 pagerank:
@@ -195,28 +201,42 @@ precommit-fix: install $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt-fix)
 	@echo "Review changes with: git diff"
 	@echo "Then commit with: git commit -m 'your message'"
 	@if [ -z "$(SKIP_R2)" ] && [ -z "$(SKIP)" ]; then \
-		echo ""; \
-		echo "📤 Upload private content to R2? (y/n)"; \
-		read -r response && \
-		if [ "$$response" = "y" ] || [ "$$response" = "yes" ]; then \
+		if [ "$(YOLO)" = "1" ]; then \
+			echo ""; \
+			echo "📤 Upload private content to R2? auto-yes (YOLO)"; \
 			$(MAKE) fetch-r2-skip-fetch; \
-		fi; \
-		echo ""; \
-		echo "🌐 Push public Knowledge Graph data to R2? (y/n)"; \
-		read -r response_graph && \
-		if [ "$$response_graph" = "y" ] || [ "$$response_graph" = "yes" ]; then \
+			echo ""; \
+			echo "🌐 Push public Knowledge Graph data to R2? auto-yes (YOLO)"; \
 			$(MAKE) graph-push; \
+		else \
+			echo ""; \
+			echo "📤 Upload private content to R2? (y/n)"; \
+			read -r response && \
+			if [ "$$response" = "y" ] || [ "$$response" = "yes" ]; then \
+				$(MAKE) fetch-r2-skip-fetch; \
+			fi; \
+			echo ""; \
+			echo "🌐 Push public Knowledge Graph data to R2? (y/n)"; \
+			read -r response_graph && \
+			if [ "$$response_graph" = "y" ] || [ "$$response_graph" = "yes" ]; then \
+				$(MAKE) graph-push; \
+			fi; \
 		fi; \
 	fi
 
 fetch-prompt-fix:
 	@echo ""
-	@echo "📦 Fetch Anki stats (GitHub + R2 staging)? (y/n)"
-	@read -r response && \
-	if [ "$$response" = "y" ] || [ "$$response" = "yes" ]; then \
+	@if [ "$(YOLO)" = "1" ]; then \
+		echo "📦 Fetch Anki stats (GitHub + R2 staging)? auto-yes (YOLO)"; \
 		$(MAKE) fetch-and-stage-r2; \
 	else \
-		echo "   ⊘ Fetch skipped"; \
+		echo "📦 Fetch Anki stats (GitHub + R2 staging)? (y/n)"; \
+		read -r response && \
+		if [ "$$response" = "y" ] || [ "$$response" = "yes" ]; then \
+			$(MAKE) fetch-and-stage-r2; \
+		else \
+			echo "   ⊘ Fetch skipped"; \
+		fi; \
 	fi
 
 # -----------------------------------------------------------------------------
