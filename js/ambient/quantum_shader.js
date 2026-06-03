@@ -199,6 +199,12 @@ function initControls(container, surface, state, uniforms, onStateChange) {
     },
     { passive: true },
   );
+
+  return {
+    invalidateRect: () => {
+      cachedRect = null;
+    },
+  };
 }
 
 function buildShaderMaterial(THREE, uniforms) {
@@ -546,7 +552,13 @@ function init() {
         container.style.setProperty("--quantum-glow", glow.toFixed(3));
       };
 
-      initControls(container, container, state, uniforms, syncStateMeta);
+      const controls = initControls(
+        container,
+        container,
+        state,
+        uniforms,
+        syncStateMeta,
+      );
       syncStateMeta();
 
       const nowMs =
@@ -607,7 +619,7 @@ function init() {
       requestAnimationFrame(render);
 
       const resize = () => {
-        cachedRect = null;
+        controls.invalidateRect();
         const width = window.innerWidth;
         const height = window.innerHeight;
         backgroundRenderer.setSize(width, height, false);
