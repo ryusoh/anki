@@ -208,3 +208,30 @@ runRegressionTests().catch(err => {
     console.error(err);
     process.exit(1);
 });
+
+async function fixHandlerZoomMissingCoverage() {
+    const { handleCommand } = await import('../js/commands/handler.js');
+    const { toggleZoom, getZoomState } = await import('../js/commands/zoom.js');
+
+
+
+    const appendLine = (text, variant) => {};
+
+    // 1. Force zoom state to true
+    if (!getZoomState()) {
+        await toggleZoom();
+    }
+    assert.strictEqual(getZoomState(), true);
+
+    // 2. Issue a time range shortcut. This should hit lines 119-122 and call toggleZoom() to unzoom
+    handleCommand('3m', appendLine);
+
+    // 3. Verify it unzoomed
+    assert.strictEqual(getZoomState(), false);
+    console.log("✅ fixHandlerZoomMissingCoverage passed");
+}
+
+fixHandlerZoomMissingCoverage().catch(e => {
+    console.error("TestPilot fixHandlerZoomMissingCoverage failed:", e);
+    process.exitCode = 1;
+});

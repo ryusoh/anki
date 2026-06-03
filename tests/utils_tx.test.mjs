@@ -222,3 +222,36 @@ test("convertBetweenCurrencies uses closest historical FX rate when exact date i
     global.document = originalDocument;
     global.window = originalWindow;
 });
+
+test("convertBetweenCurrencies handles explicit falsey mapping in exact date match fallback", async () => {
+    const originalDocument = global.document;
+    const originalWindow = global.window;
+    global.document = { querySelector: () => null, getElementById: () => null };
+    global.window = { innerWidth: 1000 };
+
+    const { convertBetweenCurrencies } = await import("../js/transactions/utils.js");
+    const { transactionState } = await import("../js/transactions/state.js");
+
+    const originalRates = transactionState.fxRatesByCurrency;
+
+    // Inject fake fx rates where the map contains a falsy value (0) for an exact match
+    transactionState.fxRatesByCurrency = {
+        "EUR": {
+            map: new Map([
+                ["2023-01-01", 0]
+            ]),
+            sorted: [
+                { date: "2023-01-01", ts: Date.parse("2023-01-01") }
+            ]
+        }
+    };
+
+    // Exact match in map, but returns falsy (0), should fallback to 1 based on `|| 1` logic
+    const amountMapFalsy = convertBetweenCurrencies(100, "USD", "2023-01-01", "EUR");
+    // Since rate is 1 for EUR -> USD and USD -> EUR, amount stays 100
+    assert.strictEqual(amountMapFalsy, 100);
+
+    transactionState.fxRatesByCurrency = originalRates;
+    global.document = originalDocument;
+    global.window = originalWindow;
+});

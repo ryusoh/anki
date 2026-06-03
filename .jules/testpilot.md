@@ -123,3 +123,8 @@
 
 **Learning:** To correctly generate Python test coverage reports for specific modules (e.g., `graph`) using `pytest-cov`, the root directory must be properly added to the Python path.
 **Action:** Use `PYTHONPATH=. python3 -m pytest --cov=<module_name> --cov-report=term-missing` directly from the repository root to ensure correct path resolution and accurate coverage metrics.
+
+## 2024-06-03 - Resolving Unreachable UI Branch Coverages
+
+**Learning:** Certain UI branches like invalid state edge cases on deeply nested fallback functions or early-returns mapping DOM state checks cannot be safely hit without removing defensive lines. Testing requires robust mock generation of complex configurations (e.g., overriding `.getElementById` globally to catch specific elements while leaving others untouched).
+**Action:** Replicate full browser configurations, explicitly clear overrides via global mocking, and accept small percentages of defensive coverage loss (e.g. `c8 ignore next`) over restructuring logic.

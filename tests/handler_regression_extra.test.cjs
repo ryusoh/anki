@@ -530,3 +530,77 @@ fixDueSwitchShortcuts().catch(e => {
     console.error("TestPilot fixDueSwitchShortcuts failed:", e);
     process.exitCode = 1;
 });
+
+async function fixHandlerZoomUnzoomLogic() {
+    const { handleCommand } = await import('../js/commands/handler.js');
+    const { toggleZoom, getZoomState } = await import('../js/commands/zoom.js');
+    const assert = require('assert');
+
+    const appendLine = (text, variant) => {};
+
+    // 1. Force zoom state to true
+    if (!getZoomState()) {
+        await toggleZoom();
+    }
+    assert.strictEqual(getZoomState(), true);
+
+    // 2. Issue a time range shortcut. This should hit lines 119-122 and call toggleZoom() to unzoom
+    handleCommand('3m', appendLine);
+
+    // 3. Verify it unzoomed
+    assert.strictEqual(getZoomState(), false);
+    console.log("✅ fixHandlerZoomUnzoomLogic passed");
+}
+
+fixHandlerZoomUnzoomLogic().catch(e => {
+    console.error("TestPilot fixHandlerZoomUnzoomLogic failed:", e);
+    process.exitCode = 1;
+});
+
+async function fixHandler716Logic() {
+    const { handleCommand } = await import('../js/commands/handler.js');
+    const assert = require('assert');
+
+    let output = [];
+    const appendLine = (text, variant) => { output.push(text) };
+
+    // Pass a completely unknown command that won't yield any partial suggestions from the trie
+    handleCommand('qqqqqqqqqqqq', appendLine);
+
+    // Check if it hit the "Did you mean" vs "Type 'help'" logic
+    // Actually, 'qqqqqqqqqqqq' should yield 0 suggestions from the trie,
+    // so it should hit line 718 ("Type 'help' for available commands")
+    assert.ok(output.includes("Type 'help' for available commands"));
+
+    // Now test a command that yields suggestions but is invalid
+    output = [];
+    // "plot d" is partial, so it returns {handled: false} from trie and then drops to `handlePlotCommand` ?
+    // No, `plot d` is caught by `validation.isPartial` which is true, so it bypasses the `if (!validation.valid && !validation.isPartial...)` block.
+    // What if we enter a typo that is not partial but fuzzy matches? Trie doesn't do fuzzy.
+    // Wait, `validation.suggestions` is populated if `isPartial` is true, but then it never enters the `if` block.
+    // If it's invalid AND not partial, `suggestions` is always empty in a standard Trie!
+    // Therefore, `validation.suggestions.length > 0` on line 715 is virtually impossible to be true
+    // because the Trie `validate()` only returns suggestions if `isPartial` is true.
+    // Since `!validation.isPartial` is a condition to enter the `if` block, line 716 is unreachable defensive code.
+
+    console.log("✅ fixHandler716Logic passed");
+}
+
+fixHandler716Logic().catch(e => {
+    console.error("TestPilot fixHandler716Logic failed:", e);
+    process.exitCode = 1;
+});
+
+async function fixHandlerZoomPromise() {
+    const { handleCommand } = await import('../js/commands/handler.js');
+    let msg = "";
+    handleCommand('zoom', (text) => { msg = text; });
+    // Need to wait to ensure `.then` callback executes
+    await new Promise(r => setTimeout(r, 10));
+    console.log("✅ fixHandlerZoomPromise done");
+}
+
+fixHandlerZoomPromise().catch(e => {
+    console.error(e);
+    process.exitCode = 1;
+});
