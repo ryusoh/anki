@@ -37,6 +37,7 @@ try:
   import winregistry as winregistry_lib
 except ImportError:
   winregistry_lib = None
+import logging
 
 class MachineIdNotFound(RuntimeError):
   """
@@ -72,7 +73,7 @@ def __reg__(key_name: str, value_name: str) -> str:
       if reg.data and isinstance(reg.data, str):
         return reg.data.strip()
   except OSError:
-    pass
+    logging.getLogger(__name__).warning("Failed to read machineid from registry.")
   return None
 
 def id(winregistry: bool = True) -> str:

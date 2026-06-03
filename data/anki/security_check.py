@@ -131,7 +131,7 @@ def _check_json_data(filepath, full_path):
                         })
 
     except (json.JSONDecodeError, UnicodeDecodeError):
-        pass
+        warning(f"Failed to decode or parse JSON for {full_path}. Skipping.")
 
     return violations
 

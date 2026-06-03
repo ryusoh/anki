@@ -125,7 +125,7 @@ class HeatmapBridge:
                 payload = json.loads(payload)
             except (ValueError, TypeError):
                 # not JSON, keep as-is
-                pass
+                logger.debug("Failed to decode payload as JSON in Web Bridge message. Proceeding with raw payload.")
 
         return self._command_handler(command, payload, context)
 

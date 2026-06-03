@@ -585,41 +585,28 @@ class ServiceDialog(Dialog):
 
 
 
-    def _on_service_activated(self, idx, initial=False, use_options=None, force_options_reload=False):
-        """
-        Construct the target widget if it has not already been built,
-        recall the last-used values for the options, and then switch the
-        stack to it.
-        """
+    def _handle_group_activation(self, svc_id, stack, save):
+        svc_id = svc_id[6:]
+        group = self._addon.config['groups'][svc_id]
+        presets = [preset for preset in group['presets'] if preset]
 
-        combo = self.findChild(aqt.qt.QComboBox, 'service')
-        svc_id = combo.itemData(idx)
-        stack = self.findChild(aqt.qt.QStackedWidget, 'panels')
-        save = self.findChild(aqt.qt.QPushButton, 'presets_save')
+        stack.setCurrentIndex(stack.count() - 1)
+        stack.widget(stack.count() - 1).findChild(aqt.qt.QLabel).setText(
+            svc_id +
+            (" has no presets yet." if len(presets) == 0
+             else " uses " + presets[0] + "." if len(presets) == 1
+             else ((" randomly selects" if group['mode'] == 'random'
+                    else " tries in-order") + " from:\n -" +
+                   "\n -".join(presets[0:5]) +
+                   ("\n    (... and %d more)" % (len(presets) - 5)
+                    if len(presets) > 5 else ""))) +
+            "\n\n"
+            "Go to AwesomeTTS config for group setup.\n"
+            "Access preset options in dropdown below."
+        )
+        save.setEnabled(False)
 
-        if svc_id.startswith('group:'):  # we handle groups differently
-            svc_id = svc_id[6:]
-            group = self._addon.config['groups'][svc_id]
-            presets = [preset for preset in group['presets'] if preset]
-
-            stack.setCurrentIndex(stack.count() - 1)
-            stack.widget(stack.count() - 1).findChild(aqt.qt.QLabel).setText(
-                svc_id +
-                (" has no presets yet." if len(presets) == 0
-                 else " uses " + presets[0] + "." if len(presets) == 1
-                 else ((" randomly selects" if group['mode'] == 'random'
-                        else " tries in-order") + " from:\n -" +
-                       "\n -".join(presets[0:5]) +
-                       ("\n    (... and %d more)" % (len(presets) - 5)
-                        if len(presets) > 5 else ""))) +
-                "\n\n"
-                "Go to AwesomeTTS config for group setup.\n"
-                "Access preset options in dropdown below."
-            )
-            save.setEnabled(False)
-            return
-
-        save.setEnabled(True)
+    def _setup_service_panel(self, svc_id, stack, idx, force_options_reload, use_options):
         panel_unbuilt = svc_id not in self._panel_built
         panel_unset = svc_id not in self._panel_set
 
@@ -635,6 +622,26 @@ class ServiceDialog(Dialog):
                 self._panel_set[svc_id] = True
                 self._on_service_activated_set(svc_id, widget, options,
                                                use_options)
+        return panel_unbuilt
+
+    def _on_service_activated(self, idx, initial=False, use_options=None, force_options_reload=False):
+        """
+        Construct the target widget if it has not already been built,
+        recall the last-used values for the options, and then switch the
+        stack to it.
+        """
+
+        combo = self.findChild(aqt.qt.QComboBox, 'service')
+        svc_id = combo.itemData(idx)
+        stack = self.findChild(aqt.qt.QStackedWidget, 'panels')
+        save = self.findChild(aqt.qt.QPushButton, 'presets_save')
+
+        if svc_id.startswith('group:'):  # we handle groups differently
+            self._handle_group_activation(svc_id, stack, save)
+            return
+
+        save.setEnabled(True)
+        panel_unbuilt = self._setup_service_panel(svc_id, stack, idx, force_options_reload, use_options)
 
         stack.setCurrentIndex(idx)
 
@@ -722,7 +729,7 @@ class ServiceDialog(Dialog):
                 try:
                     edit.setText(config['extras'][svc_id][key])
                 except KeyError:
-                    pass
+                    self._addon.logger.debug("KeyError accessing config. Proceeding with defaults.")
 
                 glue_edit(edit, key)
 
@@ -935,7 +942,7 @@ class ServiceDialog(Dialog):
             del presets[self.findChild(aqt.qt.QComboBox,
                                        'presets_dropdown').currentText()]
         except KeyError:
-            pass
+            self._addon.logger.debug("KeyError accessing config. Proceeding with defaults.")
         else:
             self._addon.config['presets'] = presets
 

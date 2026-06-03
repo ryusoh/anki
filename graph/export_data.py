@@ -9,7 +9,7 @@ Usage:
     python3 graph/export_data.py --full    # force full rebuild (skip cache)
 """
 
-import sys, json, gzip, re, time, hashlib
+import sys, json, gzip, re, time, hashlib, logging
 import numpy as np
 from pathlib import Path
 
@@ -63,7 +63,7 @@ def load_cache():
             with open(CACHE_FILE, 'r') as f:
                 return json.load(f)
         except (json.JSONDecodeError, KeyError):
-            pass
+            logging.getLogger(__name__).warning("Failed to load export cache: JSON decode error or missing key.")
     return None
 
 

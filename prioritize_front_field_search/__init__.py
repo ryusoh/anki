@@ -1,6 +1,7 @@
 # Add-on initialization
 
 import traceback
+import logging
 from .search import extract_terms, score_front_match
 
 def _fetch_front_fields(col, all_sorted_ids, is_notes_mode):
@@ -97,6 +98,6 @@ def init():
         from aqt.gui_hooks import browser_did_search
         browser_did_search.append(on_browser_did_search)
     except ImportError:
-        pass
+        logging.getLogger(__name__).warning("Failed to import browser_did_search hook. Prioritize front field search will not be enabled.")
 
 init()
