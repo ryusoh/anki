@@ -118,6 +118,7 @@
 
 **Learning:** When testing formatting and output functions that use `print` (such as `compare_decks` and `print_hub_notes`), use pytest's `capsys` fixture to capture `stdout` and assert on substring presence rather than exact string matching. This prevents brittle tests that fail on minor whitespace or truncation logic changes.
 **Action:** Use `capsys.readouterr().out` and `assert 'substring' in out` for CLI output tests.
+
 ## 2024-05-31 - Generating Test Coverage Reports for Python
 
 **Learning:** To correctly generate Python test coverage reports for specific modules (e.g., `graph`) using `pytest-cov`, the root directory must be properly added to the Python path.
