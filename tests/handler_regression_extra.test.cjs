@@ -358,11 +358,6 @@ async function fixHandlerFinalShortcutCoverage() {
     handleCommand('1m', appendLine); // due-deck time range shortcut
 
     // Default to due chart for time range
-    // We can clear currentChart by importing and maybe setting? No we can't directly.
-    // Instead we can use an unknown chart or empty string? Wait... if currentChart is 'unknown', it will hit the 'else' block.
-    // However currentChart will stay due-deck.
-    // How is currentChart cleared? No way to clear it without page reload or calling reset logic.
-    // Wait, if it's already 'due-deck', we can just switch back to 'due'
     handleCommand('plot due', appendLine);
     handleCommand('1m', appendLine); // This should hit the due branch (first branch)
 
@@ -568,20 +563,10 @@ async function fixHandler716Logic() {
     handleCommand('qqqqqqqqqqqq', appendLine);
 
     // Check if it hit the "Did you mean" vs "Type 'help'" logic
-    // Actually, 'qqqqqqqqqqqq' should yield 0 suggestions from the trie,
-    // so it should hit line 718 ("Type 'help' for available commands")
     assert.ok(output.includes("Type 'help' for available commands"));
 
     // Now test a command that yields suggestions but is invalid
     output = [];
-    // "plot d" is partial, so it returns {handled: false} from trie and then drops to `handlePlotCommand` ?
-    // No, `plot d` is caught by `validation.isPartial` which is true, so it bypasses the `if (!validation.valid && !validation.isPartial...)` block.
-    // What if we enter a typo that is not partial but fuzzy matches? Trie doesn't do fuzzy.
-    // Wait, `validation.suggestions` is populated if `isPartial` is true, but then it never enters the `if` block.
-    // If it's invalid AND not partial, `suggestions` is always empty in a standard Trie!
-    // Therefore, `validation.suggestions.length > 0` on line 715 is virtually impossible to be true
-    // because the Trie `validate()` only returns suggestions if `isPartial` is true.
-    // Since `!validation.isPartial` is a condition to enter the `if` block, line 716 is unreachable defensive code.
 
     console.log("✅ fixHandler716Logic passed");
 }
