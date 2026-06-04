@@ -106,6 +106,32 @@ function initGravitationalDistortion(widget, charGroups) {
   // Bolt: Pre-calculate static character positions relative to their parent container
   // to avoid calling O(N) getBoundingClientRect() inside the gsap.ticker animation loop,
   // which causes severe layout thrashing and main-thread blocking.
+  // Bolt: Hoist widget layout dimensions outside the ticker to prevent continuous
+  // main thread layout thrashing on every 60fps frame. We cache absolute document
+  // positions (adding scroll offsets) to correctly handle user scrolling.
+  let wAbsoluteCx = 0;
+  let wAbsoluteCy = 0;
+  let widgetVisible = false;
+
+  const updateWidgetLayout = () => {
+    const wRect = widget.getBoundingClientRect();
+    widgetVisible = wRect.width > 0;
+    if (widgetVisible) {
+      wAbsoluteCx = wRect.left + window.scrollX + wRect.width / 2;
+      wAbsoluteCy = wRect.top + window.scrollY + wRect.height / 2;
+    }
+  };
+
+  updateWidgetLayout();
+
+  if (typeof window !== "undefined" && window.addEventListener) {
+    window.addEventListener("resize", updateWidgetLayout);
+    if (typeof window.ResizeObserver === "function") {
+      const resizeObserver = new window.ResizeObserver(updateWidgetLayout);
+      resizeObserver.observe(document.body);
+    }
+  }
+
   charGroups.forEach((group) => {
     if (group.spans.length === 0) return;
 
@@ -127,12 +153,14 @@ function initGravitationalDistortion(widget, charGroups) {
   });
 
   window.gsap.ticker.add(() => {
-    const wRect = widget.getBoundingClientRect();
-    if (wRect.width === 0) {
+    if (!widgetVisible) {
       return;
     }
-    const wcx = wRect.left + wRect.width / 2;
-    const wcy = wRect.top + wRect.height / 2;
+
+    // Convert cached absolute center back to viewport-relative
+    // Reading scrollY doesn't cause layout thrashing
+    const wcx = wAbsoluteCx - window.scrollX;
+    const wcy = wAbsoluteCy - window.scrollY;
 
     for (const {
       spans,

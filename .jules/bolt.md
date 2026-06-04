@@ -227,3 +227,8 @@
 
 **Learning:** Instantiating new `CanvasGradient` objects via `createLinearGradient()` inside high-frequency animation loops (like `requestAnimationFrame`) creates heavy garbage collection (GC) overhead. If the gradient moves dynamically (e.g., during a sweep effect driven by a phase value), caching it at static coordinates doesn't work.
 **Action:** Create and cache the gradient object centered at `(0, 0)` during initialization or resize. Inside the render loop, use `ctx.translate()` to move the canvas context to the dynamic target coordinates, fill the shape using the cached gradient relative to the translated origin, and then call `ctx.restore()`. This completely eliminates gradient object allocation overhead on every frame.
+
+## 2025-06-03 - [Optimize getBoundingClientRect in GSAP Ticker]
+
+**Learning:** Calling `getBoundingClientRect()` inside a high-frequency `gsap.ticker` animation loop to get a static element's dimensions causes severe layout thrashing and blocks the main thread. Caching relative dimensions alone is unsafe if the page layout shifts dynamically.
+**Action:** To prevent layout thrashing inside high-frequency animation loops (e.g., `gsap.ticker`), avoid querying `getBoundingClientRect()` for elements whose position isn't continuously changing. Hoist the calculation outside the loop, cache the absolute document coordinates (adding `window.scrollX/scrollY`), and use a `ResizeObserver` on `document.body` to invalidate and recalculate the layout cache when layout shifts occur. Inside the loop, subtract the fast-to-read `window.scrollX/scrollY` to calculate relative viewport coordinates.
