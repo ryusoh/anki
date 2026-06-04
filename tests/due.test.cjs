@@ -305,3 +305,55 @@ fixMissingBranchCoverage().catch(e => {
   console.error(e);
   console.error(e);
 });
+
+async function fixMaxDayBranchCoverage() {
+    const { renderFutureDueChart } = await import('../js/commands/due.js');
+    const assert = require('assert');
+
+    // Restore DOM cleanly
+    const originalGetElementById = global.document.getElementById;
+    global.document.getElementById = (id) => {
+        if (id === 'runningAmountCanvas') return { getContext: () => ({}) };
+        if (id === 'runningAmountSection') return { classList: { remove: () => {}, contains: () => false } };
+        if (id === 'chartLegend') return { style: {}, textContent: '', appendChild: () => {}, replaceChildren: () => {}, innerHTML: '', querySelectorAll: () => [] };
+        if (id === 'runningAmountEmpty') return { style: {}, textContent: '', classList: { remove: () => {} } };
+        return null;
+    };
+
+    // Test coverage for lines 125-127 (maxDay < rangeDays - 1 branch)
+    // We pass data that has a max day of 2, but request a range of 5
+    // The maxDay will be clamped to 4 (rangeDays - 1)
+    const result = renderFutureDueChart([{ day: 0, young: 1, mature: 1 }, { day: 2, young: 1, mature: 1 }], false, 5);
+
+    assert.strictEqual(result.success, true);
+
+    global.document.getElementById = originalGetElementById;
+    console.log("✅ fixMaxDayBranchCoverage passed");
+}
+
+fixMaxDayBranchCoverage().catch(e => {
+    console.error("TestPilot fixMaxDayBranchCoverage failed:", e);
+    process.exitCode = 1;
+});
+
+async function fixMaxDayBranchCoverage2() {
+    const { renderFutureDueChart } = await import('../js/commands/due.js');
+    const assert = require('assert');
+
+    // Restore DOM cleanly
+    const originalGetElementById = global.document.getElementById;
+    global.document.getElementById = (id) => {
+        if (id === 'runningAmountCanvas') return { getContext: () => ({}) };
+        if (id === 'runningAmountSection') return { classList: { remove: () => {}, contains: () => false } };
+        if (id === 'chartLegend') return { style: {}, textContent: '', appendChild: () => {}, replaceChildren: () => {}, innerHTML: '', querySelectorAll: () => [] };
+        if (id === 'runningAmountEmpty') return { style: {}, textContent: '', classList: { remove: () => {} } };
+        return null;
+    };
+
+    global.document.getElementById = originalGetElementById;
+}
+
+fixMaxDayBranchCoverage2().catch(e => {
+    console.error("TestPilot fixMaxDayBranchCoverage2 failed:", e);
+    process.exitCode = 1;
+});

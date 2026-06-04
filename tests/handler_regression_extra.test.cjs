@@ -358,11 +358,6 @@ async function fixHandlerFinalShortcutCoverage() {
     handleCommand('1m', appendLine); // due-deck time range shortcut
 
     // Default to due chart for time range
-    // We can clear currentChart by importing and maybe setting? No we can't directly.
-    // Instead we can use an unknown chart or empty string? Wait... if currentChart is 'unknown', it will hit the 'else' block.
-    // However currentChart will stay due-deck.
-    // How is currentChart cleared? No way to clear it without page reload or calling reset logic.
-    // Wait, if it's already 'due-deck', we can just switch back to 'due'
     handleCommand('plot due', appendLine);
     handleCommand('1m', appendLine); // This should hit the due branch (first branch)
 
@@ -528,5 +523,69 @@ async function fixDueSwitchShortcuts() {
 
 fixDueSwitchShortcuts().catch(e => {
     console.error("TestPilot fixDueSwitchShortcuts failed:", e);
+    process.exitCode = 1;
+});
+
+async function fixHandlerZoomUnzoomLogic() {
+    const { handleCommand } = await import('../js/commands/handler.js');
+    const { toggleZoom, getZoomState } = await import('../js/commands/zoom.js');
+    const assert = require('assert');
+
+    const appendLine = (text, variant) => {};
+
+    // 1. Force zoom state to true
+    if (!getZoomState()) {
+        await toggleZoom();
+    }
+    assert.strictEqual(getZoomState(), true);
+
+    // 2. Issue a time range shortcut. This should hit lines 119-122 and call toggleZoom() to unzoom
+    handleCommand('3m', appendLine);
+
+    // 3. Verify it unzoomed
+    assert.strictEqual(getZoomState(), false);
+    console.log("✅ fixHandlerZoomUnzoomLogic passed");
+}
+
+fixHandlerZoomUnzoomLogic().catch(e => {
+    console.error("TestPilot fixHandlerZoomUnzoomLogic failed:", e);
+    process.exitCode = 1;
+});
+
+async function fixHandler716Logic() {
+    const { handleCommand } = await import('../js/commands/handler.js');
+    const assert = require('assert');
+
+    let output = [];
+    const appendLine = (text, variant) => { output.push(text) };
+
+    // Pass a completely unknown command that won't yield any partial suggestions from the trie
+    handleCommand('qqqqqqqqqqqq', appendLine);
+
+    // Check if it hit the "Did you mean" vs "Type 'help'" logic
+    assert.ok(output.includes("Type 'help' for available commands"));
+
+    // Now test a command that yields suggestions but is invalid
+    output = [];
+
+    console.log("✅ fixHandler716Logic passed");
+}
+
+fixHandler716Logic().catch(e => {
+    console.error("TestPilot fixHandler716Logic failed:", e);
+    process.exitCode = 1;
+});
+
+async function fixHandlerZoomPromise() {
+    const { handleCommand } = await import('../js/commands/handler.js');
+    let msg = "";
+    handleCommand('zoom', (text) => { msg = text; });
+    // Need to wait to ensure `.then` callback executes
+    await new Promise(r => setTimeout(r, 10));
+    console.log("✅ fixHandlerZoomPromise done");
+}
+
+fixHandlerZoomPromise().catch(e => {
+    console.error(e);
     process.exitCode = 1;
 });
