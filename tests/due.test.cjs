@@ -350,14 +350,6 @@ async function fixMaxDayBranchCoverage2() {
         return null;
     };
 
-    // Test coverage for line 122 `maxDay = data.length > 0 ? data[data.length - 1].day : 0;` missing branch (data.length === 0 but entering the else branch)
-    // Actually, `renderFutureDueChart` with an empty array `[]` will exit early on line 100 because of `if (!data || data.length === 0)`
-    // BUT what if `data` has length > 0 but the branch requires it? We already cover `data.length > 0`.
-    // Wait, the false condition of `data.length > 0` is `0`.
-    // It's impossible to reach `data.length === 0` inside the `else` block because of the early return!
-    // So line 122 false branch is unreachable. We can't cover it without removing the early return.
-    // We will leave line 122 as an expected uncovered branch since it's defensive coding.
-
     global.document.getElementById = originalGetElementById;
 }
 
