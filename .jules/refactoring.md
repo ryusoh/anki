@@ -74,3 +74,6 @@
 - **Structural Health:** Refactored `_accept_process` in `awesome_tts/awesometts/gui/stripper.py` to extract note processing logic into `_process_notes` and summary generation into `_build_messages`, dropping main method cyclomatic complexity from 19 to 3 and enhancing modularity.
   **Learning:** Cyclomatic complexity can quickly accumulate in UI callback functions that handle both business logic and alert rendering. Extracting formatting tasks simplifies testing and debugging.
   **Action:** When auditing `accept` or process callbacks in PyQt dialogs, eagerly separate data mutation logic from presentation text formatting.
+
+- **Resilience & Error Handling:** Fixed empty `except` blocks (`pass`) in multiple modules (`graph/export_data.py`, `data/anki/security_check.py`, `prioritize_front_field_search/__init__.py`, `awesome_tts/awesometts/gui/base.py`, `awesome_tts/awesometts/machineid.py`, `review_heatmap/web_bridge.py`) by replacing them with context-aware logging or warnings.
+- **Structural Health:** Reduced cyclomatic complexity of `Service.net_stream` in `awesome_tts/awesometts/service/base.py` and `ServiceDialog._on_service_activated` in `awesome_tts/awesometts/gui/base.py` by extracting target parsing, response validation, group activation, and panel setup logic into smaller sub-methods.

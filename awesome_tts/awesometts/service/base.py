@@ -443,6 +443,72 @@ class Service(object, metaclass=abc.ABCMeta):
             raw_mime = raw_mime.split(';')[0]
         return raw_mime
 
+    def _parse_net_stream_targets(self, targets, custom_quoter):
+        from urllib.parse import quote
+        targets = targets if isinstance(targets, list) else [targets]
+        return [
+            (target, None) if isinstance(target, str)
+            else (
+                target[0],
+                '&'.join(
+                    '='.join([
+                        key,
+                        (
+                            custom_quoter[key] if (custom_quoter and
+                                                   key in custom_quoter)
+                            else quote
+                        )(
+                            str(val),
+                            safe='',
+                        ),
+                    ])
+                    for key, val in list(target[1].items())
+                ),
+            )
+            for target in targets
+        ]
+
+    def _validate_net_stream_response(self, response, desc, require, allow_redirects, url):
+        if not response:
+            raise IOError("No response for %s" % desc)
+
+        if response.status_code != 200:
+            value_error = ValueError(
+                "Got %d status for %s" %
+                (response.status_code, desc)
+            )
+            try:
+                value_error.payload = response.content
+                response.close()
+            except Exception as e:
+                self._logger.debug("Failed to set error payload or close response: %s", e)
+            raise value_error
+
+        got_mime = response.headers['Content-Type']
+        simplified_mime = self.parse_mime_type(got_mime)
+
+        if 'mime' in require and require['mime'] != simplified_mime:
+            value_error = ValueError(
+                f"Request got {got_mime} Content-Type for {desc};"
+                f" wanted {require['mime']}"
+            )
+            value_error.got_mime = got_mime
+            value_error.wanted_mime = require['mime']
+            raise value_error
+
+        if not allow_redirects and response.geturl() != url:
+            raise ValueError("Request has been redirected")
+
+        payload = response.content
+        response.close()
+
+        if 'size' in require and len(payload) < require['size']:
+            raise self.TinyDownloadError(
+                "Request got %d-byte stream for %s; wanted %d+ bytes" %
+                (len(payload), desc, require['size'])
+            )
+        return payload
+
     def net_stream(self, targets, require=None, method='GET',
                    awesome_ua=False, add_padding=False,
                    custom_quoter=None, custom_headers=None,
@@ -472,31 +538,8 @@ class Service(object, metaclass=abc.ABCMeta):
         """
 
         assert method in ['GET', 'POST'], "method must be GET or POST"
-        from urllib.parse import quote
 
-        targets = targets if isinstance(targets, list) else [targets]
-        targets = [
-            (target, None) if isinstance(target, str)
-            else (
-                target[0],
-                '&'.join(
-                    '='.join([
-                        key,
-                        (
-                            custom_quoter[key] if (custom_quoter and
-                                                   key in custom_quoter)
-                            else quote
-                        )(
-                            str(val),
-                            safe='',
-                        ),
-                    ])
-                    for key, val in list(target[1].items())
-                ),
-            )
-            for target in targets
-        ]
-
+        targets = self._parse_net_stream_targets(targets, custom_quoter)
         require = require or {}
 
         payloads = []
@@ -523,46 +566,7 @@ class Service(object, metaclass=abc.ABCMeta):
                 timeout=DEFAULT_TIMEOUT,
             )
 
-            if not response:
-                raise IOError("No response for %s" % desc)
-
-            if response.status_code != 200:
-                value_error = ValueError(
-                    "Got %d status for %s" %
-                    (response.status_code, desc)
-                )
-                try:
-                    value_error.payload = response.content
-                    response.close()
-                except Exception as e:
-                    self.logger.debug("Failed to set error payload or close response: %s", e)
-                raise value_error
-
-            got_mime = response.headers['Content-Type']
-            simplified_mime = self.parse_mime_type(got_mime)
-
-            if 'mime' in require and require['mime'] != simplified_mime:
-
-                value_error = ValueError(
-                    f"Request got {got_mime} Content-Type for {desc};"
-                    f" wanted {require['mime']}"
-                )
-                value_error.got_mime = got_mime
-                value_error.wanted_mime = require['mime']
-                raise value_error
-
-            if not allow_redirects and response.geturl() != url:
-                raise ValueError("Request has been redirected")
-
-            payload = response.content
-            response.close()
-
-            if 'size' in require and len(payload) < require['size']:
-                raise self.TinyDownloadError(
-                    "Request got %d-byte stream for %s; wanted %d+ bytes" %
-                    (len(payload), desc, require['size'])
-                )
-
+            payload = self._validate_net_stream_response(response, desc, require, allow_redirects, url)
             payloads.append(payload)
 
         if add_padding:
