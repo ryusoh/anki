@@ -259,7 +259,7 @@ class ActivityReporter:
             if self._col.v3_scheduler():
                 return 3
         except AttributeError:
-            pass  # Fallback to 2.1 sched_ver()
+            logger.debug("v3_scheduler not found, falling back to sched_ver/schedVer")
         try:
             return self._col.sched_ver()
         except AttributeError:
