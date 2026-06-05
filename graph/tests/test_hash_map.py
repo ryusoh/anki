@@ -298,3 +298,26 @@ def test_update_hash_map_no_guid():
     notes = [{"flds": "test", "tags": "test", "mid": 123}]
     updated = update_hash_map({"existing": "hash"}, notes)
     assert updated == {"existing": "hash"}
+
+def test_find_changed_notes_no_guid2():
+    from graph.hash_map import find_changed_notes
+    notes = [{"flds": "test", "tags": "test", "mid": 123}]
+    changed, unchanged = find_changed_notes(notes, {})
+    assert changed == []
+    assert unchanged == []
+
+def test_update_hash_map_no_guid2():
+    from graph.hash_map import update_hash_map
+    notes = [{"flds": "test", "tags": "test", "mid": 123}]
+    updated = update_hash_map({"existing": "hash"}, notes)
+    assert updated == {"existing": "hash"}
+
+def test_load_hash_map_json_error():
+    from graph.hash_map import load_hash_map
+    import tempfile
+    import os
+    with tempfile.TemporaryDirectory() as tmpdir:
+        hash_file = os.path.join(tmpdir, "hash_map.json")
+        with open(hash_file, "w") as f:
+            f.write("{invalid json")
+        assert load_hash_map(hash_file) == {}

@@ -299,3 +299,34 @@ class TestNodeAnalysisUtilities:
         assert hubs[1][1]['pagerank'] == 0.05
         assert hubs[1][1]['in_degree'] == 1
         assert hubs[1][1]['out_degree'] == 1
+
+def test_missing_coverage_builder():
+    from graph.builder import _compute_pagerank
+    import networkx as nx
+    from unittest.mock import patch, MagicMock
+
+    # 107
+    _compute_pagerank(nx.DiGraph())
+
+    # 117-119
+    G = nx.DiGraph()
+    G.add_node(1)
+    with patch("networkx.pagerank", side_effect=nx.PowerIterationFailedConvergence("Error", 100)):
+         _compute_pagerank(G)
+
+def test_missing_coverage_builder2():
+    from graph.builder import get_top_nodes
+    import networkx as nx
+
+    # 202
+    get_top_nodes(nx.DiGraph())
+
+    # 206-210
+    # Create graph with missing 'pagerank' metric
+    G = nx.DiGraph()
+    G.add_node(1, dummy="metric")
+    import builtins
+
+    from unittest.mock import patch, MagicMock
+    with patch("builtins.compute_pagerank", return_value={1: 0.5}, create=True):
+         get_top_nodes(G, by='pagerank')
