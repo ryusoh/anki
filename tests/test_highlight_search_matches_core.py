@@ -61,3 +61,64 @@ def test_highlight_text_no_matches():
 def test_highlight_text_empty():
     assert highlight_text("", ["apple"]) == ""
     assert highlight_text("apple", []) == "apple"
+
+def test_init_py_coverage():
+    import sys
+    from unittest.mock import patch, mock_open
+
+    # Save original modules
+    orig_aqt = sys.modules.get("aqt")
+
+    # Remove aqt to test the ImportError path
+    if "aqt" in sys.modules:
+        del sys.modules["aqt"]
+
+    import highlight_search_matches
+    import importlib
+    importlib.reload(highlight_search_matches)
+
+    # Run the `log` function
+    with patch("builtins.open", mock_open()) as mocked_file:
+        highlight_search_matches.log("test_message")
+        mocked_file.assert_called()
+
+    # Put aqt back
+    if orig_aqt:
+        sys.modules["aqt"] = orig_aqt
+
+    # Re-import to test the normal path
+    importlib.reload(highlight_search_matches)
+
+    # Test when mw is present but no config
+    with patch("highlight_search_matches.mw") as mock_mw:
+        mock_mw.addonManager.getConfig.return_value = None
+        with patch("builtins.open", mock_open()) as mocked_file:
+            highlight_search_matches.log("test_message")
+            # should not write
+            mocked_file.assert_not_called()
+
+    # Test when mw is present and debug is True
+    with patch("highlight_search_matches.mw") as mock_mw:
+        mock_mw.addonManager.getConfig.return_value = {"debug": True}
+        with patch("builtins.open", mock_open()) as mocked_file:
+            highlight_search_matches.log("test_message")
+            mocked_file.assert_called()
+
+    # Test Exception in getConfig
+    with patch("highlight_search_matches.mw") as mock_mw, \
+         patch("logging.getLogger") as mock_logger:
+        mock_mw.addonManager.getConfig.side_effect = Exception("err")
+        highlight_search_matches.log("test_message")
+        mock_logger.return_value.debug.assert_called()
+
+    # Test Exception in file writing
+    if "aqt" in sys.modules:
+        del sys.modules["aqt"]
+    importlib.reload(highlight_search_matches)
+    with patch("builtins.open", side_effect=Exception("write err")), \
+         patch("logging.getLogger") as mock_logger:
+        highlight_search_matches.log("test_message")
+        mock_logger.return_value.debug.assert_called()
+
+    if orig_aqt:
+        sys.modules["aqt"] = orig_aqt

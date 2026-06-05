@@ -232,3 +232,8 @@
 
 **Learning:** Calling `getBoundingClientRect()` inside a high-frequency `gsap.ticker` animation loop to get a static element's dimensions causes severe layout thrashing and blocks the main thread. Caching relative dimensions alone is unsafe if the page layout shifts dynamically.
 **Action:** To prevent layout thrashing inside high-frequency animation loops (e.g., `gsap.ticker`), avoid querying `getBoundingClientRect()` for elements whose position isn't continuously changing. Hoist the calculation outside the loop, cache the absolute document coordinates (adding `window.scrollX/scrollY`), and use a `ResizeObserver` on `document.body` to invalidate and recalculate the layout cache when layout shifts occur. Inside the loop, subtract the fast-to-read `window.scrollX/scrollY` to calculate relative viewport coordinates.
+
+## 2026-06-05 - [Optimize canvas globalAlpha vs string interpolation in render loops]
+
+**Learning:** Constructing rgba strings like `'rgba(255, 255, 255, ' + alpha + ')'` inside high-frequency execution loops, such as `requestAnimationFrame` render layers, creates severe GC overhead from string instantiation and requires the browser to parse the string on every single frame.
+**Action:** Hoist the static `ctx.fillStyle` or `ctx.strokeStyle` color string parsing outside of the loop. Inside the loop, mutate the canvas context's `globalAlpha` property directly instead of recreating color strings, resulting in zero allocation and much faster render times.

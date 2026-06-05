@@ -66,13 +66,24 @@ def test_scan_tracked_files_extensions():
         assert len(issues) == 0
 
 def test_main_block_2():
-    # Execute the file explicitly through runpy, but this time we mock _scan_tracked_files
-    # to return something, causing an exit(1)
-    import runpy
+    # Instead of runpy which loads a new copy of the module, we just call the main function
+    # on the imported module.
     import sys
     from unittest.mock import patch
+    import tools.security_audit
     with patch("sys.exit") as mock_exit, \
-         patch("tools.security_audit._scan_tracked_files") as mock_scan:
+         patch("tools.security_audit._scan_tracked_files") as mock_scan, \
+         patch("tools.security_audit._process_gitignore_coverage") as mock_process:
         mock_scan.return_value = ["fake issue"]
+        mock_process.return_value = True
+
+        # calling main directly since the if __name__ block just calls main and sys.exit
+        ret = tools.security_audit.main()
+        assert ret == 1
+
+def test_if_name_main():
+    import runpy
+    from unittest.mock import patch
+    with patch("sys.exit") as mock_exit:
         runpy.run_module("tools.security_audit", run_name="__main__")
-        mock_exit.assert_called_once_with(1)
+        mock_exit.assert_called()
