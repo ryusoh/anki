@@ -226,7 +226,7 @@ class OverviewInjector(HeatmapInjector):
         }
         const style = document.createElement("style");
         style.id = inlineStyleId;
-        style.innerHTML = `
+        style.textContent = `
             #${containerId} {
                 width: 100%;
                 display: flex;
@@ -285,9 +285,17 @@ class OverviewInjector(HeatmapInjector):
     };
 
     const parseMarkup = () => {
-        const template = document.createElement("template");
-        template.innerHTML = heatmapHtml;
-        const fragment = template.content;
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(heatmapHtml, "text/html");
+        const fragment = document.createDocumentFragment();
+        // Move all nodes from body into fragment
+        while (doc.body.firstChild) {
+            fragment.appendChild(doc.body.firstChild);
+        }
+        // Also move scripts/styles that might end up in head
+        while (doc.head.firstChild) {
+            fragment.appendChild(doc.head.firstChild);
+        }
         const scripts = [];
         fragment.querySelectorAll("script").forEach((script) => {
             scripts.push({
@@ -320,7 +328,7 @@ class OverviewInjector(HeatmapInjector):
             ensureScopedStyles();
 
             const { fragment, scripts, styles } = parseMarkup();
-            container.innerHTML = "";
+            container.textContent = "";
             container.style.opacity = "0";
             container.style.transition = "opacity 0.2s ease-in";
             container.appendChild(fragment);
