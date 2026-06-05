@@ -344,6 +344,72 @@ def compare_decks(graphs):
     print()
 
 
+def analyze_single_deck(args, decks, notes):
+    # Resolve alias
+    deck_to_analyze = args.deck
+
+    # Check if it's an alias or full name
+    resolved = resolve_deck_alias(args.deck)
+    if resolved:
+        deck_to_analyze = resolved
+        print(f"📍 Alias '{args.deck}' → '{resolved}'")
+    elif args.deck not in decks:
+        print(f"❌ Deck not found: {args.deck}", file=sys.stderr)
+        print(f"\nAvailable decks:", file=sys.stderr)
+        for i, d in enumerate(sorted(decks), 1):
+            print(f"  {i}. {d}", file=sys.stderr)
+        print(f"\nOr use aliases: J, C, E, S, T, F", file=sys.stderr)
+        sys.exit(1)
+
+    deck_notes = get_deck_notes(notes, deck_to_analyze)
+    actual_deck_name = deck_notes[0].get('deck', 'Unknown') if deck_notes else deck_to_analyze
+
+    print(f"\n📊 Analyzing deck: {actual_deck_name} ({len(deck_notes):,} notes)")
+
+    # Build graph
+    graph = build_graph(deck_notes, with_pagerank=True, with_anonymization=args.anonymize)
+
+    # Show top notes
+    print_top_notes(graph, args.deck, args.top)
+
+    # Show isolated notes
+    if args.isolated:
+        print_isolated_notes(graph, args.deck)
+
+    # Show hub notes
+    if args.hubs:
+        print_hub_notes(graph, args.deck)
+
+    # Export if requested
+    if args.export:
+        export_graph(graph, args.export, args.format, args.deck.replace(' ', '_'))
+
+
+def analyze_all_decks(args, decks, notes):
+    print(f"\n📊 Analyzing all {len(decks)} decks...")
+
+    graphs = build_per_deck_graphs(notes, with_pagerank=True, with_anonymization=args.anonymize)
+
+    # Compare decks
+    if args.compare:
+        compare_decks(graphs)
+
+    # Show top notes for each deck
+    for deck_name, graph in graphs.items():
+        print_top_notes(graph, deck_name, min(args.top, 5))
+
+        if args.isolated:
+            print_isolated_notes(graph, deck_name)
+
+        if args.hubs:
+            print_hub_notes(graph, deck_name)
+
+    # Export all decks
+    if args.export:
+        for deck_name, graph in graphs.items():
+            export_graph(graph, args.export, args.format, deck_name.replace(' ', '_'))
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog='analyze',
@@ -390,72 +456,12 @@ def main():
     
     # Specific deck analysis
     if args.deck:
-        # Resolve alias
-        deck_to_analyze = args.deck
-        
-        # Check if it's an alias or full name
-        resolved = resolve_deck_alias(args.deck)
-        if resolved:
-            deck_to_analyze = resolved
-            print(f"📍 Alias '{args.deck}' → '{resolved}'")
-        elif args.deck not in decks:
-            print(f"❌ Deck not found: {args.deck}", file=sys.stderr)
-            print(f"\nAvailable decks:", file=sys.stderr)
-            for i, d in enumerate(sorted(decks), 1):
-                print(f"  {i}. {d}", file=sys.stderr)
-            print(f"\nOr use aliases: J, C, E, S, T, F", file=sys.stderr)
-            sys.exit(1)
-        
-        deck_notes = get_deck_notes(notes, deck_to_analyze)
-        actual_deck_name = deck_notes[0].get('deck', 'Unknown') if deck_notes else deck_to_analyze
-        
-        print(f"\n📊 Analyzing deck: {actual_deck_name} ({len(deck_notes):,} notes)")
-        
-        # Build graph
-        graph = build_graph(deck_notes, with_pagerank=True, with_anonymization=args.anonymize)
-        
-        # Show top notes
-        print_top_notes(graph, args.deck, args.top)
-        
-        # Show isolated notes
-        if args.isolated:
-            print_isolated_notes(graph, args.deck)
-        
-        # Show hub notes
-        if args.hubs:
-            print_hub_notes(graph, args.deck)
-        
-        # Export if requested
-        if args.export:
-            export_graph(graph, args.export, args.format, args.deck.replace(' ', '_'))
-        
+        analyze_single_deck(args, decks, notes)
         return
     
     # All decks analysis
     if args.all_decks or args.compare:
-        print(f"\n📊 Analyzing all {len(decks)} decks...")
-        
-        graphs = build_per_deck_graphs(notes, with_pagerank=True, with_anonymization=args.anonymize)
-        
-        # Compare decks
-        if args.compare:
-            compare_decks(graphs)
-        
-        # Show top notes for each deck
-        for deck_name, graph in graphs.items():
-            print_top_notes(graph, deck_name, min(args.top, 5))
-            
-            if args.isolated:
-                print_isolated_notes(graph, deck_name)
-            
-            if args.hubs:
-                print_hub_notes(graph, deck_name)
-        
-        # Export all decks
-        if args.export:
-            for deck_name, graph in graphs.items():
-                export_graph(graph, args.export, args.format, deck_name.replace(' ', '_'))
-        
+        analyze_all_decks(args, decks, notes)
         return
     
     # Default: show deck list
