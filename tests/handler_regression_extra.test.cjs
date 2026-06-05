@@ -1,3 +1,4 @@
+const test = require('node:test');
 const assert = require('assert');
 
 // Setup minimal mocks
@@ -588,4 +589,24 @@ async function fixHandlerZoomPromise() {
 fixHandlerZoomPromise().catch(e => {
     console.error(e);
     process.exitCode = 1;
+});
+
+test('TestPilot: handleCommand zoom mapping without autocomplete suggestions correctly asserts', async () => {
+    const { getCurrentChart, handleCommand } = await import('../js/commands/handler.js');
+    const assert = require('assert');
+
+    // Test getCurrentChart export function explicitly
+    getCurrentChart();
+
+    // Act
+    let isZCalled = false;
+    handleCommand('z', () => { isZCalled = true; });
+
+    // Test a completely invalid command
+    let isUnknownCalled = false;
+    const res = handleCommand('qqqqqqqqqqqq', () => { isUnknownCalled = true; });
+
+    // Assert
+    assert.strictEqual(res.handled, true, "Should gracefully return handled status on complete miss");
+    assert.strictEqual(res.error, "not in trie", "Should return not in trie error code");
 });

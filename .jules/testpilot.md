@@ -129,6 +129,11 @@
 **Learning:** Certain UI branches like invalid state edge cases on deeply nested fallback functions or early-returns mapping DOM state checks cannot be safely hit without removing defensive lines. Testing requires robust mock generation of complex configurations (e.g., overriding `.getElementById` globally to catch specific elements while leaving others untouched).
 **Action:** Replicate full browser configurations, explicitly clear overrides via global mocking, and accept small percentages of defensive coverage loss (e.g. `c8 ignore next`) over restructuring logic.
 
+## 2024-06-04 - Safely Restoring Global Mocks inside Tests
+
+**Learning:** When running multiple sequential tests using a `node:test` framework, mutating global DOM or Chart mocks (e.g. `global.window.Chart`) and failing to wrap the test execution explicitly with `try...finally` cleanup blocks can permanently poison the environment. A thrown error within a test causes the runner to bypass downstream restoration assignments (`global.window.Chart = original`), leading to cascaded `"Chart render error"` failures in subsequent suites.
+**Action:** Always wrap `Act` and `Assert` steps that depend on mocked global states inside `try` blocks and place the teardown inside a `finally` block to guarantee environment restoration, even if an assertion unexpectedly fails.
+
 ## 2026-06-05 - Test tools and regex extraction logic
 
 **Learning:** When using `runpy.run_module` to execute a script's `__main__` block, ensure that if the original script's logic invokes `sys.exit()` natively, that behavior is accurately modeled and tested. Use a simple structure of `sys.exit(main())` within `if __name__ == '__main__':` and assert that `main()` is correctly called. When parsing search queries and ignoring negations or logical operators using a regex, it is more reliable to assert exact logical parts output in list comprehensions and match `re.finditer` components than trusting loose string matching.
