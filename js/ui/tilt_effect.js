@@ -32,16 +32,30 @@ export function initTiltEffect() {
     });
 
     container.addEventListener("mouseenter", () => {
-      rect = container.getBoundingClientRect();
+      const r = container.getBoundingClientRect();
+      // Bolt: Cache absolute layout dimensions (incorporating scroll offset)
+      // on mouseenter to prevent O(N) layout thrashing inside mousemove.
+      rect = {
+        left: r.left + window.scrollX,
+        top: r.top + window.scrollY,
+        width: r.width,
+        height: r.height,
+      };
     });
 
     container.addEventListener("mousemove", (e) => {
       if (!rect) {
-        rect = container.getBoundingClientRect();
+        const r = container.getBoundingClientRect();
+        rect = {
+          left: r.left + window.scrollX,
+          top: r.top + window.scrollY,
+          width: r.width,
+          height: r.height,
+        };
       }
 
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const x = e.pageX - rect.left;
+      const y = e.pageY - rect.top;
       const centerX = rect.width / 2;
       const centerY = rect.height / 2;
       const rotateX = ((y - centerY) / centerY) * -10;

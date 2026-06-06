@@ -1,3 +1,4 @@
+const test = require('node:test');
 const assert = require('assert');
 
 let capturedConfig = null;
@@ -356,4 +357,34 @@ async function fixMaxDayBranchCoverage2() {
 fixMaxDayBranchCoverage2().catch(e => {
     console.error("TestPilot fixMaxDayBranchCoverage2 failed:", e);
     process.exitCode = 1;
+});
+
+// Append tests securely with proper module testing format
+test('TestPilot: renderFutureDueChart handles empty objects and missing days appropriately', async () => {
+    const { renderFutureDueChart } = await import('../js/commands/due.js');
+    const assert = require('assert');
+
+    // Clean mock
+    const originalGetElementById = global.document.getElementById;
+    global.document.getElementById = (id) => {
+        if (id === 'runningAmountCanvas') return { getContext: () => ({}) };
+        if (id === 'runningAmountSection') return { classList: { remove: () => {}, contains: () => false } };
+        if (id === 'chartLegend') return { style: {}, textContent: '', appendChild: () => {}, replaceChildren: () => {}, innerHTML: '', querySelectorAll: () => [] };
+        if (id === 'runningAmountEmpty') return { style: {}, textContent: '', classList: { remove: () => {} } };
+        return null;
+    };
+
+    // Act 1: empty object with byDeck = true
+    const res1 = renderFutureDueChart({}, true, 5);
+    assert.strictEqual(res1.success, false, "Should return false for empty object data set");
+
+    // Act 2: empty array with maxDay > rangeDays check
+    const res2 = renderFutureDueChart([], false, 5);
+    assert.strictEqual(res2.success, false, "Should return false for empty array data set");
+
+    // Act 3: empty array without rangeDays
+    const res3 = renderFutureDueChart([], false);
+    assert.strictEqual(res3.success, false, "Should return false for empty array missing rangeDays");
+
+    global.document.getElementById = originalGetElementById;
 });

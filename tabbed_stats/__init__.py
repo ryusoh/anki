@@ -239,11 +239,15 @@ def _create_addcards_tab() -> None:
     global _addcards
 
     if _addcards is not None:
-        # Already open, just switch to it
-        _close_stats()
-        _hide_main_content()
-        _addcards.show()
-        return
+        import sip
+        if sip.isdeleted(_addcards):
+            _addcards = None
+        else:
+            # Already open, just switch to it
+            _close_stats()
+            _hide_main_content()
+            _addcards.show()
+            return
 
     _close_stats()
 
