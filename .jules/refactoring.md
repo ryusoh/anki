@@ -79,4 +79,5 @@
 - **Structural Health:** Reduced cyclomatic complexity of `Service.net_stream` in `awesome_tts/awesometts/service/base.py` and `ServiceDialog._on_service_activated` in `awesome_tts/awesometts/gui/base.py` by extracting target parsing, response validation, group activation, and panel setup logic into smaller sub-methods.
 
 ## 2026-06-05 - Refactored graph/analyze.py and fixed silent exceptions in review_heatmap/activity.py
+
 **Refactoring:** Extracted logic from main in graph/analyze.py into analyze_single_deck and analyze_all_decks to lower cyclomatic complexity and improve readability. Added context-aware logging to an empty except block in review_heatmap/activity.py.
