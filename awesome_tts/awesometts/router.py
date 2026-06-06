@@ -332,196 +332,110 @@ class Router(object):
 
             try_next()
 
-    def __call__(self, svc_id, text, options, callbacks,
-                 want_human=False, note=None, async_variable=True):
-        """
-        Given the service ID and associated options, pass the text into
-        the service for processing.
 
-        Note that it is the caller who has the context of how the text
-        is being used (e.g. if it's from a database field, an on-the-fly
-        tag, or from user input). Therefore, it is the responsibility of
-        the caller to normalize the text before passing it. The service
-        MAY apply additional normalization afterward, however, if it has
-        implemented as modify() method.
 
-        On the other hand, the passed service ID and options are indeed
-        normalized, since this does not vary from context to context,
-        and can be passed in directly by the caller.
+    def _create_human_readable_path(self, path, svc_id, text, options, want_human, note):
+        import os
+        from shutil import copyfile
 
-        The callbacks parameter is a dict and contains the following:
+        if not want_human:
+            return path
 
-            - 'done' (optional): called before the okay/fail callback
-            - 'miss' (optional): called after done with a svc_id and download
-               count if a cache miss occurred running the service
-            - 'okay' (required): called with a path to the media file
-            - 'fail' (required): called with an exception for validation
-               errors or failed service calls occurs
-            - 'then' (optional): called after the okay/fail callback
+        if not os.path.isdir(self._temp_dir):
+            os.mkdir(self._temp_dir)
 
-        Because it is asynchronous in nature, this method does not raise
-        exceptions normally; they are passed to callbacks['fail'].
+        def substitute(match):
+            from awesometts import logger
+            key = match.group(1).strip()
+            if key:
+                lower = key.lower()
+                if lower == 'service': return svc_id
+                if lower == 'text': return text
+                if lower == 'voice': return options['voice'].lower()
 
-        "Exceptions" to that rule:
+                try:
+                    return note[key]  # exact field match
+                except Exception as e:
+                    logger.debug("Silently ignoring error on exact field match: %s", e)
 
-            - an AssertionError is raised if the caller failed to supply
-              the required callbacks
-            - an exception could be theoretically be raised if the
-              threading subsystem failed
-            - an exception raised in the callbacks themselves must be
-              handled in the actual callback code; e.g. an exception in
-              the 'done' handler will not cause the 'fail' handler to
-              be called, or an exception in the 'fail' handler would
-              not recall the 'fail' handler again
+                try:
+                    for other_key in note.keys():
+                        if other_key.strip().lower() == lower:
+                            return note[other_key]  # fuzzy field match
+                except Exception as e:
+                    logger.debug("Silently ignoring error on fuzzy field match: %s", e)
+            return ''
 
-        If passed, want_human should be a template string that dictates
-        how the caller wants the filename in the path to be formatted.
-        Additionally, note may be passed to provide mustache values for
-        the given template string.
+        filename = RE_MUSTACHE.sub(substitute, want_human)
+        filename = RE_UNSAFE.sub('', filename)
+        filename = RE_WHITESPACE.sub(' ', filename).strip()
+        if not filename or filename.lower() in WINDOWS_RESERVED:
+            filename = 'AwesomeTTS Audio'
+        else:
+            filename = filename[0:90]
+        filename = 'ATTS ' + filename + '.mp3'
 
-        For synchronous testing (without the use of main event loop and
-        process spawning) async_variable=False can be used.
-        """
+        new_path = os.path.join(self._temp_dir, filename)
+        copyfile(path, new_path)
 
+        return new_path
+
+    def _prepare_call(self, svc_id, text, options):
+        svc_id, service, options = self._validate_service(svc_id, options)
+        if not text: raise ValueError("No speakable text is present")
+        limit = 5000
+        if len(text) > limit: raise ValueError("Text to speak is too long")
+        text = service['instance'].modify(text)
+        if not text: raise ValueError("Text not usable by " + service['class'].NAME)
+        path = self._validate_path(svc_id, text, options)
+
+        import os
+        cache_hit = os.path.exists(path)
+
+        if not cache_hit:
+            for extra in self.get_extras(svc_id):
+                key = extra['key']
+                try:
+                    options[key] = self._config['extras'][svc_id][key]
+                    options[key] = options[key].strip()
+                    if not options[key]:
+                        raise KeyError
+                except KeyError:
+                    if extra['required']:
+                        raise KeyError("%s required to access %s" % (extra['label'].rstrip(':'), svc_id))
+                    else:
+                        options[key] = None
+
+        return svc_id, service, options, text, path, cache_hit
+
+    def __call__(self, svc_id, text, options, callbacks, want_human=False, note=None, async_variable=True):
         self._call_assert_callbacks(callbacks)
 
         try:
             self._logger.debug("Call for '%s' w/ %s", svc_id, options)
-
-            svc_id, service, options = self._validate_service(svc_id, options)
-            if not text:
-                raise ValueError("No speakable text is present")
-            limit = 5000
-            if len(text) > limit:
-                raise ValueError("Text to speak is too long")
-            text = service['instance'].modify(text)
-            if not text:
-                raise ValueError("Text not usable by " + service['class'].NAME)
-            path = self._validate_path(svc_id, text, options)
-            cache_hit = os.path.exists(path)
-
+            svc_id, service, options, text, path, cache_hit = self._prepare_call(svc_id, text, options)
             self._logger.debug(
                 "Parsed call to '%s' w/ %s and \"%s\" at %s (cache %s)",
                 svc_id, options, text, path, "hit" if cache_hit else "miss",
             )
-
-            # If we didn't get a cache hit, we have to call the real service,
-            # so check to see if it has any extras defined, and if so, add
-            # them to the options lookup for the service to use.
-            #
-            # n.b.: Even though the extras do not factor into an audio clip's
-            # cache path, they MIGHT need to factor into the failure cache in
-            # the future... This could be done by generating a special `fpath`
-            # value during this loop, and use that with the `_failures` lookup
-            # instead of the vanilla `path` (but this is a non-issue today,
-            # because iSpeech is the only `extras` service, and it has caching
-            # turned off, being that it is a paid-for key service
-
-            if not cache_hit:
-                for extra in self.get_extras(svc_id):
-                    key = extra['key']
-                    try:
-                        options[key] = self._config['extras'][svc_id][key]
-                        options[key] = options[key].strip()
-                        if not options[key]:
-                            raise KeyError
-                    except KeyError:
-                        if extra['required']:
-                            raise KeyError(
-                                "%s required to access %s" %
-                                (extra['label'].rstrip(':'), svc_id)
-                            )
-                        else:
-                            options[key] = None
-
-        except Exception as exception:  # catch all, pylint:disable=W0703
-            if 'done' in callbacks:
-                callbacks['done']()
+        except Exception as exception:
+            if 'done' in callbacks: callbacks['done']()
             callbacks['fail'](exception, text)
-            if 'then' in callbacks:
-                callbacks['then']()
-
+            if 'then' in callbacks: callbacks['then']()
             return
 
-        def human(path):
-            """Converts path into a human-readable one, if enabled."""
-
-            if not want_human:
-                return path
-
-            if not os.path.isdir(self._temp_dir):
-                os.mkdir(self._temp_dir)
-
-            def substitute(match):
-                """Perform variable substitution on filename."""
-                from awesometts import logger
-
-                key = match.group(1).strip()
-
-                if key:
-                    lower = key.lower()
-
-                    if lower == 'service':
-                        return svc_id
-                    if lower == 'text':
-                        return text
-                    if lower == 'voice':
-                        return options['voice'].lower()
-
-                    try:
-                        return note[key]  # exact field match
-                    except Exception as e:
-                        logger.debug("Silently ignoring error on exact field match: %s", e)
-
-                    try:
-                        for other_key in note.keys():
-                            if other_key.strip().lower() == lower:
-                                return note[other_key]  # fuzzy field match
-                    except Exception as e:
-                        logger.debug("Silently ignoring error on fuzzy field match: %s", e)
-
-                return ''  # invalid key / no such note field
-
-            filename = RE_MUSTACHE.sub(substitute, want_human)
-            filename = RE_UNSAFE.sub('', filename)
-            filename = RE_WHITESPACE.sub(' ', filename).strip()
-            if not filename or filename.lower() in WINDOWS_RESERVED:
-                filename = 'AwesomeTTS Audio'
-            else:
-                filename = filename[0:90]  # accommodate NTFS path limits
-            filename = 'ATTS ' + filename + '.mp3'
-
-            from shutil import copyfile
-            new_path = os.path.join(self._temp_dir, filename)
-            copyfile(path, new_path)
-
-            return new_path
-
         if cache_hit:
-            if 'done' in callbacks:
-                callbacks['done']()
-            callbacks['okay'](human(path))
-            if 'then' in callbacks:
-                callbacks['then']()
+            if 'done' in callbacks: callbacks['done']()
+            callbacks['okay'](self._create_human_readable_path(path, svc_id, text, options, want_human, note))
+            if 'then' in callbacks: callbacks['then']()
 
-        elif (path in self._failures and
-              time() - self._failures[path][0] < FAILURE_CACHE_SECS):
-            if 'done' in callbacks:
-                callbacks['done']()
+        elif path in self._failures and time() - self._failures[path][0] < FAILURE_CACHE_SECS:
+            if 'done' in callbacks: callbacks['done']()
             callbacks['fail'](self._failures[path][1], text)
-            if 'then' in callbacks:
-                callbacks['then']()
+            if 'then' in callbacks: callbacks['then']()
 
         else:
             def on_error(exception):
-                """
-                For Internet-based services, cache errors. Certain
-                exceptions are not cached, as they are usually network
-                or connectivity errors.
-
-                Afterward, pass exception to the fail handler.
-                """
-
                 if BaseTrait.INTERNET in service['class'].TRAITS and \
                    not isinstance(exception, IncompleteRead) and \
                    not isinstance(exception, SocketError) and \
@@ -533,68 +447,40 @@ class Router(object):
             self._busy.append(path)
 
             def completion_callback(exception, text="Not available by Router.__call__.completion_callback"):
-                """Intermediate callback handler for all service calls."""
-
                 self._busy.remove(path)
-
-                if 'done' in callbacks:
-                    callbacks['done']()
-
-                if 'miss' in callbacks:
-                    callbacks['miss'](svc_id, service['instance'].net_count())
-
+                import os
+                if 'done' in callbacks: callbacks['done']()
+                if 'miss' in callbacks: callbacks['miss'](svc_id, service['instance'].net_count())
                 if exception:
                     on_error(exception)
                 elif os.path.exists(path):
-                    callbacks['okay'](human(path))
+                    callbacks['okay'](self._create_human_readable_path(path, svc_id, text, options, want_human, note))
                 else:
-                    on_error(RuntimeError(
-                        "The %s service did not successfully write out an "
-                        "MP3." % service['name']
-                    ))
+                    on_error(EnvironmentError("Expected %s to be created" % path))
+                if 'then' in callbacks: callbacks['then']()
 
-                if 'then' in callbacks:
-                    callbacks['then']()
+            def prerun():
+                try:
+                    if hasattr(service['instance'], 'prerun'):
+                        service['instance'].prerun()
+                    return True
+                except Exception as e:
+                    completion_callback(e)
+                    return False
 
-            def task():
-                service['instance'].run(text, options, path)
+            def execution_task():
+                if prerun():
+                    service['instance'].run(text, options, path)
 
             if async_variable:
-                def do_spawn():
-                    """Call if ready to start a thread to run the service."""
-                    self._pool.spawn(
-                        task=task,
-                        callback=completion_callback,
-                    )
+                self._pool.spawn(execution_task, completion_callback, callbacks['fail'])
             else:
-                callback_exception = None
                 try:
-                    task()
-                except Exception as exception:
-                    callback_exception = exception
-                completion_callback(callback_exception)
+                    execution_task()
+                    completion_callback(None)
+                except Exception as e:
+                    completion_callback(e)
 
-            if hasattr(service['instance'], 'prerun'):
-                def prerun_ok(result):
-                    """Callback handler for successful prerun hook."""
-                    options['prerun'] = result
-                    do_spawn()
-
-                def prerun_error(exception):
-                    """Callback handler for unsuccessful prerun hook."""
-                    self._logger.error("Asynchronous exception in prerun: %s",
-                                       exception)
-                    completion_callback(exception)
-
-                try:
-                    service['instance'].prerun(text, options, path,
-                                               prerun_ok, prerun_error)
-                except Exception as exception:  # all, pylint:disable=W0703
-                    self._logger.error("Synchronous exception in prerun: %s",
-                                       exception)
-                    completion_callback(exception)
-            else:
-                do_spawn()
 
     def _call_assert_callbacks(self, callbacks):
         """Checks the callbacks argument for validity."""
@@ -719,75 +605,52 @@ class Router(object):
 
         return path
 
-    def _fetch_options_and_extras(self, svc_id, force_options_reload=False):
-        """
-        Identifies the service by its ID, checks to see if the options
-        list need construction, and then return back the normalized ID
-        and service lookup dict.
-        """
 
+    def _validate_option(self, option, svc_id):
+        assert 'key' in option, "missing option key for %s" % svc_id
+        assert self._services.normalize(option['key']) == option['key'], "bad %s key %s" % (svc_id, option['key'])
+        assert option['key'] not in ['group', 'preset', 'service', 'style'], option['key'] + " is reserved for use in TTS tags"
+        assert 'label' in option, "missing %s label for %s" % (option['key'], svc_id)
+        assert 'values' in option, "missing %s values for %s" % (option['key'], svc_id)
+        assert isinstance(option['values'], list) or isinstance(option['values'], tuple) and len(option['values']) in range(2, 4), "%s values for %s should be list or 2-3-tuple" % (option['key'], svc_id)
+        assert 'transform' in option, "missing %s transform for %s" % (option['key'], svc_id)
+        if not option['label'].endswith(":"):
+            option['label'] += ":"
+        if 'default' in option and isinstance(option['values'], list) and len(option['values']) > 1:
+            option['values'] = [
+                item if item[0] != option['default'] or item[1] == 'Default' else (item[0], item[1] + " [default]")
+                for item in option['values']
+            ]
+        return option
+
+    def _validate_extra(self, extra, svc_id):
+        assert 'key' in extra, "missing extra key for %s" % svc_id
+        assert self._services.normalize(extra['key']) == extra['key'], "bad %s key %s" % (svc_id, extra['key'])
+        assert 'label' in extra, "missing %s label for %s" % (extra['key'], svc_id)
+        if 'required' not in extra:
+            extra['required'] = False
+        if not extra['label'].endswith(":"):
+            extra['label'] += ":"
+        return extra
+
+    def _fetch_options_and_extras(self, svc_id, force_options_reload=False):
         svc_id, service = self._fetch_service(svc_id)
 
         if 'options' not in service or force_options_reload == True:
-            self._logger.debug(
-                "Building the options list for %s",
-                service['name'],
-            )
+            self._logger.debug("Building the options list for %s", service['name'])
+            service['options'] = [
+                self._validate_option(option, svc_id)
+                for option in service['instance'].options()
+            ]
 
-            service['options'] = []
-
-            for option in service['instance'].options():
-                assert 'key' in option, "missing option key for %s" % svc_id
-                assert self._services.normalize(option['key']) == \
-                    option['key'], "bad %s key %s" % (svc_id, option['key'])
-                assert option['key'] not in ['group', 'preset', 'service',
-                                             'style'], \
-                    option['key'] + " is reserved for use in TTS tags"
-                assert 'label' in option, \
-                    "missing %s label for %s" % (option['key'], svc_id)
-                assert 'values' in option, \
-                    "missing %s values for %s" % (option['key'], svc_id)
-                assert isinstance(option['values'], list) or \
-                    isinstance(option['values'], tuple) and \
-                    len(option['values']) in range(2, 4), \
-                    "%s values for %s should be list or 2-3-tuple" % \
-                    (option['key'], svc_id)
-                assert 'transform' in option, \
-                    "missing %s transform for %s" % (option['key'], svc_id)
-
-                if not option['label'].endswith(":"):
-                    option['label'] += ":"
-
-                if 'default' in option and \
-                   isinstance(option['values'], list) and \
-                   len(option['values']) > 1:
-                    option['values'] = [
-                        item if item[0] != option['default'] or item[1] == 'Default'
-                        else (item[0], item[1] + " [default]")
-                        for item in option['values']
-                    ]
-
-                service['options'].append(option)
-
-        if 'extras' not in service or force_options_reload == True:  # extras are like options, but universal
+        if 'extras' not in service or force_options_reload == True:
             service['extras'] = []
-
             if hasattr(service['instance'], 'extras'):
-                self._logger.debug("Building the extras list for %s",
-                                   service['name'])
-                for extra in service['instance'].extras():
-                    assert 'key' in extra, "missing extra key for %s" % svc_id
-                    assert self._services.normalize(extra['key']) == \
-                        extra['key'], "bad %s key %s" % (svc_id, extra['key'])
-                    assert 'label' in extra, \
-                        "missing %s label for %s" % (extra['key'], svc_id)
-
-                    if 'required' not in extra:
-                        extra['required'] = False
-                    if not extra['label'].endswith(":"):
-                        extra['label'] += ":"
-
-                    service['extras'].append(extra)
+                self._logger.debug("Building the extras list for %s", service['name'])
+                service['extras'] = [
+                    self._validate_extra(extra, svc_id)
+                    for extra in service['instance'].extras()
+                ]
 
         return svc_id, service
 

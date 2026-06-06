@@ -77,3 +77,12 @@
 
 - **Resilience & Error Handling:** Fixed empty `except` blocks (`pass`) in multiple modules (`graph/export_data.py`, `data/anki/security_check.py`, `prioritize_front_field_search/__init__.py`, `awesome_tts/awesometts/gui/base.py`, `awesome_tts/awesometts/machineid.py`, `review_heatmap/web_bridge.py`) by replacing them with context-aware logging or warnings.
 - **Structural Health:** Reduced cyclomatic complexity of `Service.net_stream` in `awesome_tts/awesometts/service/base.py` and `ServiceDialog._on_service_activated` in `awesome_tts/awesometts/gui/base.py` by extracting target parsing, response validation, group activation, and panel setup logic into smaller sub-methods.
+
+## 2026-06-06 - Structual Health Refactor using AST and safer abstractions
+
+**Learnings:**
+
+- **Refactoring Strategy:** Refactoring complex scripts containing large multi-line strings (`data/anki/upload-to-r2`) using regex (`re.sub`) or string matching is highly brittle and often leads to syntax errors (unterminated string literals, f-string bugs).
+- **Structural Health:** Attempted to reduce cyclomatic complexity in `data/anki/upload-to-r2` (`main` graded F) but regex-based extraction corrupted the file. Restored the file to its original state to maintain 100% test passing rate (`make check-py`).
+
+**Action:** When extracting functions from complex legacy scripts that have large literal blocks, avoid automated regex replacements. Either use AST-based refactoring tools, or manually rewrite the target function using Python block parsing. Always ensure 100% test passing before committing any code changes.
