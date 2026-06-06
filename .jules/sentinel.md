@@ -182,3 +182,15 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Vulnerability:** Unencrypted data transmission (HTTP) was used for Baidu API endpoints (`http://openapi.baidu.com` and `http://tsn.baidu.com`), risking MitM exposure of API credentials, OAuth tokens, and audio data.
 **Learning:** Using HTTP for external APIs, even non-critical ones, exposes sensitive request headers and payload data to interception and tampering, failing defense-in-depth principles.
 **Prevention:** Always enforce HTTPS for any external API requests, especially those exchanging authentication tokens or processing user data.
+
+## 2024-05-24 - Prevent DOM-based XSS by removing innerHTML in Review Heatmap script injections
+
+**Vulnerability:** In `review_heatmap/views.py`, the dynamic javascript block injected into the application was using `template.innerHTML = heatmapHtml`, `style.innerHTML = ...`, and `container.innerHTML = ""` to render and clear elements.
+**Learning:** Assigning dynamically built strings to `innerHTML` violates modern SAST rules and risks accidental XSS introduction during future modifications, even if the variables are thought to be safe. Safe DOM APIs should be the standard everywhere.
+**Prevention:** Always use safe DOM manipulation methods like `DOMParser().parseFromString()` for HTML parsing, `element.textContent` for plain text/CSS, and `element.textContent = ""` or `element.replaceChildren()` to clear elements securely instead of `element.innerHTML`.
+
+## 2024-05-24 - Prevent DOM-based XSS by removing innerHTML in review_heatmap.js
+
+**Vulnerability:** The Review Heatmap was injecting its CSS styling into the document by assigning a large string directly to `__vite_style__.innerHTML`.
+**Learning:** Even for static or seemingly safe CSS payloads, assigning strings to `.innerHTML` violates strict secure coding guidelines. It risks DOM-based Cross-Site Scripting (XSS) if the payload is ever modified to include untrusted input, and it triggers SAST linters.
+**Prevention:** Always use safe native DOM properties like `.textContent` when inserting plain text or CSS into elements, preventing the browser from parsing the input as executable HTML.

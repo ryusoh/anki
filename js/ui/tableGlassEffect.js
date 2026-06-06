@@ -59,6 +59,9 @@ export class TableGlassEffect {
 
     // Handle header exclusion
     this._headerHeight = 0;
+    const computedRadius =
+      parseInt(window.getComputedStyle(this.container).borderRadius, 10) || 8;
+    this._borderRadius = computedRadius;
     if (this.options.excludeHeader) {
       const thead = this.container.querySelector("thead");
       this._headerHeight = thead ? thead.offsetHeight : 0;
@@ -66,7 +69,7 @@ export class TableGlassEffect {
       this.canvas.style.borderRadius = "0";
     } else {
       this.canvas.style.top = "0";
-      this.canvas.style.borderRadius = "8px";
+      this.canvas.style.borderRadius = `${computedRadius}px`;
     }
 
     // Ensure container is relative so canvas is positioned correctly
@@ -328,7 +331,7 @@ export class TableGlassEffect {
   draw() {
     this.ctx.clearRect(0, 0, this.width, this.height);
 
-    const radius = this.options.excludeHeader ? 0 : 8; // Border radius
+    const radius = this.options.excludeHeader ? 0 : this._borderRadius || 8;
 
     // Draw effects
     this.drawAmbientGlow(radius);

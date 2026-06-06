@@ -299,3 +299,53 @@ class TestExportValidation:
         required = ['source', 'target', 'weight']
         for field in required:
             assert field in link
+
+def test_strip_html_none():
+    from graph.incremental_export import strip_html
+    assert strip_html(None) == ''
+
+def test_main_status_no_data_file():
+    from graph.incremental_export import main
+    from unittest.mock import patch, MagicMock
+    import sys
+
+    with patch("sys.argv", ["incremental_export.py", "--status"]), \
+         patch("graph.incremental_export.load_config", return_value={"sample_size": 100, "increment": 10}), \
+         patch("graph.incremental_export.DATA_FILE", MagicMock(exists=MagicMock(return_value=False))):
+        main()
+
+def test_main_increment_50000():
+    from graph.incremental_export import main
+    from unittest.mock import patch, MagicMock
+    import sys
+
+    with patch("sys.argv", ["incremental_export.py"]), \
+         patch("graph.incremental_export.load_config", return_value={"sample_size": 50000, "increment": 10}), \
+         patch("graph.incremental_export.save_config"), \
+         patch("graph.incremental_export.export_graph"):
+        main()
+
+def test_main_module_exec():
+    from unittest.mock import patch
+    import runpy
+    with patch("graph.incremental_export.main") as mock_main:
+        try:
+            import graph.incremental_export
+            runpy.run_path(graph.incremental_export.__file__, run_name="__main__")
+        except SystemExit:
+            pass
+
+
+def test_main_status_with_data_file():
+    from graph.incremental_export import main
+    from unittest.mock import patch, MagicMock
+    import sys
+
+    data_file_mock = MagicMock()
+    data_file_mock.exists.return_value = True
+    data_file_mock.stat.return_value.st_size = 1024 * 1024
+
+    with patch("sys.argv", ["incremental_export.py", "--status"]), \
+         patch("graph.incremental_export.load_config", return_value={"sample_size": 100, "increment": 10}), \
+         patch("graph.incremental_export.DATA_FILE", data_file_mock):
+        main()

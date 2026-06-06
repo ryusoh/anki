@@ -43,21 +43,35 @@ export function initMagneticNav() {
     }
 
     el.addEventListener("mouseenter", () => {
-      rect = el.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      // Bolt: Cache absolute layout dimensions (incorporating scroll offset)
+      // on mouseenter to prevent O(N) layout thrashing inside mousemove.
+      rect = {
+        left: r.left + window.scrollX,
+        top: r.top + window.scrollY,
+        width: r.width,
+        height: r.height,
+      };
     });
 
     el.addEventListener("mousemove", (e) => {
       if (!rect) {
-        rect = el.getBoundingClientRect();
+        const r = el.getBoundingClientRect();
+        rect = {
+          left: r.left + window.scrollX,
+          top: r.top + window.scrollY,
+          width: r.width,
+          height: r.height,
+        };
       }
 
-      // Calculate center of element
+      // Calculate absolute center of element
       const centerX = rect.left + rect.width / 2;
       const centerY = rect.top + rect.height / 2;
 
-      // Calculate distance from center to cursor
-      const distX = e.clientX - centerX;
-      const distY = e.clientY - centerY;
+      // Calculate distance from center to cursor using absolute page coordinates
+      const distX = e.pageX - centerX;
+      const distY = e.pageY - centerY;
 
       // Apply magnetic pull using GSAP
       // Strength of pull factor (lower = less pull)

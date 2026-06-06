@@ -1,3 +1,4 @@
+const test = require('node:test');
 const assert = require("assert");
 
 let capturedConfig = null;
@@ -701,4 +702,60 @@ async function fixReviewsGetDeckColorCoverage() {
 fixReviewsGetDeckColorCoverage().catch(e => {
   console.error(e);
   process.exit(1);
+});
+
+test('TestPilot: reviews chart coverage edge cases properly assert boundaries', async () => {
+    const assert = require('assert');
+    const { getReviewStatsData, renderReviewsChart } = await import('../js/commands/reviews.js');
+
+    // Act 1: Verify missing date in byDeck logic gets properly zero-padded
+    global.window.reviewStatsData = {
+        reviews: [{ date: "2023-01-01", time: 10, count: 5 }],
+        reviewsByDeck: {
+            "Deck1": [
+                { date: "2023-01-03", time: 10, count: 5 } // Mismatch
+            ]
+        }
+    };
+    const res = getReviewStatsData("all", true);
+    assert.strictEqual(res.byDeck["Deck1"][0].count, 0, "Missing first date should be zero padded");
+
+    // Act 2: Verify `entry.date < firstTargetDate` calculates preSliceSum correctly
+    global.window.reviewStatsData.reviews = [
+        { date: "2023-01-01", time: 10, count: 5 },
+        { date: "2023-01-05", time: 10, count: 5 }
+    ];
+    global.window.reviewStatsData.reviewsByDeck["Deck1"] = global.window.reviewStatsData.reviews;
+    const res2 = getReviewStatsData("1d", true);
+    assert.strictEqual(res2.preSliceSumsByDeck["Deck1"].time, 10, "Should sum previous entries properly");
+
+    // Act 3: Verify missing `data.preSliceSum` returns correctly
+    const originalGetElementById = global.document.getElementById;
+    const originalChart = global.window.Chart;
+    global.document.getElementById = (id) => {
+        if (id === 'runningAmountCanvas') return { getContext: () => ({}) };
+        if (id === 'runningAmountSection') return { classList: { remove: () => {} } };
+        if (id === 'chartLegend') return { style: {}, textContent: '', appendChild: () => {}, replaceChildren: () => {}, innerHTML: '', querySelectorAll: () => [] };
+        if (id === 'runningAmountEmpty') return { style: {}, textContent: '' };
+        return null;
+    };
+    global.window.Chart = class {
+        constructor() {}
+        destroy() {}
+    };
+
+    const noPreSumData = [{ date: "2023-01-01", time: 10 }];
+    const res3 = renderReviewsChart(noPreSumData, true, false, true);
+    assert.strictEqual(res3.success, true, "Should gracefully handle rendering with missing preSliceSum");
+
+    // Act 4: Verify dense data rendering > 100 correctly disables point styling
+    const denseData = Array.from({length: 105}, (_, i) => ({
+        date: `2023-01-${i}`, time: 10, time_mature: 2, time_young: 2, time_learn: 2, time_relearn: 2
+    }));
+    denseData.preSliceSum = { mature: 1, young: 2, learn: 3, relearn: 4, time_mature: 10, time_young: 20, time_learn: 30, time_relearn: 40 };
+    const denseRender = renderReviewsChart(denseData, true, false, true);
+    assert.strictEqual(denseRender.success, true, "Should gracefully render dense array without failure");
+
+    global.document.getElementById = originalGetElementById;
+    global.window.Chart = originalChart;
 });

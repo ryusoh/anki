@@ -6,12 +6,13 @@ Aggregates review counts, time spent, and retention by day.
 
 import json
 import gzip
+import os
 from pathlib import Path
 from datetime import datetime
 
 SCRIPT_DIR = Path(__file__).parent
 REVIEWS_DIR = SCRIPT_DIR / "reviews"
-OUTPUT_FILE = SCRIPT_DIR / "review_stats_data.json"
+OUTPUT_FILE = Path(os.environ.get("ANKI_REVIEW_STATS_OUTPUT", str(SCRIPT_DIR / "review_stats_data.json")))
 CARDS_FILE = SCRIPT_DIR / "cards.json.gz"
 
 

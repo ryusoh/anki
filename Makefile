@@ -25,6 +25,7 @@ help:
 	@echo "  precommit      Run all pre-commit checks (no fixes)"
 	@echo "  precommit-fix  Auto-fix issues and run pre-commit checks"
 	@echo "                 YOLO=1 to auto-yes all prompts (background mode)"
+	@echo "                 MSG='msg' to commit and push after checks pass"
 	@echo "  fmt            Format code (Prettier)"
 	@echo "  fmt-check      Check formatting (dry-run)"
 	@echo "  lint           Run linters (ESLint if available)"
@@ -222,6 +223,18 @@ precommit-fix: install $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt-fix)
 				$(MAKE) graph-push; \
 			fi; \
 		fi; \
+	fi
+	@_msg="$(MSG)"; \
+	if [ -z "$$_msg" ]; then _msg="chore: データ取得・整形・リント修正・テスト・グラフ更新"; fi; \
+	if [ "$(YOLO)" = "1" ] || [ -n "$(MSG)" ]; then \
+		echo ""; \
+		echo "📝 Committing: $$_msg"; \
+		git add -A && \
+		git commit -m "$$_msg" && \
+		echo "" && \
+		echo "🚀 Pushing to remote..." && \
+		git push && \
+		echo "✅ Committed and pushed."; \
 	fi
 
 fetch-prompt-fix:

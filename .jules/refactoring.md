@@ -84,5 +84,8 @@
 
 - **Refactoring Strategy:** Refactoring complex scripts containing large multi-line strings (`data/anki/upload-to-r2`) using regex (`re.sub`) or string matching is highly brittle and often leads to syntax errors (unterminated string literals, f-string bugs).
 - **Structural Health:** Attempted to reduce cyclomatic complexity in `data/anki/upload-to-r2` (`main` graded F) but regex-based extraction corrupted the file. Restored the file to its original state to maintain 100% test passing rate (`make check-py`).
+  **Action:** When extracting functions from complex legacy scripts that have large literal blocks, avoid automated regex replacements. Either use AST-based refactoring tools, or manually rewrite the target function using Python block parsing. Always ensure 100% test passing before committing any code changes.
 
-**Action:** When extracting functions from complex legacy scripts that have large literal blocks, avoid automated regex replacements. Either use AST-based refactoring tools, or manually rewrite the target function using Python block parsing. Always ensure 100% test passing before committing any code changes.
+## 2026-06-05 - Refactored graph/analyze.py and fixed silent exceptions in review_heatmap/activity.py
+
+**Refactoring:** Extracted logic from main in graph/analyze.py into analyze_single_deck and analyze_all_decks to lower cyclomatic complexity and improve readability. Added context-aware logging to an empty except block in review_heatmap/activity.py.

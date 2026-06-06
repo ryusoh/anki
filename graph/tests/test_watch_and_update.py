@@ -153,3 +153,29 @@ class TestWatchAndUpdate(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+def test_missing_coverage_watch():
+    import sys
+    from unittest.mock import patch, MagicMock
+    from graph.watch_and_update import main
+    import builtins
+    import io
+
+    # 103, 111
+    # Test --auto-refresh
+    with patch("graph.watch_and_update.increment") as mock_increment, \
+         patch("graph.watch_and_update.refresh_browser") as mock_refresh, \
+         patch("graph.watch_and_update.get_current_size", side_effect=[100, 100, 100]), \
+         patch("graph.watch_and_update.time.sleep", side_effect=[None, KeyboardInterrupt()]), \
+         patch('sys.argv', ['watch_and_update.py', '--interval', '10', '--auto-refresh']):
+        main()
+        mock_refresh.assert_called_once()
+
+    with patch("graph.watch_and_update.main") as mock_main:
+         import runpy
+         try:
+             with patch("builtins.exit") as mock_exit:
+                  mock_exit.side_effect = SystemExit(0)
+                  runpy.run_path(__file__.replace('tests/test_watch_and_update.py', 'watch_and_update.py'), run_name="__main__")
+         except SystemExit:
+             pass
