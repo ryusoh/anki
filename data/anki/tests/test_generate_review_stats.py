@@ -1,8 +1,13 @@
-import pytest
 import os
 import tempfile
-import json
 from pathlib import Path
+
+# Create a temporary output file for review stats to prevent overwriting the real data file during tests
+_temp_dir = tempfile.TemporaryDirectory()
+os.environ["ANKI_REVIEW_STATS_OUTPUT"] = str(Path(_temp_dir.name) / "review_stats_data.json")
+
+import pytest
+import json
 from unittest.mock import patch, MagicMock
 import sys
 from datetime import datetime

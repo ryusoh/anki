@@ -22,7 +22,7 @@ def setup_mock_db(db_path):
     cur.execute("INSERT INTO decks VALUES (1, 'Default')")
     cur.execute("INSERT INTO notetypes VALUES (1, 'Basic')")
     cur.execute("INSERT INTO cards VALUES (1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0)")
-    cur.execute("INSERT INTO revlog VALUES (1609459200000, 1, 3, 1, 0, 0, 1000, 1)") # 2021-01-01
+    cur.execute("INSERT INTO revlog VALUES (1610712000000, 1, 3, 1, 0, 0, 1000, 1)") # 2021-01-15 12:00:00 UTC
     cur.execute("INSERT INTO notes VALUES (1, 1, 0, 0, 'dummy', 0, 0)")
 
     conn.commit()
