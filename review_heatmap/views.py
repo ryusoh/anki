@@ -288,26 +288,29 @@ class OverviewInjector(HeatmapInjector):
         const parser = new DOMParser();
         const doc = parser.parseFromString(heatmapHtml, "text/html");
         const fragment = document.createDocumentFragment();
-        // Move all nodes from body into fragment
-        while (doc.body.firstChild) {
-            fragment.appendChild(doc.body.firstChild);
-        }
-        // Also move scripts/styles that might end up in head
+        // Move head nodes first (external scripts, stylesheets) to
+        // preserve document order: DOMParser moves top-level <script>
+        // and <link> into <head>, while <div> content stays in <body>.
+        // Head-first ensures external scripts load before inline ones.
         while (doc.head.firstChild) {
             fragment.appendChild(doc.head.firstChild);
         }
+        while (doc.body.firstChild) {
+            fragment.appendChild(doc.body.firstChild);
+        }
         const scripts = [];
         fragment.querySelectorAll("script").forEach((script) => {
+            const src = script.getAttribute("src");
             scripts.push({
-                src: script.src || null,
-                text: script.src ? "" : script.textContent || ""
+                src: src || null,
+                text: src ? "" : script.textContent || ""
             });
             script.remove();
         });
         const styles = [];
         fragment.querySelectorAll('link[rel="stylesheet"]').forEach((link) => {
-            if (link.href) {
-                styles.push(link.href);
+            if (link.getAttribute("href")) {
+                styles.push(link.getAttribute("href"));
             }
             link.remove();
         });
