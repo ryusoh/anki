@@ -835,8 +835,9 @@ if sys.platform == 'win32':
                 STARTF_USESHOWWINDOW
             )
 
-        except AttributeError:
-            pass
+        except AttributeError as e:
+            import logging
+            logging.getLogger('AwesomeTTS').debug("Failed to set dwFlags workaround: %s", e)
 
 elif sys.platform.startswith('darwin'):
     Service.IS_MACOSX = True

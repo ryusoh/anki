@@ -81,3 +81,10 @@
 ## 2026-06-05 - Refactored graph/analyze.py and fixed silent exceptions in review_heatmap/activity.py
 
 **Refactoring:** Extracted logic from main in graph/analyze.py into analyze_single_deck and analyze_all_decks to lower cyclomatic complexity and improve readability. Added context-aware logging to an empty except block in review_heatmap/activity.py.
+
+## YYYY-MM-DD - Code Health & Cleanup
+
+**Learning:** When executing Code Health & Cleanup tasks ('Architect' / 'Janitor' roles), focus on reducing cyclomatic complexity (e.g., verified via `radon`), replacing empty `catch`/`except` blocks with context-aware logging, and pruning dead code/TODOs.
+
+- **Structural Health:** Reduced cyclomatic complexity in `awesome_tts/awesometts/gui/listviews.py` (`setModelData`, `data`) and `awesome_tts/awesometts/gui/generator.py` (`_accept_done`) by extracting string building and parsing logic into helper methods (`_parse_regex_input`, `_format_display_role`, `_build_messages`).
+- **Resilience:** Replaced empty `except ImportError` in `awesome_tts/awesometts/__init__.py` and `except AttributeError` in `awesome_tts/awesometts/service/base.py` with `logger.debug` and `logging.getLogger` statements for proper context-aware logging, preventing silent failures.

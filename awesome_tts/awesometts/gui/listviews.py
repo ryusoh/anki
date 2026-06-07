@@ -214,16 +214,8 @@ class _SubRuleDelegate(_Delegate):
 
         aqt.qt.QTimer.singleShot(0, edits[0].setFocus)
 
-    def setModelData(self, editor, model, index):  # pylint:disable=C0103
-        """Update the underlying model after edit."""
-
-        edits = editor.findChildren(aqt.qt.QLineEdit)
-        checkboxes = editor.findChildren(Checkbox)
-        obj = {'input': edits[0].text(), 'compiled': None,
-               'replace': edits[1].text(), 'regex': checkboxes[0].isChecked(),
-               'ignore_case': checkboxes[1].isChecked(),
-               'unicode': checkboxes[2].isChecked()}
-
+    def _parse_regex_input(self, obj):
+        """Extracts regex flags from input text if framed with slashes."""
         input_len = len(obj['input'])
         if input_len > 2 and obj['input'].startswith('/'):
             input_ends = obj['input'].endswith
@@ -243,6 +235,18 @@ class _SubRuleDelegate(_Delegate):
                     obj['input'] = obj['input'][1:-3]
                     obj['regex'] = True
                     obj['ignore_case'] = True
+
+    def setModelData(self, editor, model, index):  # pylint:disable=C0103
+        """Update the underlying model after edit."""
+
+        edits = editor.findChildren(aqt.qt.QLineEdit)
+        checkboxes = editor.findChildren(Checkbox)
+        obj = {'input': edits[0].text(), 'compiled': None,
+               'replace': edits[1].text(), 'regex': checkboxes[0].isChecked(),
+               'ignore_case': checkboxes[1].isChecked(),
+               'unicode': checkboxes[2].isChecked()}
+
+        self._parse_regex_input(obj)
 
         try:
             obj['compiled'] = self._sul_compiler(obj)
@@ -379,29 +383,33 @@ class _SubListModel(_ListModel):  # pylint:disable=R0904
         super(_SubListModel, self).__init__(*args, **kwargs)
         self.raw_data = [dict(obj) for obj in self.raw_data]  # deep copy
 
+    def _format_display_role(self, rule):
+        """Helper to format the display string for a given rule."""
+        if not rule['input']:
+            return "empty match pattern"
+        elif not rule['compiled']:
+            return "invalid match pattern: " + rule['input']
+        elif 'bad_replace' in rule:
+            return "bad replacement string: " + rule['replace']
+
+        text = '/%s/%s' % (rule['input'],
+                           'i' if rule['ignore_case'] else '') \
+               if rule['regex'] else '"%s"' % rule['input']
+        action = ('replace it with "%s"' % rule['replace']
+                  if rule['replace'] else "remove it")
+        attr = ", ".join([
+            "regex pattern" if rule['regex'] else "plain text",
+            "case-insensitive" if rule['ignore_case'] else "case matters",
+            "unicode enabled" if rule['unicode'] else "unicode disabled",
+        ])
+        return "match " + text + " and " + action + "\n(" + attr + ")"
+
     def data(self, index, role=aqt.qt.Qt.ItemDataRole.DisplayRole):
         """Return display or edit data for the indexed rule."""
 
         if role == aqt.qt.Qt.ItemDataRole.DisplayRole:
             rule = self.raw_data[index.row()]
-            if not rule['input']:
-                return "empty match pattern"
-            elif not rule['compiled']:
-                return "invalid match pattern: " + rule['input']
-            elif 'bad_replace' in rule:
-                return "bad replacement string: " + rule['replace']
-
-            text = '/%s/%s' % (rule['input'],
-                               'i' if rule['ignore_case'] else '') \
-                   if rule['regex'] else '"%s"' % rule['input']
-            action = ('replace it with "%s"' % rule['replace']
-                      if rule['replace'] else "remove it")
-            attr = ", ".join([
-                "regex pattern" if rule['regex'] else "plain text",
-                "case-insensitive" if rule['ignore_case'] else "case matters",
-                "unicode enabled" if rule['unicode'] else "unicode disabled",
-            ])
-            return "match " + text + " and " + action + "\n(" + attr + ")"
+            return self._format_display_role(rule)
 
         elif role == aqt.qt.Qt.ItemDataRole.EditRole:
             return self.raw_data[index.row()]
