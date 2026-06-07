@@ -237,3 +237,8 @@
 
 **Learning:** Constructing rgba strings like `'rgba(255, 255, 255, ' + alpha + ')'` inside high-frequency execution loops, such as `requestAnimationFrame` render layers, creates severe GC overhead from string instantiation and requires the browser to parse the string on every single frame.
 **Action:** Hoist the static `ctx.fillStyle` or `ctx.strokeStyle` color string parsing outside of the loop. Inside the loop, mutate the canvas context's `globalAlpha` property directly instead of recreating color strings, resulting in zero allocation and much faster render times.
+
+## 2025-06-08 - [Optimize linear gradient allocations in Animated Glass Background render loops]
+
+**Learning:** Instantiating new \`CanvasGradient\` objects via \`createLinearGradient()\` inside high-frequency animation loops (like \`requestAnimationFrame\`) creates heavy garbage collection (GC) overhead. If the gradient moves dynamically (e.g., during a reflection effect driven by a phase value), caching it at static coordinates doesn't work.
+**Action:** Create and cache the gradient object centered at \`(0, 0)\` during initialization or resize. Inside the render loop, use \`ctx.translate()\` to move the canvas context to the dynamic target coordinates, fill the shape using the cached gradient relative to the translated origin, and then call \`ctx.restore()\`. This completely eliminates gradient object allocation overhead on every frame.

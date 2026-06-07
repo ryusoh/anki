@@ -181,6 +181,8 @@
       this.canvas.height = this.height * dpr;
       this.ctx.scale(dpr, dpr);
       this.cachedLayout = null; // Reset cache on resize
+      this._ambientGradientCache = null;
+      this._reflectionGradientCache = null;
 
       const isBottom =
         window.location.href.includes("bottom") ||
@@ -301,21 +303,27 @@
       this.drawPath(this.ctx, radius);
       this.ctx.clip();
 
-      const gradient = this.ctx.createLinearGradient(
-        0,
-        -layout.offsetY,
-        layout.totalWidth,
-        layout.totalHeight - layout.offsetY,
-      );
+      // Bolt: Cache Canvas gradients to eliminate heavy object allocations in the high-frequency render loop
+      if (!this._ambientGradientCache) {
+        this._ambientGradientCache = this.ctx.createLinearGradient(
+          0,
+          -layout.offsetY,
+          layout.totalWidth,
+          layout.totalHeight - layout.offsetY,
+        );
 
-      // Distribute the blue glow more evenly across the diagonal
-      const baseColor = glow.innerColor || "rgba(118, 183, 229, 0.5)";
-      gradient.addColorStop(0, baseColor);
-      gradient.addColorStop(0.6, "rgba(118, 183, 229, 0.25)");
-      gradient.addColorStop(1, "rgba(118, 183, 229, 0.05)");
+        // Distribute the blue glow more evenly across the diagonal
+        const baseColor = glow.innerColor || "rgba(118, 183, 229, 0.5)";
+        this._ambientGradientCache.addColorStop(0, baseColor);
+        this._ambientGradientCache.addColorStop(
+          0.6,
+          "rgba(118, 183, 229, 0.25)",
+        );
+        this._ambientGradientCache.addColorStop(1, "rgba(118, 183, 229, 0.05)");
+      }
 
       this.ctx.globalAlpha = (glow.innerOpacity || 0.8) * (0.8 + pulse * 0.2);
-      this.ctx.fillStyle = gradient;
+      this.ctx.fillStyle = this._ambientGradientCache;
       this.ctx.fill();
       this.ctx.restore();
     }
@@ -329,16 +337,7 @@
       this.ctx.save();
       this.ctx.globalCompositeOperation = "overlay";
 
-      const gradient = this.ctx.createLinearGradient(
-        0,
-        -layout.offsetY,
-        layout.totalWidth,
-        layout.totalHeight - layout.offsetY,
-      );
-
       const phase = this.state.phase;
-      const start = phase - width;
-      const end = phase + width;
 
       let fadeMultiplier = 1.0;
       if (phase > 1 - fadeZone) {
@@ -349,13 +348,30 @@
 
       this.ctx.globalAlpha = intensity * fadeMultiplier;
 
-      gradient.addColorStop(Math.max(0, start), "rgba(255,255,255,0)");
-      gradient.addColorStop(Math.max(0, Math.min(1, phase)), color);
-      gradient.addColorStop(Math.min(1, end), "rgba(255,255,255,0)");
-
-      this.ctx.fillStyle = gradient;
       this.drawPath(this.ctx, radius);
-      this.ctx.fill();
+      this.ctx.clip();
+
+      // Bolt: Cache Canvas gradients to eliminate heavy object allocations in the high-frequency render loop.
+      // For moving gradients, we create them centered at (0, 0) and use ctx.translate() to position them,
+      // avoiding the need to re-instantiate the gradient object on every frame.
+      if (!this._reflectionGradientCache) {
+        this._reflectionGradientCache = this.ctx.createLinearGradient(
+          -width * layout.totalWidth,
+          -width * layout.totalHeight,
+          width * layout.totalWidth,
+          width * layout.totalHeight,
+        );
+        this._reflectionGradientCache.addColorStop(0, "rgba(255,255,255,0)");
+        this._reflectionGradientCache.addColorStop(0.5, color);
+        this._reflectionGradientCache.addColorStop(1, "rgba(255,255,255,0)");
+      }
+
+      const centerX = phase * layout.totalWidth;
+      const centerY = phase * layout.totalHeight - layout.offsetY;
+
+      this.ctx.translate(centerX, centerY);
+      this.ctx.fillStyle = this._reflectionGradientCache;
+      this.ctx.fillRect(-centerX, -centerY, this.width, this.height);
 
       this.ctx.restore();
     }
