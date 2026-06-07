@@ -486,16 +486,8 @@ class BrowserGenerator(ServiceDialog):
             detail=detail,
         )
 
-    def _accept_done(self):
-        """
-        Display statistics and close out the dialog.
-        """
-
-        self._browser.model.reset()
-
-        proc = self._process
-        proc['progress'].accept()
-
+    def _build_messages(self, proc):
+        """Helper method to construct the summary message."""
         messages = [
             "The %d note%s you selected %s been processed. " % (
                 proc['counts']['total'],
@@ -567,6 +559,19 @@ class BrowserGenerator(ServiceDialog):
                 "to the notes that were already processed, use the Undo "
                 "AwesomeTTS Batch Update option from the Edit menu."
             )
+        return "".join(messages)
+
+    def _accept_done(self):
+        """
+        Display statistics and close out the dialog.
+        """
+
+        self._browser.model.reset()
+
+        proc = self._process
+        proc['progress'].accept()
+
+        messages_str = self._build_messages(proc)
 
         self._addon.config.update(proc['all'])
         self._disable_inputs(False)
@@ -579,7 +584,7 @@ class BrowserGenerator(ServiceDialog):
         # crashes on Mac OS X, which happen <5% of the time if called directly
         aqt.qt.QTimer.singleShot(
             0,
-            lambda: self._alerts("".join(messages), self._browser),
+            lambda: self._alerts(messages_str, self._browser),
         )
 
     def _get_all(self):

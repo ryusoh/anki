@@ -54,22 +54,26 @@ def get_platform_info():
     try:
         import platform
     except Exception as e:
-        logger.debug("Failed to import platform: %s", e)
+        import logging
+        logging.getLogger('awesometts').debug("Failed to import platform: %s", e)
     else:
         try:
             implementation = platform.python_implementation()
         except Exception as e:
-            logger.debug("Failed to get platform.python_implementation(): %s", e)
+            import logging
+            logging.getLogger('awesometts').debug("Failed to get platform.python_implementation(): %s", e)
 
         try:
             python_version = platform.python_version()
         except Exception as e:
-            logger.debug("Failed to get platform.python_version(): %s", e)
+            import logging
+            logging.getLogger('awesometts').debug("Failed to get platform.python_version(): %s", e)
 
         try:
             system_description = platform.platform().replace('-', ' ')
         except Exception as e:
-            logger.debug("Failed to get platform.platform(): %s", e)
+            import logging
+            logging.getLogger('awesometts').debug("Failed to get platform.platform(): %s", e)
 
     return "%s %s; %s" % (implementation, python_version, system_description)
 
@@ -193,8 +197,9 @@ try:
         self._play_next_if_idle()
 
     anki.sound.play = lambda filename: append_file(av_player, filename)
-except ImportError:
-    pass
+except ImportError as e:
+    import logging
+    logging.getLogger('awesometts').debug("Failed to import av_player or SoundOrVideoTag: %s", e)
 
 player = Player(
     anki=Bundle(
