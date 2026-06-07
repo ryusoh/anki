@@ -143,3 +143,7 @@
 
 **Learning:** When using `runpy.run_module` to execute a script's `__main__` block, ensure that if the original script's logic invokes `sys.exit()` natively, that behavior is accurately modeled and tested. Use a simple structure of `sys.exit(main())` within `if __name__ == '__main__':` and assert that `main()` is correctly called. When parsing search queries and ignoring negations or logical operators using a regex, it is more reliable to assert exact logical parts output in list comprehensions and match `re.finditer` components than trusting loose string matching.
 **Action:** When creating tests for parsing search terms (like in `prioritize_front_field_search/search.py`), clearly assert `extract_terms` behaves properly with quoted strings and negations by comparing against a static target list.
+
+## 2025-02-26 - Add comprehensive coverage to graph/analyze.py
+
+**Learning:** When using mocking libraries to assert that a sequence of functions is called within a main execution flow, checking that the functions are called with specific parameters provides stronger correctness guarantees than merely checking if they were called. Ensure temporary test scripts or scratchpads used to verify test patches are explicitly removed using `rm` to avoid dirtying the project directory.

@@ -542,3 +542,87 @@ def test_print_hub_notes_empty(capsys):
 
     captured = capsys.readouterr()
     assert "No hub notes found in Empty Deck" in captured.out
+
+def test_analyze_single_deck(capsys):
+    from graph.analyze import analyze_single_deck
+    args = MagicMock()
+    args.deck = 'Deck A'
+    args.anonymize = False
+    args.top = 10
+    args.isolated = True
+    args.hubs = True
+    args.export = '/tmp/export'
+    args.format = 'json'
+
+    decks = ['Deck A', 'Deck B']
+    notes = [{'deck': 'Deck A', 'guid': 'n1', 'flds': 'front\x1fback', 'tags': '', 'mid': 1}]
+
+    with patch('graph.analyze.build_graph') as mock_build, \
+         patch('graph.analyze.print_top_notes') as mock_print_top, \
+         patch('graph.analyze.print_isolated_notes') as mock_print_isolated, \
+         patch('graph.analyze.print_hub_notes') as mock_print_hub, \
+         patch('graph.analyze.export_graph') as mock_export:
+
+        graph_mock = MagicMock()
+        mock_build.return_value = graph_mock
+
+        analyze_single_deck(args, decks, notes)
+
+        mock_build.assert_called_once()
+        mock_print_top.assert_called_once_with(graph_mock, 'Deck A', 10)
+        mock_print_isolated.assert_called_once_with(graph_mock, 'Deck A')
+        mock_print_hub.assert_called_once_with(graph_mock, 'Deck A')
+        mock_export.assert_called_once_with(graph_mock, '/tmp/export', 'json', 'Deck_A')
+
+def test_analyze_single_deck_deck_not_found(capsys):
+    from graph.analyze import analyze_single_deck
+    args = MagicMock()
+    args.deck = 'Deck C'
+    decks = ['Deck A', 'Deck B']
+    notes = []
+
+    try:
+        analyze_single_deck(args, decks, notes)
+    except SystemExit:
+        pass
+
+    captured = capsys.readouterr()
+    assert "Deck not found: Deck C" in captured.err
+
+def test_analyze_all_decks(capsys):
+    from graph.analyze import analyze_all_decks
+    args = MagicMock()
+    args.anonymize = False
+    args.compare = True
+    args.top = 10
+    args.isolated = True
+    args.hubs = True
+    args.export = '/tmp/export'
+    args.format = 'json'
+
+    decks = ['Deck A', 'Deck B']
+    notes = [
+        {'deck': 'Deck A', 'guid': 'n1', 'flds': 'front\x1fback', 'tags': '', 'mid': 1},
+        {'deck': 'Deck B', 'guid': 'n2', 'flds': 'front2\x1fback2', 'tags': '', 'mid': 2}
+    ]
+
+    with patch('graph.analyze.build_per_deck_graphs') as mock_build_per_deck, \
+         patch('graph.analyze.compare_decks') as mock_compare, \
+         patch('graph.analyze.print_top_notes') as mock_print_top, \
+         patch('graph.analyze.print_isolated_notes') as mock_print_isolated, \
+         patch('graph.analyze.print_hub_notes') as mock_print_hub, \
+         patch('graph.analyze.export_graph') as mock_export:
+
+        graph_a = MagicMock()
+        graph_b = MagicMock()
+        mock_graphs = {'Deck A': graph_a, 'Deck B': graph_b}
+        mock_build_per_deck.return_value = mock_graphs
+
+        analyze_all_decks(args, decks, notes)
+
+        mock_build_per_deck.assert_called_once_with(notes, with_pagerank=True, with_anonymization=False)
+        mock_compare.assert_called_once_with(mock_graphs)
+        assert mock_print_top.call_count == 2
+        assert mock_print_isolated.call_count == 2
+        assert mock_print_hub.call_count == 2
+        assert mock_export.call_count == 2
