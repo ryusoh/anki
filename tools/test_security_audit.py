@@ -116,9 +116,6 @@ def test_remaining_coverage():
 import tempfile
 def test_even_more_coverage():
     # line 73: it should return `issues` when .gz is found
-    # wait, my previous test might not have actually returned it properly or I didn't verify it
-    # let's write it differently
-    # Let's just create a dummy.gz file
     with tempfile.NamedTemporaryFile(suffix=".gz", delete=False) as f:
         pass
     security_audit.check_for_credentials(f.name, "")

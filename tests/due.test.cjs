@@ -233,7 +233,6 @@ async function runTests() {
 
   // Render explicitly with maxDay limit and assert the label limits were properly truncated or scaled
   // Note: the previous failure "false !== true" was because `originalGetElementById` wasn't returning `runningAmountCanvas` properly since `global.document.getElementById` was overridden in the empty tests above.
-  // We need to restore it to `originalGetElementById`. But wait, `originalGetElementById` also returns null for `chartLegend`? No, it returns an object.
   global.document.getElementById = (id) => {
     if (id === 'runningAmountCanvas') return { getContext: () => ({}) };
     if (id === 'runningAmountSection') return { classList: { remove: () => {}, contains: () => false } };

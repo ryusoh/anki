@@ -298,8 +298,6 @@ def test_script_execution():
                 capture_output=True,
                 text=True
             )
-            # The test here is just to execute it, we don't care about the result
-            # But wait, running it in a subprocess won't contribute to the current pytest coverage.
             pass
         except Exception:
             pass

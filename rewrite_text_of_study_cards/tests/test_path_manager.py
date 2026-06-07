@@ -12,7 +12,6 @@ sys.modules['aqt.utils'] = MagicMock()
 sys.modules['anki'] = MagicMock()
 sys.modules['anki.hooks'] = MagicMock()
 
-# But wait, deckbrowser etc might fail to import if DeckBrowser class isn't defined
 sys.modules['aqt.deckbrowser'].DeckBrowser = MagicMock()
 sys.modules['aqt.overview'].Overview = MagicMock()
 

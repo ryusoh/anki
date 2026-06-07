@@ -134,18 +134,7 @@
     color: rgba(200, 200, 200, 0.85);
     transform: none; /* Remove scale */
     text-shadow: none;
-    background-color: transparent; /* Toggle buttons don't have hover bg unless active usually? Toggle css says: background-color: transparent default. Hover not explicit in toggle.css shared. */
-    /* Wait, toggle.css doesn't have a specific :hover rule for .currency-toggle that changes bg, only .active does.
-           If I want EXACT behavior, I should remove the hover BG unless the user wants hover feedback.
-           But usually buttons have hover.
-           Let's look at toggle.css again.
-           .currency-toggle { transition... }
-           It relies on :hover from browser defaults or maybe it's missing?
-           Actually, the toggle logic might just be active/inactive.
-           I'll keep a very subtle hover or remove it to match 'exact' behavior if toggle has none.
-           The user said "when selected... same effect".
-           Let's fix the ACTIVE state first.
-        */
+    background-color: transparent;
   }
 
   /* Active State: Pure White */

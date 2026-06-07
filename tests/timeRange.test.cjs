@@ -268,19 +268,6 @@ async function runTests() {
     assert.strictEqual(parseRange("0y12m"), undefined);
 
     // line 49: "return total > 0 ? total : undefined;"
-    // We already return undefined for everything < 1, but we can try 0m0d
-    // Oh wait, 0m0d returns undefined at line 40: "if (years === 0 && months === 0 && days === 0) return undefined;"
-    // Is it possible to reach line 49 with total <= 0 ?
-    // years, months, days are all integers >= 0.
-    // If they sum to >0, it returns total.
-    // If they sum to 0, it means years=0, months=0, days=0, but that's caught at line 40.
-    // Wait, what if someone enters negative numbers?
-    // The regex /^(?:(\d+)y)?(?:(\d+)m)?(?:(\d+)d)?$/ only matches digits (\d+).
-    // Thus years, months, days can only be positive or zero.
-    // So total can only be 0 if all are 0.
-    // But all being 0 is caught by `if (years === 0 && months === 0 && days === 0) return undefined;`
-    // Therefore, the false branch of `total > 0 ? total : undefined` on line 49 is fundamentally mathematically unreachable unless total overflows to negative or NaN, which is practically impossible with standard JS strings parsed from \d+.
-    // Let's at least test some boundaries to ensure the line is hit.
     assert.strictEqual(parseRange("1m0d"), 30);
     assert.strictEqual(parseRange("0y1m"), undefined); // 0y gets rejected at line 46
 
