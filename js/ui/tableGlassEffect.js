@@ -593,22 +593,27 @@ export class TableGlassEffect {
     this._p1 = this._p1 || { x: 0, y: 0 };
     this._p2 = this._p2 || { x: 0, y: 0 };
 
-    const colors = electric.colors || {};
-    const rawPalette = [colors.primary, colors.secondary, colors.tertiary];
-    let validPaletteCount = 0;
-    for (let i = 0; i < rawPalette.length; i++) {
-      if (rawPalette[i]) {
-        validPaletteCount++;
+    if (!this._cachedActivePalette) {
+      const colors = electric.colors || {};
+      const rawPalette = [colors.primary, colors.secondary, colors.tertiary];
+      let validPaletteCount = 0;
+      for (let i = 0; i < rawPalette.length; i++) {
+        if (rawPalette[i]) {
+          validPaletteCount++;
+        }
+      }
+
+      this._cachedActivePalette = rawPalette;
+      this._cachedActivePaletteLength = validPaletteCount;
+
+      if (validPaletteCount === 0) {
+        this._cachedActivePalette = ["rgba(255, 255, 255, 0.4)"];
+        this._cachedActivePaletteLength = 1;
       }
     }
 
-    let activePalette = rawPalette;
-    let activePaletteLength = validPaletteCount;
-
-    if (validPaletteCount === 0) {
-      activePalette = ["rgba(255, 255, 255, 0.4)"];
-      activePaletteLength = 1;
-    }
+    const activePalette = this._cachedActivePalette;
+    const activePaletteLength = this._cachedActivePaletteLength;
 
     this.ctx.save();
     this.ctx.globalCompositeOperation = "screen"; // Softer than lighter
