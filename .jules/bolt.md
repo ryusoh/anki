@@ -242,3 +242,8 @@
 
 **Learning:** Instantiating new \`CanvasGradient\` objects via \`createLinearGradient()\` inside high-frequency animation loops (like \`requestAnimationFrame\`) creates heavy garbage collection (GC) overhead. If the gradient moves dynamically (e.g., during a reflection effect driven by a phase value), caching it at static coordinates doesn't work.
 **Action:** Create and cache the gradient object centered at \`(0, 0)\` during initialization or resize. Inside the render loop, use \`ctx.translate()\` to move the canvas context to the dynamic target coordinates, fill the shape using the cached gradient relative to the translated origin, and then call \`ctx.restore()\`. This completely eliminates gradient object allocation overhead on every frame.
+
+## 2024-06-08 - [Optimize Array Instantiation in render loops]
+
+**Learning:** Instantiating new arrays and running filter loops inside high-frequency animation loops (like `requestAnimationFrame`) based on static configuration values creates heavy garbage collection (GC) overhead and wastes CPU cycles.
+**Action:** Cache the processed arrays and length counts on the class instance lazily or during initialization. Reuse the cached properties inside the render loop to eliminate per-frame allocations.
