@@ -181,12 +181,16 @@ class GoogleTTS(Service):
             if options['profile'] != 'default':
                 payload["audioConfig"]["effectsProfileId"] = [options['profile']]
 
-            r = requests.post("https://texttospeech.googleapis.com/v1/text:synthesize?key={}".format(options['key']), headers=headers, json=payload, timeout=10)
-            r.raise_for_status()
+            try:
+                r = requests.post("https://texttospeech.googleapis.com/v1/text:synthesize?key={}".format(options['key']), headers=headers, json=payload, timeout=10)
+                r.raise_for_status()
 
-            data = r.json()
-            encoded = data['audioContent']
-            audio_content = base64.b64decode(encoded)
+                data = r.json()
+                encoded = data['audioContent']
+                audio_content = base64.b64decode(encoded)
 
-            with open(path, 'wb') as response_output:
-                response_output.write(audio_content)
+                with open(path, 'wb') as response_output:
+                    response_output.write(audio_content)
+            except requests.exceptions.RequestException as e:
+                self._logger.error(f"Network error in Google Cloud TTS API request: {e}")
+                raise ValueError("A network error occurred while communicating with the Google Cloud TTS API.")
