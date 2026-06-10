@@ -194,3 +194,9 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Vulnerability:** The Review Heatmap was injecting its CSS styling into the document by assigning a large string directly to `__vite_style__.innerHTML`.
 **Learning:** Even for static or seemingly safe CSS payloads, assigning strings to `.innerHTML` violates strict secure coding guidelines. It risks DOM-based Cross-Site Scripting (XSS) if the payload is ever modified to include untrusted input, and it triggers SAST linters.
 **Prevention:** Always use safe native DOM properties like `.textContent` when inserting plain text or CSS into elements, preventing the browser from parsing the input as executable HTML.
+
+## 2026-06-25 - Prevent unhandled exception and stack trace leakage in Google TTS requests
+
+**Vulnerability:** External HTTP requests (using `requests.post`) in `awesome_tts/awesometts/service/googletts.py` were not wrapped in exception handlers.
+**Learning:** Third-party libraries like `requests` can raise exceptions (e.g., `requests.exceptions.RequestException`) during connection failures or timeouts. Failing to catch these exceptions allows the application to crash or expose internal state and stack traces.
+**Prevention:** When making external HTTP requests in Python using the `requests` library, always wrap the call and response parsing within a `try...except requests.exceptions.RequestException` block. Log the error context securely and return or raise a controlled, sanitized exception to prevent unhandled network errors from crashing the application and leaking internal information.
