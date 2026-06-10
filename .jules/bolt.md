@@ -247,3 +247,8 @@
 
 **Learning:** Instantiating new arrays and running filter loops inside high-frequency animation loops (like `requestAnimationFrame`) based on static configuration values creates heavy garbage collection (GC) overhead and wastes CPU cycles.
 **Action:** Cache the processed arrays and length counts on the class instance lazily or during initialization. Reuse the cached properties inside the render loop to eliminate per-frame allocations.
+
+## 2025-06-09 - [Optimize redundant getComputedStyle calls in high-frequency methods]
+
+**Learning:** Calling `window.getComputedStyle()` forces a synchronous style recalculation in the browser, which is an expensive operation. Calling it multiple times on the same element within the same high-frequency function (like `resize` or an animation loop) is redundant and wastes CPU cycles, adding unnecessary overhead.
+**Action:** When multiple computed style properties are needed from the same element, call `getComputedStyle(element)` once, assign it to a local constant variable, and read the necessary properties from that cached object.
