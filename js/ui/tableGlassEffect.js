@@ -59,8 +59,11 @@ export class TableGlassEffect {
 
     // Handle header exclusion
     this._headerHeight = 0;
-    const computedRadius =
-      parseInt(window.getComputedStyle(this.container).borderRadius, 10) || 8;
+    // Bolt: Call getComputedStyle once and cache the object to avoid
+    // redundant synchronous style recalculations that block the main thread.
+    const computedStyle = window.getComputedStyle(this.container);
+
+    const computedRadius = parseInt(computedStyle.borderRadius, 10) || 8;
     this._borderRadius = computedRadius;
     if (this.options.excludeHeader) {
       const thead = this.container.querySelector("thead");
@@ -73,7 +76,6 @@ export class TableGlassEffect {
     }
 
     // Ensure container is relative so canvas is positioned correctly
-    const computedStyle = window.getComputedStyle(this.container);
     if (computedStyle.position === "static") {
       this.container.style.position = "relative";
     }
