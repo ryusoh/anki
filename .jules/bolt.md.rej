@@ -1,9 +1,0 @@
---- .jules/bolt.md
-+++ .jules/bolt.md
-@@ -253,2 +253,6 @@
- **Learning:** Calling \`window.getComputedStyle()\` forces a synchronous style recalculation in the browser, which is an expensive operation. Calling it multiple times on the same element within the same high-frequency function (like \`resize\` or an animation loop) is redundant and wastes CPU cycles, adding unnecessary overhead.
--**Action:** When multiple computed style properties are needed from the same element, call \`getComputedStyle(element)\` once, assign it to a local constant variable, and read the necessary properties from that cached object.+**Action:** When multiple computed style properties are needed from the same element, call \`getComputedStyle(element)\` once, assign it to a local constant variable, and read the necessary properties from that cached object.
-+
-+## 2024-05-19 - Cache window.getComputedStyle inside TableGlassEffect resize handling
-+**Learning:** Calling \`window.getComputedStyle(this.container)\` multiple times sequentially (or separated by brief DOM lookups) forces redundant synchronous style recalculations on the main thread, especially inside initialization or resize hooks where layout is already invalidated.
-+**Action:** Always call \`window.getComputedStyle()\` once, cache the result to a local variable, and read multiple properties from that cached object to prevent main thread blocking and layout thrashing.
