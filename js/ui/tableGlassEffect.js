@@ -66,7 +66,9 @@ export class TableGlassEffect {
     const computedRadius = parseInt(computedStyle.borderRadius, 10) || 8;
     this._borderRadius = computedRadius;
     if (this.options.excludeHeader) {
-      const thead = this.container.querySelector("thead");
+      // Bolt: Cache DOM queries lazily to avoid O(N) lookup overhead in high-frequency methods.
+      this._thead = this._thead || this.container.querySelector("thead");
+      const thead = this._thead;
       this._headerHeight = thead ? thead.offsetHeight : 0;
       this.canvas.style.top = `${this._headerHeight}px`;
       this.canvas.style.borderRadius = "0";
@@ -97,7 +99,8 @@ export class TableGlassEffect {
     }
 
     // Find the table element to observe its full width
-    this.table = this.container.querySelector("table");
+    // Bolt: Cache DOM queries lazily to avoid O(N) lookup overhead in high-frequency methods.
+    this.table = this.table || this.container.querySelector("table");
     const target = this.table || this.container;
 
     // Observe size changes on the table (content) instead of just the container
@@ -152,7 +155,8 @@ export class TableGlassEffect {
     // Re-check header height on resize if needed
     let headerHeight = 0;
     if (this.options.excludeHeader) {
-      const thead = this.container.querySelector("thead");
+      this._thead = this._thead || this.container.querySelector("thead");
+      const thead = this._thead;
       headerHeight = thead ? thead.offsetHeight : 0;
       this._headerHeight = headerHeight;
       this.canvas.style.top = `${headerHeight}px`;
@@ -219,9 +223,12 @@ export class TableGlassEffect {
     this.rows = [];
     this.rowMap = new WeakMap();
     if (this.options.rowHoverEffect?.enabled) {
-      const tbody = this.container.querySelector("tbody");
+      // Bolt: Cache DOM queries lazily to avoid O(N) lookup overhead in high-frequency methods.
+      this._tbody = this._tbody || this.container.querySelector("tbody");
+      const tbody = this._tbody;
       if (tbody) {
-        const rows = tbody.querySelectorAll("tr");
+        this._trs = this._trs || tbody.querySelectorAll("tr");
+        const rows = this._trs;
 
         // We need the canvas position to calculate relative row offsets accurately
         const canvasRect = this.canvas.getBoundingClientRect();
