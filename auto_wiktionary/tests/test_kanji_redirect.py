@@ -514,3 +514,66 @@ def test_full_redirect_flow_sanshou_ochiru():
     assert "落下" in parsed
     assert "脱落" in parsed
     assert "おちる" in parsed
+
+
+# ---- 関脇 (せきわけ) corner-bracket 「」 redirect test fixtures ----
+
+# Real HTML from ja.wiktionary for 関脇.
+# Note: the reading is wrapped in 「」 corner brackets: 「せきわけ」の漢字表記。
+SEKIWAKE_REDIRECT_HTML = """
+<html>
+    <body>
+        <section>
+            <h2>日本語</h2>
+            <section>
+                <h3>和語の漢字表記</h3>
+                <p><b><a href="./関#日本語" title="関">関</a> <a href="./脇#日本語" title="脇">脇</a></b></p>
+                <ol><li>「<a href="./せきわけ" title="せきわけ">せきわけ</a>」の漢字表記。</li></ol>
+            </section>
+        </section>
+    </body>
+</html>
+"""
+
+# Real HTML from ja.wiktionary for せきわけ (the redirect target).
+SEKIWAKE_REAL_HTML = """
+<html>
+    <body>
+        <section>
+            <h2>日本語</h2>
+            <section>
+                <h3>名詞</h3>
+                <p><strong class="Jpan headword" lang="ja">せきわけ</strong><span class="headword-kanji">【<b class="Jpan" lang="ja"><a href="./関脇#日本語" title="関脇">関脇</a></b>】</span></p>
+                <ol>
+                    <li>相撲の番付で、大関の下、小結の上の地位。</li>
+                </ol>
+            </section>
+        </section>
+    </body>
+</html>
+"""
+
+
+def test_detect_kanji_redirect_sekiwake_strips_corner_brackets():
+    """関脇 redirects to せきわけ. The reading is wrapped in 「」 corner brackets
+    in the source ('「せきわけ」の漢字表記。'), which must be stripped so the
+    follow-up fetch uses 'せきわけ' (not '「せきわけ」', which 404s)."""
+    result = detect_kanji_redirect(SEKIWAKE_REDIRECT_HTML)
+    assert result is not None
+    reading, all_readings = result
+    assert reading == "せきわけ"
+    assert all_readings == ["せきわけ"]
+
+
+def test_full_redirect_flow_sekiwake():
+    """Full flow: 関脇 (「」 corner-bracket redirect) → fetch せきわけ → real definition."""
+    result = detect_kanji_redirect(SEKIWAKE_REDIRECT_HTML)
+    assert result is not None
+    reading, all_readings = result
+    assert reading == "せきわけ"
+
+    parsed = parse_wiktionary_html(SEKIWAKE_REAL_HTML, lang="ja")
+    parsed = inject_redirect_pronunciation(parsed, all_readings)
+    assert "相撲" in parsed
+    assert "大関" in parsed
+    assert "せきわけ" in parsed

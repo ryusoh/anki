@@ -103,7 +103,13 @@ def detect_kanji_redirect(html_text):
         match = re.match(r'^(.+?)(?:の漢字表記。|[\s　]+参照)$', li_text)
         if not match:
             return None
-        readings.append(match.group(1))
+        reading = match.group(1)
+        # Some pages wrap the reading in 「」 corner brackets
+        # (e.g. 関脇 → 「せきわけ」の漢字表記。). Strip them so the
+        # follow-up fetch uses the bare reading.
+        if reading.startswith('「') and reading.endswith('」'):
+            reading = reading[1:-1]
+        readings.append(reading)
 
     return (readings[0], readings)
 
