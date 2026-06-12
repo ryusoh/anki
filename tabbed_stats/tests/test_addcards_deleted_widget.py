@@ -13,15 +13,18 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-# Stub out heavy Anki/Qt modules before importing the addon
+# Stub out heavy Anki/Qt modules before importing the addon.
+# NOTE: the addon imports sip via `from aqt.qt import sip` (the standalone
+# top-level `sip` module does not exist under PyQt6), so the stub must live on
+# aqt.qt — not as a top-level `sip` module.
 _sip = MagicMock()
-sys.modules.setdefault("sip", _sip)
 
 _aqt = MagicMock()
 _aqt.mw = MagicMock()
 _aqt.gui_hooks = MagicMock()
 _aqt.qt.QVBoxLayout = MagicMock()
 _aqt.qt.QWidget = MagicMock()
+_aqt.qt.sip = _sip
 
 sys.modules.setdefault("aqt", _aqt)
 sys.modules.setdefault("aqt.gui_hooks", _aqt.gui_hooks)
