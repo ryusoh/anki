@@ -44,7 +44,7 @@ def test_module_main_exec():
                 pass
             except SystemExit:
                 pass
-            except Exception:
+            except Exception as e:
                 pass
 
 def test_missing_lines():
@@ -91,7 +91,7 @@ def test_if_main():
                 runpy.run_path(script_path, run_name="__main__")
             except SystemExit:
                 pass
-            except Exception:
+            except Exception as e:
                 pass
 
 def test_remaining_coverage():

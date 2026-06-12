@@ -328,7 +328,7 @@ def test_run_all_tests_fail_exit():
     with patch("data.anki.tests.test_incremental_upload.test_compute_file_hash", side_effect=AssertionError("Fail")), patch("sys.exit") as mock_exit:
          try:
              run_all_tests()
-         except Exception:
+         except Exception as e:
              pass
 
 def test_run_all_tests_error_exit():
@@ -339,7 +339,7 @@ def test_run_all_tests_error_exit():
     with patch("data.anki.tests.test_incremental_upload.test_compute_file_hash", side_effect=Exception("Error")), patch("sys.exit") as mock_exit:
          try:
              run_all_tests()
-         except Exception:
+         except Exception as e:
              pass
 
 def test_incremental_collection_staging_extra():
