@@ -239,7 +239,7 @@ def _create_addcards_tab() -> None:
     global _addcards
 
     if _addcards is not None:
-        import sip
+        from aqt.qt import sip
         if sip.isdeleted(_addcards):
             _addcards = None
         else:
