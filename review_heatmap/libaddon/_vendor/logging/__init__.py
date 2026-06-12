@@ -160,7 +160,7 @@ else: #pragma: no cover
         """Return the frame object for the caller's stack frame."""
         try:
             raise Exception
-        except Exception:
+        except Exception as e:
             return sys.exc_info()[2].tb_frame.f_back
 
 #
@@ -313,7 +313,7 @@ class LogRecord(object):
                 # for an example
                 try:
                     self.processName = mp.current_process().name
-                except Exception: #pragma: no cover
+                except Exception as e: #pragma: no cover
                     pass
         if logProcesses and hasattr(os, 'getpid'):
             self.process = os.getpid()
@@ -934,7 +934,7 @@ class Handler(Filterer):
                     sys.stderr.write('Message: %r\n'
                                      'Arguments: %s\n' % (record.msg,
                                                           record.args))
-                except Exception:
+                except Exception as e:
                     sys.stderr.write('Unable to print the message and arguments'
                                      ' - possible formatting error.\nUse the'
                                      ' traceback above to help find the error.\n'
@@ -996,7 +996,7 @@ class StreamHandler(Handler):
             stream.write(msg)
             stream.write(self.terminator)
             self.flush()
-        except Exception:
+        except Exception as e:
             self.handleError(record)
 
     def __repr__(self):
@@ -1952,7 +1952,7 @@ def shutdown(handlerList=_handlerList):
                     pass
                 finally:
                     h.release()
-        except Exception: # ignore everything, as we're shutting down
+        except Exception as e: # ignore everything, as we're shutting down
             if raiseExceptions:
                 raise
             #else, swallow

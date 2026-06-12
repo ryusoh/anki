@@ -790,7 +790,7 @@ def test_missing_coverage_comprehensive():
 
     try:
         verify_staged_files("staging_dir", [], [], [], [], [], missing_refs=True)
-    except Exception:
+    except Exception as e:
         pass
 
     with patch("sys.exit") as mock_exit:

@@ -84,7 +84,7 @@ def test_main_block():
         with patch('builtins.__import__') as mock_import:
             # this is too complex, let's just patch the main block directly using exec
             pass
-    except Exception:
+    except Exception as e:
         pass
 
 def test_main_coverage():
@@ -108,5 +108,5 @@ def test_main_coverage():
             # But we added it to path.
             try:
                 runpy.run_path(script_path, run_name="__main__")
-            except Exception:
+            except Exception as e:
                 pass

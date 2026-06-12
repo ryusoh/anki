@@ -200,3 +200,9 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Vulnerability:** External HTTP requests (using `requests.post`) in `awesome_tts/awesometts/service/googletts.py` were not wrapped in exception handlers.
 **Learning:** Third-party libraries like `requests` can raise exceptions (e.g., `requests.exceptions.RequestException`) during connection failures or timeouts. Failing to catch these exceptions allows the application to crash or expose internal state and stack traces.
 **Prevention:** When making external HTTP requests in Python using the `requests` library, always wrap the call and response parsing within a `try...except requests.exceptions.RequestException` block. Log the error context securely and return or raise a controlled, sanitized exception to prevent unhandled network errors from crashing the application and leaking internal information.
+
+## 2026-06-12 - Fixed empty exception blocks
+
+**Vulnerability:** Empty exception blocks were discovered that swallow errors across various files, making them hard to debug and potentially masking underlying logic failures.
+**Learning:** Using `except Exception:` without logging or variable binding (`as e`) acts as an implicit `pass`, which silently ignores errors.
+**Prevention:** Always bind exceptions (`except Exception as e:`) or log them properly to retain debugging context while maintaining fallback control flow.
