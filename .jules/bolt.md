@@ -252,3 +252,8 @@
 
 **Learning:** Calling `window.getComputedStyle()` forces a synchronous style recalculation in the browser, which is an expensive operation. Calling it multiple times on the same element within the same high-frequency function (like `resize` or an animation loop) is redundant and wastes CPU cycles, adding unnecessary overhead.
 **Action:** When multiple computed style properties are needed from the same element, call `getComputedStyle(element)` once, assign it to a local constant variable, and read the necessary properties from that cached object.
+
+## 2025-06-10 - [Optimize DOM querying inside resize handlers]
+
+**Learning:** Calling DOM query methods like `querySelector()` and `querySelectorAll()` inside a function that executes frequently, such as a `ResizeObserver` callback (`resize()`), introduces unnecessary O(N) DOM traversal overhead on the main thread and can degrade performance during window resizing or layout changes.
+**Action:** Always pre-calculate and cache the DOM elements lazily on the instance class (e.g., `this._thead = this._thead || this.container.querySelector("thead")`) so that the expensive lookup is only performed once and reused on subsequent high-frequency calls.
