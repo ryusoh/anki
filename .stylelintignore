@@ -8,8 +8,5 @@ data/
 venv/
 .git/
 .claude/
-# Third-party Anki addons (not authored here)
-awesome_tts/
-review_heatmap/
-enhance_main_window/
-custom_background/
+# Vendored libraries bundled inside owned addons
+review_heatmap/libaddon/

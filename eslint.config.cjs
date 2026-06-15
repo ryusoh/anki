@@ -1,7 +1,5 @@
-// Flat ESLint config for first-party JavaScript only.
-// Third-party Anki addons (awesome_tts, review_heatmap, enhance_main_window,
-// custom_background, …), vendored libraries, and minified bundles are excluded —
-// we do not enforce our style on code we did not author.
+// Flat ESLint config. We own and lint the addon source in this repo; only
+// genuinely vendored libraries and minified bundles are excluded.
 module.exports = [
     {
         ignores: [
@@ -13,11 +11,9 @@ module.exports = [
             'assets/vendor/**',
             'js/vendor/**',
             '**/*.min.js',
-            // Third-party addons (installed from AnkiWeb, not authored here)
-            'awesome_tts/**',
-            'review_heatmap/**',
-            'enhance_main_window/**',
-            'custom_background/**',
+            // Vendored libraries bundled inside owned addons
+            'review_heatmap/libaddon/**',
+            '**/_vendor/**',
         ],
     },
     {

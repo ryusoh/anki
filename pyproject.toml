@@ -1,7 +1,7 @@
-# Python tooling config for first-party addon code (ruff/black).
-# mypy lives in mypy.ini; bandit in .bandit. Third-party addons
-# (awesome_tts, review_heatmap, enhance_main_window, custom_background, …) are
-# excluded — we do not enforce our style on code we did not author.
+# Python tooling config (ruff/black). mypy lives in mypy.ini; bandit in .bandit.
+# We own and lint the addon source in this repo; only genuinely vendored code is
+# excluded — review_heatmap/libaddon (a vendored framework) and any _vendor/
+# package trees — plus build/runtime dirs.
 
 [tool.black]
 line-length = 100
@@ -9,15 +9,9 @@ target-version = ["py39"]
 skip-string-normalization = true
 extend-exclude = '''
 /(
-    awesome_tts
-  | review_heatmap
-  | enhance_main_window
-  | custom_background
-  | animated_glass_background
-  | mac_transparent_titlebar
-  | hide_window_title
-  | hide_deck_collapse
-  | toggle_bottom_pane
+    review_heatmap/libaddon
+  | _vendor
+  | _vendor_legacy
   | \.venv
   | venv
   | node_modules
@@ -30,15 +24,9 @@ extend-exclude = '''
 line-length = 100
 target-version = "py39"
 extend-exclude = [
-    "awesome_tts",
-    "review_heatmap",
-    "enhance_main_window",
-    "custom_background",
-    "animated_glass_background",
-    "mac_transparent_titlebar",
-    "hide_window_title",
-    "hide_deck_collapse",
-    "toggle_bottom_pane",
+    "review_heatmap/libaddon",
+    "_vendor",
+    "_vendor_legacy",
     ".venv",
     "venv",
     "node_modules",

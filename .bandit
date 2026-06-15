@@ -1,5 +1,5 @@
 [bandit]
-# Scan first-party addon source only; tests and third-party addons excluded.
-exclude_dirs: tests,venv,.venv,node_modules,awesome_tts,review_heatmap,enhance_main_window,custom_background
+# Scan addon source; exclude tests and vendored code (libaddon / _vendor trees).
+exclude_dirs: tests,venv,.venv,node_modules,libaddon,_vendor,_vendor_legacy
 # B404/B603: subprocess use is intentional in tooling scripts.
 skips: B404,B603

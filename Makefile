@@ -12,13 +12,18 @@ HTML_FILES := $(shell git ls-files --cached --others --exclude-standard '*.html'
 JSON_FILES := $(shell git ls-files --cached --others --exclude-standard '*.json' 2>/dev/null | grep -v '^data/' | grep -v '^graph/' | grep -v '^coverage/' | grep -v 'package-lock.json' | grep -v 'custom_stats_data.json' | grep -v 'review_stats_data.json' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
 PRETTIER_FILES := $(JS_FILES) $(CSS_FILES) $(MD_FILES) $(HTML_FILES) $(JSON_FILES)
 
-# First-party Python we own (mirrors PY_TEST_SUITES). Third-party addons
-# (awesome_tts, review_heatmap, enhance_main_window, custom_background, …) are
-# excluded from style/type/security gates via the tool configs.
+# Python we own and maintain — now spans the addons that were originally
+# installed from AnkiWeb but which we modify in this repo. The only Python kept
+# out of the gates is genuinely vendored code (e.g. review_heatmap/libaddon and
+# its _vendor/ packages), excluded via the tool configs (pyproject.toml /
+# mypy.ini / .bandit), not here.
 PY_SRC := auto_image auto_mathjax auto_wiktionary data/anki graph \
 	highlight_search_matches prioritize_front_field_search remove_deck_highlight \
 	rewrite_text_of_study_cards stats_page_customizer strip_html_tags \
-	unify_review_count_colors tabbed_stats tools
+	unify_review_count_colors tabbed_stats tools \
+	awesome_tts review_heatmap enhance_main_window custom_background \
+	animated_glass_background mac_transparent_titlebar hide_window_title \
+	hide_deck_collapse toggle_bottom_pane
 PY_ALL := $(PY_SRC) tests conftest.py
 
 help:
