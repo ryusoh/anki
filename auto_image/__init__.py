@@ -1,11 +1,11 @@
-import re
 import os
-from aqt import gui_hooks
+import re
+
+from aqt import gui_hooks, mw
 from aqt.editor import Editor
 from aqt.utils import tooltip
 
-from aqt import mw
-from .utils import clean_html_text, fetch_image_results, build_image_html, download_image
+from .utils import build_image_html, clean_html_text, download_image, fetch_image_results
 
 ADDON_DIR = os.path.dirname(__file__)
 ICON_PATH = os.path.join(ADDON_DIR, "icon.png")
@@ -106,8 +106,7 @@ def on_auto_image(editor: Editor) -> None:
         return
 
     editor.web.evalWithCallback(
-        "window.getSelection().toString()",
-        lambda sel: _on_selection_result(editor, sel)
+        "window.getSelection().toString()", lambda sel: _on_selection_result(editor, sel)
     )
 
 

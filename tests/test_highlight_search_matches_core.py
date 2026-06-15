@@ -1,33 +1,42 @@
 import pytest
+
 from highlight_search_matches.core import extract_search_terms, highlight_text
+
 
 def test_extract_search_terms_basic():
     assert extract_search_terms("apple") == ["apple"]
 
+
 def test_extract_search_terms_multiple():
     assert extract_search_terms("apple banana") == ["apple", "banana"]
+
 
 def test_extract_search_terms_ignore_fields():
     assert extract_search_terms("deck:Default apple") == ["apple"]
     assert extract_search_terms("apple is:due") == ["apple"]
     assert extract_search_terms("note:Basic apple") == ["apple"]
 
+
 def test_extract_search_terms_ignore_negation():
     assert extract_search_terms("apple -banana") == ["apple"]
     assert extract_search_terms("-deck:Default apple") == ["apple"]
+
 
 def test_extract_search_terms_strip_quotes():
     assert extract_search_terms('"apple"') == ["apple"]
     assert extract_search_terms("'banana'") == ["banana"]
     assert extract_search_terms('"apple pie"') == ["apple", "pie"]
 
+
 def test_extract_search_terms_wildcards():
     assert extract_search_terms("app*") == ["app*"]
+
 
 def test_extract_search_terms_empty():
     assert extract_search_terms("") == []
     assert extract_search_terms("   ") == []
     assert extract_search_terms("deck:Default") == []
+
 
 def test_highlight_text_basic():
     text = "The quick brown fox"
@@ -37,12 +46,14 @@ def test_highlight_text_basic():
     assert 'class="search-highlight">fox</span>' in highlighted
     assert "The " in highlighted
 
+
 def test_highlight_text_case_insensitive():
     text = "Apple and banana"
     terms = ["apple", "BANANA"]
     highlighted = highlight_text(text, terms)
     assert 'class="search-highlight">Apple</span>' in highlighted
     assert 'class="search-highlight">banana</span>' in highlighted
+
 
 def test_highlight_text_html_safe():
     # It shouldn't highlight terms inside HTML tags like <span class="apple">
@@ -53,18 +64,21 @@ def test_highlight_text_html_safe():
     assert 'class="apple"' in highlighted
     assert '><span class="search-highlight">apple</span><' in highlighted
 
+
 def test_highlight_text_no_matches():
     text = "The quick brown fox"
     terms = ["apple"]
     assert highlight_text(text, terms) == text
 
+
 def test_highlight_text_empty():
     assert highlight_text("", ["apple"]) == ""
     assert highlight_text("apple", []) == "apple"
 
+
 def test_init_py_coverage():
     import sys
-    from unittest.mock import patch, mock_open
+    from unittest.mock import mock_open, patch
 
     # Save original modules
     orig_aqt = sys.modules.get("aqt")
@@ -73,8 +87,10 @@ def test_init_py_coverage():
     if "aqt" in sys.modules:
         del sys.modules["aqt"]
 
-    import highlight_search_matches
     import importlib
+
+    import highlight_search_matches
+
     importlib.reload(highlight_search_matches)
 
     # Run the `log` function
@@ -105,8 +121,7 @@ def test_init_py_coverage():
             mocked_file.assert_called()
 
     # Test Exception in getConfig
-    with patch("highlight_search_matches.mw") as mock_mw, \
-         patch("logging.getLogger") as mock_logger:
+    with patch("highlight_search_matches.mw") as mock_mw, patch("logging.getLogger") as mock_logger:
         mock_mw.addonManager.getConfig.side_effect = Exception("err")
         highlight_search_matches.log("test_message")
         mock_logger.return_value.debug.assert_called()
@@ -115,8 +130,10 @@ def test_init_py_coverage():
     if "aqt" in sys.modules:
         del sys.modules["aqt"]
     importlib.reload(highlight_search_matches)
-    with patch("builtins.open", side_effect=Exception("write err")), \
-         patch("logging.getLogger") as mock_logger:
+    with (
+        patch("builtins.open", side_effect=Exception("write err")),
+        patch("logging.getLogger") as mock_logger,
+    ):
         highlight_search_matches.log("test_message")
         mock_logger.return_value.debug.assert_called()
 

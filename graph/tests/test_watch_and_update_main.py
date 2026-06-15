@@ -1,6 +1,8 @@
-from unittest.mock import patch, MagicMock
-from graph.watch_and_update import main
 import sys
+from unittest.mock import MagicMock, patch
+
+from graph.watch_and_update import main
+
 
 def test_watch_keyboard_interrupt():
     with patch('graph.watch_and_update.argparse.ArgumentParser.parse_args') as mock_parse:
@@ -10,13 +12,15 @@ def test_watch_keyboard_interrupt():
         with patch('graph.watch_and_update.get_current_size') as mock_size:
             mock_size.side_effect = [100, 200, KeyboardInterrupt()]
 
-            with patch('graph.watch_and_update.increment') as mock_inc:
+            with patch('graph.watch_and_update.increment'):
                 with patch('graph.watch_and_update.time.sleep'):
                     main()
 
+
 def test_main_exec():
-    import runpy
     import pathlib
+    import runpy
+
     with patch('graph.watch_and_update.argparse.ArgumentParser.parse_args') as mock_parse:
         mock_args = mock_parse.return_value
         mock_args.auto_refresh = False
@@ -24,15 +28,18 @@ def test_main_exec():
         with patch('graph.watch_and_update.get_current_size') as mock_size:
             mock_size.side_effect = [100, 200, KeyboardInterrupt()]
 
-            with patch('graph.watch_and_update.increment') as mock_inc:
+            with patch('graph.watch_and_update.increment'):
                 with patch('graph.watch_and_update.time.sleep'):
                     with patch('sys.exit'):
                         # run_path (not run_module): graph.watch_and_update is
                         # already imported at the top of this file, so run_module
                         # emits a RuntimeWarning about re-executing it. run_path
                         # runs the file fresh (identical execution) without that.
-                        script = str(pathlib.Path(__file__).resolve().parent.parent / 'watch_and_update.py')
+                        script = str(
+                            pathlib.Path(__file__).resolve().parent.parent / 'watch_and_update.py'
+                        )
                         runpy.run_path(script, run_name='__main__')
+
 
 def test_watch_auto_refresh():
     with patch('graph.watch_and_update.argparse.ArgumentParser.parse_args') as mock_parse:
@@ -49,10 +56,11 @@ def test_watch_auto_refresh():
 
             # Mock `refresh_browser` inside the module
             with patch('graph.watch_and_update.refresh_browser') as mock_refresh:
-                with patch('graph.watch_and_update.increment') as mock_inc:
+                with patch('graph.watch_and_update.increment'):
                     with patch('graph.watch_and_update.time.sleep'):
                         main()
                         mock_refresh.assert_called()
+
 
 def test_watch_exceeds_max():
     with patch('graph.watch_and_update.argparse.ArgumentParser.parse_args') as mock_parse:
@@ -63,10 +71,11 @@ def test_watch_exceeds_max():
         with patch('graph.watch_and_update.get_current_size') as mock_size:
             mock_size.side_effect = [100, 200, KeyboardInterrupt()]
 
-            with patch('graph.watch_and_update.increment') as mock_inc:
-                with patch('graph.watch_and_update.refresh_browser') as mock_refresh:
+            with patch('graph.watch_and_update.increment'):
+                with patch('graph.watch_and_update.refresh_browser'):
                     with patch('graph.watch_and_update.time.sleep'):
                         main()
+
 
 def test_watch_changed_size_skip():
     with patch('graph.watch_and_update.argparse.ArgumentParser.parse_args') as mock_parse:
@@ -89,16 +98,20 @@ def test_watch_changed_size_skip():
                         mock_inc.assert_called_once()
                         mock_refresh.assert_called_once()
 
+
 def test_refresh_browser():
     with patch('graph.watch_and_update.subprocess.run') as mock_run:
         from graph.watch_and_update import refresh_browser
+
         refresh_browser()
         mock_run.assert_called()
+
 
 def test_refresh_browser_exception():
     with patch('graph.watch_and_update.subprocess.run') as mock_run:
         mock_run.side_effect = Exception("error")
         from graph.watch_and_update import refresh_browser
+
         refresh_browser()
         mock_run.assert_called()
 
@@ -106,12 +119,18 @@ def test_refresh_browser_exception():
 def test_refresh_browser_apple_script():
     with patch('graph.watch_and_update.subprocess.run') as mock_run:
         from graph.watch_and_update import refresh_browser
+
         refresh_browser()
         # Verify the applescript gets run
-        mock_run.assert_called_with([
-            'osascript', '-e',
-            'tell application "Google Chrome" to tell active tab of window 1 to reload'
-        ], capture_output=True)
+        mock_run.assert_called_with(
+            [
+                'osascript',
+                '-e',
+                'tell application "Google Chrome" to tell active tab of window 1 to reload',
+            ],
+            capture_output=True,
+        )
+
 
 def test_watch_once_auto_refresh():
     with patch('graph.watch_and_update.argparse.ArgumentParser.parse_args') as mock_parse:
@@ -140,7 +159,7 @@ def test_auto_refresh_explicit():
             # 3. exception
             mock_size.side_effect = [100, 100, 150, KeyboardInterrupt()]
 
-            with patch('graph.watch_and_update.increment') as mock_inc:
+            with patch('graph.watch_and_update.increment'):
                 with patch('graph.watch_and_update.refresh_browser') as mock_refresh:
                     with patch('graph.watch_and_update.time.sleep'):
                         main()

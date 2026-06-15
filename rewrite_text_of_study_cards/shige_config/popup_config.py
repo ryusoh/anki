@@ -1,27 +1,39 @@
 # Shigeyuki <https://www.patreon.com/Shigeyuki>
 
-from aqt import QAction, QDialog, QHBoxLayout, QIcon, QResizeEvent, QTabWidget, QTextBrowser, QWidget, Qt, qconnect
-from aqt import QVBoxLayout, QLabel, QPushButton
-from aqt import mw
-from os.path import join, dirname
-from aqt import QPixmap,gui_hooks
+from os.path import dirname, join
+
+from aqt import (
+    QDialog,
+    QHBoxLayout,
+    QIcon,
+    QLabel,
+    QPixmap,
+    QPushButton,
+    QResizeEvent,
+    Qt,
+    QTabWidget,
+    QTextBrowser,
+    QVBoxLayout,
+    QWidget,
+    gui_hooks,
+    mw,
+)
 from aqt.utils import openLink
 
 from .button_manager import mini_button
-from .shige_addons import add_shige_addons_tab
+from .change_log import OLD_CHANGE_LOG  # 🟢
 from .endroll.endroll import add_credit_tab
-
-from .change_log import OLD_CHANGE_LOG #🟢
-from .patrons_list import PATRONS_LIST #🟢
+from .patrons_list import PATRONS_LIST  # 🟢
+from .shige_addons import add_shige_addons_tab
 
 CHANGE_LOG_DEFAULT = ""
 CHANGE_LOG = "is_change_log"
-CHANGE_LOG_DAY = "2024-08-31" #🟢
+CHANGE_LOG_DAY = "2024-08-31"  # 🟢
 
 
 POKEBALL_PATH = r"popup_icon.png"
 
-THE_ADDON_NAME = " " #🟢
+THE_ADDON_NAME = " "  # 🟢
 
 REPORT_URL = "https://shigeyukey.github.io/shige-addons-wiki/contact.html"
 
@@ -40,9 +52,9 @@ RATE_THIS_URL = ""
 
 ADDON_PACKAGE = mw.addonManager.addonFromModule(__name__)
 # ｱﾄﾞｵﾝのURLが数値であるか確認
-if (isinstance(ADDON_PACKAGE, (int, float))
-    or (isinstance(ADDON_PACKAGE, str)
-    and ADDON_PACKAGE.isdigit())):
+if isinstance(ADDON_PACKAGE, (int, float)) or (
+    isinstance(ADDON_PACKAGE, str) and ADDON_PACKAGE.isdigit()
+):
     ANKI_WEB_URL = f"https://ankiweb.net/shared/info/{ADDON_PACKAGE}"
     RATE_THIS_URL = f"https://ankiweb.net/shared/review/{ADDON_PACKAGE}"
 
@@ -60,7 +72,7 @@ NEW_FEATURE = """
 
 UPDATE_TEXT = "I updated this Add-on."
 
-SPECIAL_THANKS ="""\
+SPECIAL_THANKS = """\
 [ Patreon ] Special thanks
 Without the support of my Patrons, I would never have been
 able to develop this. Thank you very much!🙏"""
@@ -83,13 +95,14 @@ my volunteer development on Patreon. Thank you!
 
 {patron}
 
-""".format(addon=THE_ADDON_NAME,
-            update_text=UPDATE_TEXT,
-            new_feature=NEW_FEATURE,
-            old_change_log = OLD_CHANGE_LOG,
-            special_thanks=SPECIAL_THANKS,
-            patron=PATRONS_LIST)
-
+""".format(
+    addon=THE_ADDON_NAME,
+    update_text=UPDATE_TEXT,
+    new_feature=NEW_FEATURE,
+    old_change_log=OLD_CHANGE_LOG,
+    special_thanks=SPECIAL_THANKS,
+    patron=PATRONS_LIST,
+)
 
 
 CHANGE_LOG_TEXT_B = """\
@@ -124,42 +137,40 @@ Thanks!
 
 {patron}
 """.format(
-            addon=THE_ADDON_NAME,
-            patron=PATRONS_LIST,
-            special_thanks=SPECIAL_THANKS,
-            new_feature=NEW_FEATURE,
-            old_change_log=OLD_CHANGE_LOG,
-            )
-
+    addon=THE_ADDON_NAME,
+    patron=PATRONS_LIST,
+    special_thanks=SPECIAL_THANKS,
+    new_feature=NEW_FEATURE,
+    old_change_log=OLD_CHANGE_LOG,
+)
 
 
 # ------- Rate This PopUp ---------------
+
 
 def set_gui_hook_change_log():
     gui_hooks.main_window_did_init.append(change_log_popup)
     # gui_hooks.main_window_did_init.append(add_config_button)
 
-def change_log_popup(*args,**kwargs):
+
+def change_log_popup(*args, **kwargs):
     try:
         config = mw.addonManager.getConfig(__name__)
-        if (config.get(CHANGE_LOG, CHANGE_LOG_DEFAULT) != CHANGE_LOG_DAY):
+        if config.get(CHANGE_LOG, CHANGE_LOG_DEFAULT) != CHANGE_LOG_DAY:
             dialog = CustomDialog(mw, CHANGE_LOG_TEXT, size_mini=True)
             dialog.show()
-            config[CHANGE_LOG] =  CHANGE_LOG_DAY
+            config[CHANGE_LOG] = CHANGE_LOG_DAY
             mw.addonManager.writeConfig(__name__, config)
-    except Exception as e:
+    except Exception:
         pass
 
 
-
-
-def change_log_popup_B(*args,**kwargs):
+def change_log_popup_B(*args, **kwargs):
     try:
         dialog = CustomDialog(mw, CHANGE_LOG_TEXT_B, True)
         dialog.show()
-    except Exception as e:
+    except Exception:
         pass
-
 
 
 # ----- add-onのconfigをｸﾘｯｸしたら設定ｳｨﾝﾄﾞｳを開く -----
@@ -170,11 +181,14 @@ def add_config_button():
     # qconnect(action.triggered, change_log_popup_B)
     # mw.form.menuTools.addAction(action)
 
+
 # ================================================
 
 
 class CustomDialog(QDialog):
-    def __init__(self, parent=None,change_log_text=CHANGE_LOG_TEXT,more_button=False,size_mini=False):
+    def __init__(
+        self, parent=None, change_log_text=CHANGE_LOG_TEXT, more_button=False, size_mini=False
+    ):
         super().__init__(parent)
 
         addon_path = dirname(__file__)
@@ -241,7 +255,7 @@ class CustomDialog(QDialog):
 
         self.setLayout(main_layout)
 
-    def resizeEvent(self, event:"QResizeEvent"):
+    def resizeEvent(self, event: "QResizeEvent"):
         size = event.size()
         print(f"Width: {size.width()}, Height: {size.height()}")
         super().resizeEvent(event)

@@ -1,19 +1,30 @@
-
 import random
-from aqt import QCheckBox, QDialog, QDoubleSpinBox, QFrame, QHBoxLayout, QIcon, QLineEdit, QStyle, QTabWidget, QWidget,Qt
-from aqt import QVBoxLayout, QLabel, QPushButton
-from aqt import mw
-from aqt.utils import tooltip
-from aqt.utils import tr
-from os.path import join, dirname
-from aqt import QPixmap,gui_hooks
-from aqt.utils import openLink
+from os.path import dirname, join
 
-from .shige_addons import add_shige_addons_tab
-from .endroll.endroll import add_credit_tab
-from .button_manager import mini_button
+from aqt import (
+    QCheckBox,
+    QDialog,
+    QDoubleSpinBox,
+    QFrame,
+    QHBoxLayout,
+    QIcon,
+    QLabel,
+    QLineEdit,
+    QPixmap,
+    QPushButton,
+    QStyle,
+    Qt,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+    mw,
+)
+from aqt.utils import openLink, tooltip
 
 from ..path_manager import MESSAGE_TEMPLATE, check_custom_text
+from .button_manager import mini_button
+from .endroll.endroll import add_credit_tab
+from .shige_addons import add_shige_addons_tab
 
 DEBUG_MODE = True
 
@@ -27,9 +38,9 @@ SET_LINE_EDID_WIDTH = 400
 MAX_LABEL_WIDTH = 50
 ADDON_PACKAGE = mw.addonManager.addonFromModule(__name__)
 # ｱﾄﾞｵﾝのURLが数値であるか確認
-if (isinstance(ADDON_PACKAGE, (int, float))
-    or (isinstance(ADDON_PACKAGE, str)
-    and ADDON_PACKAGE.isdigit())):
+if isinstance(ADDON_PACKAGE, (int, float)) or (
+    isinstance(ADDON_PACKAGE, str) and ADDON_PACKAGE.isdigit()
+):
     RATE_THIS = True
 
 RATE_THIS_URL = f"https://ankiweb.net/shared/review/{ADDON_PACKAGE}"
@@ -46,17 +57,21 @@ class MyAddonConfig(QDialog):
 
         config = mw.addonManager.getConfig(__name__)
 
-        self.custom_text = config.get("custom_text", "Studied {card_text} cards in {time_text} today.")
+        self.custom_text = config.get(
+            "custom_text", "Studied {card_text} cards in {time_text} today."
+        )
         self.use_distinct_count = config.get("use_distinct_count", False)
 
         addon_path = dirname(__file__)
-        self.setWindowIcon(QIcon(join(addon_path,"icon.png")))
+        self.setWindowIcon(QIcon(join(addon_path, "icon.png")))
 
         # Set image on QLabel
         self.patreon_label = QLabel()
         patreon_banner_path = join(addon_path, r"banner.jpg")
         pixmap = QPixmap(patreon_banner_path)
-        pixmap = pixmap.scaledToWidth(BANNAR_LABEL_WIDTH, Qt.TransformationMode.SmoothTransformation)
+        pixmap = pixmap.scaledToWidth(
+            BANNAR_LABEL_WIDTH, Qt.TransformationMode.SmoothTransformation
+        )
         self.patreon_label.setPixmap(pixmap)
         self.patreon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.patreon_label.setFixedSize(pixmap.width(), pixmap.height())
@@ -88,8 +103,7 @@ class MyAddonConfig(QDialog):
 
         layout = QVBoxLayout()
 
-
-        #-----------------------------
+        # -----------------------------
         # self.overview_zoom_spinbox = self.create_spinbox(
         # "[ Home & Overview Zoom ]", 0.1, 5, self.overview_zoom, 70, 1, 0.1,"overview_zoom")
 
@@ -99,15 +113,13 @@ class MyAddonConfig(QDialog):
         # self.manually_force_zoom_label = self.create_checkbox(
         #     "Do not auto save zoom values.(Ctrl + Scroll wheel)",  "manually_force_zoom")
 
-
-        self.use_distinct_count
         use_distinct_count_checkbox = self.create_checkbox(
-            "Use distinct count", "use_distinct_count")
+            "Use distinct count", "use_distinct_count"
+        )
 
-        self.custom_text
         custom_text_layout = self.create_line_edits_and_labels(
-            "custom_text", self.custom_text, "Text")
-
+            "custom_text", self.custom_text, "Text"
+        )
 
         layout = QVBoxLayout()
         tab_widget = QTabWidget()
@@ -141,7 +153,6 @@ class MyAddonConfig(QDialog):
         # others_tab = QWidget()
         # others_layout = QVBoxLayout()
 
-
         # others_layout.addStretch()
         # others_tab.setLayout(others_layout)
 
@@ -167,16 +178,12 @@ class MyAddonConfig(QDialog):
 
         self.setLayout(layout)
 
-
         self.adjust_self_size()
-
 
     def adjust_self_size(self):
         # min_size = self.layout().minimumSize()
         # self.resize(min_size.width(), min_size.height())
         self.resize(WIDGET_WIDTH, WIDGET_HEIGHT)
-
-
 
     # ﾁｪｯｸﾎﾞｯｸｽを生成する関数=======================
     def create_checkbox(self, label, attribute_name):
@@ -208,8 +215,8 @@ class MyAddonConfig(QDialog):
         icon = self.style().standardIcon(QStyle.StandardPixmap.SP_MessageBoxQuestion)
         checkbox_height = checkbox.height()
         checkbox.setIcon(QIcon(icon.pixmap(checkbox_height, checkbox_height)))
-    #=================================================
 
+    # =================================================
 
     # ｾﾊﾟﾚｰﾀを作成する関数=========================
     def create_separator(self):
@@ -218,8 +225,8 @@ class MyAddonConfig(QDialog):
         separator.setFrameShadow(QFrame.Shadow.Sunken)
         separator.setStyleSheet("border: 1px solid gray")
         return separator
-    # =================================================
 
+    # =================================================
 
     # ﾚｲｱｳﾄにｽﾍﾟｰｽを追加する関数=======================
     def add_widget_with_spacing(self, layout, widget):
@@ -234,23 +241,28 @@ class MyAddonConfig(QDialog):
         addon_path = dirname(__file__)
         patreon_banner_hover_path = join(addon_path, r"Patreon_banner.jpg")
         self.pixmap = QPixmap(patreon_banner_hover_path)
-        self.pixmap = self.pixmap.scaledToWidth(BANNAR_LABEL_WIDTH, Qt.TransformationMode.SmoothTransformation)
+        self.pixmap = self.pixmap.scaledToWidth(
+            BANNAR_LABEL_WIDTH, Qt.TransformationMode.SmoothTransformation
+        )
         self.patreon_label.setPixmap(self.pixmap)
 
     def patreon_label_leaveEvent(self, event):
         addon_path = dirname(__file__)
         patreon_banner_hover_path = join(addon_path, r"banner.jpg")
         self.pixmap = QPixmap(patreon_banner_hover_path)
-        self.pixmap = self.pixmap.scaledToWidth(BANNAR_LABEL_WIDTH, Qt.TransformationMode.SmoothTransformation)
+        self.pixmap = self.pixmap.scaledToWidth(
+            BANNAR_LABEL_WIDTH, Qt.TransformationMode.SmoothTransformation
+        )
         self.patreon_label.setPixmap(self.pixmap)
+
     # ------------ patreon label----------------------
 
-    #-- open patreon link-----
-    def open_patreon_Link(self,url):
+    # -- open patreon link-----
+    def open_patreon_Link(self, url):
         openLink("http://patreon.com/Shigeyuki")
 
-    #-- open rate this link-----
-    def open_rate_this_Link(self,url):
+    # -- open rate this link-----
+    def open_rate_this_Link(self, url):
         openLink(RATE_THIS_URL)
 
     # --- cancel -------------
@@ -261,14 +273,14 @@ class MyAddonConfig(QDialog):
         tooltip("Canceled " + selected_emoticon)
 
         self.close()
-    #-----------------------------
 
+    # -----------------------------
 
-    #----------------------------
+    # ----------------------------
     # ｽﾋﾟﾝﾎﾞｯｸｽを作成する関数=========================
-    def create_spinbox(self, label_text, min_value,
-                                max_value, initial_value, width,
-                                decimals, step, attribute_name):
+    def create_spinbox(
+        self, label_text, min_value, max_value, initial_value, width, decimals, step, attribute_name
+    ):
         def spinbox_handler(value):
             value = round(value, 1)
             if decimals == 0:
@@ -293,8 +305,8 @@ class MyAddonConfig(QDialog):
         layout.addStretch()
 
         return layout
-    #=================================================
 
+    # =================================================
 
     # ﾃｷｽﾄﾎﾞｯｸｽを作成する関数=========================
     def create_line_edits_and_labels(self, list_attr_name, list_items, b_name, b_index=None):
@@ -302,9 +314,9 @@ class MyAddonConfig(QDialog):
         items = list_items if isinstance(list_items, list) else [list_items]
         for i, item in enumerate(items):
             line_edit = QLineEdit(item)
-            line_edit.textChanged.connect(lambda text,
-                                        i=i,
-                                        name=list_attr_name: self.update_list_item(name, i, text))
+            line_edit.textChanged.connect(
+                lambda text, i=i, name=list_attr_name: self.update_list_item(name, i, text)
+            )
             line_edit.setMaximumWidth(SET_LINE_EDID_WIDTH)
 
             if i == 0:
@@ -312,9 +324,11 @@ class MyAddonConfig(QDialog):
                 if b_index is not None:
                     b_name_attr = getattr(self, b_name)
                     label_edit = QLineEdit(b_name_attr[b_index])
-                    label_edit.textChanged.connect(lambda text,
-                                                i=i,
-                                                b_name=b_name: self.update_label_item(b_name, b_index, text))
+                    label_edit.textChanged.connect(
+                        lambda text, i=i, b_name=b_name: self.update_label_item(
+                            b_name, b_index, text
+                        )
+                    )
                     label_edit.setFixedWidth(MAX_LABEL_WIDTH)
                     layout.addWidget(label_edit)
                 else:
@@ -328,16 +342,16 @@ class MyAddonConfig(QDialog):
                 layout.addWidget(label)
 
             line_edit = QLineEdit(item)
-            line_edit.textChanged.connect(lambda text,
-                                        i=i,
-                                        name=list_attr_name: self.update_list_item(name, i, text))
+            line_edit.textChanged.connect(
+                lambda text, i=i, name=list_attr_name: self.update_list_item(name, i, text)
+            )
             # line_edit.setMaximumWidth(SET_LINE_EDID_WIDTH)
             layout.addWidget(line_edit)
             main_layout.addLayout(layout)
         return main_layout
 
     def update_label_item(self, b_name, index, text):
-        update_label = getattr(self,b_name)
+        update_label = getattr(self, b_name)
         update_label[index] = text
 
     def update_list_item(self, list_attr_name, index, text):
@@ -346,6 +360,7 @@ class MyAddonConfig(QDialog):
             list_to_update[index] = text
         else:
             setattr(self, list_attr_name, text)
+
     # ===================================================
 
     def handle_button_clicked(self):
@@ -358,12 +373,10 @@ class MyAddonConfig(QDialog):
         if mw.state == "deckBrowser":
             mw.deckBrowser.refresh()
 
-
-
     def update_config(self):
         config = mw.addonManager.getConfig(__name__)
 
-        self.custom_text =  check_custom_text(self.custom_text)
+        self.custom_text = check_custom_text(self.custom_text)
 
         config["custom_text"] = self.custom_text
         config["use_distinct_count"] = self.use_distinct_count
@@ -374,8 +387,6 @@ class MyAddonConfig(QDialog):
 def setMyAddonConfig():
     font_viewer = MyAddonConfig()
     if hasattr(MyAddonConfig, 'exec'):
-        font_viewer.exec() # Qt6
+        font_viewer.exec()  # Qt6
     else:
-        font_viewer.exec_() # Qt5
-
-
+        font_viewer.exec_()  # Qt5

@@ -3,21 +3,27 @@
 Test incremental upload logic for collection files and notes.
 """
 
+import gzip
 import hashlib
 import json
-import gzip
-import sys
-from pathlib import Path
-from unittest.mock import patch, MagicMock
-import tempfile
 import shutil
+import sys
+import tempfile
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 # Add graph module to path
 SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / 'graph'))
 
-from hash_map import compute_note_hash, load_hash_map, save_hash_map, find_changed_notes, update_hash_map
+from hash_map import (
+    compute_note_hash,
+    find_changed_notes,
+    load_hash_map,
+    save_hash_map,
+    update_hash_map,
+)
 
 
 def compute_file_hash(content):
@@ -321,31 +327,34 @@ def test_missing_coverage():
     compute_file_hash(b"test bytes")
 
 def test_run_all_tests_fail_exit():
-    from data.anki.tests.test_incremental_upload import run_all_tests
-    from unittest.mock import patch
     import sys
+    from unittest.mock import patch
 
-    with patch("data.anki.tests.test_incremental_upload.test_compute_file_hash", side_effect=AssertionError("Fail")), patch("sys.exit") as mock_exit:
+    from data.anki.tests.test_incremental_upload import run_all_tests
+
+    with patch("data.anki.tests.test_incremental_upload.test_compute_file_hash", side_effect=AssertionError("Fail")), patch("sys.exit"):
          try:
              run_all_tests()
-         except Exception as e:
+         except Exception:
              pass
 
 def test_run_all_tests_error_exit():
-    from data.anki.tests.test_incremental_upload import run_all_tests
-    from unittest.mock import patch
     import sys
+    from unittest.mock import patch
 
-    with patch("data.anki.tests.test_incremental_upload.test_compute_file_hash", side_effect=Exception("Error")), patch("sys.exit") as mock_exit:
+    from data.anki.tests.test_incremental_upload import run_all_tests
+
+    with patch("data.anki.tests.test_incremental_upload.test_compute_file_hash", side_effect=Exception("Error")), patch("sys.exit"):
          try:
              run_all_tests()
-         except Exception as e:
+         except Exception:
              pass
 
 def test_incremental_collection_staging_extra():
-    from data.anki.tests.test_incremental_upload import compute_file_hash
     import tempfile
     from pathlib import Path
+
+    from data.anki.tests.test_incremental_upload import compute_file_hash
 
     with tempfile.TemporaryDirectory() as tmpdir:
         staging_dir = Path(tmpdir) / "staging"
@@ -371,9 +380,14 @@ def test_incremental_collection_staging_extra():
             files_to_stage.append("collection/cards-data.json.gz")
 
 def test_full_incremental_workflow_extra():
-    from data.anki.tests.test_incremental_upload import load_hash_map, save_hash_map, compute_file_hash
     import tempfile
     from pathlib import Path
+
+    from data.anki.tests.test_incremental_upload import (
+        compute_file_hash,
+        load_hash_map,
+        save_hash_map,
+    )
 
     with tempfile.TemporaryDirectory() as tmpdir:
         staging_dir = Path(tmpdir) / "staging"

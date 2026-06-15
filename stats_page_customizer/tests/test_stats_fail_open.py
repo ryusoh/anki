@@ -34,11 +34,11 @@ sys.modules["aqt.stats"] = _mock_stats
 sys.modules["aqt.utils"] = MagicMock()
 sys.modules["aqt.webview"] = MagicMock()
 
+import stats_page_customizer
 from stats_page_customizer import (
     _read_existing_total_from_file,
     _write_custom_stats_payload,
 )
-import stats_page_customizer
 
 
 def _make_payload(mature_vals, young_vals=None):
@@ -46,8 +46,7 @@ def _make_payload(mature_vals, young_vals=None):
     if young_vals is None:
         young_vals = [0] * len(mature_vals)
     entries = [
-        {"day": i, "mature": m, "young": y}
-        for i, (m, y) in enumerate(zip(mature_vals, young_vals))
+        {"day": i, "mature": m, "young": y} for i, (m, y) in enumerate(zip(mature_vals, young_vals))
     ]
     return {"futureDue": entries}
 

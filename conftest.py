@@ -1,6 +1,6 @@
+import builtins
 import sys
 from unittest.mock import MagicMock
-import builtins
 
 sys.modules['aqt'] = MagicMock()
 sys.modules['aqt.browser'] = MagicMock()
@@ -13,18 +13,23 @@ sys.modules['aqt.main'] = MagicMock()
 sys.modules['anki'] = MagicMock()
 sys.modules['anki.hooks'] = MagicMock()
 
+
 # Mocks for rewrite_text_of_study_cards
 class MockDeckBrowser:
     _renderStats = MagicMock()
 
+
 class MockOverview:
     pass
 
+
 class MockDeckBrowserModule:
-    pass
+    DeckBrowser = MockDeckBrowser
+
 
 class MockOverviewModule:
     Overview = MockOverview
+
 
 sys.modules['aqt.deckbrowser'] = MockDeckBrowserModule()
 sys.modules['aqt.overview'] = MockOverviewModule()

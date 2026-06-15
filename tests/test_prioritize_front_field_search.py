@@ -1,5 +1,7 @@
 import pytest
-from prioritize_front_field_search.search import extract_terms, _process_query_part
+
+from prioritize_front_field_search.search import _process_query_part, extract_terms
+
 
 def test_extract_terms_process_query_part():
     # Covers line 28, 54, 73
@@ -9,6 +11,7 @@ def test_extract_terms_process_query_part():
     assert _process_query_part('"hello"') == "hello"
     assert _process_query_part('"he') == '"he'
     assert _process_query_part('hel*lo') == "hello"
+
 
 def test_extract_terms():
     assert extract_terms('front:"hello"') == ["hello"]
@@ -21,7 +24,9 @@ def test_extract_terms():
 
     assert extract_terms('front:"some*"') == ["some"]
 
+
 from prioritize_front_field_search.search import score_front_match
+
 
 def test_score_front_match():
     assert score_front_match("", "test") == 0
@@ -38,5 +43,8 @@ def test_score_front_match():
     assert score_front_match("te&nbsp;st", "te st") == 4
     assert score_front_match("[sound:test.mp3]test", "test") == 4
 
+
 def test_extract_terms_mixed():
-    assert extract_terms('front:"hello world" back:ignore me -front:"ignored_dash" OR something "quoted_thing"') == ['hello world', 'me', 'ignored_dash', 'something', 'quoted_thing']
+    assert extract_terms(
+        'front:"hello world" back:ignore me -front:"ignored_dash" OR something "quoted_thing"'
+    ) == ['hello world', 'me', 'ignored_dash', 'something', 'quoted_thing']

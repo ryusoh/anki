@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Create interactive HTML visualization of Anki knowledge graph"""
 
-import sys, os, json, gzip
-from pathlib import Path
+import gzip
+import json
+import sys
 from datetime import datetime
+from pathlib import Path
 
 sys.path.insert(0, '.')
 from graph.builder import build_graph
@@ -28,21 +30,19 @@ nodes = []
 for node_id, data in graph.nodes(data=True):
     front = data.get('front', 'Unknown')[:50]
     pagerank = data.get('pagerank', 0)
-    nodes.append({
-        'id': node_id,
-        'label': front,
-        'pagerank': round(pagerank, 6),
-        'size': min(25, max(5, int(pagerank * 5000))),
-        'color': '#4CAF50' if pagerank > 0.01 else '#2196F3' if pagerank > 0.001 else '#9E9E9E'
-    })
+    nodes.append(
+        {
+            'id': node_id,
+            'label': front,
+            'pagerank': round(pagerank, 6),
+            'size': min(25, max(5, int(pagerank * 5000))),
+            'color': '#4CAF50' if pagerank > 0.01 else '#2196F3' if pagerank > 0.001 else '#9E9E9E',
+        }
+    )
 
 links = []
 for source, target, data in graph.edges(data=True):
-    links.append({
-        'source': source,
-        'target': target,
-        'weight': round(data.get('weight', 1), 2)
-    })
+    links.append({'source': source, 'target': target, 'weight': round(data.get('weight', 1), 2)})
 
 # Sort nodes by PageRank (top first)
 nodes.sort(key=lambda x: x['pagerank'], reverse=True)

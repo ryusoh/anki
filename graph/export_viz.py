@@ -1,17 +1,24 @@
 #!/usr/bin/env python3
 """Export graph for visualization (Gephi, D3.js)"""
 
-import sys, os
+import gzip
+import json
+import os
+import sys
+from datetime import datetime
 from pathlib import Path
+
+import networkx as nx
+
+from graph.builder import build_per_deck_graphs
+
 sys.path.insert(0, '/Users/lz/Library/Application Support/Anki2/addons21')
 os.chdir('/Users/lz/Library/Application Support/Anki2/addons21')
 
-import json, gzip, networkx as nx
-from datetime import datetime
-from graph.builder import build_per_deck_graphs
-
 # Load staged notes
-staging_file = "/Users/lz/Library/Application Support/Anki2/addons21/data/cloudflare/collection/notes.json.gz"
+staging_file = (
+    "/Users/lz/Library/Application Support/Anki2/addons21/data/cloudflare/collection/notes.json.gz"
+)
 with gzip.open(staging_file, 'rt') as f:
     notes = json.load(f)
 
@@ -27,7 +34,7 @@ graphs = build_per_deck_graphs(notes, with_pagerank=True)
 
 for deck_name, graph in graphs.items():
     deck_safe = deck_name.replace(' ', '_').replace('/', '_')[:50]
-    
+
     # GraphML for Gephi
     nx.write_graphml(graph, output_dir / f"{deck_safe}-{timestamp}.graphml")
     print(f"✓ {deck_name}: {len(graph.nodes()):,} nodes, {len(graph.edges()):,} edges")

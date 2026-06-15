@@ -1,17 +1,20 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 """
 Tests for incremental export system
 """
 
-import pytest
 import json
-from pathlib import Path
-import tempfile
 import os
 
 # Import functions to test
 import sys
+import tempfile
+from pathlib import Path
+
+import pytest
+
 sys.path.insert(0, '/Users/lz/Library/Application Support/Anki2/addons21/graph')
 
 from graph.incremental_export import load_config, save_config, strip_html
@@ -19,65 +22,68 @@ from graph.incremental_export import load_config, save_config, strip_html
 
 class TestConfigManagement:
     """Test configuration loading and saving."""
-    
+
     def test_load_default_config(self, tmp_path):
         """Test loading non-existent config returns defaults."""
         # Temporarily change config file location
         from graph import incremental_export
+
         original = incremental_export.CONFIG_FILE
         incremental_export.CONFIG_FILE = tmp_path / "nonexistent.json"
-        
+
         config = load_config()
-        
+
         assert config['sample_size'] == 100
         assert config['increment'] == 100
-        
+
         incremental_export.CONFIG_FILE = original
-    
+
     def test_save_and_load_config(self, tmp_path):
         """Test saving and loading config."""
         from graph import incremental_export
+
         original = incremental_export.CONFIG_FILE
         incremental_export.CONFIG_FILE = tmp_path / "test_config.json"
-        
+
         config = {'sample_size': 500, 'increment': 200}
         save_config(config)
-        
+
         loaded = load_config()
-        
+
         assert loaded['sample_size'] == 500
         assert loaded['increment'] == 200
-        
+
         incremental_export.CONFIG_FILE = original
-    
+
     def test_config_persists(self, tmp_path):
         """Test that config persists across calls."""
         from graph import incremental_export
+
         original = incremental_export.CONFIG_FILE
         incremental_export.CONFIG_FILE = tmp_path / "test_config.json"
-        
+
         save_config({'sample_size': 300})
         config1 = load_config()
-        
+
         save_config({'sample_size': 400})
         config2 = load_config()
-        
+
         assert config1['sample_size'] == 300
         assert config2['sample_size'] == 400
-        
+
         incremental_export.CONFIG_FILE = original
 
 
 class TestHTMLStripping:
     """Test HTML stripping for node labels."""
-    
+
     def test_strip_bold_tags(self):
         """Test stripping <b> tags."""
         text = 'This is <b>bold</b> text'
         result = strip_html(text)
         assert '<b>' not in result
         assert 'bold' in result
-    
+
     def test_strip_multiple_tags(self):
         """Test stripping multiple tag types."""
         text = '<b>bold</b> and <i>italic</i> and <u>underline</u>'
@@ -87,20 +93,20 @@ class TestHTMLStripping:
         assert '<u>' not in result
         assert 'bold' in result
         assert 'italic' in result
-    
+
     def test_strip_field_separator(self):
         """Test stripping Anki field separators."""
         text = 'Front::Back'
         result = strip_html(text)
         assert '::' not in result
         assert 'Front Back' == result
-    
+
     def test_truncate_length(self):
         """Test truncation to 60 chars."""
         text = 'A' * 100
         result = strip_html(text)
         assert len(result) <= 60
-    
+
     def test_preserve_japanese(self):
         """Test that Japanese text is preserved."""
         text = 'これがこの町で一番<b>高い</b>ビルです。'
@@ -111,37 +117,38 @@ class TestHTMLStripping:
 
 class TestIncrementLogic:
     """Test increment size logic."""
-    
+
     def test_small_sizes_increment_by_100(self):
         """Test sizes < 1000 increment by 100."""
         sizes = [100, 200, 300, 500, 900]
         for size in sizes:
             next_size = size + 100
             assert next_size <= 1000
-    
+
     def test_medium_sizes_increment_by_100(self):
         """Test sizes 1000-5000 increment by 100."""
         size = 1000
         next_size = size + 100
         assert next_size == 1100
-    
+
     def test_large_sizes_increment_by_500(self):
         """Test sizes 5000-10000 increment by 500."""
         size = 5000
         next_size = size + 500
         assert next_size == 5500
-    
+
     def test_very_large_sizes_increment_by_1000(self):
         """Test sizes 10000-50000 increment by 1000."""
         size = 10000
         next_size = size + 1000
         assert next_size == 11000
-    
+
     def test_massive_sizes_increment_by_5000(self):
         """Test sizes 50000+ increment by 5000."""
         size = 50000
         next_size = size + 5000
         assert next_size == 55000
+
 
 class TestExportGraph:
     """Test exporting graph data."""
@@ -151,10 +158,13 @@ class TestExportGraph:
     @patch('graph.incremental_export.build_graph')
     @patch('graph.incremental_export.json.load')
     @patch('graph.incremental_export.gzip.open', new_callable=unittest.mock.mock_open)
-    def test_export_graph(self, mock_gzip_open, mock_json_load, mock_build_graph, mock_open, mock_json_dump):
+    def test_export_graph(
+        self, mock_gzip_open, mock_json_load, mock_build_graph, mock_open, mock_json_dump
+    ):
         """Test export_graph reads notes, builds graph, and writes to DATA_FILE."""
-        from graph.incremental_export import export_graph
         import networkx as nx
+
+        from graph.incremental_export import export_graph
 
         # Mock json load
         mock_json_load.return_value = [{'id': '1', 'front': 'Card 1', 'deck': 'Deck A'}]
@@ -182,6 +192,7 @@ class TestExportGraph:
         assert len(data['nodes']) == 1
         assert data['nodes'][0]['id'] == '1'
 
+
 class TestMainExecution:
     """Test main command-line execution."""
 
@@ -192,6 +203,7 @@ class TestMainExecution:
     def test_main_status(self, mock_load_config, mock_save_config, mock_export_graph):
         """Test main running with --status flag."""
         from graph.incremental_export import main
+
         mock_load_config.return_value = {'sample_size': 100, 'increment': 100}
 
         main()
@@ -206,6 +218,7 @@ class TestMainExecution:
     def test_main_reset(self, mock_load_config, mock_save_config, mock_export_graph):
         """Test main running with --reset flag."""
         from graph.incremental_export import main
+
         mock_load_config.return_value = {'sample_size': 500, 'increment': 100}
 
         main()
@@ -222,6 +235,7 @@ class TestMainExecution:
     def test_main_size(self, mock_load_config, mock_save_config, mock_export_graph):
         """Test main running with --size flag."""
         from graph.incremental_export import main
+
         mock_load_config.return_value = {'sample_size': 100, 'increment': 100}
 
         main()
@@ -238,6 +252,7 @@ class TestMainExecution:
     def test_main_next(self, mock_load_config, mock_save_config, mock_export_graph):
         """Test main running with --next flag."""
         from graph.incremental_export import main
+
         mock_load_config.return_value = {'sample_size': 100, 'increment': 100}
 
         main()
@@ -250,30 +265,28 @@ class TestMainExecution:
 
 class TestExportValidation:
     """Test export validation."""
-    
+
     def test_export_creates_valid_json(self, tmp_path):
         """Test that export creates valid JSON."""
         # This would require actual Anki data
         # For now, just test the structure
         test_data = {
-            'nodes': [
-                {'id': 'n1', 'label': 'Test', 'deck': 'Test', 'pagerank': 0.01, 'size': 1.0}
-            ],
-            'links': []
+            'nodes': [{'id': 'n1', 'label': 'Test', 'deck': 'Test', 'pagerank': 0.01, 'size': 1.0}],
+            'links': [],
         }
-        
+
         output_file = tmp_path / "test_graph.json"
         with open(output_file, 'w') as f:
             json.dump(test_data, f)
-        
+
         # Verify it loads back
         with open(output_file, 'r') as f:
             loaded = json.load(f)
-        
+
         assert 'nodes' in loaded
         assert 'links' in loaded
         assert len(loaded['nodes']) == 1
-    
+
     def test_node_has_required_fields(self):
         """Test that nodes have all required fields."""
         node = {
@@ -281,71 +294,94 @@ class TestExportValidation:
             'label': 'Test Card',
             'deck': 'Test Deck',
             'pagerank': 0.01234,
-            'size': 1.234
+            'size': 1.234,
         }
-        
+
         required = ['id', 'label', 'deck', 'pagerank', 'size']
         for field in required:
             assert field in node
-    
+
     def test_link_has_required_fields(self):
         """Test that links have all required fields."""
-        link = {
-            'source': 'node1',
-            'target': 'node2',
-            'weight': 1.5
-        }
-        
+        link = {'source': 'node1', 'target': 'node2', 'weight': 1.5}
+
         required = ['source', 'target', 'weight']
         for field in required:
             assert field in link
 
+
 def test_strip_html_none():
     from graph.incremental_export import strip_html
+
     assert strip_html(None) == ''
 
-def test_main_status_no_data_file():
-    from graph.incremental_export import main
-    from unittest.mock import patch, MagicMock
-    import sys
 
-    with patch("sys.argv", ["incremental_export.py", "--status"]), \
-         patch("graph.incremental_export.load_config", return_value={"sample_size": 100, "increment": 10}), \
-         patch("graph.incremental_export.DATA_FILE", MagicMock(exists=MagicMock(return_value=False))):
+def test_main_status_no_data_file():
+    import sys
+    from unittest.mock import MagicMock, patch
+
+    from graph.incremental_export import main
+
+    with (
+        patch("sys.argv", ["incremental_export.py", "--status"]),
+        patch(
+            "graph.incremental_export.load_config",
+            return_value={"sample_size": 100, "increment": 10},
+        ),
+        patch(
+            "graph.incremental_export.DATA_FILE", MagicMock(exists=MagicMock(return_value=False))
+        ),
+    ):
         main()
+
 
 def test_main_increment_50000():
-    from graph.incremental_export import main
-    from unittest.mock import patch, MagicMock
     import sys
+    from unittest.mock import MagicMock, patch
 
-    with patch("sys.argv", ["incremental_export.py"]), \
-         patch("graph.incremental_export.load_config", return_value={"sample_size": 50000, "increment": 10}), \
-         patch("graph.incremental_export.save_config"), \
-         patch("graph.incremental_export.export_graph"):
+    from graph.incremental_export import main
+
+    with (
+        patch("sys.argv", ["incremental_export.py"]),
+        patch(
+            "graph.incremental_export.load_config",
+            return_value={"sample_size": 50000, "increment": 10},
+        ),
+        patch("graph.incremental_export.save_config"),
+        patch("graph.incremental_export.export_graph"),
+    ):
         main()
 
+
 def test_main_module_exec():
-    from unittest.mock import patch
     import runpy
-    with patch("graph.incremental_export.main") as mock_main:
+    from unittest.mock import patch
+
+    with patch("graph.incremental_export.main"):
         try:
             import graph.incremental_export
+
             runpy.run_path(graph.incremental_export.__file__, run_name="__main__")
         except SystemExit:
             pass
 
 
 def test_main_status_with_data_file():
-    from graph.incremental_export import main
-    from unittest.mock import patch, MagicMock
     import sys
+    from unittest.mock import MagicMock, patch
+
+    from graph.incremental_export import main
 
     data_file_mock = MagicMock()
     data_file_mock.exists.return_value = True
     data_file_mock.stat.return_value.st_size = 1024 * 1024
 
-    with patch("sys.argv", ["incremental_export.py", "--status"]), \
-         patch("graph.incremental_export.load_config", return_value={"sample_size": 100, "increment": 10}), \
-         patch("graph.incremental_export.DATA_FILE", data_file_mock):
+    with (
+        patch("sys.argv", ["incremental_export.py", "--status"]),
+        patch(
+            "graph.incremental_export.load_config",
+            return_value={"sample_size": 100, "increment": 10},
+        ),
+        patch("graph.incremental_export.DATA_FILE", data_file_mock),
+    ):
         main()

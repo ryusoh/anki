@@ -4,10 +4,9 @@ Generate custom_stats_data.json from Anki cards.json.gz for terminal display.
 Creates future due chart data based on card intervals and due dates.
 """
 
-import json
 import gzip
+import json
 import sqlite3
-from pathlib import Path
 from datetime import datetime
 from pathlib import Path
 

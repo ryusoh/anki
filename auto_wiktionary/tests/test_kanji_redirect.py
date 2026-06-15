@@ -1,9 +1,14 @@
-import sys
 import os
+import sys
 from unittest.mock import patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from utils import detect_kanji_redirect, parse_wiktionary_html, fetch_wiktionary_html, inject_redirect_pronunciation
+from utils import (
+    detect_kanji_redirect,
+    fetch_wiktionary_html,
+    inject_redirect_pronunciation,
+    parse_wiktionary_html,
+)
 
 # Real HTML from ja.wiktionary for 血眼 (redirects to ちまなこ)
 CHIMANAKO_REDIRECT_HTML = """
@@ -342,12 +347,13 @@ def test_inject_pronunciation_multi_section_no_leading_p():
 
     # 2. All original <p> tags must survive (not be eaten by a greedy regex)
     import re
+
     original_p_count = len(re.findall(r'<p>', multi_section))
     result_p_count = len(re.findall(r'<p>', result))
     # +1 for the prepended pronunciation <p>
-    assert result_p_count == original_p_count + 1, (
-        f"Expected {original_p_count + 1} <p> tags, got {result_p_count}"
-    )
+    assert (
+        result_p_count == original_p_count + 1
+    ), f"Expected {original_p_count + 1} <p> tags, got {result_p_count}"
 
     # 3. All original content must be preserved
     assert "自動詞:付く" in result

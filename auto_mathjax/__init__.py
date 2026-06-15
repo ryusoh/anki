@@ -13,6 +13,7 @@
 
 import os
 import re
+
 from aqt import gui_hooks
 from aqt.editor import Editor
 
@@ -84,7 +85,7 @@ def _convert_dollar_to_mathjax(html_str):
 
         # Find and replace $$...$$ and $...$ pairs in this segment
         def replace_match(m):
-            block_inner = m.group(1)   # from $$...$$
+            block_inner = m.group(1)  # from $$...$$
             inline_inner = m.group(2)  # from $...$
 
             if block_inner is not None:

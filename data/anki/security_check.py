@@ -14,11 +14,10 @@ Private data includes:
 This is a CRITICAL safety check. DO NOT bypass it.
 """
 
-import subprocess
-import json
 import gzip
+import json
+import subprocess
 import sys
-import re
 from pathlib import Path
 
 # Colors for output
@@ -117,7 +116,7 @@ def _check_json_data(filepath, full_path):
                 if has_flds and (has_mid or has_guid):
                     violations.append({
                         'type': 'private_notes',
-                        'message': f'File contains private note data with flds field',
+                        'message': 'File contains private note data with flds field',
                         'fields': [k for k in first_item.keys() if k in ['flds', 'tags', 'mid', 'guid', 'usn', 'csum']]
                     })
 

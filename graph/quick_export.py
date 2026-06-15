@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
 """Quick export of uploaded notes for Gephi visualization"""
 
-import sys, os
+import sys
 from pathlib import Path
+
 sys.path.insert(0, '/Users/lz/Library/Application Support/Anki2/addons21')
 
-import json, gzip, networkx as nx
+import gzip
+import json
 from datetime import datetime
+
+import networkx as nx
+
 from graph.builder import build_graph
 
 # Load staged notes
-notes_file = "/Users/lz/Library/Application Support/Anki2/addons21/data/cloudflare/collection/notes.json.gz"
+notes_file = (
+    "/Users/lz/Library/Application Support/Anki2/addons21/data/cloudflare/collection/notes.json.gz"
+)
 print("Loading notes...")
 with gzip.open(notes_file, 'rt') as f:
     notes = json.load(f)

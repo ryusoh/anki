@@ -6,8 +6,8 @@ main window. Uses the existing toolbar buttons (Decks/Stats/Add) for navigation.
 
 from __future__ import annotations
 
-from typing import Any
 import sys
+from typing import Any
 
 try:
     import aqt
@@ -127,8 +127,10 @@ def _inject_glass_effect() -> None:
     if _stats_web is None:
         return
     try:
-        from animated_glass_background import get_glass_effect_js, get_addon_config
         import json
+
+        from animated_glass_background import get_addon_config, get_glass_effect_js
+
         config = get_addon_config()
         if not config.get("enabled", True):
             return
@@ -143,14 +145,10 @@ def _inject_glass_effect() -> None:
         # that forces position:relative and transparent backgrounds on all
         # body children, which breaks the Svelte stats page layout.
         script = script.replace(
-            'body > *:not(#glass-effect-bg):not(script):not(style)',
-            '#__never_match_anything__'
+            'body > *:not(#glass-effect-bg):not(script):not(style)', '#__never_match_anything__'
         )
         # Patch: remove position:relative on body>div which shifts layout
-        script = script.replace(
-            'position: relative !important;',
-            'position: static !important;'
-        )
+        script = script.replace('position: relative !important;', 'position: static !important;')
 
         _stats_web.eval(script)
     except Exception as e:
@@ -176,9 +174,11 @@ def _open_deck_chooser() -> None:
         return
 
     import json
+
     deck_name = json.dumps(ret.name)
 
-    _stats_web.eval(f"""
+    _stats_web.eval(
+        f"""
     (function() {{
         const radios = document.querySelectorAll('.range-box input[type="radio"]');
         for (const r of radios) {{
@@ -197,7 +197,8 @@ def _open_deck_chooser() -> None:
             input.dispatchEvent(new Event('change', {{ bubbles: true }}));
         }}
     }})();
-    """)
+    """
+    )
 
 
 def _create_stats_tab() -> None:
@@ -229,6 +230,7 @@ def _create_stats_tab() -> None:
 
     try:
         from stats_page_customizer import _attach_on_load
+
         _attach_on_load(web)
     except Exception as e:
         print(f"[tabbed_stats] Error attaching stats page customizer: {e}", file=sys.stderr)
@@ -240,6 +242,7 @@ def _create_addcards_tab() -> None:
 
     if _addcards is not None:
         from aqt.qt import sip
+
         if sip.isdeleted(_addcards):
             _addcards = None
         else:

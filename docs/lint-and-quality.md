@@ -8,16 +8,16 @@ style on code we did not author.
 
 ## Toolchain
 
-| Layer | Tool | Config | Scope |
-| ----- | ---- | ------ | ----- |
-| JS lint | ESLint (flat) | `eslint.config.cjs` | first-party `*.js` (ignores list) |
-| CSS lint | Stylelint | `.stylelintrc.cjs` + `.stylelintignore` | first-party `*.css` |
-| Markdown lint | markdownlint-cli | `.markdownlint.json` | tracked `*.md` |
-| Format (JS/CSS/MD/JSON/HTML) | Prettier | _defaults_ (no `.prettierrc`) | `make fmt` glob |
-| Python lint | Ruff | `[tool.ruff]` in `pyproject.toml` | `PY_ALL` |
-| Python format | Black | `[tool.black]` in `pyproject.toml` | `PY_ALL` |
-| Python types | mypy | `mypy.ini` | `PY_SRC` |
-| Python security | Bandit | `.bandit` (INI, via `--ini`) | `PY_SRC` |
+| Layer                        | Tool             | Config                                  | Scope                             |
+| ---------------------------- | ---------------- | --------------------------------------- | --------------------------------- |
+| JS lint                      | ESLint (flat)    | `eslint.config.cjs`                     | first-party `*.js` (ignores list) |
+| CSS lint                     | Stylelint        | `.stylelintrc.cjs` + `.stylelintignore` | first-party `*.css`               |
+| Markdown lint                | markdownlint-cli | `.markdownlint.json`                    | tracked `*.md`                    |
+| Format (JS/CSS/MD/JSON/HTML) | Prettier         | _defaults_ (no `.prettierrc`)           | `make fmt` glob                   |
+| Python lint                  | Ruff             | `[tool.ruff]` in `pyproject.toml`       | `PY_ALL`                          |
+| Python format                | Black            | `[tool.black]` in `pyproject.toml`      | `PY_ALL`                          |
+| Python types                 | mypy             | `mypy.ini`                              | `PY_SRC`                          |
+| Python security              | Bandit           | `.bandit` (INI, via `--ini`)            | `PY_SRC`                          |
 
 `PY_SRC` / `PY_ALL` are defined in the `Makefile` and mirror `PY_TEST_SUITES`.
 

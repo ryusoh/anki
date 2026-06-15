@@ -1,5 +1,6 @@
 import re
 
+
 def strip_html(text: str) -> str:
     """Very basic HTML stripping for scoring purposes."""
     # Strip <rt>, <rp>, <style>, <script> tags and their contents
@@ -9,8 +10,11 @@ def strip_html(text: str) -> str:
     # Remove Anki sound tags
     text = re.sub(r'\[sound:[^]]+\]', '', text)
     # Basic entity replacement
-    text = text.replace('&nbsp;', ' ').replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&')
+    text = (
+        text.replace('&nbsp;', ' ').replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&')
+    )
     return text
+
 
 def score_front_match(text: str, term: str) -> int:
     """
@@ -44,6 +48,7 @@ def score_front_match(text: str, term: str) -> int:
 
     return 0
 
+
 def _extract_term_from_field(field: str, value: str) -> str:
     """Helper to extract search terms from a specific field match."""
     if field.lower() not in ("front", "-front"):
@@ -55,6 +60,7 @@ def _extract_term_from_field(field: str, value: str) -> str:
     term = term.replace('*', '')
     return term
 
+
 def _process_query_part(part: str) -> str:
     """Helper to process a non-field query part."""
     if part.upper() == "OR" or (part.startswith('-') and not part == '-'):
@@ -63,6 +69,7 @@ def _process_query_part(part: str) -> str:
     if part.startswith('"') and part.endswith('"') and len(part) >= 2:
         return part[1:-1]
     return part.replace('*', '')
+
 
 def extract_terms(query: str) -> list[str]:
     """

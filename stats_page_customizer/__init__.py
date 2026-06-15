@@ -11,11 +11,11 @@ from typing import Any, Dict, List
 
 try:
     from aqt import gui_hooks, mw
-    from aqt.qt import QAction, QDialog, QTimer, QVBoxLayout, QUrl
+    from aqt.qt import QAction, QDialog, QTimer, QUrl, QVBoxLayout
     from aqt.stats import DeckStats, NewDeckStats
     from aqt.utils import qconnect, showInfo
     from aqt.webview import AnkiWebView
-except Exception as e:  # pragma: no cover - only when run outside Anki
+except Exception:  # pragma: no cover - only when run outside Anki
     gui_hooks = None  # type: ignore
     DeckStats = None  # type: ignore[misc,assignment]
     NewDeckStats = None  # type: ignore[misc,assignment]
@@ -33,6 +33,7 @@ except Exception as e:  # pragma: no cover - only when run outside Anki
     def showInfo(*args: Any, **kwargs: Any) -> None:  # type: ignore[override]
         return None
 
+
 JS_CODE = ""
 
 JS_INJECT_PATH = Path(__file__).with_name("injected.js")
@@ -49,6 +50,7 @@ MATURE_INTERVAL_DAYS = 21
 
 _custom_stats_dialog: Any = None
 _custom_stats_action: Any = None
+
 
 def _log(message: str) -> None:
     """Append debug info to a log file next to this add-on."""
@@ -125,6 +127,7 @@ def _fetch_future_due_rows(today: int, max_days: int) -> List[Any]:
         today + max_days,
     )
 
+
 def _process_future_due_rows(rows: List[Any], max_days: int) -> List[Dict[str, int]]:
     """Helper to process database rows into the final list of dicts."""
     counts_by_day: Dict[int, Dict[str, int]] = {}
@@ -148,6 +151,7 @@ def _process_future_due_rows(rows: List[Any], max_days: int) -> List[Dict[str, i
             }
         )
     return future_due
+
 
 def _gather_future_due(days: int = FUTURE_DUE_DAYS) -> List[Dict[str, int]]:
     """Return daily mature/young counts for the next `days` days."""
@@ -236,7 +240,7 @@ def _read_custom_stats_payload() -> Dict[str, Any] | None:
 
 def _build_custom_stats_payload() -> Dict[str, Any]:
     """Compose the payload consumed by index.html.
-    
+
     Tries to read from cache first, regenerates if not available.
     """
 
@@ -272,6 +276,7 @@ def _clear_custom_stats_dialog() -> None:
 def _show_custom_stats_dialog() -> None:
     """Open anki.lyeutsaon.com in the default browser."""
     import webbrowser
+
     webbrowser.open("https://anki.lyeutsaon.com")
 
 
@@ -324,6 +329,8 @@ def _on_profile_did_open(_profile: Any | None = None) -> None:
 
 def _on_collection_did_load(_col: Any | None = None) -> None:
     _refresh_custom_stats_cache()
+
+
 def _schedule_js_eval(web: AnkiWebView) -> None:
     """Run the JavaScript a few times to catch async loads."""
 
@@ -338,6 +345,7 @@ def _schedule_js_eval(web: AnkiWebView) -> None:
     for delay in delays:
         QTimer.singleShot(delay, lambda w=web: w.eval(JS_CODE))
 
+
 def _attach_on_load(web: AnkiWebView) -> None:
     """Ensure the JS is injected after the stats page finishes loading."""
 
@@ -346,6 +354,7 @@ def _attach_on_load(web: AnkiWebView) -> None:
         return
 
     _log("Attaching loadFinished hook to stats webview.")
+
     def _on_load_finished(ok: bool) -> None:
         if ok:
             _schedule_js_eval(web)
@@ -357,7 +366,7 @@ def _attach_on_load(web: AnkiWebView) -> None:
     else:
         _log("loadFinished signal missing.")
 
-    setattr(web, "_stats_customizer_connected", True)
+    web._stats_customizer_connected = True
     _schedule_js_eval(web)
 
 
@@ -396,12 +405,11 @@ def _patch_stats_class(cls: Any) -> None:
         return
 
     if not getattr(original_init, "_stats_customizer_patched", False):
+
         def _wrapped_init(self: Any, *args: Any, **kwargs: Any) -> None:
             original_init(self, *args, **kwargs)
             web = getattr(self, "web", None)
-            _log(
-                f"{cls.__name__}.__init__ called; has web={bool(web)}; attrs={dir(self)}"
-            )
+            _log(f"{cls.__name__}.__init__ called; has web={bool(web)}; attrs={dir(self)}")
             if web:
                 _log(f"{cls.__name__}.__init__ attaching webview via self.web.")
                 _attach_on_load(web)
@@ -414,15 +422,14 @@ def _patch_stats_class(cls: Any) -> None:
                     for attr in ("form", "content", "mw"):
                         val = getattr(self, attr, None)
                         if val is not None:
-                            _log(
-                                f"{cls.__name__}.{attr} type={type(val)} attrs={dir(val)}"
-                            )
+                            _log(f"{cls.__name__}.{attr} type={type(val)} attrs={dir(val)}")
 
         _wrapped_init._stats_customizer_patched = True  # type: ignore[attr-defined]
         cls.__init__ = _wrapped_init  # type: ignore[assignment]
         _log(f"Patched {cls.__name__}.__init__")
 
     if not getattr(original_refresh, "_stats_customizer_patched", False):
+
         def _wrapped_refresh(self: Any, *args: Any, **kwargs: Any) -> Any:
             result = original_refresh(self, *args, **kwargs)
             web = getattr(self, "web", None)

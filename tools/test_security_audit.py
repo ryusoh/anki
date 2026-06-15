@@ -1,11 +1,12 @@
-import pytest
-from unittest.mock import patch, MagicMock
 import os
-import sys
 import subprocess
+import sys
+import tempfile
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import security_audit
+
 
 def test_full_coverage():
     # This test will mock nothing and just run the main method
@@ -22,6 +23,7 @@ def test_full_coverage():
         with patch('sys.exit'):
             security_audit.main()
 
+
 def test_check_functions():
     security_audit.check_for_credentials("test.py", "API_KEY = 'secret'")
     security_audit.check_for_credentials("test.py", "Authorization: Bearer test")
@@ -29,13 +31,15 @@ def test_check_functions():
     security_audit.check_for_private_data("test.py", 'my_card = {"flds": "data"}')
     security_audit.check_for_private_data("node_modules/test.json", '{"flds": "data"}')
 
+
 def test_script_execution():
     script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "security_audit.py")
     subprocess.run([sys.executable, script_path], check=False)
 
+
 def test_module_main_exec():
-    import runpy
-    script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "security_audit.py")
+
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "security_audit.py")
     with patch('security_audit.main'):
         with patch('sys.modules', sys.modules):
             # To get coverage for line 221
@@ -44,8 +48,9 @@ def test_module_main_exec():
                 pass
             except SystemExit:
                 pass
-            except Exception as e:
+            except Exception:
                 pass
+
 
 def test_missing_lines():
     # 31-32: warning format
@@ -79,9 +84,9 @@ def test_missing_lines():
             with patch('security_audit.get_tracked_files', return_value=["error.txt"]):
                 security_audit._scan_tracked_files()
 
+
 def test_if_main():
     import runpy
-    import tempfile
 
     script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "security_audit.py")
     with patch('security_audit.main'):
@@ -91,15 +96,18 @@ def test_if_main():
                 runpy.run_path(script_path, run_name="__main__")
             except SystemExit:
                 pass
-            except Exception as e:
+            except Exception:
                 pass
+
 
 def test_remaining_coverage():
     # 73
     security_audit.check_for_credentials("archive.gz", "something")
 
     # 92
-    security_audit._check_code_file_for_private_data("ACCOUNT_ID=" + "x" * 1000 + "ACCOUNT_ID='a'*32")
+    security_audit._check_code_file_for_private_data(
+        "ACCOUNT_ID=" + "x" * 1000 + "ACCOUNT_ID='a'*32"
+    )
     # Actually just needs ACCOUNT_ID and len(content)>1000 and the regex match
     content = "ACCOUNT_ID = '" + "1234567890abcdef1234567890abcdef" + "'\n" + "x" * 1000
     security_audit._check_code_file_for_private_data(content)
@@ -113,7 +121,7 @@ def test_remaining_coverage():
         mock_run.return_value.returncode = 1
         security_audit.check_gitignore_coverage()
 
-import tempfile
+
 def test_even_more_coverage():
     # line 73: it should return `issues` when .gz is found
     with tempfile.NamedTemporaryFile(suffix=".gz", delete=False) as f:
@@ -136,8 +144,11 @@ def test_even_more_coverage():
     with patch('security_audit.get_tracked_files', return_value=["dummy.py"]):
         with patch('pathlib.Path.exists', return_value=True):
             with patch('builtins.open') as mock_open:
-                mock_open.return_value.__enter__.return_value.read.return_value = "API_KEY='secret123'"
+                mock_open.return_value.__enter__.return_value.read.return_value = (
+                    "API_KEY='secret123'"
+                )
                 security_audit._scan_tracked_files()
+
 
 def test_final_coverage():
     # 73: it should return `issues` when .gz is found
@@ -148,7 +159,9 @@ def test_final_coverage():
     with patch('security_audit.get_tracked_files', return_value=["dummy.py"]):
         with patch('pathlib.Path.exists', return_value=True):
             with patch('builtins.open') as mock_open:
-                mock_open.return_value.__enter__.return_value.read.return_value = "API_KEY='secret123'"
+                mock_open.return_value.__enter__.return_value.read.return_value = (
+                    "API_KEY='secret123'"
+                )
                 # Needs to return issues for check_for_credentials
                 with patch('security_audit.check_for_credentials', return_value=["found creds"]):
                     issues = security_audit._scan_tracked_files()
@@ -163,26 +176,32 @@ def test_final_coverage():
                     issues = security_audit._scan_tracked_files()
                     assert "dummy.json: found private" in issues
 
+
 def test_line_73():
     security_audit.check_for_credentials("test.tar.gz", "data")
     security_audit.check_for_credentials("archive.gz", "something")
+
 
 def test_actual_line_60():
     # line 60 is actually 'return issues' under 'if filepath.endswith(".gz"):'
     security_audit.check_for_credentials("file.gz", "data")
 
+
 def test_missing_line_73():
     security_audit.check_for_credentials("test.py", "secret='a'")
+
 
 def test_missing_line_73_again():
     security_audit.check_for_credentials("test.py", "secret='a'")
     security_audit.check_for_credentials("test.txt", "data")
     security_audit.check_for_credentials("test.md", "data")
 
+
 def test_missing_line_73_for_real():
     # If the file is not .py or .js, and not .md or .gz or vendor
     # it hits the 'return issues' at the very bottom
     security_audit.check_for_credentials("test.txt", "safe content")
+
 
 def test_missing_line_73_private_key():
     content = "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQD"

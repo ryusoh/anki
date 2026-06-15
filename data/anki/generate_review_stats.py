@@ -4,11 +4,11 @@ Generate review_stats_data.json from Anki reviews for terminal display.
 Aggregates review counts, time spent, and retention by day.
 """
 
-import json
 import gzip
+import json
 import os
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).parent
 REVIEWS_DIR = SCRIPT_DIR / "reviews"

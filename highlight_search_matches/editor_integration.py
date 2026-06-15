@@ -1,27 +1,32 @@
-from aqt import mw
-from aqt.editor import Editor
-from aqt.gui_hooks import editor_did_load_note, browser_did_search
-from aqt.browser import Browser
-from .core import extract_search_terms
 import json
 
+from aqt.browser import Browser
+from aqt.editor import Editor
+from aqt.gui_hooks import browser_did_search, editor_did_load_note
+
+from .core import extract_search_terms
+
 _last_search_query = ""
+
 
 def on_browser_did_search(search_context):
     global _last_search_query
     _last_search_query = search_context.search
 
+
 def on_editor_did_load_note(editor: Editor) -> None:
     global _last_search_query
-    
+
     if not isinstance(editor.parentWindow, Browser):
         return
 
     browser = editor.parentWindow
-    
+
     try:
         search_edit = browser.form.searchEdit
-        query = search_edit.currentText() if hasattr(search_edit, 'currentText') else search_edit.text()
+        query = (
+            search_edit.currentText() if hasattr(search_edit, 'currentText') else search_edit.text()
+        )
         if not query or not query.strip():
             query = _last_search_query
     except Exception as e:
@@ -108,6 +113,7 @@ def on_editor_did_load_note(editor: Editor) -> None:
         editor.web.eval(script)
     except Exception as e:
         print(f"Error evaluating JS: {e}")
+
 
 def init_editor():
     browser_did_search.append(on_browser_did_search)

@@ -6,16 +6,18 @@ from pathlib import Path
 _temp_dir = tempfile.TemporaryDirectory()
 os.environ["ANKI_REVIEW_STATS_OUTPUT"] = str(Path(_temp_dir.name) / "review_stats_data.json")
 
-import pytest
 import json
-from unittest.mock import patch, MagicMock
 import sys
 from datetime import datetime
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 # Change directory and add to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import importlib.util
+
 spec = importlib.util.spec_from_file_location("generate_review_stats", str(Path(__file__).parent.parent / "generate_review_stats.py"))
 generate_review_stats = importlib.util.module_from_spec(spec)
 sys.modules["generate_review_stats"] = generate_review_stats
@@ -31,7 +33,7 @@ def test_generate_review_stats_empty():
         with patch('generate_review_stats.REVIEWS_DIR', reviews_dir):
             with patch('generate_review_stats.OUTPUT_FILE', temp_path / "output.json"):
                 # No reviews should return False
-                assert generate_review_stats.main() == False
+                assert not generate_review_stats.main()
                 assert not (temp_path / "output.json").exists()
 
 def test_aggregate_reviews():
@@ -132,20 +134,20 @@ def test_should_write_reviews():
         output_file = temp_path / "output.json"
 
         # No old file -> Write
-        assert generate_review_stats._should_write_reviews(new_reviews, output_file) == True
+        assert generate_review_stats._should_write_reviews(new_reviews, output_file)
 
         # Valid old file smaller -> Write
         with open(output_file, "w") as f:
             json.dump({"reviews": [{"count": 10}]}, f)
-        assert generate_review_stats._should_write_reviews(new_reviews, output_file) == True
+        assert generate_review_stats._should_write_reviews(new_reviews, output_file)
 
         # Old file large, new file empty -> Don't write
-        assert generate_review_stats._should_write_reviews([], output_file) == False
+        assert not generate_review_stats._should_write_reviews([], output_file)
 
         # Old file large (200), new file tiny (10) -> Don't write
         with open(output_file, "w") as f:
             json.dump({"reviews": [{"count": 200}]}, f)
-        assert generate_review_stats._should_write_reviews([{"count": 10}], output_file) == False
+        assert not generate_review_stats._should_write_reviews([{"count": 10}], output_file)
 
 def test_main_full_workflow():
     import gzip
@@ -164,7 +166,7 @@ def test_main_full_workflow():
              patch('generate_review_stats.OUTPUT_FILE', output_file), \
              patch('generate_review_stats.CARDS_FILE', temp_path / "cards.json.gz"):
 
-            assert generate_review_stats.main() == True
+            assert generate_review_stats.main()
             assert output_file.exists()
 
             with open(output_file) as f:
@@ -185,7 +187,7 @@ def test_main_fail_open():
         # Test 1: No new reviews
         with patch('generate_review_stats.REVIEWS_DIR', reviews_dir), \
              patch('generate_review_stats.OUTPUT_FILE', output_file):
-            assert generate_review_stats.main() == True # True because fail open
+            assert generate_review_stats.main() # True because fail open
 
         # Test 2: Suspiciously small reviews (1 review)
         import gzip
@@ -195,17 +197,19 @@ def test_main_fail_open():
         with patch('generate_review_stats.REVIEWS_DIR', reviews_dir), \
              patch('generate_review_stats.OUTPUT_FILE', output_file), \
              patch('generate_review_stats.CARDS_FILE', temp_path / "cards.json.gz"):
-            assert generate_review_stats.main() == True
+            assert generate_review_stats.main()
 
 # Added to cover remaining coverage
 def test_aggregate_reviews_no_reviews_dir():
-    from unittest.mock import patch, MagicMock
+    from unittest.mock import MagicMock, patch
+
     from data.anki import generate_review_stats
     with patch("data.anki.generate_review_stats.REVIEWS_DIR", MagicMock(exists=MagicMock(return_value=False))):
         assert generate_review_stats.aggregate_reviews() == (None, None)
 
 def test_aggregate_reviews_cards_exception(capsys):
-    from unittest.mock import patch, MagicMock
+    from unittest.mock import MagicMock, patch
+
     from data.anki import generate_review_stats
     with patch("data.anki.generate_review_stats.REVIEWS_DIR", MagicMock(exists=MagicMock(return_value=True), glob=MagicMock(return_value=[]))), \
          patch("data.anki.generate_review_stats.CARDS_FILE", MagicMock(exists=MagicMock(return_value=True))), \
@@ -217,7 +221,8 @@ def test_aggregate_reviews_cards_exception(capsys):
         assert res2 is None
 
 def test_aggregate_reviews_no_all_reviews():
-    from unittest.mock import patch, MagicMock
+    from unittest.mock import MagicMock, patch
+
     from data.anki import generate_review_stats
     with patch("data.anki.generate_review_stats.REVIEWS_DIR", MagicMock(exists=MagicMock(return_value=True), glob=MagicMock(return_value=[]))), \
          patch("data.anki.generate_review_stats.CARDS_FILE", MagicMock(exists=MagicMock(return_value=False))):
@@ -226,9 +231,10 @@ def test_aggregate_reviews_no_all_reviews():
         assert res2 is None
 
 def test_main_block_success():
-    from unittest.mock import patch, MagicMock
+    from unittest.mock import MagicMock, patch
+
     from data.anki import generate_review_stats
-    with patch("sys.exit") as mock_exit:
+    with patch("sys.exit"):
          with open(generate_review_stats.__file__, "r") as f:
               code = f.read()
          try:
@@ -239,9 +245,10 @@ def test_main_block_success():
              assert e.code == 0
 
 def test_main_block_failure():
-    from unittest.mock import patch, MagicMock
+    from unittest.mock import MagicMock, patch
+
     from data.anki import generate_review_stats
-    with patch("sys.exit") as mock_exit:
+    with patch("sys.exit"):
          with open(generate_review_stats.__file__, "r") as f:
              code = f.read()
          try:
@@ -253,18 +260,19 @@ def test_main_block_failure():
 
 # Added to cover remaining coverage
 def test_main_exec():
-    from unittest.mock import patch, MagicMock
-    from data.anki import generate_review_stats
     import runpy
     import sys
+    from unittest.mock import MagicMock, patch
 
-    with patch.object(sys, "exit") as mock_exit, patch("data.anki.generate_review_stats.main", return_value=True):
+    from data.anki import generate_review_stats
+
+    with patch.object(sys, "exit"), patch("data.anki.generate_review_stats.main", return_value=True):
         try:
             runpy.run_path(generate_review_stats.__file__, run_name='__main__')
         except SystemExit:
             pass
 
-    with patch.object(sys, "exit") as mock_exit, patch("data.anki.generate_review_stats.main", return_value=False):
+    with patch.object(sys, "exit"), patch("data.anki.generate_review_stats.main", return_value=False):
         try:
             runpy.run_path(generate_review_stats.__file__, run_name='__main__')
         except SystemExit:

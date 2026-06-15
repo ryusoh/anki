@@ -5,6 +5,7 @@ Tests whole-front-field reference finding within decks (no cross-deck references
 """
 
 import pytest
+
 from graph.references import find_references, find_references_for_deck
 
 
@@ -55,7 +56,9 @@ class TestFindReferences:
         edges = find_references(CALCULUS_NOTES)
 
         # calc001 front "derivative" appears in calc002 back
-        calc002_calc001 = [e for e in edges if e['source'] == 'calc002' and e['target'] == 'calc001']
+        calc002_calc001 = [
+            e for e in edges if e['source'] == 'calc002' and e['target'] == 'calc001'
+        ]
         assert len(calc002_calc001) == 1
         assert calc002_calc001[0]['type'] == 'front_in_back'
 
@@ -110,7 +113,12 @@ class TestFindReferences:
         """Test detection when one card's front appears in another card's front."""
         notes = [
             {'guid': 'a', 'deck': 'Test', 'flds': 'sine::trig function', 'tags': ''},
-            {'guid': 'b', 'deck': 'Test', 'flds': 'sine wave::oscillation pattern of sine', 'tags': ''},
+            {
+                'guid': 'b',
+                'deck': 'Test',
+                'flds': 'sine wave::oscillation pattern of sine',
+                'tags': '',
+            },
         ]
         edges = find_references(notes)
 
@@ -169,4 +177,5 @@ class TestReferenceWeights:
     def test_front_in_front_weighs_more(self):
         """Test that front-in-front edges weigh more than front-in-back."""
         from graph.references import EDGE_WEIGHTS
+
         assert EDGE_WEIGHTS['front_in_front'] > EDGE_WEIGHTS['front_in_back']

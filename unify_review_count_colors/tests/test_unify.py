@@ -1,6 +1,7 @@
-import pytest
 import sys
 from unittest.mock import MagicMock
+
+import pytest
 
 # Mock out aqt entirely so we can import the module outside of Anki
 sys.modules['aqt'] = MagicMock()
@@ -8,6 +9,7 @@ sys.modules['aqt.gui_hooks'] = MagicMock()
 
 import unify_review_count_colors
 from unify_review_count_colors import on_webview_will_set_content
+
 
 def test_on_webview_will_set_content_ignore():
     web_content = MagicMock()
@@ -18,6 +20,7 @@ def test_on_webview_will_set_content_ignore():
 
     # Should not append anything
     assert web_content.head.call_count == 0
+
 
 def test_on_webview_will_set_content_inject():
     class ReviewerBottomBar:

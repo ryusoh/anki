@@ -1,9 +1,8 @@
-import re
 import json
-import urllib.request
-import urllib.parse
-from urllib.error import URLError, HTTPError
 import logging
+import re
+import urllib.parse
+import urllib.request
 
 logger = logging.getLogger(__name__)
 
@@ -24,9 +23,12 @@ def _get_vqd_token(query):
     """Fetches a DuckDuckGo vqd token needed for the image API."""
     encoded_query = urllib.parse.quote_plus(query)
     url = f"https://duckduckgo.com/?q={encoded_query}&iax=images&ia=images"
-    req = urllib.request.Request(url, headers={
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
-    })
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+        },
+    )
     with urllib.request.urlopen(req, timeout=10) as response:
         html = response.read().decode('utf-8', errors='ignore')
 
@@ -48,11 +50,16 @@ def fetch_image_results(query):
             return []
 
         encoded_query = urllib.parse.quote_plus(query)
-        api_url = f"https://duckduckgo.com/i.js?l=us-en&o=json&q={encoded_query}&vqd={vqd}&f=,,,,,&p=1"
-        req = urllib.request.Request(api_url, headers={
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-            "Referer": "https://duckduckgo.com/"
-        })
+        api_url = (
+            f"https://duckduckgo.com/i.js?l=us-en&o=json&q={encoded_query}&vqd={vqd}&f=,,,,,&p=1"
+        )
+        req = urllib.request.Request(
+            api_url,
+            headers={
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+                "Referer": "https://duckduckgo.com/",
+            },
+        )
         with urllib.request.urlopen(req, timeout=10) as response:
             data = json.loads(response.read().decode('utf-8'))
 
@@ -64,14 +71,16 @@ def fetch_image_results(query):
     return []
 
 
-
 def download_image(url):
     """Downloads image bytes from a URL. Returns bytes or None on failure."""
     if not url:
         return None
-    req = urllib.request.Request(url, headers={
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
-    })
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+        },
+    )
     try:
         with urllib.request.urlopen(req, timeout=10) as response:
             data = response.read()

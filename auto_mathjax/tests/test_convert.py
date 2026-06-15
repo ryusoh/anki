@@ -117,7 +117,7 @@ def test_currency_no_pair():
     html = '$5 and $10'
     # This has two $ signs but they form a pair "$5 and $" — let's check
     # Actually $5 and $10 — the regex will try to match $5 and $ which has content "5 and "
-    # But "5 and " is not purely numeric, so it WOULD match... 
+    # But "5 and " is not purely numeric, so it WOULD match...
     # Actually wait: DOLLAR_PAIR_RE is r'(?<!\\)\$([^$\n]+?)\$' — non-greedy
     # It would match "$5 and $" with content "5 and "
     # This is a tricky edge case — let's see what the current behavior is
@@ -177,6 +177,7 @@ def test_complex_line():
 # --- Integration Tests ---
 # These verify the button handler properly syncs the field before reading
 
+
 def test_on_auto_mathjax_calls_save_first():
     """The button handler MUST call call_after_note_saved() to sync
     the webview content to editor.note.fields before reading it.
@@ -206,6 +207,7 @@ def test_apply_mathjax_converts_and_reloads():
 
 
 # --- Double-Dollar (Block Math) Tests ---
+
 
 def test_double_dollar_block_math():
     """$$...$$ should convert to \\[...\\] (block MathJax)."""
@@ -243,7 +245,10 @@ def test_real_world_input():
 
     # Block math: $$ should be fully removed, converted to \[...\]
     assert '$$' not in result
-    assert '\\[E = 2h\\nu = 2 \\times 0.8\\text{ eV} = 1.6\\text{ eV} &gt; 1.12\\text{ eV}\\]' in result
+    assert (
+        '\\[E = 2h\\nu = 2 \\times 0.8\\text{ eV} = 1.6\\text{ eV} &gt; 1.12\\text{ eV}\\]'
+        in result
+    )
     # No stray $ around the block math
     assert '$\\[' not in result
     assert '\\]$' not in result

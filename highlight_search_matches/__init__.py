@@ -1,6 +1,6 @@
 # Anki hook integration point
-import sys
 import os
+import sys
 
 try:
     from aqt import mw
@@ -8,6 +8,7 @@ except ImportError:
     mw = None
 
 DEBUG_LOG = os.path.expanduser("~/Desktop/hsm_debug.log")
+
 
 def log(msg):
     # Only log if debug is enabled in config
@@ -19,6 +20,7 @@ def log(msg):
         except Exception as e:
             # If we can't get config, default to not logging
             import logging
+
             logging.getLogger(__name__).debug(f"Failed to get config: {e}")
             return
     else:
@@ -33,12 +35,14 @@ def log(msg):
             f.write(msg + "\n")
     except Exception as e:
         import logging
+
         logging.getLogger(__name__).debug(f"Failed to write to debug log: {e}")
+
 
 def init_addon():
     log(f"[hsm] init_addon called, aqt loaded: {'aqt' in sys.modules}")
     if "aqt" not in sys.modules:
-        log(f"[hsm] aqt not loaded yet, skipping")
+        log("[hsm] aqt not loaded yet, skipping")
         return
 
     from .anki_integration import init_addon as init_browser
@@ -46,7 +50,8 @@ def init_addon():
 
     init_browser()
     init_editor()
-    log(f"[hsm] addon initialized successfully")
+    log("[hsm] addon initialized successfully")
 
-log(f"[hsm] __init__.py loading")
+
+log("[hsm] __init__.py loading")
 init_addon()

@@ -1,20 +1,22 @@
-from aqt import  QWebEnginePage, QWidget, QWebEngineView, QWebEngineSettings, QVBoxLayout,QTabWidget
 import requests
+from aqt import QTabWidget, QVBoxLayout, QWebEnginePage, QWebEngineSettings, QWebEngineView, QWidget
 from aqt.utils import openLink
 
 # PATREON_LABEL_WIDTH = 500
 # WIDGET_HEIGHT = 550
 
-    #     self.adjust_self_size()
+#     self.adjust_self_size()
 
 
-    # def adjust_self_size(self):
-    #     min_size = self.layout().minimumSize()
-    #     # self.resize(min_size.width(), min_size.height())
-    #     self.resize(min_size.width(), WIDGET_HEIGHT)
+# def adjust_self_size(self):
+#     min_size = self.layout().minimumSize()
+#     # self.resize(min_size.width(), min_size.height())
+#     self.resize(min_size.width(), WIDGET_HEIGHT)
+
 
 def handle_new_window(url):
     openLink(url)
+
 
 class CustomWebEnginePage(QWebEnginePage):
     def createWindow(self, _type):
@@ -25,7 +27,8 @@ class CustomWebEnginePage(QWebEnginePage):
     def javaScriptConsoleMessage(self, level, message, lineNumber, sourceID):
         pass
 
-def add_shige_addons_tab(self, tab_widget:"QTabWidget"):
+
+def add_shige_addons_tab(self, tab_widget: "QTabWidget"):
 
     url = "https://raw.githubusercontent.com/shigeyukey/shige-addons/main/HTML/ShigeAddons.html"
     try:
@@ -34,6 +37,7 @@ def add_shige_addons_tab(self, tab_widget:"QTabWidget"):
         html_content = response.text
     except Exception as e:
         import logging
+
         logging.getLogger(__name__).warning(f"Failed to fetch shige addons HTML: {e}")
         return
 
@@ -41,9 +45,13 @@ def add_shige_addons_tab(self, tab_widget:"QTabWidget"):
 
     web_view = QWebEngineView(tab4)
     web_view.setPage(CustomWebEnginePage(web_view))
-    web_view.settings().setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
+    web_view.settings().setAttribute(
+        QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True
+    )
     web_view.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, True)
-    web_view.settings().setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls, True)
+    web_view.settings().setAttribute(
+        QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls, True
+    )
 
     web_view.setHtml(html_content)
 
@@ -51,4 +59,3 @@ def add_shige_addons_tab(self, tab_widget:"QTabWidget"):
     tab4_layout.addWidget(web_view)
     tab4.setLayout(tab4_layout)
     tab_widget.addTab(tab4, "addons")
-

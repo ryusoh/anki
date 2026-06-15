@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Create stunning 3D Three.js visualization of Anki knowledge graph"""
 
-import sys, os, json, gzip
-from pathlib import Path
+import gzip
+import json
+import sys
 from datetime import datetime
+from pathlib import Path
 
 sys.path.insert(0, '.')
 from graph.builder import build_graph
@@ -28,21 +30,19 @@ nodes = []
 for node_id, data in graph.nodes(data=True):
     front = data.get('front', 'Unknown')[:60]
     pagerank = data.get('pagerank', 0)
-    nodes.append({
-        'id': node_id,
-        'label': front,
-        'pagerank': round(pagerank, 6),
-        'size': min(3, max(0.5, pagerank * 100)),
-        'color': '#00ff88' if pagerank > 0.01 else '#00a8ff' if pagerank > 0.001 else '#888888'
-    })
+    nodes.append(
+        {
+            'id': node_id,
+            'label': front,
+            'pagerank': round(pagerank, 6),
+            'size': min(3, max(0.5, pagerank * 100)),
+            'color': '#00ff88' if pagerank > 0.01 else '#00a8ff' if pagerank > 0.001 else '#888888',
+        }
+    )
 
 links = []
 for source, target, data in graph.edges(data=True):
-    links.append({
-        'source': source,
-        'target': target,
-        'weight': round(data.get('weight', 1), 2)
-    })
+    links.append({'source': source, 'target': target, 'weight': round(data.get('weight', 1), 2)})
 
 # Sort by PageRank
 nodes.sort(key=lambda x: x['pagerank'], reverse=True)
@@ -162,7 +162,7 @@ scene.fog=new THREE.FogExp2(0x000000,0.002);
 const camera=new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1,2000);
 camera.position.z=500;
 
-const renderer=new THREE.WebGLRenderer({canvas:document.getElementById('canvas'),antialias:true});
+const renderer=new THREE.WebGLRenderer({{canvas:document.getElementById('canvas'),antialias:true}});
 renderer.setSize(window.innerWidth,window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 
@@ -394,6 +394,6 @@ output_file = Path("./graph/index.html")
 with open(output_file, 'w', encoding='utf-8') as f:
     f.write(html)
 
-print(f"✅ Created stunning 3D visualization!")
-print(f"🌐 Open in browser:")
+print("✅ Created stunning 3D visualization!")
+print("🌐 Open in browser:")
 print(f"   open {output_file}")

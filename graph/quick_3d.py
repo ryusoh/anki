@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """Quick 3D viz with 100 cards for testing"""
 
-import sys, json, gzip, re
+import gzip
+import json
+import re
+import sys
 from pathlib import Path
-from datetime import datetime
 
 sys.path.insert(0, '.')
 from graph.builder import build_graph
+
 
 def strip_html(text):
     """Remove HTML tags from text."""
@@ -24,6 +27,7 @@ def strip_html(text):
 def scale_node_size(pagerank):
     """Scale node size based on PageRank."""
     return min(3, max(0.5, pagerank * 100))
+
 
 if __name__ == '__main__':
     # Load and take only 100
@@ -45,15 +49,22 @@ if __name__ == '__main__':
     for node_id, data in graph.nodes(data=True):
         front = strip_html(data.get('front', 'Unknown'))
         pagerank = data.get('pagerank', 0)
-        nodes.append({
-            'id': node_id, 'label': front,
-            'pagerank': round(pagerank, 6),
-            'size': min(3, max(0.5, pagerank * 100)),
-            'color': '#00ff88' if pagerank > 0.01 else '#00a8ff' if pagerank > 0.001 else '#888888'
-        })
+        nodes.append(
+            {
+                'id': node_id,
+                'label': front,
+                'pagerank': round(pagerank, 6),
+                'size': min(3, max(0.5, pagerank * 100)),
+                'color': (
+                    '#00ff88' if pagerank > 0.01 else '#00a8ff' if pagerank > 0.001 else '#888888'
+                ),
+            }
+        )
 
-    links = [{'source': s, 'target': t, 'weight': round(d.get('weight', 1), 2)}
-             for s, t, d in graph.edges(data=True)]
+    links = [
+        {'source': s, 'target': t, 'weight': round(d.get('weight', 1), 2)}
+        for s, t, d in graph.edges(data=True)
+    ]
 
     nodes.sort(key=lambda x: x['pagerank'], reverse=True)
 
@@ -244,5 +255,5 @@ window.addEventListener('resize',()=>{{
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write(html)
 
-    print(f"✅ FAST! Created 3D viz with 100 cards")
+    print("✅ FAST! Created 3D viz with 100 cards")
     print(f"🌐 Open: open {output_file}")

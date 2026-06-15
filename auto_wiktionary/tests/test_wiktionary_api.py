@@ -1,8 +1,14 @@
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from utils import fetch_wiktionary_html, parse_wiktionary_html, get_wiktionary_candidates, format_candidates_html
+from utils import (
+    fetch_wiktionary_html,
+    format_candidates_html,
+    get_wiktionary_candidates,
+    parse_wiktionary_html,
+)
+
 
 def test_get_wiktionary_candidates():
     # 'applz' should return some suggestions like 'apple', 'apply'
@@ -16,6 +22,7 @@ def test_get_wiktionary_candidates():
     assert isinstance(empty_candidates, list)
     assert len(empty_candidates) == 0
 
+
 def test_format_candidates_html():
     candidates = ["apple", "apply", "application"]
     html = format_candidates_html("applz", candidates)
@@ -28,9 +35,11 @@ def test_format_candidates_html():
     empty_html = format_candidates_html("ajsfkldsjafkljsdaf", [])
     assert empty_html == ""
 
+
 def test_fetch_wiktionary_not_found():
     res = fetch_wiktionary_html("ajsfkldsjafkljsdaf", "en")
     assert res == ""
+
 
 def test_parse_wiktionary_html_jazz_dot():
     # A simple mock html reflecting what wiktionary might return
@@ -51,9 +60,10 @@ def test_parse_wiktionary_html_jazz_dot():
     parsed = parse_wiktionary_html(mock_html)
     assert "<i>plural</i> <b>jazz dots</b>" in parsed
     assert "<strong>" not in parsed
-    assert "<a " not in parsed # links unwrapped
+    assert "<a " not in parsed  # links unwrapped
     assert "Example sentence here" in parsed
-    assert "edit" not in parsed # editsection removed
+    assert "edit" not in parsed  # editsection removed
+
 
 def test_parse_wiktionary_html_seikaku():
     mock_html = """
@@ -74,6 +84,7 @@ def test_parse_wiktionary_html_seikaku():
     assert "せいかく)" not in parsed
     assert "正確" not in parsed
 
+
 def test_parse_wiktionary_html_rokuon():
     mock_html = """
     <html>
@@ -93,8 +104,9 @@ def test_parse_wiktionary_html_rokuon():
     assert "<p>ろくおん</p>" in parsed or "ろくおん" in parsed
     assert "録" not in parsed
     assert "音" not in parsed
-    assert "（ろくおん）" not in parsed # ensure brackets are gone
-    assert "(ろくおん)" not in parsed # ensure brackets are gone
+    assert "（ろくおん）" not in parsed  # ensure brackets are gone
+    assert "(ろくおん)" not in parsed  # ensure brackets are gone
+
 
 def test_parse_wiktionary_html_kaikou():
     mock_html = """
@@ -132,8 +144,9 @@ def test_parse_wiktionary_html_kaikou():
     assert "邂逅" not in parsed
     assert "思いがけなく出会うこと" in parsed
     assert "偶然を差引いても" in parsed
-    assert "English translation" not in parsed # Translation section removed
-    assert "Chinese definition here" not in parsed # Chinese section removed
+    assert "English translation" not in parsed  # Translation section removed
+    assert "Chinese definition here" not in parsed  # Chinese section removed
+
 
 def test_parse_wiktionary_html_end_run_multiple_parens():
     """
@@ -228,6 +241,7 @@ def test_parse_wiktionary_html_kanji_char_multi_reading():
     assert "<p>" in parsed
     # Extract the first <p> content
     import re
+
     p_match = re.search(r'<p>(.*?)</p>', parsed)
     assert p_match is not None, f"No <p> found in: {parsed}"
     p_content = p_match.group(1)

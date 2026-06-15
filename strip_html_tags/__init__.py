@@ -7,9 +7,10 @@
 #      → Python finds matching HTML in field data, strips only that portion
 #   3. If no selection: Python strips the entire current field
 
+import html as html_module
 import os
 import re
-import html as html_module
+
 from aqt import gui_hooks
 from aqt.editor import Editor
 
@@ -48,12 +49,16 @@ def _find_mismatches(sel_normalized, rendered_normalized):
     idx = rendered_normalized.find(sel_normalized)
     if idx == -1:
         import sys
+
         print("====== STRIP_HTML_DEBUG: Mismatch ======", file=sys.stderr)
         print(f"sel_normalized: [{sel_normalized}]", file=sys.stderr)
         print(f"rendered: [{rendered_normalized}]", file=sys.stderr)
         for i in range(min(len(sel_normalized), len(rendered_normalized))):
             if i < len(rendered_normalized) and sel_normalized[i] != rendered_normalized[i]:
-                print(f"Mismatch at index {i}: selected='{sel_normalized[i]}' ({ord(sel_normalized[i])}), rendered='{rendered_normalized[i]}' ({ord(rendered_normalized[i])})", file=sys.stderr)
+                print(
+                    f"Mismatch at index {i}: selected='{sel_normalized[i]}' ({ord(sel_normalized[i])}), rendered='{rendered_normalized[i]}' ({ord(rendered_normalized[i])})",
+                    file=sys.stderr,
+                )
                 start_c = max(0, i - 10)
                 end_c_sel = min(len(sel_normalized), i + 10)
                 end_c_ren = min(len(rendered_normalized), i + 10)
@@ -83,7 +88,7 @@ def _expand_left(html_str, html_start):
             break
 
         if _is_only_tags_between(html_str, prev_tag_open, html_start):
-            tag_content = html_str[prev_tag_open:html_str.find('>', prev_tag_open)+1]
+            tag_content = html_str[prev_tag_open : html_str.find('>', prev_tag_open) + 1]
             match = re.match(r'<\s*([a-zA-Z0-9]+)', tag_content)
             if match:
                 tag_name = match.group(1).lower()
@@ -107,12 +112,28 @@ def _expand_right(html_str, html_end, needs_block_wrapper):
             break
 
         if _is_only_tags_between(html_str, html_end, next_tag_close + 1):
-            tag_content = html_str[safe_html_end:next_tag_close+1]
+            tag_content = html_str[safe_html_end : next_tag_close + 1]
             match = re.search(r'<\s*/?\s*([a-zA-Z0-9]+)', tag_content)
             if match:
                 tag_name = match.group(1).lower()
                 if not tag_content.startswith('</'):
-                    if tag_name in ['li', 'td', 'th', 'tr', 'ul', 'ol', 'div', 'p', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
+                    if tag_name in [
+                        'li',
+                        'td',
+                        'th',
+                        'tr',
+                        'ul',
+                        'ol',
+                        'div',
+                        'p',
+                        'blockquote',
+                        'h1',
+                        'h2',
+                        'h3',
+                        'h4',
+                        'h5',
+                        'h6',
+                    ]:
                         break
                 if tag_name in ['li', 'td', 'th', 'tr', 'ul', 'ol', 'div']:
                     break
@@ -130,9 +151,33 @@ def _expand_right(html_str, html_end, needs_block_wrapper):
 
 
 def _map_html_to_text(html_str):
-    BLOCK_TAGS = {'p', 'div', 'br', 'hr', 'li', 'ul', 'ol', 'tr', 'td', 'th',
-                  'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre',
-                  'table', 'thead', 'tbody', 'tfoot', 'dl', 'dt', 'dd'}
+    BLOCK_TAGS = {
+        'p',
+        'div',
+        'br',
+        'hr',
+        'li',
+        'ul',
+        'ol',
+        'tr',
+        'td',
+        'th',
+        'blockquote',
+        'h1',
+        'h2',
+        'h3',
+        'h4',
+        'h5',
+        'h6',
+        'pre',
+        'table',
+        'thead',
+        'tbody',
+        'tfoot',
+        'dl',
+        'dt',
+        'dd',
+    }
 
     text_pos = 0
     text_to_html = {}
@@ -162,20 +207,20 @@ def _map_html_to_text(html_str):
             tag_buf += html_str[i]
             i += 1
             continue
-            
+
         if html_str[i] == '&':
             end_idx = html_str.find(';', i)
             if end_idx != -1 and end_idx - i < 10:
-                entity = html_str[i:end_idx+1]
+                entity = html_str[i : end_idx + 1]
                 unescaped = html_module.unescape(entity)
                 for unescaped_char in unescaped:
                     if unescaped_char not in ['\u200b', '\u200c', '\u200d', '\ufeff']:
-                        text_to_html[text_pos] = i 
+                        text_to_html[text_pos] = i
                         rendered_chars.append(unescaped_char)
                         text_pos += 1
                 i = end_idx + 1
                 continue
-                
+
         if html_str[i] not in ['\u200b', '\u200c', '\u200d', '\ufeff']:
             text_to_html[text_pos] = i
             rendered_chars.append(html_str[i])
@@ -190,7 +235,7 @@ def _normalize_rendered_chars(rendered_chars):
     norm_pos = 0
     norm_to_text = {}
     norm_chars = []
-    
+
     in_whitespace = False
     for t_pos, ch in enumerate(rendered):
         if re.match(r'[\s\xa0\u2000-\u200a]', ch):
@@ -204,7 +249,7 @@ def _normalize_rendered_chars(rendered_chars):
             norm_to_text[norm_pos] = t_pos
             norm_chars.append(ch)
             norm_pos += 1
-            
+
     return ''.join(norm_chars), norm_to_text
 
 
@@ -217,7 +262,7 @@ def _strip_selection(html_str, selected_text):
     sel_normalized = re.sub(r'[\u200b\u200c\u200d\ufeff]', '', selected_text)
     # 2. Normalize ALL unicode spaces (including &nbsp; \xa0 and EN SPACE \u2002) to standard space
     sel_normalized = re.sub(r'[\s\xa0\u2000-\u200a]+', ' ', sel_normalized).strip()
-    
+
     if not sel_normalized:
         return None
 
@@ -227,22 +272,22 @@ def _strip_selection(html_str, selected_text):
     idx = _find_mismatches(sel_normalized, rendered_normalized)
     if idx is None:
         return None
-        
+
     start_norm_pos = idx
     end_norm_pos = idx + len(sel_normalized) - 1
-    
+
     start_text_pos = norm_to_text.get(start_norm_pos)
     end_text_pos = norm_to_text.get(end_norm_pos)
-    
+
     if start_text_pos is None or end_text_pos is None:
         return None
-        
+
     html_start = text_to_html.get(start_text_pos)
     last_html_start = text_to_html.get(end_text_pos)
-    
+
     if html_start is None or last_html_start is None:
         return None
-        
+
     html_end = last_html_start
     if html_str[html_end] == '&':
         end_idx = html_str.find(';', html_end)
@@ -252,11 +297,11 @@ def _strip_selection(html_str, selected_text):
             html_end += 1
     else:
         html_end += 1
-        
+
     # --- SMART TAG EXPANSION WITH BLOCK REPLACEMENT ---
     safe_html_start, needs_block_wrapper = _expand_left(html_str, html_start)
     safe_html_end, needs_block_wrapper = _expand_right(html_str, html_end, needs_block_wrapper)
-            
+
     html_slice = html_str[safe_html_start:safe_html_end]
     stripped = re.sub(r'<[^>]+>', '', html_slice)
     stripped = html_module.unescape(stripped)
@@ -289,11 +334,13 @@ def _strip_field(editor, new_html=None):
             editor.note.flush()
         except Exception as e:
             import sys
+
             print(f"Error flushing note in strip_html_tags: {e}", file=sys.stderr)
     try:
         editor.loadNoteKeepingFocus()
     except Exception as e:
         import sys
+
         print(f"Error loading note in strip_html_tags: {e}", file=sys.stderr)
 
 
@@ -315,7 +362,7 @@ def on_js_message(handled, message, context):
 
     if message.startswith('stripHtmlSel:'):
         # Selection — try smart partial strip, fall back to whole field
-        selected_text = message[len('stripHtmlSel:'):]
+        selected_text = message[len('stripHtmlSel:') :]
         if isinstance(context, Editor) and context.note and context.currentField is not None:
             idx = context.currentField
             if 0 <= idx < len(context.note.fields):

@@ -1,25 +1,32 @@
-import pytest
-import os
-import tempfile
-import json
 import gzip
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+import json
+import os
 import sys
+import tempfile
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 # Change directory and add to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import importlib.util
-spec = importlib.util.spec_from_file_location("migrate_hash_map", str(Path(__file__).parent.parent / "migrate-hash-map.py"))
+
+spec = importlib.util.spec_from_file_location(
+    "migrate_hash_map", str(Path(__file__).parent.parent / "migrate-hash-map.py")
+)
+assert spec is not None
 migrate_hash_map = importlib.util.module_from_spec(spec)
 
 @pytest.fixture(autouse=True)
 def setup_module_mocks(monkeypatch):
     """Safely setup modules for each test to avoid test pollution"""
     import types
+    from typing import Any
+
     graph_mock = types.ModuleType('graph')
-    hash_map_mock = types.ModuleType('hash_map')
+    hash_map_mock: Any = types.ModuleType('hash_map')
     hash_map_mock.compute_note_hash = MagicMock(return_value="mock_hash")
     hash_map_mock.load_hash_map = MagicMock(return_value={})
     hash_map_mock.save_hash_map = MagicMock()
@@ -28,7 +35,8 @@ def setup_module_mocks(monkeypatch):
     monkeypatch.setitem(sys.modules, 'hash_map', hash_map_mock)
 
     # Reload the module under test with the mocks in place
-    spec.loader.exec_module(migrate_hash_map)
+    if spec.loader:
+        spec.loader.exec_module(migrate_hash_map)
     monkeypatch.setitem(sys.modules, 'migrate_hash_map', migrate_hash_map)
     yield hash_map_mock
 
@@ -54,7 +62,10 @@ def test_get_staging_dir_fallback():
         mock_cwd.return_value = Path('/some/other/path')
         with patch('pathlib.Path.exists', return_value=False):
             with patch('pathlib.Path.mkdir'):
-                expected_path = Path(migrate_hash_map.__file__).parent.parent / "cloudflare"
+                assert migrate_hash_map.__file__ is not None
+                expected_path = (
+                    Path(migrate_hash_map.__file__).parent.parent / "cloudflare"
+                )
                 assert migrate_hash_map.get_staging_dir() == expected_path
 
 def test_main_with_hash_map_exists_and_abort(setup_module_mocks):
@@ -219,7 +230,7 @@ def test_migrate_hash_map_progress_indicator(setup_module_mocks, capsys):
 
 def test_migrate_hash_map_direct_call():
     # Test __name__ == "__main__" block
-    with patch('migrate_hash_map.main') as mock_main:
+    with patch('migrate_hash_map.main'):
         # We need to simulate the execution of the block
         # Since it's already compiled, we can't easily re-execute the module at the bottom.
         # But we can patch main and run the module code or just accept that line 137 is:
@@ -230,13 +241,13 @@ def test_migrate_hash_map_direct_call():
 def test_migrate_hash_map_main_block():
     """Test the if __name__ == '__main__' block"""
     with patch('builtins.__name__', '__main__'):
-        with patch('migrate_hash_map.main') as mock_main:
+        with patch('migrate_hash_map.main'):
             # Re-evaluate the module under __main__ context
             with patch.dict(sys.modules, {'migrate_hash_map': None}):
                 # Need to use runpy to execute it directly to get coverage on the
                 # if __name__ == '__main__': block
-                import runpy
                 import os
+                import runpy
 
                 # Create a temporary script that imports main but also
                 # lets runpy execute the module directly
@@ -265,15 +276,14 @@ def test_line_137_coverage():
                 # Need to run with run_path but mock the main function somehow
                 # Alternatively just read the file and exec it
                 with open(script_path, "r") as f:
-                    code = f.read()
+                    f.read()
 
                 # Mock main in the global namespace of the exec
-                namespace = {"__name__": "__main__", "main": mock_main}
                 # But it will define its own main.
                 # Let's just patch the newly defined main immediately after definition
                 # Or just patch builtins.input, pathlib, etc to safely run main
                 pass
-            except Exception as e:
+            except Exception:
                 pass
 
 def test_script_execution():
@@ -288,26 +298,26 @@ def test_script_execution():
     # or just let it run in an empty temp directory where it prints "No individual notes found"
     with tempfile.TemporaryDirectory() as tempdir:
         # cd to tempdir so get_staging_dir doesn't find the real one
-        env = os.environ.copy()
+        os.environ.copy()
 
         try:
             # Call using subprocess. run it under coverage
-            result = subprocess.run(
+            subprocess.run(
                 [sys.executable, script_path],
                 cwd=tempdir,
                 capture_output=True,
                 text=True
             )
             pass
-        except Exception as e:
+        except Exception:
             pass
 
 def test_module_main_exec_fixed_again():
     import runpy
-    from pathlib import Path
     import sys
-    from unittest.mock import patch, MagicMock
     import tempfile
+    from pathlib import Path
+    from unittest.mock import MagicMock, patch
 
     script_path = str(Path(__file__).parent.parent / "migrate-hash-map.py")
 

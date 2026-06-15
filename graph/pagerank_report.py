@@ -7,9 +7,12 @@ Usage:
     python3 graph/pagerank_report.py --all    # all days
 """
 
-import sys, json, re
-from pathlib import Path
+import argparse
+import json
+import re
+import sys
 from collections import defaultdict
+from pathlib import Path
 
 BASE = Path('/Users/lz/Library/Application Support/Anki2/addons21')
 GRAPH_FILE = BASE / 'graph/graph_data.json'
@@ -47,8 +50,6 @@ def build_link_counts(links):
     return counts
 
 
-import argparse
-
 def generate_report(date, card_ids, nodes_by_id, link_counts, top_n=None):
     """Generate markdown report for a single day, or all time top N."""
     # Collect reviewed cards with their data
@@ -58,15 +59,17 @@ def generate_report(date, card_ids, nodes_by_id, link_counts, top_n=None):
         if not node:
             continue
         c_links = link_counts.get(cid, {'in': 0, 'out': 0})
-        cards.append({
-            'id': cid,
-            'front': node.get('label', node.get('l', '')),
-            'deck': node.get('deck', node.get('d', 'Unknown')),
-            'pagerank': node.get('pagerank', node.get('p', 0)),
-            'links_in': c_links['in'],
-            'links_out': c_links['out'],
-            'links_total': c_links['in'] + c_links['out'],
-        })
+        cards.append(
+            {
+                'id': cid,
+                'front': node.get('label', node.get('l', '')),
+                'deck': node.get('deck', node.get('d', 'Unknown')),
+                'pagerank': node.get('pagerank', node.get('p', 0)),
+                'links_in': c_links['in'],
+                'links_out': c_links['out'],
+                'links_total': c_links['in'] + c_links['out'],
+            }
+        )
 
     # Group by deck
     by_deck = defaultdict(list)
@@ -88,7 +91,7 @@ def generate_report(date, card_ids, nodes_by_id, link_counts, top_n=None):
 
         if connected:
             connected.sort(key=lambda c: c['pagerank'], reverse=True)
-            
+
             # Deduplicate by concept
             unique_concepts = []
             seen_concepts = set()
@@ -108,7 +111,7 @@ def generate_report(date, card_ids, nodes_by_id, link_counts, top_n=None):
                 lines.append(f'### Top {top_n} Connected (by PageRank)\n')
             else:
                 lines.append('### Connected (by PageRank)\n')
-                
+
             lines.append('| # | Front | PageRank | In-Links | Out-Links |')
             lines.append('|---|-------|----------|----------|-----------|')
             for i, c in enumerate(connected, 1):
@@ -129,8 +132,12 @@ def generate_report(date, card_ids, nodes_by_id, link_counts, top_n=None):
 
 def main():
     parser = argparse.ArgumentParser(description="Generate PageRank report")
-    parser.add_argument('-a', '--all', action='store_true', help='Generate reports for all historical dates')
-    parser.add_argument('--top', type=int, help='Generate a single report for the top N cards of all time per deck')
+    parser.add_argument(
+        '-a', '--all', action='store_true', help='Generate reports for all historical dates'
+    )
+    parser.add_argument(
+        '--top', type=int, help='Generate a single report for the top N cards of all time per deck'
+    )
     args = parser.parse_args()
 
     graph, history = load_data()

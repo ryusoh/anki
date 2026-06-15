@@ -6,7 +6,8 @@ particularly around deck merges where notes move between decks.
 """
 
 import pytest
-from graph.tests.fixtures import ENGLISH_NOTES, CALCULUS_NOTES, BIOLOGY_NOTES, ALL_NOTES
+
+from graph.tests.fixtures import ALL_NOTES, BIOLOGY_NOTES, CALCULUS_NOTES, ENGLISH_NOTES
 
 
 class TestNoteFingerprint:
@@ -93,10 +94,7 @@ class TestFindChangedNotes:
 
         # Should detect changes (not empty)
         assert changes is not None
-        assert len(changes) > 0, (
-            "Deck merge must be detected as a change, "
-            "not silently skipped"
-        )
+        assert len(changes) > 0, "Deck merge must be detected as a change, " "not silently skipped"
 
     def test_deck_merge_identifies_moved_notes(self):
         """Merged notes should appear as new in target deck and removed from source."""
@@ -171,9 +169,9 @@ class TestBuildGraphDeckMerge:
         G = build_graph(merged_notes)
 
         deck_values = {data['deck'] for _, data in G.nodes(data=True)}
-        assert len(deck_values) == 2, (
-            f"Expected 2 decks after merge, got {len(deck_values)}: {deck_values}"
-        )
+        assert (
+            len(deck_values) == 2
+        ), f"Expected 2 decks after merge, got {len(deck_values)}: {deck_values}"
         assert 'Biology 101' not in deck_values
         assert 'English Vocabulary' in deck_values
         assert 'Calculus' in deck_values

@@ -11,22 +11,27 @@ Tests cover:
 6. Full workflow (fetch -> stage -> upload)
 """
 
+import gzip
 import hashlib
 import json
-import gzip
+import shutil
 import sys
 import tempfile
-import shutil
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 # Add project root to path
 SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / 'graph'))
 
-from hash_map import compute_note_hash, load_hash_map, save_hash_map, find_changed_notes, update_hash_map
-
+from hash_map import (
+    compute_note_hash,
+    find_changed_notes,
+    load_hash_map,
+    save_hash_map,
+    update_hash_map,
+)
 
 # =============================================================================
 # Test 1: Hash Computation
@@ -359,7 +364,7 @@ def test_corrupted_note_file_handling():
                     content = f.read()
                     if not content:
                         raise ValueError("Empty file")
-                    note = json.loads(content)
+                    json.loads(content)
                     success.append(note_file.name)
             except Exception as e:
                 errors.append((note_file.name, str(e)))
@@ -471,7 +476,7 @@ def test_full_incremental_workflow():
         
         # Simulate staging
         for note in changed:
-            guid_hash = hashlib.md5(note['guid'].encode()).hexdigest()[:16]
+            guid_hash = hashlib.md5(note['guid'].encode(), usedforsecurity=False).hexdigest()[:16]
             note_file = notes_dir / f"{guid_hash}.json.gz"
             with gzip.open(note_file, 'wt', encoding='utf-8') as f:
                 json.dump(note, f)
@@ -621,7 +626,7 @@ def test_fetch_does_not_update_hash_map():
         
         # Stage new notes (simulating fetch)
         for note in new_notes:
-            guid_hash = hashlib.md5(note['guid'].encode()).hexdigest()[:16]
+            guid_hash = hashlib.md5(note['guid'].encode(), usedforsecurity=False).hexdigest()[:16]
             note_file = notes_dir / f"{guid_hash}.json.gz"
             with gzip.open(note_file, 'wt', encoding='utf-8') as f:
                 json.dump(note, f)
@@ -689,7 +694,7 @@ def test_upload_only_detects_new_notes():
         ]
         
         for note in today_notes:
-            guid_hash = hashlib.md5(note['guid'].encode()).hexdigest()[:16]
+            guid_hash = hashlib.md5(note['guid'].encode(), usedforsecurity=False).hexdigest()[:16]
             note_file = notes_dir / f"{guid_hash}.json.gz"
             with gzip.open(note_file, 'wt', encoding='utf-8') as f:
                 json.dump(note, f)
@@ -769,13 +774,18 @@ if __name__ == "__main__":
     run_all_tests()
 
 def test_missing_coverage_comprehensive():
-    from data.anki.tests.test_incremental_upload_comprehensive import test_collection_file_hash, test_upload_only_checks_hash_map, run_all_tests
-    from unittest.mock import patch, MagicMock
+    from unittest.mock import MagicMock, patch
+
+    from data.anki.tests.test_incremental_upload_comprehensive import (
+        run_all_tests,
+        test_collection_file_hash,
+        test_upload_only_checks_hash_map,
+    )
 
     # 88-89
     def compute_file_hash(content):
-        import json
         import hashlib
+        import json
         if isinstance(content, (dict, list)):
             content = json.dumps(content, sort_keys=True, ensure_ascii=False).encode('utf-8')
         elif isinstance(content, str):
@@ -790,24 +800,24 @@ def test_missing_coverage_comprehensive():
 
     try:
         verify_staged_files("staging_dir", [], [], [], [], [], missing_refs=True)
-    except Exception as e:
+    except Exception:
         pass
 
-    with patch("sys.exit") as mock_exit:
+    with patch("sys.exit"):
          with patch("data.anki.tests.test_incremental_upload_comprehensive.test_note_hash_computation", side_effect=AssertionError("Fail")):
               try:
                   run_all_tests()
               except SystemExit:
                   pass
 
-    with patch("sys.exit") as mock_exit:
+    with patch("sys.exit"):
          with patch("data.anki.tests.test_incremental_upload_comprehensive.test_note_hash_computation", side_effect=Exception("Error")):
               try:
                   run_all_tests()
               except SystemExit:
                   pass
 
-    with patch("sys.exit") as mock_exit:
+    with patch("sys.exit"):
          import runpy
          try:
              runpy.run_path(__file__, run_name="__main__")

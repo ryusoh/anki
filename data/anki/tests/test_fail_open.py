@@ -14,7 +14,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from generate_custom_stats import _read_existing_total, _should_write
 from generate_review_stats import _read_existing_review_total, _should_write_reviews
 
-
 # =====================================================================
 # Helpers
 # =====================================================================

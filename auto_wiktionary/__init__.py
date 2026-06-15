@@ -1,12 +1,24 @@
 import os
+
 from aqt import gui_hooks
 from aqt.editor import Editor
 from aqt.utils import tooltip
 
-from .utils import clean_html_text, detect_language, fetch_wiktionary_html, parse_wiktionary_html, merge_definition, get_wiktionary_candidates, format_candidates_html, detect_kanji_redirect, inject_redirect_pronunciation
+from .utils import (
+    clean_html_text,
+    detect_kanji_redirect,
+    detect_language,
+    fetch_wiktionary_html,
+    format_candidates_html,
+    get_wiktionary_candidates,
+    inject_redirect_pronunciation,
+    merge_definition,
+    parse_wiktionary_html,
+)
 
 ADDON_DIR = os.path.dirname(__file__)
 ICON_PATH = os.path.join(ADDON_DIR, "icon.png")
+
 
 def _apply_wiktionary(editor, text_to_search):
     """
@@ -95,9 +107,9 @@ def on_auto_wiktionary(editor: Editor) -> None:
     # First, let's try to get selected text.
     # We evaluate JS to get the current selection HTML.
     editor.web.evalWithCallback(
-        "window.getSelection().toString()",
-        lambda sel: _on_selection_result(editor, sel)
+        "window.getSelection().toString()", lambda sel: _on_selection_result(editor, sel)
     )
+
 
 def _on_selection_result(editor: Editor, sel: str) -> None:
     if sel and sel.strip():
@@ -108,6 +120,7 @@ def _on_selection_result(editor: Editor, sel: str) -> None:
         # No selection, use the Front field content.
         # Ensure note is saved from webview
         editor.saveNow(lambda: _use_front_field(editor))
+
 
 def _use_front_field(editor: Editor) -> None:
     if editor.note is None:
@@ -126,6 +139,7 @@ def _use_front_field(editor: Editor) -> None:
 
     front_text = editor.note.fields[front_idx]
     _apply_wiktionary(editor, front_text)
+
 
 def on_editor_did_init_buttons(buttons: list, editor: Editor) -> None:
     btn = editor.addButton(

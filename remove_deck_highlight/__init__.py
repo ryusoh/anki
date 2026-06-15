@@ -5,7 +5,8 @@ Anki Add-on: Remove Deck Highlighting
 Removes both the 'current' selection highlight and the hover highlight in the deck browser.
 """
 
-from aqt import mw, gui_hooks
+from aqt import gui_hooks, mw
+
 
 def on_webview_will_set_content(web_content, context):
     # Only inject into the deck browser
@@ -42,7 +43,7 @@ def on_webview_will_set_content(web_content, context):
         }
     </style>
     """
-    
+
     # Inject JS to actively strip the 'current' class which Anki uses for highlighting
     web_content.body += """
     <script>
@@ -62,5 +63,6 @@ def on_webview_will_set_content(web_content, context):
     })();
     </script>
     """
+
 
 gui_hooks.webview_will_set_content.append(on_webview_will_set_content)

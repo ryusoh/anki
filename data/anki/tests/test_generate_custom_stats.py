@@ -1,15 +1,17 @@
-import pytest
-import os
-import tempfile
 import json
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+import os
 import sys
+import tempfile
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 # Change directory and add to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import importlib.util
+
 spec = importlib.util.spec_from_file_location("generate_custom_stats", str(Path(__file__).parent.parent / "generate_custom_stats.py"))
 generate_custom_stats = importlib.util.module_from_spec(spec)
 sys.modules["generate_custom_stats"] = generate_custom_stats
@@ -24,7 +26,7 @@ def test_generate_custom_stats_main():
         # Test 1: Files don't exist -> return False
         with patch('generate_custom_stats.OUTPUT_FILE', output_file), \
              patch('generate_custom_stats.CARDS_FILE', cards_file):
-            assert generate_custom_stats.main() == False
+            assert not generate_custom_stats.main()
 
         # Test 2: Invalid JSON
         import gzip
@@ -48,12 +50,12 @@ def test_generate_custom_stats_main():
              patch('generate_custom_stats.CARDS_FILE', cards_file), \
              patch('generate_custom_stats.get_anki_today', return_value=90), \
              patch('generate_custom_stats.SCRIPT_DIR', temp_path):
-            assert generate_custom_stats.main() == True
+            assert generate_custom_stats.main()
             assert output_file.exists()
             assert (temp_path / "full_forecast.json.gz").exists()
 
             # Second run, full forecast unchanged
-            assert generate_custom_stats.main() == True
+            assert generate_custom_stats.main()
 
 def test_calculate_future_due():
     cards_data = [
@@ -122,20 +124,20 @@ def test_should_write():
         new_stats = [{"mature": 50, "young": 50}] # Total 100
 
         # No old file -> Write
-        assert generate_custom_stats._should_write(new_stats, output_file) == True
+        assert generate_custom_stats._should_write(new_stats, output_file)
 
         # Write valid old file smaller
         with open(output_file, "w") as f:
             json.dump({"futureDue": [{"mature": 5, "young": 5}]}, f)
-        assert generate_custom_stats._should_write(new_stats, output_file) == True
+        assert generate_custom_stats._should_write(new_stats, output_file)
 
         # Old file large, new empty -> Don't write
-        assert generate_custom_stats._should_write([], output_file) == False
+        assert not generate_custom_stats._should_write([], output_file)
 
         # Old file large (200), new tiny (10) -> Don't write
         with open(output_file, "w") as f:
             json.dump({"futureDue": [{"mature": 100, "young": 100}]}, f)
-        assert generate_custom_stats._should_write([{"mature": 5, "young": 5}], output_file) == False
+        assert not generate_custom_stats._should_write([{"mature": 5, "young": 5}], output_file)
 
 def test_get_anki_today_with_db():
     with tempfile.NamedTemporaryFile(suffix=".anki2", delete=False) as f:
@@ -272,8 +274,8 @@ def test_main_read_output_exception():
              patch('generate_custom_stats.CARDS_FILE', cards_file), \
              patch('generate_custom_stats.get_anki_today', return_value=90), \
              patch('generate_custom_stats.SCRIPT_DIR', temp_path):
-            with patch('gzip.open', side_effect=mock_gzip_open) as mock_gzip:
-                assert generate_custom_stats.main() == True
+            with patch('gzip.open', side_effect=mock_gzip_open):
+                assert generate_custom_stats.main()
 
 
 def test_main_decks_json_exception():
@@ -297,7 +299,7 @@ def test_main_decks_json_exception():
              patch('generate_custom_stats.DECKS_FILE', decks_file), \
              patch('generate_custom_stats.get_anki_today', return_value=90), \
              patch('generate_custom_stats.SCRIPT_DIR', temp_path):
-            assert generate_custom_stats.main() == True
+            assert generate_custom_stats.main()
 
 
 def test_main_uses_decks_json_for_deck_names():
@@ -326,7 +328,7 @@ def test_main_uses_decks_json_for_deck_names():
              patch('generate_custom_stats.DECKS_FILE', decks_file), \
              patch('generate_custom_stats.get_anki_today', return_value=90), \
              patch('generate_custom_stats.SCRIPT_DIR', temp_path):
-            assert generate_custom_stats.main() == True
+            assert generate_custom_stats.main()
 
             with open(output_file) as f:
                 data = json.load(f)

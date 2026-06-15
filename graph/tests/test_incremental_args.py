@@ -1,11 +1,16 @@
-from unittest.mock import patch, MagicMock, mock_open
-from graph.incremental_export import main
-import sys
 import pathlib
+import sys
+from unittest.mock import MagicMock, mock_open, patch
+
+from graph.incremental_export import main
+
 
 def test_status_missing_file():
     with patch('sys.argv', ['incremental_export.py', '--status']):
-        with patch('graph.incremental_export.load_config', return_value={'sample_size': 100, 'increment': 10}):
+        with patch(
+            'graph.incremental_export.load_config',
+            return_value={'sample_size': 100, 'increment': 10},
+        ):
             with patch.object(pathlib.Path, 'exists', return_value=True):
                 with patch.object(pathlib.Path, 'stat') as mock_stat_method:
                     mock_stat = MagicMock()
@@ -13,74 +18,110 @@ def test_status_missing_file():
                     mock_stat_method.return_value = mock_stat
                     main()
 
+
 def test_reset():
     with patch('sys.argv', ['incremental_export.py', '--reset']):
-        with patch('graph.incremental_export.load_config', return_value={'sample_size': 500, 'increment': 10}):
+        with patch(
+            'graph.incremental_export.load_config',
+            return_value={'sample_size': 500, 'increment': 10},
+        ):
             with patch('graph.incremental_export.save_config') as mock_save:
                 with patch('graph.incremental_export.export_graph') as mock_export:
                     main()
                     mock_save.assert_called_with({'sample_size': 100, 'increment': 10})
                     mock_export.assert_called_with(100)
 
+
 def test_size():
     with patch('sys.argv', ['incremental_export.py', '--size', '1000']):
-        with patch('graph.incremental_export.load_config', return_value={'sample_size': 100, 'increment': 10}):
+        with patch(
+            'graph.incremental_export.load_config',
+            return_value={'sample_size': 100, 'increment': 10},
+        ):
             with patch('graph.incremental_export.save_config') as mock_save:
                 with patch('graph.incremental_export.export_graph') as mock_export:
                     main()
                     mock_save.assert_called_with({'sample_size': 1000, 'increment': 10})
                     mock_export.assert_called_with(1000)
 
+
 def test_default_increments():
     with patch('sys.argv', ['incremental_export.py']):
-        with patch('graph.incremental_export.load_config', return_value={'sample_size': 1000, 'increment': 10}):
+        with patch(
+            'graph.incremental_export.load_config',
+            return_value={'sample_size': 1000, 'increment': 10},
+        ):
             with patch('graph.incremental_export.save_config') as mock_save:
                 with patch('graph.incremental_export.export_graph') as mock_export:
                     main()
                     mock_save.assert_called_with({'sample_size': 1100, 'increment': 100})
                     mock_export.assert_called_with(1100)
 
+
 def test_large_increments():
     with patch('sys.argv', ['incremental_export.py']):
-        with patch('graph.incremental_export.load_config', return_value={'sample_size': 50000, 'increment': 10}):
+        with patch(
+            'graph.incremental_export.load_config',
+            return_value={'sample_size': 50000, 'increment': 10},
+        ):
             with patch('graph.incremental_export.save_config') as mock_save:
-                with patch('graph.incremental_export.export_graph') as mock_export:
+                with patch('graph.incremental_export.export_graph'):
                     main()
                     mock_save.assert_called_with({'sample_size': 55000, 'increment': 5000})
 
     with patch('sys.argv', ['incremental_export.py']):
-        with patch('graph.incremental_export.load_config', return_value={'sample_size': 10000, 'increment': 10}):
+        with patch(
+            'graph.incremental_export.load_config',
+            return_value={'sample_size': 10000, 'increment': 10},
+        ):
             with patch('graph.incremental_export.save_config') as mock_save:
-                with patch('graph.incremental_export.export_graph') as mock_export:
+                with patch('graph.incremental_export.export_graph'):
                     main()
                     mock_save.assert_called_with({'sample_size': 11000, 'increment': 1000})
 
     with patch('sys.argv', ['incremental_export.py']):
-        with patch('graph.incremental_export.load_config', return_value={'sample_size': 5000, 'increment': 10}):
+        with patch(
+            'graph.incremental_export.load_config',
+            return_value={'sample_size': 5000, 'increment': 10},
+        ):
             with patch('graph.incremental_export.save_config') as mock_save:
-                with patch('graph.incremental_export.export_graph') as mock_export:
+                with patch('graph.incremental_export.export_graph'):
                     main()
                     mock_save.assert_called_with({'sample_size': 5500, 'increment': 500})
 
+
 def test_strip_html_none():
     from graph.incremental_export import strip_html
+
     assert strip_html(None) == ""
 
+
 def test_main_exec():
-    import runpy
     import builtins
+    import runpy
+
     with patch('sys.argv', ['incremental_export.py', '--status']):
-        with patch('graph.incremental_export.load_config', return_value={'sample_size': 100, 'increment': 10}):
+        with patch(
+            'graph.incremental_export.load_config',
+            return_value={'sample_size': 100, 'increment': 10},
+        ):
             with patch.object(pathlib.Path, 'exists', return_value=True):
                 with patch.object(pathlib.Path, 'stat') as mock_stat_method:
                     mock_stat = MagicMock()
                     mock_stat.st_size = 1048576
                     mock_stat_method.return_value = mock_stat
-                    with patch('sys.exit') as mock_exit:
-                        with patch.object(builtins, 'open', mock_open(read_data='{"sample_size": 100, "increment": 10}')):
+                    with patch('sys.exit'):
+                        with patch.object(
+                            builtins,
+                            'open',
+                            mock_open(read_data='{"sample_size": 100, "increment": 10}'),
+                        ):
                             # run_path (not run_module): graph.incremental_export is
                             # already imported at the top of this file, so run_module
                             # emits a RuntimeWarning about re-executing it. run_path
                             # runs the file fresh (identical execution) without that.
-                            script = str(pathlib.Path(__file__).resolve().parent.parent / 'incremental_export.py')
+                            script = str(
+                                pathlib.Path(__file__).resolve().parent.parent
+                                / 'incremental_export.py'
+                            )
                             runpy.run_path(script, run_name='__main__')

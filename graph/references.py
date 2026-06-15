@@ -14,28 +14,31 @@ Optimizations:
 - Multiprocessing to split large decks into parallel chunks
 """
 
-import re
-import math
 import multiprocessing
-from graph.parser import extract_fields, get_front_field, get_other_fields_text
+import re
+
+from graph.parser import get_front_field, get_other_fields_text
+
 
 def _get_pool(workers):
     """Create a Pool using fork context (safe on macOS with spawn default)."""
     ctx = multiprocessing.get_context("fork")
     return ctx.Pool(workers)
 
+
 try:
     import ahocorasick
+
     HAS_AHO = True
 except ImportError:
     HAS_AHO = False
 
 # Edge weight configuration
 EDGE_WEIGHTS = {
-    'front_in_front': 3.0,        # Card A's full front appears in card B's front
-    'front_in_back': 2.0,         # Card A's full front appears in card B's back
-    'subphrase_in_front': 2.0,    # High-IDF sub-phrase of A's front in B's front
-    'subphrase_in_back': 1.0,     # High-IDF sub-phrase of A's front in B's back
+    'front_in_front': 3.0,  # Card A's full front appears in card B's front
+    'front_in_back': 2.0,  # Card A's full front appears in card B's back
+    'subphrase_in_front': 2.0,  # High-IDF sub-phrase of A's front in B's front
+    'subphrase_in_back': 1.0,  # High-IDF sub-phrase of A's front in B's back
 }
 
 # Minimum front field length to consider for matching
@@ -145,32 +148,34 @@ def _compute_df(note_fields):
 
 def _prepare_note_fields(notes, deck_name=""):
     """Pre-compute normalized fields for a list of notes.
-    
+
     If the deck is a Language deck (日語, 粤語, 呉語, 台語), purely phonetic
     or Latin sub-phrases (those without any CJK characters) are excluded.
     """
     is_cjk_deck = any(k in deck_name for k in ['日語', '粤語', '呉語', '台語'])
-    
+
     result = []
     for note in notes:
         front_norm = _normalize(get_front_field(note))
         other_norm = _normalize(get_other_fields_text(note))
         raw_tokens = _tokenize_front(front_norm) if len(front_norm) >= MIN_FRONT_LENGTH else set()
-        
+
         if is_cjk_deck:
             # Drop sub-phrases that contain absolutely no CJK characters
             # (e.g. "is", "ni", "186", "desu")
             raw_tokens = {t for t in raw_tokens if _CJK_RE.search(t)}
-            
-        result.append({
-            'guid': note['guid'],
-            'front': front_norm,
-            'front_len': len(front_norm),
-            'other': other_norm,
-            'subphrases_raw': raw_tokens,  # unfiltered, for DF computation
-            'subphrases': [],              # filled after DF filtering
-            'match_front': True,           # whether to match the full front
-        })
+
+        result.append(
+            {
+                'guid': note['guid'],
+                'front': front_norm,
+                'front_len': len(front_norm),
+                'other': other_norm,
+                'subphrases_raw': raw_tokens,  # unfiltered, for DF computation
+                'subphrases': [],  # filled after DF filtering
+                'match_front': True,  # whether to match the full front
+            }
+        )
     return result
 
 
@@ -179,13 +184,14 @@ def _apply_df_filter(note_fields, df):
     N = len(note_fields)
     # A term must not appear in more than 2% of the deck (min 10 cards for small decks)
     max_allowed_df = max(10, int(N * _MAX_DF_RATIO))
-    
+
     for nf in note_fields:
         # Only allow the full front to act as a hyperlink if it's not overly common
         nf['match_front'] = df.get(nf['front'], 0) <= max_allowed_df
-        
+
         nf['subphrases'] = [
-            sp for sp in nf['subphrases_raw']
+            sp
+            for sp in nf['subphrases_raw']
             if df.get(sp, 0) <= max_allowed_df and sp != nf['front']
         ]
 
@@ -205,6 +211,7 @@ def find_references(notes, progress_callback=None):
         return []
 
     from graph.parser import group_by_deck
+
     grouped = group_by_deck(notes)
     total_decks = len(grouped)
 
@@ -280,7 +287,7 @@ def _build_automaton(note_fields):
         if nf['front_len'] < MIN_FRONT_LENGTH:
             continue
         front = nf['front']
-        
+
         # Add full front only if it passes the Max DF filter
         if nf.get('match_front', True):
             if front not in guid_by_pattern:
@@ -324,7 +331,7 @@ def _scan_chunk(args):
     for tgt in chunk:
         tgt_guid = tgt['guid']
 
-        for end_idx, matched in automaton.iter(tgt['front']):
+        for _end_idx, matched in automaton.iter(tgt['front']):
             for src_guid, is_sub in guid_by_pattern[matched]:
                 if src_guid == tgt_guid:
                     continue
@@ -332,16 +339,18 @@ def _scan_chunk(args):
                 if edge_key not in seen_edges:
                     seen_edges.add(edge_key)
                     etype = _edge_type(True, is_sub)
-                    edges.append({
-                        'source': tgt_guid,
-                        'target': src_guid,
-                        'type': etype,
-                        'weight': EDGE_WEIGHTS[etype],
-                        'deck': deck_name,
-                    })
+                    edges.append(
+                        {
+                            'source': tgt_guid,
+                            'target': src_guid,
+                            'type': etype,
+                            'weight': EDGE_WEIGHTS[etype],
+                            'deck': deck_name,
+                        }
+                    )
 
         matched_in_front = {ek[1] for ek in seen_edges if ek[0] == tgt_guid}
-        for end_idx, matched in automaton.iter(tgt['other']):
+        for _end_idx, matched in automaton.iter(tgt['other']):
             for src_guid, is_sub in guid_by_pattern[matched]:
                 if src_guid == tgt_guid or src_guid in matched_in_front:
                     continue
@@ -349,13 +358,15 @@ def _scan_chunk(args):
                 if edge_key not in seen_edges:
                     seen_edges.add(edge_key)
                     etype = _edge_type(False, is_sub)
-                    edges.append({
-                        'source': tgt_guid,
-                        'target': src_guid,
-                        'type': etype,
-                        'weight': EDGE_WEIGHTS[etype],
-                        'deck': deck_name,
-                    })
+                    edges.append(
+                        {
+                            'source': tgt_guid,
+                            'target': src_guid,
+                            'type': etype,
+                            'weight': EDGE_WEIGHTS[etype],
+                            'deck': deck_name,
+                        }
+                    )
 
     return edges
 
@@ -369,7 +380,7 @@ def _find_refs_aho_parallel(note_fields, deck_name):
     chunk_size = max(1, len(note_fields) // workers)
     chunks = []
     for i in range(0, len(note_fields), chunk_size):
-        chunks.append((note_fields[i:i + chunk_size], note_fields, deck_name))
+        chunks.append((note_fields[i : i + chunk_size], note_fields, deck_name))
 
     with _get_pool(workers) as pool:
         results = pool.map(_scan_chunk, chunks)
@@ -402,7 +413,7 @@ def _find_refs_aho(note_fields, deck_name):
     for tgt in note_fields:
         tgt_guid = tgt['guid']
 
-        for end_idx, matched in automaton.iter(tgt['front']):
+        for _end_idx, matched in automaton.iter(tgt['front']):
             for src_guid, is_sub in guid_by_pattern[matched]:
                 if src_guid == tgt_guid:
                     continue
@@ -410,16 +421,18 @@ def _find_refs_aho(note_fields, deck_name):
                 if edge_key not in seen_edges:
                     seen_edges.add(edge_key)
                     etype = _edge_type(True, is_sub)
-                    edges.append({
-                        'source': tgt_guid,    # Text owner (citing card)
-                        'target': src_guid,    # Pattern owner (cited card)
-                        'type': etype,
-                        'weight': EDGE_WEIGHTS[etype],
-                        'deck': deck_name,
-                    })
+                    edges.append(
+                        {
+                            'source': tgt_guid,  # Text owner (citing card)
+                            'target': src_guid,  # Pattern owner (cited card)
+                            'type': etype,
+                            'weight': EDGE_WEIGHTS[etype],
+                            'deck': deck_name,
+                        }
+                    )
 
         matched_in_front = {ek[1] for ek in seen_edges if ek[0] == tgt_guid}
-        for end_idx, matched in automaton.iter(tgt['other']):
+        for _end_idx, matched in automaton.iter(tgt['other']):
             for src_guid, is_sub in guid_by_pattern[matched]:
                 if src_guid == tgt_guid or src_guid in matched_in_front:
                     continue
@@ -427,13 +440,15 @@ def _find_refs_aho(note_fields, deck_name):
                 if edge_key not in seen_edges:
                     seen_edges.add(edge_key)
                     etype = _edge_type(False, is_sub)
-                    edges.append({
-                        'source': tgt_guid,    # Text owner (citing card)
-                        'target': src_guid,    # Pattern owner (cited card)
-                        'type': etype,
-                        'weight': EDGE_WEIGHTS[etype],
-                        'deck': deck_name,
-                    })
+                    edges.append(
+                        {
+                            'source': tgt_guid,  # Text owner (citing card)
+                            'target': src_guid,  # Pattern owner (cited card)
+                            'type': etype,
+                            'weight': EDGE_WEIGHTS[etype],
+                            'deck': deck_name,
+                        }
+                    )
 
     return edges
 
@@ -453,7 +468,7 @@ def _find_refs_bruteforce(note_fields, deck_name):
         patterns = []
         if src.get('match_front', True):
             patterns.append((src_front, False))
-            
+
         for sp in src.get('subphrases', []):
             if sp != src_front:
                 patterns.append((sp, True))
@@ -474,24 +489,28 @@ def _find_refs_bruteforce(note_fields, deck_name):
                 if plen <= len(tgt['front']) and pattern in tgt['front']:
                     seen_edges.add(edge_key)
                     etype = _edge_type(True, is_sub)
-                    edges.append({
-                        'source': tgt['guid'],    # Text owner (citing card)
-                        'target': src['guid'],    # Pattern owner (cited card)
-                        'type': etype,
-                        'weight': EDGE_WEIGHTS[etype],
-                        'deck': deck_name,
-                    })
+                    edges.append(
+                        {
+                            'source': tgt['guid'],  # Text owner (citing card)
+                            'target': src['guid'],  # Pattern owner (cited card)
+                            'type': etype,
+                            'weight': EDGE_WEIGHTS[etype],
+                            'deck': deck_name,
+                        }
+                    )
                     break
                 elif plen <= len(tgt['other']) and pattern in tgt['other']:
                     seen_edges.add(edge_key)
                     etype = _edge_type(False, is_sub)
-                    edges.append({
-                        'source': tgt['guid'],    # Text owner (citing card)
-                        'target': src['guid'],    # Pattern owner (cited card)
-                        'type': etype,
-                        'weight': EDGE_WEIGHTS[etype],
-                        'deck': deck_name,
-                    })
+                    edges.append(
+                        {
+                            'source': tgt['guid'],  # Text owner (citing card)
+                            'target': src['guid'],  # Pattern owner (cited card)
+                            'type': etype,
+                            'weight': EDGE_WEIGHTS[etype],
+                            'deck': deck_name,
+                        }
+                    )
                     break
 
     return edges
@@ -543,7 +562,9 @@ def find_references_incremental(all_deck_notes, changed_guids, deck_name):
         for tgt in all_fields:
             if tgt['guid'] in changed_guids:
                 continue  # already handled above
-            _scan_target(tgt, automaton_changed, guid_by_pattern_changed, deck_name, edges, seen_edges)
+            _scan_target(
+                tgt, automaton_changed, guid_by_pattern_changed, deck_name, edges, seen_edges
+            )
 
     return edges
 
@@ -552,7 +573,7 @@ def _scan_target(tgt, automaton, guid_by_pattern, deck_name, edges, seen_edges):
     """Scan a single target note against an automaton, appending found edges."""
     tgt_guid = tgt['guid']
 
-    for end_idx, matched in automaton.iter(tgt['front']):
+    for _end_idx, matched in automaton.iter(tgt['front']):
         for src_guid, is_sub in guid_by_pattern[matched]:
             if src_guid == tgt_guid:
                 continue
@@ -560,16 +581,18 @@ def _scan_target(tgt, automaton, guid_by_pattern, deck_name, edges, seen_edges):
             if edge_key not in seen_edges:
                 seen_edges.add(edge_key)
                 etype = _edge_type(True, is_sub)
-                edges.append({
-                    'source': tgt_guid,    # Text owner (citing card)
-                    'target': src_guid,    # Pattern owner (cited card)
-                    'type': etype,
-                    'weight': EDGE_WEIGHTS[etype],
-                    'deck': deck_name,
-                })
+                edges.append(
+                    {
+                        'source': tgt_guid,  # Text owner (citing card)
+                        'target': src_guid,  # Pattern owner (cited card)
+                        'type': etype,
+                        'weight': EDGE_WEIGHTS[etype],
+                        'deck': deck_name,
+                    }
+                )
 
     matched_in_front = {ek[1] for ek in seen_edges if ek[0] == tgt_guid}
-    for end_idx, matched in automaton.iter(tgt['other']):
+    for _end_idx, matched in automaton.iter(tgt['other']):
         for src_guid, is_sub in guid_by_pattern[matched]:
             if src_guid == tgt_guid or src_guid in matched_in_front:
                 continue
@@ -577,13 +600,15 @@ def _scan_target(tgt, automaton, guid_by_pattern, deck_name, edges, seen_edges):
             if edge_key not in seen_edges:
                 seen_edges.add(edge_key)
                 etype = _edge_type(False, is_sub)
-                edges.append({
-                    'source': tgt_guid,    # Text owner (citing card)
-                    'target': src_guid,    # Pattern owner (cited card)
-                    'type': etype,
-                    'weight': EDGE_WEIGHTS[etype],
-                    'deck': deck_name,
-                })
+                edges.append(
+                    {
+                        'source': tgt_guid,  # Text owner (citing card)
+                        'target': src_guid,  # Pattern owner (cited card)
+                        'type': etype,
+                        'weight': EDGE_WEIGHTS[etype],
+                        'deck': deck_name,
+                    }
+                )
 
 
 def calculate_edge_weight(edge_type):

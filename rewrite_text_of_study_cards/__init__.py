@@ -13,13 +13,15 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from aqt.deckbrowser import *
-from .path_manager import MESSAGE_TEMPLATE, check_custom_text
 from aqt import gui_hooks
+from aqt.deckbrowser import DeckBrowser
 from aqt.overview import Overview
+from aqt.qt import QTimer
+
+from .path_manager import MESSAGE_TEMPLATE, check_custom_text
 
 
-def _renderStats_3(self:"DeckBrowser") -> str:
+def _renderStats_3(self: "DeckBrowser") -> str:
     try:
         config = self.mw.addonManager.getConfig(__name__)
 
@@ -54,6 +56,7 @@ def _renderStats_3(self:"DeckBrowser") -> str:
         except Exception as e:
             print(e)
             from anki.utils import fmtTimeSpan
+
             time_text = fmtTimeSpan(thetime, unit=1)
 
         if cards > 0:
@@ -63,14 +66,12 @@ def _renderStats_3(self:"DeckBrowser") -> str:
         else:
             avg_text = "0"
 
-        custom_text = config.get("custom_text", MESSAGE_TEMPLATE) #type: str
+        custom_text = config.get("custom_text", MESSAGE_TEMPLATE)  # type: str
 
         custom_text = check_custom_text(custom_text)
 
         studied_today = custom_text.format(
-            card_text=card_text,
-            time_text=time_text,
-            avg_text=avg_text
+            card_text=card_text, time_text=time_text, avg_text=avg_text
         )
 
         studied_today = f"""<a href=#
@@ -83,18 +84,23 @@ def _renderStats_3(self:"DeckBrowser") -> str:
             self._render_data.studied_today
         )
 
+
 orig__renderStats = DeckBrowser._renderStats
 DeckBrowser._renderStats = _renderStats_3
+
 
 def handleMyAddonConfig(handled, message, context):
     if message == "shige_rewrite_study_cards_text":
         from .shige_config.addon_config import setMyAddonConfig
+
         QTimer.singleShot(0, setMyAddonConfig)
         return (True, None)
     else:
         return handled
 
+
 gui_hooks.webview_did_receive_js_message.append(handleMyAddonConfig)
+
 
 def on_overview_will_set_content(web_content, context):
     """
@@ -112,5 +118,6 @@ def on_overview_will_set_content(web_content, context):
 }
 </style>
 """
+
 
 gui_hooks.webview_will_set_content.append(on_overview_will_set_content)

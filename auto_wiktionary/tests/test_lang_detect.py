@@ -1,8 +1,9 @@
-import sys
 import os
+import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from utils import detect_language, clean_html_text
+from utils import clean_html_text, detect_language
+
 
 def test_clean_html_text():
     assert clean_html_text("hello") == "hello"
@@ -10,6 +11,7 @@ def test_clean_html_text():
     assert clean_html_text("  spaces  ") == "spaces"
     assert clean_html_text("hello&nbsp;world") == "hello world"
     assert clean_html_text("multiple<br>lines") == "multiple lines"
+
 
 def test_detect_language():
     # English words

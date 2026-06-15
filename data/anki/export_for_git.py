@@ -5,11 +5,11 @@ Export Anki stats to Git-friendly format.
 - Reviews: Partitioned by month (incremental)
 """
 
-import sqlite3
-import json
 import gzip
-from pathlib import Path
+import json
+import sqlite3
 from datetime import datetime
+from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).parent
 SOURCE_DB = SCRIPT_DIR / "collection.anki2"
@@ -120,7 +120,7 @@ def export_for_git():
     )
     
     print()
-    print(f"✅ Export complete!")
+    print("✅ Export complete!")
     print(f"   Total reviews: {total_reviews:,}")
     print(f"   Total size: {total_size / 1024 / 1024:.2f} MB")
     print()

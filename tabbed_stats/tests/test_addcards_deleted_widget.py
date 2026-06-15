@@ -47,9 +47,11 @@ class TestCreateAddcardsTabDeletedWidget:
 
         _sip.isdeleted = MagicMock(return_value=True)
 
-        with patch.object(mod, "_close_stats"), \
-             patch.object(mod, "_hide_main_content"), \
-             patch.object(mod, "mw", _aqt.mw):
+        with (
+            patch.object(mod, "_close_stats"),
+            patch.object(mod, "_hide_main_content"),
+            patch.object(mod, "mw", _aqt.mw),
+        ):
 
             mod._create_addcards_tab()
 
@@ -67,9 +69,11 @@ class TestCreateAddcardsTabDeletedWidget:
 
         _sip.isdeleted = MagicMock(return_value=False)
 
-        with patch.object(mod, "_close_stats"), \
-             patch.object(mod, "_hide_main_content"), \
-             patch.object(mod, "mw", _aqt.mw):
+        with (
+            patch.object(mod, "_close_stats"),
+            patch.object(mod, "_hide_main_content"),
+            patch.object(mod, "mw", _aqt.mw),
+        ):
 
             mod._create_addcards_tab()
 

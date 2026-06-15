@@ -1,20 +1,31 @@
+from os.path import dirname, exists, join
 
-from aqt import QTabWidget, QUrl, QWebEngineSettings
-from aqt import QWidget
-from os.path import join, dirname, exists
-from aqt import  QWebEnginePage, QWidget, QWebEngineView, QVBoxLayout
+from aqt import (
+    QTabWidget,
+    QUrl,
+    QVBoxLayout,
+    QWebEnginePage,
+    QWebEngineSettings,
+    QWebEngineView,
+    QWidget,
+)
+from aqt.utils import openLink
+
 from . import listOfSupportedPatrons
 
 background = "Space.gif"
 
-from aqt.utils import openLink
+
 def handle_new_window(url):
     openLink(url)
+
+
 class CustomWebEnginePage(QWebEnginePage):
     def createWindow(self, _type):
         new_page = CustomWebEnginePage(self)
         new_page.urlChanged.connect(handle_new_window)
         return new_page
+
     def javaScriptConsoleMessage(self, level, message, lineNumber, sourceID):
         pass
 
@@ -31,14 +42,14 @@ class EndrollWidget(QWidget):
 
         # ｻﾝﾌﾟﾙﾃﾞｰﾀ
         credit_data_attributes = [
-                                'credits',
-                                # 'caractor',
-                                # 'sound',
-                                # 'addons',
-                                # 'budle',
-                                'patreon',
-                                'thankYou',
-                                ]
+            'credits',
+            # 'caractor',
+            # 'sound',
+            # 'addons',
+            # 'budle',
+            'patreon',
+            'thankYou',
+        ]
 
         # HTMLｺﾝﾃﾝﾂを生成
         html_content = f"""
@@ -108,9 +119,12 @@ class EndrollWidget(QWidget):
         self.web_view.setPage(CustomWebEnginePage(self.web_view))
         # self.web_view.setHtml(html_content)
         self.web_view.setHtml(html_content, baseUrl=QUrl.fromLocalFile(addon_path + '/'))
-        self.web_view.settings().setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls, True)
-        self.web_view.settings().setAttribute(QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True)
-
+        self.web_view.settings().setAttribute(
+            QWebEngineSettings.WebAttribute.LocalContentCanAccessFileUrls, True
+        )
+        self.web_view.settings().setAttribute(
+            QWebEngineSettings.WebAttribute.LocalContentCanAccessRemoteUrls, True
+        )
 
         layout = QVBoxLayout(self)
         layout.addWidget(self.web_view)
@@ -125,7 +139,7 @@ class EndrollWidget(QWidget):
         self.web_view.page().runJavaScript("clearInterval(scrollInterval);")
 
 
-def add_credit_tab(self, tab_widget:"QTabWidget"):
+def add_credit_tab(self, tab_widget: "QTabWidget"):
 
     credits_tab = EndrollWidget(self)
     tab_widget.addTab(credits_tab, "credit")

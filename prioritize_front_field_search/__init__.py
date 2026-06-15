@@ -1,8 +1,10 @@
 # Add-on initialization
 
-import traceback
 import logging
+import traceback
+
 from .search import extract_terms, score_front_match
+
 
 def _fetch_front_fields(col, all_sorted_ids, is_notes_mode):
     note_data = {}
@@ -10,13 +12,15 @@ def _fetch_front_fields(col, all_sorted_ids, is_notes_mode):
     chunk_size = 900
 
     for i in range(0, len(all_sorted_ids), chunk_size):
-        chunk = all_sorted_ids[i:i + chunk_size]
+        chunk = all_sorted_ids[i : i + chunk_size]
         id_list = ",".join(map(str, chunk))
 
         if is_notes_mode:
             rows = col.db.all(f"select id, mid, flds from notes where id in ({id_list})")
         else:
-            rows = col.db.all(f"select c.id, n.mid, n.flds from cards c join notes n on c.nid = n.id where c.id in ({id_list})")
+            rows = col.db.all(
+                f"select c.id, n.mid, n.flds from cards c join notes n on c.nid = n.id where c.id in ({id_list})"
+            )
 
         for item_id, mid, flds in rows:
             if mid not in model_cache:
@@ -36,13 +40,14 @@ def _fetch_front_fields(col, all_sorted_ids, is_notes_mode):
 
     return note_data
 
+
 def on_browser_did_search(search_context):
     """
     Hook to perform two-tiered reordering of search results:
     Tier 1: Matches in the Front field (appears first)
     Tier 2: Matches in other fields (appears second)
     Both tiers preserve Anki's original sort order.
-    
+
     Within Tier 1, we further rank matches:
     - Exact match (highest)
     - Word match
@@ -67,7 +72,7 @@ def on_browser_did_search(search_context):
 
         # Fetch Front field data for all initially matched items
         note_data = _fetch_front_fields(col, all_sorted_ids, is_notes_mode)
-        
+
         tier_1 = []
         tier_2 = []
         score_map = {}
@@ -93,11 +98,16 @@ def on_browser_did_search(search_context):
         print(f"[prioritize_front_field_search] API Error executing two-tiered sort: {e}")
         traceback.print_exc()
 
+
 def init():
     try:
         from aqt.gui_hooks import browser_did_search
+
         browser_did_search.append(on_browser_did_search)
     except ImportError:
-        logging.getLogger(__name__).warning("Failed to import browser_did_search hook. Prioritize front field search will not be enabled.")
+        logging.getLogger(__name__).warning(
+            "Failed to import browser_did_search hook. Prioritize front field search will not be enabled."
+        )
+
 
 init()

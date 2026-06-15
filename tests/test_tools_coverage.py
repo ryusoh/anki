@@ -1,5 +1,12 @@
 import pytest
-from tools.security_audit import _should_skip_file_for_private_data, _check_code_file_for_private_data, _check_json_file_for_private_data, check_for_private_data
+
+from tools.security_audit import (
+    _check_code_file_for_private_data,
+    _check_json_file_for_private_data,
+    _should_skip_file_for_private_data,
+    check_for_private_data,
+)
+
 
 def test_should_skip_file_for_private_data():
     assert _should_skip_file_for_private_data("some.md") is True
@@ -10,11 +17,13 @@ def test_should_skip_file_for_private_data():
     assert _should_skip_file_for_private_data("reviews/some.py") is True
     assert _should_skip_file_for_private_data("some.py") is False
 
+
 def test_check_code_file_for_private_data():
     content = "a" * 1000 + "ACCOUNT_ID='a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4'"
     issues = _check_code_file_for_private_data(content)
     assert len(issues) == 1
     assert "HARDCODED: ACCOUNT_ID with value" in issues[0]
+
 
 def test_check_json_file_for_private_data():
     content1 = '[{"flds": "val", "mid": "val"}]'
@@ -27,6 +36,7 @@ def test_check_json_file_for_private_data():
     assert len(issues2) == 1
     assert "PRIVATE: Contains tags + flds" in issues2[0]
 
+
 def test_check_for_private_data():
     content = "a" * 1000 + "ACCOUNT_ID='a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4'"
     issues = check_for_private_data("test.py", content)
@@ -36,7 +46,15 @@ def test_check_for_private_data():
     assert len(issues2) == 0
 
 
-from tools.security_audit import error, warning, success, get_tracked_files, check_for_credentials, check_gitignore_coverage
+from tools.security_audit import (
+    check_for_credentials,
+    check_gitignore_coverage,
+    error,
+    get_tracked_files,
+    success,
+    warning,
+)
+
 
 def test_error_warning_success(capsys):
     assert error("msg") is False
@@ -44,6 +62,7 @@ def test_error_warning_success(capsys):
     assert success("msg") is True
     captured = capsys.readouterr()
     assert "msg" in captured.out
+
 
 def test_check_for_credentials():
     assert len(check_for_credentials("vendor/test.py", "secret")) == 0
@@ -54,12 +73,15 @@ def test_check_for_credentials():
     assert len(check_for_credentials("test.js", "SECRET='123456789012345678901234567890'")) == 1
     assert len(check_for_credentials("test.txt", "SECRET='123456789012345678901234567890'")) == 0
 
+
 from unittest.mock import patch
+
 
 @patch("subprocess.run")
 def test_get_tracked_files(mock_run):
     mock_run.return_value.stdout = "file1.py\nfile2.js\n"
     assert get_tracked_files() == ["file1.py", "file2.js"]
+
 
 @patch("subprocess.run")
 def test_check_gitignore_coverage(mock_run):
@@ -73,7 +95,9 @@ def test_check_gitignore_coverage(mock_run):
     issues = check_gitignore_coverage()
     assert len(issues) == 0
 
+
 from tools.security_audit import _process_gitignore_coverage, _report_results, main
+
 
 @patch("tools.security_audit.check_gitignore_coverage")
 def test_process_gitignore_coverage(mock_check):
@@ -82,9 +106,11 @@ def test_process_gitignore_coverage(mock_check):
     mock_check.return_value = []
     assert _process_gitignore_coverage(True) is True
 
+
 def test_report_results():
     assert _report_results(["issue1"], True) is False
     assert _report_results([], True) is True
+
 
 @patch("tools.security_audit._process_gitignore_coverage")
 @patch("tools.security_audit._scan_tracked_files")

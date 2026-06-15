@@ -1,17 +1,19 @@
-import pytest
+import gzip
+import json
 import os
 import sys
 import tempfile
-import json
-import gzip
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 # Change directory and add to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Need to properly mock before importing if the script has side effects, but it only has an __main__ block
 import data.anki.security_check as security_check
+
 
 def test_get_private_field_patterns():
     patterns = security_check.get_private_field_patterns()

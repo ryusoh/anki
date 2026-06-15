@@ -1,10 +1,12 @@
-import unittest
-import json
 import gzip
+import json
 import os
 import shutil
+import unittest
 from pathlib import Path
+
 from data.anki.security_check import check_file_for_private_data
+
 
 class TestSecurityGuardrail(unittest.TestCase):
     def setUp(self):

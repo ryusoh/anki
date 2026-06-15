@@ -1,5 +1,6 @@
 import re
 
+
 def extract_search_terms(query: str) -> list[str]:
     """
     Extracts plain text terms from Anki's search query.
@@ -22,6 +23,7 @@ def extract_search_terms(query: str) -> list[str]:
             terms.append(word)
 
     return terms
+
 
 def highlight_text(text: str, terms: list[str]) -> str:
     """

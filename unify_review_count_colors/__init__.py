@@ -1,11 +1,12 @@
-from aqt import mw, gui_hooks
+from aqt import gui_hooks, mw
+
 
 def on_webview_will_set_content(web_content, context):
     # Only inject into the reviewer's bottom bar
     # In Anki, this context is often ReviewerBottomBar
     if context.__class__.__name__ != "ReviewerBottomBar":
         return
-        
+
     # Override the colors for new (blue), learn (red), and review (green) counts
     # to be consistent with the system text color (white in dark mode)
     web_content.head += """
@@ -15,5 +16,6 @@ def on_webview_will_set_content(web_content, context):
         }
     </style>
     """
+
 
 gui_hooks.webview_will_set_content.append(on_webview_will_set_content)

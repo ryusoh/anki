@@ -1,9 +1,11 @@
-import re
-import urllib.request
-import urllib.parse
-from urllib.error import URLError, HTTPError
 import json
+import re
+import urllib.parse
+import urllib.request
+from urllib.error import HTTPError, URLError
+
 from bs4 import BeautifulSoup
+
 
 def clean_html_text(html_text):
     """
@@ -24,6 +26,7 @@ def clean_html_text(html_text):
 
     return text
 
+
 def detect_language(text):
     """
     Detects if the text contains Japanese characters (Hiragana, Katakana, Kanji).
@@ -33,11 +36,11 @@ def detect_language(text):
         return "en"
 
     jp_regex = re.compile(
-        '[\u3040-\u309F' # Hiragana
-        '\u30A0-\u30FF' # Katakana
-        '\u4E00-\u9FAF' # CJK Unified Ideographs
-        '\u3400-\u4DBF' # CJK Unified Ideographs Extension A
-        '\u3000-\u303F]' # CJK Symbols and Punctuation
+        '[\u3040-\u309f'  # Hiragana
+        '\u30a0-\u30ff'  # Katakana
+        '\u4e00-\u9faf'  # CJK Unified Ideographs
+        '\u3400-\u4dbf'  # CJK Unified Ideographs Extension A
+        '\u3000-\u303f]'  # CJK Symbols and Punctuation
     )
 
     if jp_regex.search(text):
@@ -57,7 +60,7 @@ def fetch_wiktionary_html(word, lang):
 
     req = urllib.request.Request(
         url,
-        headers={"User-Agent": "AnkiAutoWiktionary/1.0 (https://github.com/lyeutsaon/anki-addons)"}
+        headers={"User-Agent": "AnkiAutoWiktionary/1.0 (https://github.com/lyeutsaon/anki-addons)"},
     )
 
     try:
@@ -65,12 +68,13 @@ def fetch_wiktionary_html(word, lang):
             return response.read().decode('utf-8')
     except HTTPError as e:
         if e.code == 404:
-            return "" # Word not found
+            return ""  # Word not found
         return f"Error: {e.code}"
     except URLError:
         return "Error: Network connection failed."
     except Exception as e:
         return f"Error: {str(e)}"
+
 
 def detect_kanji_redirect(html_text):
     """
@@ -132,7 +136,9 @@ def inject_redirect_pronunciation(parsed_html, all_readings):
     # Check if pronunciation is already at the top (e.g. <ul><p><strong>つく</strong></p>...)
     if len(all_readings) == 1:
         # Match <ul><p> ... reading ... </p> at the start
-        match = re.match(r'^<ul><p>(?:<[^>]+>)*' + re.escape(all_readings[0]) + r'(?:<[^>]+>)*</p>', parsed_html)
+        match = re.match(
+            r'^<ul><p>(?:<[^>]+>)*' + re.escape(all_readings[0]) + r'(?:<[^>]+>)*</p>', parsed_html
+        )
         if match:
             return parsed_html
 
@@ -142,10 +148,7 @@ def inject_redirect_pronunciation(parsed_html, all_readings):
 
 
 def _filter_language_sections(soup, lang):
-    target_headers = {
-        "en": ["english"],
-        "ja": ["japanese", "日本語"]
-    }
+    target_headers = {"en": ["english"], "ja": ["japanese", "日本語"]}
     for section in soup.find_all('section'):
         h2 = section.find('h2')
         if h2:
@@ -164,7 +167,16 @@ def _remove_unwanted_tags(soup):
         h_tag = section.find(['h2', 'h3', 'h4', 'h5'])
         if h_tag:
             header_text = h_tag.get_text().lower()
-            skip_keywords = ['translation', 'synonym', 'antonym', '翻訳', '類義語', '関連語', '対義語', 'anagram']
+            skip_keywords = [
+                'translation',
+                'synonym',
+                'antonym',
+                '翻訳',
+                '類義語',
+                '関連語',
+                '対義語',
+                'anagram',
+            ]
             if any(kw in header_text for kw in skip_keywords):
                 section.decompose()
 
@@ -176,7 +188,7 @@ def _extract_square_bracket_reading(p_tag):
             text_val = str(child)
             if not hit_bracket and '【' in text_val:
                 hit_bracket = True
-                before = text_val[:text_val.index('【')]
+                before = text_val[: text_val.index('【')]
                 if before.strip():
                     child.replace_with(before)
                 else:
@@ -363,6 +375,7 @@ def parse_wiktionary_html(html_text, lang="en"):
 
     return "<ul>" + "".join(results) + "</ul>"
 
+
 def merge_definition(current_content, parsed_definition):
     """
     Merges the fetched definition with the existing content.
@@ -370,16 +383,20 @@ def merge_definition(current_content, parsed_definition):
     """
     if not current_content:
         return parsed_definition
-        
+
     clean_content = current_content.strip()
     if clean_content in ('', '<br>', '<br/>', '<br />', '<div><br></div>'):
         return parsed_definition
 
     if "not found. Did you mean:</p>" in clean_content:
         # Check if it starts with the "Did you mean" template
-        if clean_content.startswith("<p>Word '") or clean_content.startswith("<div><p>Word '") or clean_content.startswith("Word '"):
+        if (
+            clean_content.startswith("<p>Word '")
+            or clean_content.startswith("<div><p>Word '")
+            or clean_content.startswith("Word '")
+        ):
             return parsed_definition
-        
+
     soup_parsed = BeautifulSoup(parsed_definition, 'html.parser')
     p_tag = soup_parsed.find('p')
     overlapped = False
@@ -387,15 +404,18 @@ def merge_definition(current_content, parsed_definition):
         pronunciation = p_tag.get_text(strip=True)
         if pronunciation:
             pronunciation_escaped = re.escape(pronunciation)
-            pattern = r'^\s*(?:<[^>]+>\s*)*' + pronunciation_escaped + r'\s*(?:</[^>]+>|<br\s*/?>)?\s*'
+            pattern = (
+                r'^\s*(?:<[^>]+>\s*)*' + pronunciation_escaped + r'\s*(?:</[^>]+>|<br\s*/?>)?\s*'
+            )
             new_content = re.sub(pattern, '', current_content, count=1)
             if new_content != current_content:
                 current_content = new_content
                 overlapped = True
-            
+
     if overlapped:
         return f"{parsed_definition}{current_content}"
     return f"{parsed_definition}<br>{current_content}"
+
 
 def get_wiktionary_candidates(word, lang="en"):
     """
@@ -409,7 +429,7 @@ def get_wiktionary_candidates(word, lang="en"):
 
     req = urllib.request.Request(
         url,
-        headers={"User-Agent": "AnkiAutoWiktionary/1.0 (https://github.com/lyeutsaon/anki-addons)"}
+        headers={"User-Agent": "AnkiAutoWiktionary/1.0 (https://github.com/lyeutsaon/anki-addons)"},
     )
 
     try:
@@ -419,8 +439,9 @@ def get_wiktionary_candidates(word, lang="en"):
                 return data[1]
     except Exception as e:
         print(f"Error getting wiktionary candidates: {e}")
-    
+
     return []
+
 
 def format_candidates_html(word, candidates):
     """
@@ -428,7 +449,7 @@ def format_candidates_html(word, candidates):
     """
     if not candidates:
         return ""
-        
+
     html = f"<p>Word '{word}' not found. Did you mean:</p>\n"
     html += "<br>\n".join(candidates)
     return html

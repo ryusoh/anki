@@ -1,6 +1,6 @@
-import sys
 import os
-from unittest.mock import MagicMock, patch, call
+import sys
+from unittest.mock import MagicMock, call, patch
 
 # Mock aqt before import
 sys.modules['aqt'] = MagicMock()
@@ -10,7 +10,14 @@ sys.modules['aqt.utils'] = MagicMock()
 sys.modules['aqt.mw'] = MagicMock()
 
 import auto_image
-from auto_image import _apply_image, on_auto_image, _on_selection_result, _use_front_field, on_editor_did_init_buttons, _image_cache
+from auto_image import (
+    _apply_image,
+    _image_cache,
+    _on_selection_result,
+    _use_front_field,
+    on_auto_image,
+    on_editor_did_init_buttons,
+)
 
 
 def _make_editor(fields=None, field_names=None, add_mode=False):
@@ -55,8 +62,10 @@ class TestApplyImage:
 
     def test_no_image_found_shows_tooltip(self):
         editor = _make_editor()
-        with patch("auto_image.clean_html_text", return_value="asjdflk"), \
-             patch("auto_image.fetch_image_results", return_value=[]):
+        with (
+            patch("auto_image.clean_html_text", return_value="asjdflk"),
+            patch("auto_image.fetch_image_results", return_value=[]),
+        ):
             _apply_image(editor, "asjdflk")
         sys.modules['aqt.utils'].tooltip.assert_called()
 
@@ -122,8 +131,14 @@ class TestCycleImages:
             patch("auto_image.clean_html_text", side_effect=lambda t: t),
             patch("auto_image.fetch_image_results", return_value=urls),
             patch("auto_image.download_image", return_value=b'\x89PNG fake'),
-            patch("auto_image._save_to_media", side_effect=lambda data, q, i: f"auto_image_{q}_{i}.jpg"),
-            patch("auto_image.build_image_html", side_effect=lambda u: f'<img src="{u}" style="max-width:300px;">'),
+            patch(
+                "auto_image._save_to_media",
+                side_effect=lambda data, q, i: f"auto_image_{q}_{i}.jpg",
+            ),
+            patch(
+                "auto_image.build_image_html",
+                side_effect=lambda u: f'<img src="{u}" style="max-width:300px;">',
+            ),
         )
 
     def test_second_click_replaces_with_next_image(self):
@@ -145,9 +160,14 @@ class TestCycleImages:
         assert "some definition" in result
 
     def test_third_click_cycles_to_third_image(self):
-        urls = ["https://example.com/1.jpg", "https://example.com/2.jpg", "https://example.com/3.jpg"]
+        urls = [
+            "https://example.com/1.jpg",
+            "https://example.com/2.jpg",
+            "https://example.com/3.jpg",
+        ]
 
         editor = _make_editor(fields=["cat", ""])
+
         def do_click():
             p = self._patches(urls)
             with p[0], p[1], p[2], p[3], p[4]:
@@ -166,6 +186,7 @@ class TestCycleImages:
         urls = ["https://example.com/a.jpg", "https://example.com/b.jpg"]
 
         editor = _make_editor(fields=["cat", ""])
+
         def do_click():
             p = self._patches(urls)
             with p[0], p[1], p[2], p[3], p[4]:
@@ -200,17 +221,26 @@ class TestCycleImages:
         fetch_mock = MagicMock(return_value=urls)
 
         def do_click():
-            with patch("auto_image.clean_html_text", return_value="cat"), \
-                 patch("auto_image.fetch_image_results", fetch_mock), \
-                 patch("auto_image.download_image", return_value=b'fake'), \
-                 patch("auto_image._save_to_media", side_effect=lambda d, q, i: f"auto_image_{q}_{i}.jpg"), \
-                 patch("auto_image.build_image_html", side_effect=lambda u: f'<img src="{u}" style="max-width:300px;">'):
+            with (
+                patch("auto_image.clean_html_text", return_value="cat"),
+                patch("auto_image.fetch_image_results", fetch_mock),
+                patch("auto_image.download_image", return_value=b'fake'),
+                patch(
+                    "auto_image._save_to_media",
+                    side_effect=lambda d, q, i: f"auto_image_{q}_{i}.jpg",
+                ),
+                patch(
+                    "auto_image.build_image_html",
+                    side_effect=lambda u: f'<img src="{u}" style="max-width:300px;">',
+                ),
+            ):
                 _apply_image(editor, "cat")
 
         do_click()
         do_click()
         # fetch_image_results should only be called once (first click)
         assert fetch_mock.call_count == 1
+
 
 class TestSaveToMedia:
     def setup_method(self):
@@ -222,11 +252,15 @@ class TestSaveToMedia:
         editor = _make_editor(fields=["cat", ""])
         save_mock = MagicMock(return_value="auto_image_cat_0.jpg")
 
-        with patch("auto_image.clean_html_text", return_value="cat"), \
-             patch("auto_image.fetch_image_results", return_value=["https://tse1.mm.bing.net/th?id=1"]), \
-             patch("auto_image.download_image", return_value=b'\x89PNG fake') as dl_mock, \
-             patch("auto_image._save_to_media", save_mock), \
-             patch("auto_image.build_image_html", return_value='<img src="auto_image_cat_0.jpg">'):
+        with (
+            patch("auto_image.clean_html_text", return_value="cat"),
+            patch(
+                "auto_image.fetch_image_results", return_value=["https://tse1.mm.bing.net/th?id=1"]
+            ),
+            patch("auto_image.download_image", return_value=b'\x89PNG fake') as dl_mock,
+            patch("auto_image._save_to_media", save_mock),
+            patch("auto_image.build_image_html", return_value='<img src="auto_image_cat_0.jpg">'),
+        ):
             _apply_image(editor, "cat")
 
         dl_mock.assert_called_once_with("https://tse1.mm.bing.net/th?id=1")
@@ -239,25 +273,33 @@ class TestSaveToMedia:
         urls = ["https://tse1.mm.bing.net/th?id=bad", "https://tse2.mm.bing.net/th?id=good"]
 
         call_count = [0]
+
         def fake_dl(url):
             call_count[0] += 1
             if "bad" in url:
                 return None
             return b'\x89PNG fake'
 
-        with patch("auto_image.clean_html_text", return_value="cat"), \
-             patch("auto_image.fetch_image_results", return_value=urls), \
-             patch("auto_image.download_image", side_effect=fake_dl), \
-             patch("auto_image._save_to_media", return_value="auto_image_cat_1.jpg"), \
-             patch("auto_image.build_image_html", return_value='<img src="auto_image_cat_1.jpg">'):
+        with (
+            patch("auto_image.clean_html_text", return_value="cat"),
+            patch("auto_image.fetch_image_results", return_value=urls),
+            patch("auto_image.download_image", side_effect=fake_dl),
+            patch("auto_image._save_to_media", return_value="auto_image_cat_1.jpg"),
+            patch("auto_image.build_image_html", return_value='<img src="auto_image_cat_1.jpg">'),
+        ):
             _apply_image(editor, "cat")
         assert "auto_image_cat_1.jpg" in editor.note.fields[1]
 
     def test_tooltip_when_all_downloads_fail(self):
         editor = _make_editor(fields=["cat", ""])
-        with patch("auto_image.clean_html_text", return_value="cat"), \
-             patch("auto_image.fetch_image_results", return_value=["https://a.com/1", "https://b.com/2"]), \
-             patch("auto_image.download_image", return_value=None):
+        with (
+            patch("auto_image.clean_html_text", return_value="cat"),
+            patch(
+                "auto_image.fetch_image_results",
+                return_value=["https://a.com/1", "https://b.com/2"],
+            ),
+            patch("auto_image.download_image", return_value=None),
+        ):
             _apply_image(editor, "cat")
         tooltip_calls = [str(c) for c in sys.modules['aqt.utils'].tooltip.call_args_list]
         assert any("image" in c.lower() for c in tooltip_calls)

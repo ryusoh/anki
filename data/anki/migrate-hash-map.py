@@ -6,9 +6,9 @@ Run this if you already have files staged in data/cloudflare/ but no hash map.
 This will compute hashes from existing staged files so future uploads are incremental.
 """
 
+import gzip
 import hashlib
 import json
-import gzip
 import sys
 from pathlib import Path
 
@@ -17,7 +17,7 @@ SCRIPT_DIR = Path(__file__).parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / 'graph'))
 
-from hash_map import compute_note_hash, load_hash_map, save_hash_map
+from hash_map import compute_note_hash, save_hash_map  # noqa: E402
 
 
 def get_staging_dir():
@@ -126,11 +126,11 @@ def main():
     print(f"\n💾 Saving hash map to: {hash_map_file}")
     save_hash_map(hash_map, hash_map_file)
     
-    print(f"\n✅ Migration complete!")
+    print("\n✅ Migration complete!")
     print(f"   Hash map entries: {len(hash_map):,}")
     print(f"   Collection files: {len([k for k in hash_map if k.startswith('collection/')])}")
     print(f"   Individual notes: {len([k for k in hash_map if not k.startswith('collection/')])}")
-    print(f"\n   Future uploads will be incremental (only changed files)")
+    print("\n   Future uploads will be incremental (only changed files)")
 
 
 if __name__ == "__main__":
