@@ -284,7 +284,13 @@ security-py:
 # Pre-commit Checks
 # -----------------------------------------------------------------------------
 
-precommit: $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt) fmt-check lint quality-py check
+# The verification gate — the single source of truth for "is this commit-ready?".
+# BOTH `precommit` (verify-only, what CI runs) and `precommit-fix` (fix-then-verify)
+# reference this, so they can never silently diverge. Add a gate here once and it
+# applies everywhere; CI runs `make precommit SKIP=1`.
+VERIFY_GATE := fmt-check lint quality-py check
+
+precommit: $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt) $(VERIFY_GATE)
 	@echo ""
 	@echo "✅ Pre-commit checks passed"
 
@@ -298,10 +304,10 @@ fetch-prompt:
 		echo "   ⊘ Fetch skipped"; \
 	fi
 
-# Fix-then-verify: auto-fix everything (fmt, lint-fix, fmt-py) and THEN run the same
-# gates as `precommit` (lint, quality-py, check) so a green precommit-fix means CI is
-# green too. Prereqs run left-to-right, so all fixers complete before the gates.
-precommit-fix: install $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt-fix) fmt lint-fix fmt-py lint quality-py check $(if $(filter 1,$(SKIP)),,graph-local-prompt)
+# Fix-then-verify: auto-fix everything (fmt, lint-fix, fmt-py) and THEN run the exact
+# same $(VERIFY_GATE) as `precommit`, so a green precommit-fix means CI is green too.
+# Prereqs run left-to-right, so all fixers complete before the gate.
+precommit-fix: install $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt-fix) fmt lint-fix fmt-py $(VERIFY_GATE) $(if $(filter 1,$(SKIP)),,graph-local-prompt)
 	@echo ""
 	@echo "🔒 Running EXTREMELY RIGOROUS security check..."
 	@echo "   Scanning ALL files for private Anki data..."

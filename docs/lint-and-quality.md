@@ -41,6 +41,21 @@ make lint-fix             # eslint --fix + stylelint --fix + markdownlint --fix
 make fmt                  # prettier --write
 ```
 
+## `precommit` vs `precommit-fix`
+
+Both end with the **same** `$(VERIFY_GATE)` (`fmt-check lint quality-py check`),
+defined once in the `Makefile` so they cannot drift:
+
+- `make precommit` — **verify only.** Exactly what CI runs (`make precommit SKIP=1`).
+- `make precommit-fix` — **fix then verify.** Auto-fixes first (`fmt`, `lint-fix`,
+  `fmt-py`), then runs the identical gate. So **a green `precommit-fix` means a green
+  CI** — if it passes, all lint/format/type/security and tests pass. It can also
+  commit/push (`MSG=…` / `YOLO=1`); because it runs the full gate first, it won't push
+  something CI would reject.
+
+To add a new check to the gate, edit `VERIFY_GATE` once — it applies to both paths
+and to CI.
+
 ## Environment gotcha
 
 System `python3` is Homebrew and **externally-managed (PEP 668)** — a bare
