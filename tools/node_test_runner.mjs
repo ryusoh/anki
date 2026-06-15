@@ -2,6 +2,7 @@ import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import os from 'os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -63,6 +64,46 @@ async function runTest(file) {
       });
     });
   });
+}
+
+// Generate a terminal coverage report from the raw V8 coverage that the
+// spawned test processes dumped into $NODE_V8_COVERAGE.
+//
+// We drive c8's Report class directly instead of its CLI: c8's `bin/c8.js`
+// pulls in yargs, which crashes under Node 26 (`require` of yargs' extensionless
+// ESM entry). The library export (`Report`) has no such dependency and works.
+async function generateCoverageReport() {
+  const reportsDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'c8-report-'));
+  try {
+    const { Report } = await import('c8');
+    const report = new Report({
+      tempDirectory: process.env.NODE_V8_COVERAGE,
+      reportsDirectory,
+      // 'text' = per-file table with uncovered line numbers (≈ pytest's
+      // term-missing); 'text-summary' = the totals block.
+      reporter: ['text', 'text-summary'],
+      src: [rootDir],
+      all: false,
+      excludeNodeModules: true,
+      exclude: [
+        '**/node_modules/**',
+        '**/tests/**',
+        '**/*.test.*',
+        'coverage/**',
+        'js/vendor/**',
+        'assets/**',
+      ],
+      omitRelative: true,
+      resolve: '',
+      wrapperLength: 0,
+    });
+    console.log('\n\x1b[1mCoverage Report:\x1b[0m');
+    await report.run();
+  } catch (e) {
+    console.log(`\n\x1b[2mCoverage report skipped: ${e.message}\x1b[0m`);
+  } finally {
+    fs.rmSync(reportsDirectory, { recursive: true, force: true });
+  }
 }
 
 async function runAllTests() {
@@ -136,17 +177,11 @@ async function runAllTests() {
 
   const totalTime = results.reduce((acc, r) => acc + parseFloat(r.duration), 0).toFixed(2);
 
-  // Try to generate code coverage with c8 if available
-  let coverageSuccess = false;
-  try {
-    // Only run coverage report generation if this runner was wrapped in c8
-    if (process.env.NODE_V8_COVERAGE) {
-      console.log('\n\x1b[1mCoverage Report (Real):\x1b[0m');
-      // The c8 wrap will automatically generate the report on exit
-      coverageSuccess = true;
-    }
-  } catch (e) {
-    // Coverage generation failed, but tests might have passed
+  // When invoked with NODE_V8_COVERAGE set (the `check-node` Makefile target
+  // does this), the spawned test processes dump raw V8 coverage into that dir;
+  // turn it into a human-readable report here.
+  if (process.env.NODE_V8_COVERAGE) {
+    await generateCoverageReport();
   }
 
   console.log(`\n\x1b[1mTest Suites:\x1b[0m ${failed > 0 ? '\x1b[31m' + failed + ' failed\x1b[0m, ' : ''}\x1b[32m${passed} passed\x1b[0m, ${results.length} total`);

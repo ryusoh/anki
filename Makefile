@@ -161,7 +161,11 @@ audit:
 check: check-node check-py
 
 check-node:
-	@node tools/node_test_runner.mjs
+	@COVDIR=$$(mktemp -d 2>/dev/null || mktemp -d -t c8cov); \
+	NODE_V8_COVERAGE="$$COVDIR" node tools/node_test_runner.mjs; \
+	STATUS=$$?; \
+	rm -rf "$$COVDIR"; \
+	exit $$STATUS
 
 check-handler-regression:
 	@node tests/handler_regression.test.mjs
