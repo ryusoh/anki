@@ -54,16 +54,13 @@ function getHostname() {
           .then(function (registration) {
             // Force an immediate update check so iOS PWA always picks up new SW
             registration.update().catch(function (error) {
-              // eslint-disable-next-line no-console
               console.warn("Service worker update check failed:", error);
             });
           })
           .catch(function (error) {
-            // eslint-disable-next-line no-console
             console.warn("Service worker registration failed:", error);
           });
       } catch (error) {
-        // eslint-disable-next-line no-console
         console.warn(
           "Caught exception calling service worker register:",
           error,
@@ -71,7 +68,6 @@ function getHostname() {
       }
     });
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.warn("Caught exception initializing service worker:", error);
   }
 })();

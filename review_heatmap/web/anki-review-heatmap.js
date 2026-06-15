@@ -1,4 +1,4 @@
-var __vite_style__ = document.createElement("style");
+const __vite_style__ = document.createElement("style");
 __vite_style__.textContent =
   '/* Cal-HeatMap CSS */\n\n.cal-heatmap-container {\n	display: block;\n}\n\n.cal-heatmap-container .graph\n{\n	font-family: "Lucida Grande", Lucida, Verdana, sans-serif;\n}\n\n.cal-heatmap-container .graph-label\n{\n	fill: #999;\n	font-size: 10px\n}\n\n.cal-heatmap-container .graph, .cal-heatmap-container .graph-legend rect {\n	shape-rendering: crispedges\n}\n\n.cal-heatmap-container .graph-rect\n{\n	fill: #ededed\n}\n\n.cal-heatmap-container .graph-subdomain-group rect:hover\n{\n	stroke: #000;\n	stroke-width: 1px\n}\n\n.cal-heatmap-container .subdomain-text {\n	font-size: 8px;\n	fill: #999;\n	pointer-events: none\n}\n\n.cal-heatmap-container .hover_cursor:hover {\n	cursor: pointer\n}\n\n.cal-heatmap-container .qi {\n	background-color: #999;\n	fill: #999\n}\n\n/*\nRemove comment to apply this style to date with value equal to 0\n.q0\n{\n	background-color: #fff;\n	fill: #fff;\n	stroke: #ededed\n}\n*/\n\n.cal-heatmap-container .q1\n{\n	background-color: #dae289;\n	fill: #dae289\n}\n\n.cal-heatmap-container .q2\n{\n	background-color: #cedb9c;\n	fill: #9cc069\n}\n\n.cal-heatmap-container .q3\n{\n	background-color: #b5cf6b;\n	fill: #669d45\n}\n\n.cal-heatmap-container .q4\n{\n	background-color: #637939;\n	fill: #637939\n}\n\n.cal-heatmap-container .q5\n{\n	background-color: #3b6427;\n	fill: #3b6427\n}\n\n.cal-heatmap-container rect.highlight\n{\n	stroke:#444;\n	stroke-width:1\n}\n\n.cal-heatmap-container text.highlight\n{\n	fill: #444\n}\n\n.cal-heatmap-container rect.highlight-now\n{\n	stroke: red\n}\n\n.cal-heatmap-container text.highlight-now\n{\n	fill: red;\n	font-weight: 800\n}\n\n.cal-heatmap-container .domain-background {\n	fill: none;\n	shape-rendering: crispedges\n}\n\n.cal-heatmap-container .day-name-rect {\n	fill: transparent;\n}\n\n.cal-heatmap-container .day-name-text {\n	font-size: 10px;\n	fill: #999;\n}\n\n.ch-tooltip {\n	padding: 10px;\n	background: #222;\n	color: #bbb;\n	font-size: 12px;\n	line-height: 1.4;\n	width: 140px;\n	position: absolute;\n	z-index: 99999;\n	text-align: center;\n	border-radius: 2px;\n	box-shadow: 2px 2px 2px rgba(0,0,0,0.2);\n	display: none;\n	box-sizing: border-box;\n}\n\n.ch-tooltip::after{\n	position: absolute;\n	width: 0;\n	height: 0;\n	border-color: transparent;\n	border-style: solid;\n	content: "";\n	padding: 0;\n	display: block;\n	bottom: -6px;\n	left: 50%;\n	margin-left: -6px;\n    border-width: 6px 6px 0;\n    border-top-color: #222;\n}\n/* \nThis file is part of the Review Heatmap add-on for Anki\n\nCustom Heatmap CSS\n\nCopyright: (c) 2016-2022 Glutanimate <https://glutanimate.com/>\nLicense: GNU AGPLv3 <https://www.gnu.org/licenses/agpl.html>\n*/\n\n/* Special classes:\n"rh-platform-mac": Set when run on macOS\n"rh-platform-win": Set when run on Windows\n"rh-platform-lin": Set when run on Linux\n"rh-theme-olive", "rh-theme-lime", "rh-theme-ice",\n    "rh-theme-magenta", "rh-theme-flame": Set when respective theme active\n"rh-mode-year": Set when calendar set to year mode\n"rh-mode-months": Set when calendar set to months mode\n"rh-view-deckbrowser", "rh-view-overview", "rh-view-stats": Set when drawn\n    on respective view\n"rh-disable-stats": Set when streak stats disabled\n"rh-disable-heatmap": Set when heatmap disabled\n"night_mode": Set when night mode active (provided by Night Mode add-on)\n*/\n\n/* General layout */\n/* ################################################################### */\n\n.rh-container {\n    margin-top: 1em;\n}\n\n.heatmap {\n    display:inline-block;\n}\n.heatmap-controls {\n    margin-bottom: 0;\n}\n\n/* Heatmap graph adjustments */\n/* ################################################################### */\n\n.cal-heatmap-container .graph {\n    font-family: unset;\n}\n.graph-label {\n    fill: #808080;\n}\n\n/* Graph rects */\n.cal-heatmap-container rect.highlight-now {\n    stroke: black;\n}\n.cal-heatmap-container rect.highlight {\n    stroke: #E9002E;\n}\n.cal-heatmap-container .graph-rect {\n    fill: #eaeaea;\n}\n.night_mode .cal-heatmap-container .graph-rect {\n    fill: #222222;\n}\n\n/* Heatmap hover tooltip */\n/* ################################################################### */\n\n.ch-tooltip {\n    color: rgb(240, 240, 240);\n    animation: 0.5s ease 0s normal forwards 1 fadein;\n    -webkit-animation: 0.5s ease 0s normal forwards 1 fadein;\n}\n/* Delay tooltip using fadein */\n@keyframes fadein {\n    0% { opacity:0; }\n    66% { opacity:0; }\n    100% { opacity:0.9; }\n}\n@-webkit-keyframes fadein {\n    0% { opacity:0; }\n    66% { opacity:0; }\n    100% { opacity:0.9; }\n}\n\n/* Heatmap button area */\n/* ################################################################### */\n.alignleft {\n    float: left;\n    width:33.33333%;\n    text-align:left;\n}\n.aligncenter {\n    float: left;\n    width:33.33333%;\n    text-align:center;\n}\n.alignright {\n    float: left;\n    width:33.33333%;\n    text-align:right;\n}\n\n/* Heatmap buttons */\n/* ################################################################### */\n\n/* Regular buttons */\n.hm-btn {\n    height: 100%;\n    display: inline-block;\n    cursor: pointer;\n    background: #e6e6e6;\n    color: #808080;\n    padding: 2px 8px;\n    border-radius: 3px;\n    margin-left: 2px;\n    text-decoration: none;\n    user-select: none;\n    vertical-align: center;\n}\n.hm-btn:hover {\n    background: #bfbfbf;\n}\n.hm-btn:active {\n    background: #000;\n}\n.night_mode .hm-btn {\n    background-color: #313d45;\n}\n.night_mode .hm-btn:hover {\n    background-color: #374f5b;\n}\n.night_mode .hm-btn:active {\n    background-color: #433376;\n}\n\n\n/* Options button */\n.opts-btn {\n    padding: 2px 4px;\n}\n.opts-btn:hover {\n    background: #bfbfbf;\n}\n.opts-btn>img {\n    position:relative;\n    top: calc(50% - 12px);\n    height: 10px;\n    width: 10px;\n}\n\n/* Heatmap activity type widget */\n/* ################################################################### */\n.hm-sel {\n    display: inline-block;\n    height: 100%;\n    padding: 4px 8px;\n    font-size: 80%;\n    cursor: pointer;\n    color: #808080;\n    border-radius: 3px;\n    user-select: none;\n    border: none;\n    -webkit-appearance: none;\n    -moz-appearance: none;\n    appearance: none;\n    background: url(qrc:/review_heatmap/icons/down.svg) 96% / 10% no-repeat #e6e6e6;\n}\nselect.hm-sel:hover {\n    background: url(qrc:/review_heatmap/icons/down.svg) 96% / 10% no-repeat #bfbfbf;\n}\nselect.hm-sel:active, select.hm-sel:focus {\n    background: url(qrc:/review_heatmap/icons/down.svg) 96% / 10% no-repeat #e6e6e6;\n}\n\n/* Heatmap links */\n/* ################################################################### */\n\n/* we use these instead of regular links to prevent bugs with page navigation,\n   prevent the link color from changing on click, etc.*/\n\n.linkspan {\n     cursor:pointer;\n     color:blue;\n     text-decoration:underline;\n}\n\n.night_mode .linkspan {\n    color: white;\n}\n\n/* Streak stats */\n/* ################################################################### */\n\n/* TODO: investigate why we had two copies of these */\n.streak {margin-top: 0.5em;}\n.streak-info {\n    margin-left: 1em;\n}\n.sstats {\n    font-weight: bold;\n    color: #E6E6E6;\n}\n\n\n\n\n\n/* Color themes */\n/* ################################################################### */\n\n\n/* FORECAST RECT COLORS */\n/*\n- same for every theme \n- reverse order because of negative value workaround \n*/\n.cal-heatmap-container .q1{fill: #525252}\n.cal-heatmap-container .q2{fill: #616161}\n.cal-heatmap-container .q3{fill: #707070}\n.cal-heatmap-container .q4{fill: #7F7F7F}\n.cal-heatmap-container .q5{fill: #8E8E8E}\n.cal-heatmap-container .q6{fill: #9D9D9D}\n.cal-heatmap-container .q7{fill: #ACACAC}\n.cal-heatmap-container .q8{fill: #BBBBBB}\n.cal-heatmap-container .q9{fill: #CACACA}\n.cal-heatmap-container .q10{fill: #D9D9D9}\n\n.night_mode .cal-heatmap-container .q1{fill: #5d5f5f}\n.night_mode .cal-heatmap-container .q2{fill: #585a5a}\n.night_mode .cal-heatmap-container .q3{fill: #535555}\n.night_mode .cal-heatmap-container .q4{fill: #4e5050}\n.night_mode .cal-heatmap-container .q5{fill: #494b4b}\n.night_mode .cal-heatmap-container .q6{fill: #444646}\n.night_mode .cal-heatmap-container .q7{fill: #3f4141}\n.night_mode .cal-heatmap-container .q8{fill: #3a3c3c}\n.night_mode .cal-heatmap-container .q9{fill: #353737}\n.night_mode .cal-heatmap-container .q10{fill: #313232}\n\n/* REVIEW HISTORY COLORS */\n/*\n- different between each theme\n*/\n\n/* olive */\n.rh-theme-olive .cal-heatmap-container .q11{fill: #dae289}\n.rh-theme-olive .cal-heatmap-container .q12{fill: #bbd179}\n.rh-theme-olive .cal-heatmap-container .q13{fill: #9cc069}\n.rh-theme-olive .cal-heatmap-container .q14{fill: #8ab45d}\n.rh-theme-olive .cal-heatmap-container .q15{fill: #78a851}\n.rh-theme-olive .cal-heatmap-container .q16{fill: #669d45}\n.rh-theme-olive .cal-heatmap-container .q17{fill: #648b3f}\n.rh-theme-olive .cal-heatmap-container .q18{fill: #637939}\n.rh-theme-olive .cal-heatmap-container .q19{fill: #4f6e30}\n.rh-theme-olive .cal-heatmap-container .q20{fill: #3b6427}\n\n.rh-theme-olive .rh-col11{color: #dae289}\n.rh-theme-olive .rh-col12{color: #bbd179}\n.rh-theme-olive .rh-col13{color: #9cc069}\n.rh-theme-olive .rh-col14{color: #8ab45d}\n.rh-theme-olive .rh-col15{color: #78a851}\n.rh-theme-olive .rh-col16{color: #669d45}\n.rh-theme-olive .rh-col17{color: #648b3f}\n.rh-theme-olive .rh-col18{color: #637939}\n.rh-theme-olive .rh-col19{color: #4f6e30}\n.rh-theme-olive .rh-col20{color: #3b6427}\n\n.night_mode .rh-theme-olive .cal-heatmap-container .q11{fill: #3b6427}\n.night_mode .rh-theme-olive .cal-heatmap-container .q12{fill: #4f6e30}\n.night_mode .rh-theme-olive .cal-heatmap-container .q13{fill: #637939}\n.night_mode .rh-theme-olive .cal-heatmap-container .q14{fill: #648b3f}\n.night_mode .rh-theme-olive .cal-heatmap-container .q15{fill: #669d45}\n.night_mode .rh-theme-olive .cal-heatmap-container .q16{fill: #78a851}\n.night_mode .rh-theme-olive .cal-heatmap-container .q17{fill: #8ab45d}\n.night_mode .rh-theme-olive .cal-heatmap-container .q18{fill: #9cc069}\n.night_mode .rh-theme-olive .cal-heatmap-container .q19{fill: #bbd179}\n.night_mode .rh-theme-olive .cal-heatmap-container .q20{fill: #dae289}\n\n.night_mode .rh-theme-olive .rh-col11{color: #3b6427}\n.night_mode .rh-theme-olive .rh-col12{color: #4f6e30}\n.night_mode .rh-theme-olive .rh-col13{color: #637939}\n.night_mode .rh-theme-olive .rh-col14{color: #648b3f}\n.night_mode .rh-theme-olive .rh-col15{color: #669d45}\n.night_mode .rh-theme-olive .rh-col16{color: #78a851}\n.night_mode .rh-theme-olive .rh-col17{color: #8ab45d}\n.night_mode .rh-theme-olive .rh-col18{color: #9cc069}\n.night_mode .rh-theme-olive .rh-col19{color: #bbd179}\n.night_mode .rh-theme-olive .rh-col20{color: #dae289}\n\n/* lime */\n.rh-theme-lime .cal-heatmap-container .q11{fill: #d6e685}\n.rh-theme-lime .cal-heatmap-container .q12{fill: #bddb7a}\n.rh-theme-lime .cal-heatmap-container .q13{fill: #a4d06f}\n.rh-theme-lime .cal-heatmap-container .q14{fill: #8cc665}\n.rh-theme-lime .cal-heatmap-container .q15{fill: #74ba58}\n.rh-theme-lime .cal-heatmap-container .q16{fill: #5cae4c}\n.rh-theme-lime .cal-heatmap-container .q17{fill: #44a340}\n.rh-theme-lime .cal-heatmap-container .q18{fill: #378f36}\n.rh-theme-lime .cal-heatmap-container .q19{fill: #2a7b2c}\n.rh-theme-lime .cal-heatmap-container .q20{fill: #1e6823}\n\n.rh-theme-lime .rh-col11{color: #d6e685}\n.rh-theme-lime .rh-col12{color: #bddb7a}\n.rh-theme-lime .rh-col13{color: #a4d06f}\n.rh-theme-lime .rh-col14{color: #8cc665}\n.rh-theme-lime .rh-col15{color: #74ba58}\n.rh-theme-lime .rh-col16{color: #5cae4c}\n.rh-theme-lime .rh-col17{color: #44a340}\n.rh-theme-lime .rh-col18{color: #378f36}\n.rh-theme-lime .rh-col19{color: #2a7b2c}\n.rh-theme-lime .rh-col20{color: #1e6823}\n\n.night_mode .rh-theme-lime .cal-heatmap-container .q11{fill: #1e6823}\n.night_mode .rh-theme-lime .cal-heatmap-container .q12{fill: #2a7b2c}\n.night_mode .rh-theme-lime .cal-heatmap-container .q13{fill: #378f36}\n.night_mode .rh-theme-lime .cal-heatmap-container .q14{fill: #44a340}\n.night_mode .rh-theme-lime .cal-heatmap-container .q15{fill: #5cae4c}\n.night_mode .rh-theme-lime .cal-heatmap-container .q16{fill: #74ba58}\n.night_mode .rh-theme-lime .cal-heatmap-container .q17{fill: #8cc665}\n.night_mode .rh-theme-lime .cal-heatmap-container .q18{fill: #a4d06f}\n.night_mode .rh-theme-lime .cal-heatmap-container .q19{fill: #bddb7a}\n.night_mode .rh-theme-lime .cal-heatmap-container .q20{fill: #d6e685}\n\n.night_mode .rh-theme-lime .rh-col11{color: #1e6823}\n.night_mode .rh-theme-lime .rh-col12{color: #2a7b2c}\n.night_mode .rh-theme-lime .rh-col13{color: #378f36}\n.night_mode .rh-theme-lime .rh-col14{color: #44a340}\n.night_mode .rh-theme-lime .rh-col15{color: #5cae4c}\n.night_mode .rh-theme-lime .rh-col16{color: #74ba58}\n.night_mode .rh-theme-lime .rh-col17{color: #8cc665}\n.night_mode .rh-theme-lime .rh-col18{color: #a4d06f}\n.night_mode .rh-theme-lime .rh-col19{color: #bddb7a}\n.night_mode .rh-theme-lime .rh-col20{color: #d6e685}\n\n/* ice */\n.rh-theme-ice .cal-heatmap-container .q11{fill: #a8d5f6}\n.rh-theme-ice .cal-heatmap-container .q12{fill: #95c8f3}\n.rh-theme-ice .cal-heatmap-container .q13{fill: #82bbf0}\n.rh-theme-ice .cal-heatmap-container .q14{fill: #70afee}\n.rh-theme-ice .cal-heatmap-container .q15{fill: #5da2eb}\n.rh-theme-ice .cal-heatmap-container .q16{fill: #4a95e8}\n.rh-theme-ice .cal-heatmap-container .q17{fill: #3889e6}\n.rh-theme-ice .cal-heatmap-container .q18{fill: #257ce3}\n.rh-theme-ice .cal-heatmap-container .q19{fill: #126fe0}\n.rh-theme-ice .cal-heatmap-container .q20{fill: #0063de}\n\n.rh-theme-ice .rh-col11{color: #a8d5f6}\n.rh-theme-ice .rh-col12{color: #95c8f3}\n.rh-theme-ice .rh-col13{color: #82bbf0}\n.rh-theme-ice .rh-col14{color: #70afee}\n.rh-theme-ice .rh-col15{color: #5da2eb}\n.rh-theme-ice .rh-col16{color: #4a95e8}\n.rh-theme-ice .rh-col17{color: #3889e6}\n.rh-theme-ice .rh-col18{color: #257ce3}\n.rh-theme-ice .rh-col19{color: #126fe0}\n.rh-theme-ice .rh-col20{color: #0063de}\n\n.night_mode .rh-theme-ice .cal-heatmap-container .q11{fill: #0063de}\n.night_mode .rh-theme-ice .cal-heatmap-container .q12{fill: #126fe0}\n.night_mode .rh-theme-ice .cal-heatmap-container .q13{fill: #257ce3}\n.night_mode .rh-theme-ice .cal-heatmap-container .q14{fill: #3889e6}\n.night_mode .rh-theme-ice .cal-heatmap-container .q15{fill: #4a95e8}\n.night_mode .rh-theme-ice .cal-heatmap-container .q16{fill: #5da2eb}\n.night_mode .rh-theme-ice .cal-heatmap-container .q17{fill: #70afee}\n.night_mode .rh-theme-ice .cal-heatmap-container .q18{fill: #82bbf0}\n.night_mode .rh-theme-ice .cal-heatmap-container .q19{fill: #95c8f3}\n.night_mode .rh-theme-ice .cal-heatmap-container .q20{fill: #a8d5f6}\n\n.night_mode .rh-theme-ice .rh-col11{color: #0063de}\n.night_mode .rh-theme-ice .rh-col12{color: #126fe0}\n.night_mode .rh-theme-ice .rh-col13{color: #257ce3}\n.night_mode .rh-theme-ice .rh-col14{color: #3889e6}\n.night_mode .rh-theme-ice .rh-col15{color: #4a95e8}\n.night_mode .rh-theme-ice .rh-col16{color: #5da2eb}\n.night_mode .rh-theme-ice .rh-col17{color: #70afee}\n.night_mode .rh-theme-ice .rh-col18{color: #82bbf0}\n.night_mode .rh-theme-ice .rh-col19{color: #95c8f3}\n.night_mode .rh-theme-ice .rh-col20{color: #a8d5f6}\n\n/* magenta */\n.rh-theme-magenta .cal-heatmap-container .q11{fill: #fde0dd}\n.rh-theme-magenta .cal-heatmap-container .q12{fill: #fcc5c0}\n.rh-theme-magenta .cal-heatmap-container .q13{fill: #fa9fb5}\n.rh-theme-magenta .cal-heatmap-container .q14{fill: #f768a1}\n.rh-theme-magenta .cal-heatmap-container .q15{fill: #ea4e9c}\n.rh-theme-magenta .cal-heatmap-container .q16{fill: #dd3497}\n.rh-theme-magenta .cal-heatmap-container .q17{fill: #ae017e}\n.rh-theme-magenta .cal-heatmap-container .q18{fill: #7a0177}\n.rh-theme-magenta .cal-heatmap-container .q19{fill: #610070}\n.rh-theme-magenta .cal-heatmap-container .q20{fill: #49006a}\n\n.rh-theme-magenta .rh-col11{color: #fde0dd}\n.rh-theme-magenta .rh-col12{color: #fcc5c0}\n.rh-theme-magenta .rh-col13{color: #fa9fb5}\n.rh-theme-magenta .rh-col14{color: #f768a1}\n.rh-theme-magenta .rh-col15{color: #ea4e9c}\n.rh-theme-magenta .rh-col16{color: #dd3497}\n.rh-theme-magenta .rh-col17{color: #ae017e}\n.rh-theme-magenta .rh-col18{color: #7a0177}\n.rh-theme-magenta .rh-col19{color: #610070}\n.rh-theme-magenta .rh-col20{color: #49006a}\n\n.night_mode .rh-theme-magenta .cal-heatmap-container .q11{fill: #49006a}\n.night_mode .rh-theme-magenta .cal-heatmap-container .q12{fill: #610070}\n.night_mode .rh-theme-magenta .cal-heatmap-container .q13{fill: #7a0177}\n.night_mode .rh-theme-magenta .cal-heatmap-container .q14{fill: #ae017e}\n.night_mode .rh-theme-magenta .cal-heatmap-container .q15{fill: #dd3497}\n.night_mode .rh-theme-magenta .cal-heatmap-container .q16{fill: #ea4e9c}\n.night_mode .rh-theme-magenta .cal-heatmap-container .q17{fill: #f768a1}\n.night_mode .rh-theme-magenta .cal-heatmap-container .q18{fill: #fa9fb5}\n.night_mode .rh-theme-magenta .cal-heatmap-container .q19{fill: #fcc5c0}\n.night_mode .rh-theme-magenta .cal-heatmap-container .q20{fill: #fde0dd}\n\n.night_mode .rh-theme-magenta .rh-col11{color: #49006a}\n.night_mode .rh-theme-magenta .rh-col12{color: #610070}\n.night_mode .rh-theme-magenta .rh-col13{color: #7a0177}\n.night_mode .rh-theme-magenta .rh-col14{color: #ae017e}\n.night_mode .rh-theme-magenta .rh-col15{color: #dd3497}\n.night_mode .rh-theme-magenta .rh-col16{color: #ea4e9c}\n.night_mode .rh-theme-magenta .rh-col17{color: #f768a1}\n.night_mode .rh-theme-magenta .rh-col18{color: #fa9fb5}\n.night_mode .rh-theme-magenta .rh-col19{color: #fcc5c0}\n.night_mode .rh-theme-magenta .rh-col20{color: #fde0dd}\n\n\n/* flame */\n.rh-theme-flame .cal-heatmap-container .q11{fill: #ffeda0}\n.rh-theme-flame .cal-heatmap-container .q12{fill: #fed976}\n.rh-theme-flame .cal-heatmap-container .q13{fill: #feb24c}\n.rh-theme-flame .cal-heatmap-container .q14{fill: #fd8d3c}\n.rh-theme-flame .cal-heatmap-container .q15{fill: #fc6d33}\n.rh-theme-flame .cal-heatmap-container .q16{fill: #fc4e2a}\n.rh-theme-flame .cal-heatmap-container .q17{fill: #e31a1c}\n.rh-theme-flame .cal-heatmap-container .q18{fill: #d00d21}\n.rh-theme-flame .cal-heatmap-container .q19{fill: #bd0026}\n.rh-theme-flame .cal-heatmap-container .q20{fill: #800026}\n\n.rh-theme-flame .rh-col11{color: #ffeda0}\n.rh-theme-flame .rh-col12{color: #fed976}\n.rh-theme-flame .rh-col13{color: #feb24c}\n.rh-theme-flame .rh-col14{color: #fd8d3c}\n.rh-theme-flame .rh-col15{color: #fc6d33}\n.rh-theme-flame .rh-col16{color: #fc4e2a}\n.rh-theme-flame .rh-col17{color: #e31a1c}\n.rh-theme-flame .rh-col18{color: #d00d21}\n.rh-theme-flame .rh-col19{color: #bd0026}\n.rh-theme-flame .rh-col20{color: #800026}\n\n.night_mode .rh-theme-flame .cal-heatmap-container .q11{fill: #800026}\n.night_mode .rh-theme-flame .cal-heatmap-container .q12{fill: #bd0026}\n.night_mode .rh-theme-flame .cal-heatmap-container .q13{fill: #d00d21}\n.night_mode .rh-theme-flame .cal-heatmap-container .q14{fill: #e31a1c}\n.night_mode .rh-theme-flame .cal-heatmap-container .q15{fill: #fc4e2a}\n.night_mode .rh-theme-flame .cal-heatmap-container .q16{fill: #fc6d33}\n.night_mode .rh-theme-flame .cal-heatmap-container .q17{fill: #fd8d3c}\n.night_mode .rh-theme-flame .cal-heatmap-container .q18{fill: #feb24c}\n.night_mode .rh-theme-flame .cal-heatmap-container .q19{fill: #fed976}\n.night_mode .rh-theme-flame .cal-heatmap-container .q20{fill: #ffeda0}\n\n.night_mode .rh-theme-flame .rh-col11{color: #800026}\n.night_mode .rh-theme-flame .rh-col12{color: #bd0026}\n.night_mode .rh-theme-flame .rh-col13{color: #d00d21}\n.night_mode .rh-theme-flame .rh-col14{color: #e31a1c}\n.night_mode .rh-theme-flame .rh-col15{color: #fc4e2a}\n.night_mode .rh-theme-flame .rh-col16{color: #fc6d33}\n.night_mode .rh-theme-flame .rh-col17{color: #fd8d3c}\n.night_mode .rh-theme-flame .rh-col18{color: #feb24c}\n.night_mode .rh-theme-flame .rh-col19{color: #fed976}\n.night_mode .rh-theme-flame .rh-col20{color: #ffeda0}\n\n\n/* Platform-specific adjustments / workarounds */\n/* ################################################################### */\n';
 document.head.appendChild(__vite_style__);
@@ -6,8 +6,8 @@ document.head.appendChild(__vite_style__);
   typeof define === "function" && define.amd ? define(factory) : factory();
 })(function () {
   "use strict";
-  var calHeatmap = "";
-  var reviewHeatmap = "";
+  const calHeatmap = "";
+  const reviewHeatmap = "";
   /*! cal-heatmap v3.6.3.2-anki2150 (2022)
    *  ---------------------------------------------
    *  Fork of Cal-HeatMap for use in the Anki add-on Review Heatmap
@@ -17,9 +17,9 @@ document.head.appendChild(__vite_style__);
    *  Copyright 2018-2022 Glutanimate
    *  Contributors: gakada, Srdjan Prpa
    */
-  var d3 = window.d3;
-  var CalHeatMap = function () {
-    var self = this;
+  const d3 = window.d3;
+  const CalHeatMap = function () {
+    const self = this;
     this.allowedDataType = ["json", "csv", "tsv", "txt"];
     this.options = {
       itemSelector: "#cal-heatmap",
@@ -200,7 +200,7 @@ document.head.appendChild(__vite_style__);
             return Math.floor(d2.getHours() / self._domainType.hour.row(d2));
           },
           y: function (d2) {
-            var p = d2.getHours();
+            let p = d2.getHours();
             if (self.options.colLimit > 0 || self.options.rowLimit > 0) {
               switch (self.options.domain) {
                 case "month":
@@ -301,7 +301,7 @@ document.head.appendChild(__vite_style__);
             }
           },
           y: function (d2) {
-            var p = self.getWeekDay(d2);
+            let p = self.getWeekDay(d2);
             if (self.options.colLimit > 0 || self.options.rowLimit > 0) {
               switch (self.options.domain) {
                 case "year":
@@ -378,8 +378,8 @@ document.head.appendChild(__vite_style__);
           connector: "in",
         },
         extractUnit: function (d2) {
-          var dt = new Date(d2.getFullYear(), d2.getMonth(), d2.getDate());
-          var weekDay = dt.getDay() - (self.options.weekStartOnMonday ? 1 : 0);
+          const dt = new Date(d2.getFullYear(), d2.getMonth(), d2.getDate());
+          let weekDay = dt.getDay() - (self.options.weekStartOnMonday ? 1 : 0);
           if (weekDay < 0) {
             weekDay = 6;
           }
@@ -443,9 +443,9 @@ document.head.appendChild(__vite_style__);
         },
       },
     };
-    for (var type in this._domainType) {
+    for (const type in this._domainType) {
       if (this._domainType.hasOwnProperty(type)) {
-        var d = this._domainType[type];
+        const d = this._domainType[type];
         this._domainType["x_" + type] = {
           name: "x_" + type,
           level: d.type,
@@ -512,7 +512,7 @@ document.head.appendChild(__vite_style__);
       self.tooltip = d3
         .select(self.options.itemSelector)
         .attr("style", function () {
-          var current = d3.select(self.options.itemSelector).attr("style");
+          const current = d3.select(self.options.itemSelector).attr("style");
           return (current !== null ? current : "") + "position:relative;";
         })
         .append("div")
@@ -568,7 +568,7 @@ document.head.appendChild(__vite_style__);
           self.options.cellPadding,
       );
       self.afterLoad();
-      var domains = self.getDomainKeys();
+      const domains = self.getDomainKeys();
       if (self.options.loadOnInit) {
         self.getDatas(
           self.options.data,
@@ -586,7 +586,7 @@ document.head.appendChild(__vite_style__);
       self.checkIfMaxDomainIsReached(self.getNextDomain().getTime());
     }
     function w(d2, outer) {
-      var width =
+      let width =
         self.options.cellSize *
           self._domainType[self.options.subDomain].column(d2) +
         self.options.cellPadding *
@@ -601,7 +601,7 @@ document.head.appendChild(__vite_style__);
       return width;
     }
     function h(d2, outer) {
-      var height =
+      let height =
         self.options.cellSize *
           self._domainType[self.options.subDomain].row(d2) +
         self.options.cellPadding *
@@ -616,30 +616,30 @@ document.head.appendChild(__vite_style__);
       return height;
     }
     this.paint = function (navigationDir) {
-      var options = self.options;
+      const options = self.options;
       if (arguments.length === 0) {
         navigationDir = false;
       }
-      var domainSvg = self.root
+      const domainSvg = self.root
         .select(".graph")
         .selectAll(".graph-domain")
         .data(
           function () {
-            var data = self.getDomainKeys();
+            const data = self.getDomainKeys();
             return navigationDir === self.NAVIGATE_LEFT ? data.reverse() : data;
           },
           function (d2) {
             return d2;
           },
         );
-      var enteringDomainDim = 0;
-      var exitingDomainDim = 0;
+      let enteringDomainDim = 0;
+      let exitingDomainDim = 0;
       if (
         options.dayLabel &&
         options.domain === "month" &&
         options.subDomain === "day"
       ) {
-        var daysOfTheWeek = [
+        const daysOfTheWeek = [
           "monday",
           "tuesday",
           "wednesday",
@@ -652,16 +652,16 @@ document.head.appendChild(__vite_style__);
         } else {
           daysOfTheWeek.shif("sunday");
         }
-        var daysOfTheWeekAbbr = daysOfTheWeek.map(function (day) {
+        const daysOfTheWeekAbbr = daysOfTheWeek.map(function (day) {
           return self.formatDate(d3.time[day](new Date()), "%a").charAt(0);
         });
         this.root.selectAll(".day-name").remove();
-        var dayLabelSvgGroup = this.root
+        const dayLabelSvgGroup = this.root
           .append("svg")
           .attr("class", "day-name")
           .attr("x", 0)
           .attr("y", 0);
-        var dayLabelSvg = dayLabelSvgGroup
+        const dayLabelSvg = dayLabelSvgGroup
           .selectAll("g")
           .data(daysOfTheWeekAbbr)
           .enter()
@@ -691,7 +691,7 @@ document.head.appendChild(__vite_style__);
             return data;
           });
       }
-      var svg = domainSvg
+      const svg = domainSvg
         .enter()
         .append("svg")
         .attr("width", function (d2) {
@@ -717,8 +717,8 @@ document.head.appendChild(__vite_style__);
           }
         })
         .attr("class", function (d2) {
-          var classname = "graph-domain";
-          var date = new Date(d2);
+          let classname = "graph-domain";
+          const date = new Date(d2);
           switch (options.domain) {
             case "hour":
               classname += " h_" + date.getHours();
@@ -735,7 +735,7 @@ document.head.appendChild(__vite_style__);
         });
       self.lastInsertedSvg = svg;
       function getDomainPosition(domainIndex, graphDim, axis, domainDim) {
-        var tmp = 0;
+        let tmp = 0;
         switch (navigationDir) {
           case false:
             tmp = graphDim[axis];
@@ -766,7 +766,7 @@ document.head.appendChild(__vite_style__);
           return h(d2, true) - options.domainGutter - options.cellPadding;
         })
         .attr("class", "domain-background");
-      var subDomainSvgGroup = svg
+      const subDomainSvgGroup = svg
         .append("svg")
         .attr("x", function () {
           if (options.label.position === "left") {
@@ -783,7 +783,7 @@ document.head.appendChild(__vite_style__);
           }
         })
         .attr("class", "graph-subdomain-group");
-      var rect = subDomainSvgGroup
+      const rect = subDomainSvgGroup
         .selectAll("g")
         .data(function (d2) {
           return self._domains.get(d2);
@@ -827,15 +827,15 @@ document.head.appendChild(__vite_style__);
           }
           if (options.tooltip) {
             selection.on("mouseover", function (d2) {
-              var domainNode = this.parentNode.parentNode;
+              const domainNode = this.parentNode.parentNode;
               self.tooltip
                 .html(self.getSubDomainTitle(d2))
                 .attr("style", "display: block;");
-              var tooltipPositionX =
+              let tooltipPositionX =
                 self.positionSubDomainX(d2.t) -
                 self.tooltip[0][0].offsetWidth / 2 +
                 options.cellSize / 2;
-              var tooltipPositionY =
+              let tooltipPositionY =
                 self.positionSubDomainY(d2.t) -
                 self.tooltip[0][0].offsetHeight -
                 options.cellSize / 2;
@@ -881,7 +881,7 @@ document.head.appendChild(__vite_style__);
           .append("text")
           .attr("class", "graph-label")
           .attr("y", function (d2) {
-            var y = options.domainMargin[0];
+            let y = options.domainMargin[0];
             switch (options.label.position) {
               case "top":
                 y += self.domainVerticalLabelHeight / 2;
@@ -901,7 +901,7 @@ document.head.appendChild(__vite_style__);
             );
           })
           .attr("x", function (d2) {
-            var x = options.domainMargin[3];
+            let x = options.domainMargin[3];
             switch (options.label.position) {
               case "right":
                 x += w(d2);
@@ -944,7 +944,7 @@ document.head.appendChild(__vite_style__);
         switch (options.label.rotate) {
           case "right":
             selection.attr("transform", function (d2) {
-              var s = "rotate(90), ";
+              let s = "rotate(90), ";
               switch (options.label.position) {
                 case "right":
                   s += "translate(-" + w(d2) + " , -" + w(d2) + ")";
@@ -958,7 +958,7 @@ document.head.appendChild(__vite_style__);
             break;
           case "left":
             selection.attr("transform", function (d2) {
-              var s = "rotate(270), ";
+              let s = "rotate(270), ";
               switch (options.label.position) {
                 case "right":
                   s +=
@@ -1015,8 +1015,8 @@ document.head.appendChild(__vite_style__);
               : 0;
           });
       }
-      var tempWidth = self.graphDim.width;
-      var tempHeight = self.graphDim.height;
+      const tempWidth = self.graphDim.width;
+      const tempHeight = self.graphDim.height;
       if (options.verticalOrientation) {
         self.graphDim.height += enteringDomainDim - exitingDomainDim;
       } else {
@@ -1056,8 +1056,11 @@ document.head.appendChild(__vite_style__);
   };
   CalHeatMap.prototype = {
     init: function (settings) {
-      var parent = this;
-      var options = (parent.options = mergeRecursive(parent.options, settings));
+      const parent = this;
+      const options = (parent.options = mergeRecursive(
+        parent.options,
+        settings,
+      ));
       validateDomainType();
       validateSelector(options.itemSelector, false, "itemSelector");
       if (parent.allowedDataType.indexOf(options.dataType) === -1) {
@@ -1091,7 +1094,7 @@ document.head.appendChild(__vite_style__);
         );
         options.itemNamespace = "cal-heatmap";
       }
-      var s = [
+      const s = [
         "data",
         "onComplete",
         "onClick",
@@ -1101,7 +1104,7 @@ document.head.appendChild(__vite_style__);
         "afterLoadNextDomain",
         "afterUpdate",
       ];
-      for (var k in s) {
+      for (const k in s) {
         if (settings.hasOwnProperty(s[k])) {
           options[s[k]] = settings[s[k]];
         }
@@ -1308,12 +1311,12 @@ document.head.appendChild(__vite_style__);
         });
     },
     fill: function (svg) {
-      var parent = this;
-      var options = parent.options;
+      const parent = this;
+      const options = parent.options;
       if (arguments.length === 0) {
         svg = parent.root.selectAll(".graph-domain");
       }
-      var rect = svg
+      const rect = svg
         .selectAll("svg")
         .selectAll("g")
         .data(function (d) {
@@ -1361,9 +1364,9 @@ document.head.appendChild(__vite_style__);
         .duration(options.animationDuration)
         .select("rect")
         .attr("class", function (d) {
-          var htmlClass = parent.getHighlightClassName(d.t).trim().split(" ");
-          var pastDate = parent.dateIsLessThan(d.t, new Date());
-          var sameDate = parent.dateIsEqual(d.t, new Date());
+          const htmlClass = parent.getHighlightClassName(d.t).trim().split(" ");
+          const pastDate = parent.dateIsLessThan(d.t, new Date());
+          const sameDate = parent.dateIsEqual(d.t, new Date());
           if (
             parent.legendScale === null ||
             (d.v === null &&
@@ -1417,9 +1420,9 @@ document.head.appendChild(__vite_style__);
         .call(formatSubDomainText);
     },
     formatStringWithObject: function (formatted, args) {
-      for (var prop in args) {
+      for (const prop in args) {
         if (args.hasOwnProperty(prop)) {
-          var regexp = new RegExp("\\{" + prop + "\\}", "gi");
+          const regexp = new RegExp("\\{" + prop + "\\}", "gi");
           formatted = formatted.replace(regexp, args[prop]);
         }
       }
@@ -1451,21 +1454,21 @@ document.head.appendChild(__vite_style__);
       return this.triggerEvent("afterLoad");
     },
     onComplete: function () {
-      var response = this.triggerEvent("onComplete", [], this._completed);
+      const response = this.triggerEvent("onComplete", [], this._completed);
       this._completed = true;
       return response;
     },
     afterLoadPreviousDomain: function (start) {
-      var parent = this;
+      const parent = this;
       return this.triggerEvent("afterLoadPreviousDomain", function () {
-        var subDomain = parent.getSubDomain(start);
+        const subDomain = parent.getSubDomain(start);
         return [subDomain.shift(), subDomain.pop()];
       });
     },
     afterLoadNextDomain: function (start) {
-      var parent = this;
+      const parent = this;
       return this.triggerEvent("afterLoadNextDomain", function () {
-        var subDomain = parent.getSubDomain(start);
+        const subDomain = parent.getSubDomain(start);
         return [subDomain.shift(), subDomain.pop()];
       });
     },
@@ -1508,13 +1511,13 @@ document.head.appendChild(__vite_style__);
       if (typeof format === "function") {
         return format(d);
       } else {
-        var f = d3.time.format(format);
+        const f = d3.time.format(format);
         return f(d);
       }
     },
     getSubDomainTitle: function (d) {
       if (d.v === null && !this.options.considerMissingDataAsZero) {
-        var emptyObject = {
+        const emptyObject = {
           date: this.formatDate(
             new Date(d.t),
             this.options.subDomainDateFormat,
@@ -1529,11 +1532,11 @@ document.head.appendChild(__vite_style__);
           );
         }
       } else {
-        var value = d.v;
+        let value = d.v;
         if (value === null && this.options.considerMissingDataAsZero) {
           value = 0;
         }
-        var object = {
+        const object = {
           count: this.formatNumber(value),
           name: this.options.itemName[value !== 1 ? 1 : 0],
           connector: this._domainType[this.options.subDomain].format.connector,
@@ -1556,7 +1559,7 @@ document.head.appendChild(__vite_style__);
       if (this._maxDomainReached || n === 0) {
         return false;
       }
-      var bound = this.loadNewDomains(
+      const bound = this.loadNewDomains(
         this.NAVIGATE_RIGHT,
         this.getDomain(this.getNextDomain(), n),
       );
@@ -1571,7 +1574,7 @@ document.head.appendChild(__vite_style__);
       if (this._minDomainReached || n === 0) {
         return false;
       }
-      var bound = this.loadNewDomains(
+      const bound = this.loadNewDomains(
         this.NAVIGATE_LEFT,
         this.getDomain(this.getDomainKeys()[0], -n).reverse(),
       );
@@ -1580,11 +1583,11 @@ document.head.appendChild(__vite_style__);
       return true;
     },
     loadNewDomains: function (direction, newDomains) {
-      var parent = this;
-      var backward = direction === this.NAVIGATE_LEFT;
-      var i = -1;
-      var total = newDomains.length;
-      var domains = this.getDomainKeys();
+      const parent = this;
+      const backward = direction === this.NAVIGATE_LEFT;
+      let i = -1;
+      let total = newDomains.length;
+      let domains = this.getDomainKeys();
       function buildSubDomain(d) {
         return {
           t: parent._domainType[parent.options.subDomain].extractUnit(d),
@@ -1650,26 +1653,26 @@ document.head.appendChild(__vite_style__);
         });
     },
     positionSubDomainX: function (d) {
-      var index = this._domainType[this.options.subDomain].position.x(
+      const index = this._domainType[this.options.subDomain].position.x(
         new Date(d),
       );
       return index * this.options.cellSize + index * this.options.cellPadding;
     },
     positionSubDomainY: function (d) {
-      var index = this._domainType[this.options.subDomain].position.y(
+      const index = this._domainType[this.options.subDomain].position.y(
         new Date(d),
       );
       return index * this.options.cellSize + index * this.options.cellPadding;
     },
     getSubDomainColumnNumber: function (d) {
       if (this.options.rowLimit > 0) {
-        var i = this._domainType[this.options.subDomain].maxItemNumber;
+        let i = this._domainType[this.options.subDomain].maxItemNumber;
         if (typeof i === "function") {
           i = i(d);
         }
         return Math.ceil(i / this.options.rowLimit);
       }
-      var j = this._domainType[this.options.subDomain].defaultColumnNumber;
+      let j = this._domainType[this.options.subDomain].defaultColumnNumber;
       if (typeof j === "function") {
         j = j(d);
       }
@@ -1677,13 +1680,13 @@ document.head.appendChild(__vite_style__);
     },
     getSubDomainRowNumber: function (d) {
       if (this.options.colLimit > 0) {
-        var i = this._domainType[this.options.subDomain].maxItemNumber;
+        let i = this._domainType[this.options.subDomain].maxItemNumber;
         if (typeof i === "function") {
           i = i(d);
         }
         return Math.ceil(i / this.options.colLimit);
       }
-      var j = this._domainType[this.options.subDomain].defaultRowNumber;
+      let j = this._domainType[this.options.subDomain].defaultRowNumber;
       if (typeof j === "function") {
         j = j(d);
       }
@@ -1692,7 +1695,7 @@ document.head.appendChild(__vite_style__);
     getHighlightClassName: function (d) {
       d = new Date(d);
       if (this.options.highlight.length > 0) {
-        for (var i in this.options.highlight) {
+        for (const i in this.options.highlight) {
           if (this.dateIsEqual(this.options.highlight[i], d)) {
             return this.isNow(this.options.highlight[i])
               ? " highlight-now"
@@ -1802,7 +1805,7 @@ document.head.appendChild(__vite_style__);
     },
     getDayOfYear: d3.time.format("%j"),
     getWeekNumber: function (d) {
-      var f =
+      const f =
         this.options.weekStartOnMonday === true
           ? d3.time.format("%W")
           : d3.time.format("%U");
@@ -1812,7 +1815,7 @@ document.head.appendChild(__vite_style__);
       if (typeof d === "number") {
         d = new Date(d);
       }
-      var monthFirstWeekNumber = this.getWeekNumber(
+      const monthFirstWeekNumber = this.getWeekNumber(
         new Date(d.getFullYear(), d.getMonth()),
       );
       return this.getWeekNumber(d) - monthFirstWeekNumber - 1;
@@ -1840,7 +1843,7 @@ document.head.appendChild(__vite_style__);
       return new Date(d.getFullYear(), d.getMonth() + 1, 0);
     },
     jumpDate: function (date, count, step) {
-      var d = new Date(date);
+      const d = new Date(date);
       switch (step) {
         case "hour":
           d.setHours(d.getHours() + count);
@@ -1860,13 +1863,13 @@ document.head.appendChild(__vite_style__);
       return new Date(d);
     },
     getMinuteDomain: function (d, range) {
-      var start = new Date(
+      const start = new Date(
         d.getFullYear(),
         d.getMonth(),
         d.getDate(),
         d.getHours(),
       );
-      var stop = null;
+      let stop = null;
       if (range instanceof Date) {
         stop = new Date(
           range.getFullYear(),
@@ -1880,13 +1883,13 @@ document.head.appendChild(__vite_style__);
       return d3.time.minutes(Math.min(start, stop), Math.max(start, stop));
     },
     getHourDomain: function (d, range) {
-      var start = new Date(
+      const start = new Date(
         d.getFullYear(),
         d.getMonth(),
         d.getDate(),
         d.getHours(),
       );
-      var stop = null;
+      let stop = null;
       if (range instanceof Date) {
         stop = new Date(
           range.getFullYear(),
@@ -1898,9 +1901,12 @@ document.head.appendChild(__vite_style__);
         stop = new Date(start);
         stop.setHours(stop.getHours() + range);
       }
-      var domains = d3.time.hours(Math.min(start, stop), Math.max(start, stop));
-      var i = 0;
-      var total = domains.length;
+      const domains = d3.time.hours(
+        Math.min(start, stop),
+        Math.max(start, stop),
+      );
+      let i = 0;
+      const total = domains.length;
       for (i = 0; i < total; i++) {
         if (i > 0 && domains[i].getHours() === domains[i - 1].getHours()) {
           this.DSTDomain.push(domains[i].getTime());
@@ -1914,8 +1920,8 @@ document.head.appendChild(__vite_style__);
       return domains;
     },
     getDayDomain: function (d, range) {
-      var start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-      var stop = null;
+      const start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      let stop = null;
       if (range instanceof Date) {
         stop = new Date(range.getFullYear(), range.getMonth(), range.getDate());
       } else {
@@ -1925,7 +1931,7 @@ document.head.appendChild(__vite_style__);
       return d3.time.days(Math.min(start, stop), Math.max(start, stop));
     },
     getWeekDomain: function (d, range) {
-      var weekStart;
+      let weekStart;
       if (this.options.weekStartOnMonday === false) {
         weekStart = new Date(
           d.getFullYear(),
@@ -1946,8 +1952,8 @@ document.head.appendChild(__vite_style__);
           );
         }
       }
-      var endDate = new Date(weekStart);
-      var stop = range;
+      const endDate = new Date(weekStart);
+      let stop = range;
       if (typeof range !== "object") {
         stop = new Date(endDate.setDate(endDate.getDate() + range * 7));
       }
@@ -1956,8 +1962,8 @@ document.head.appendChild(__vite_style__);
         : d3.time.sundays(Math.min(weekStart, stop), Math.max(weekStart, stop));
     },
     getMonthDomain: function (d, range) {
-      var start = new Date(d.getFullYear(), d.getMonth());
-      var stop = null;
+      const start = new Date(d.getFullYear(), d.getMonth());
+      let stop = null;
       if (range instanceof Date) {
         stop = new Date(range.getFullYear(), range.getMonth());
       } else {
@@ -1967,8 +1973,8 @@ document.head.appendChild(__vite_style__);
       return d3.time.months(Math.min(start, stop), Math.max(start, stop));
     },
     getYearDomain: function (d, range) {
-      var start = new Date(d.getFullYear(), 0);
-      var stop = null;
+      const start = new Date(d.getFullYear(), 0);
+      let stop = null;
       if (range instanceof Date) {
         stop = new Date(range.getFullYear(), 0);
       } else {
@@ -2010,8 +2016,8 @@ document.head.appendChild(__vite_style__);
       if (typeof date === "number") {
         date = new Date(date);
       }
-      var parent = this;
-      var computeDaySubDomainSize = function (date2, domain) {
+      const parent = this;
+      const computeDaySubDomainSize = function (date2, domain) {
         switch (domain) {
           case "year":
             return parent.getDayCountInYear(date2);
@@ -2021,7 +2027,7 @@ document.head.appendChild(__vite_style__);
             return 7;
         }
       };
-      var computeMinSubDomainSize = function (date2, domain) {
+      const computeMinSubDomainSize = function (date2, domain) {
         switch (domain) {
           case "hour":
             return 60;
@@ -2031,7 +2037,7 @@ document.head.appendChild(__vite_style__);
             return 60 * 24 * 7;
         }
       };
-      var computeHourSubDomainSize = function (date2, domain) {
+      const computeHourSubDomainSize = function (date2, domain) {
         switch (domain) {
           case "day":
             return 24;
@@ -2041,15 +2047,15 @@ document.head.appendChild(__vite_style__);
             return parent.getDayCountInMonth(date2) * 24;
         }
       };
-      var computeWeekSubDomainSize = function (date2, domain) {
+      const computeWeekSubDomainSize = function (date2, domain) {
         if (domain === "month") {
-          var endOfMonth = new Date(
+          const endOfMonth = new Date(
             date2.getFullYear(),
             date2.getMonth() + 1,
             0,
           );
-          var endWeekNb = parent.getWeekNumber(endOfMonth);
-          var startWeekNb = parent.getWeekNumber(
+          let endWeekNb = parent.getWeekNumber(endOfMonth);
+          let startWeekNb = parent.getWeekNumber(
             new Date(date2.getFullYear(), date2.getMonth()),
           );
           if (startWeekNb > endWeekNb) {
@@ -2117,14 +2123,14 @@ document.head.appendChild(__vite_style__);
       afterLoad,
       updateMode,
     ) {
-      var self = this;
+      const self = this;
       if (arguments.length < 5) {
         afterLoad = true;
       }
       if (arguments.length < 6) {
         updateMode = this.APPEND_ON_UPDATE;
       }
-      var _callback = function (error, data) {
+      const _callback = function (error, data) {
         if (afterLoad !== false) {
           if (typeof afterLoad === "function") {
             data = afterLoad(data);
@@ -2152,12 +2158,12 @@ document.head.appendChild(__vite_style__);
             _callback(null, {});
             return true;
           } else {
-            var url = this.parseURI(source, startDate, endDate);
-            var requestType = "GET";
+            const url = this.parseURI(source, startDate, endDate);
+            let requestType = "GET";
             if (self.options.dataPostPayload !== null) {
               requestType = "POST";
             }
-            var payload = null;
+            let payload = null;
             if (self.options.dataPostPayload !== null) {
               payload = this.parseURI(
                 self.options.dataPostPayload,
@@ -2165,7 +2171,7 @@ document.head.appendChild(__vite_style__);
                 endDate,
               );
             }
-            var xhr = null;
+            let xhr = null;
             switch (this.options.dataType) {
               case "json":
                 xhr = d3.json(url);
@@ -2181,7 +2187,7 @@ document.head.appendChild(__vite_style__);
                 break;
             }
             if (self.options.dataRequestHeaders !== null) {
-              for (var header in self.options.dataRequestHeaders) {
+              for (const header in self.options.dataRequestHeaders) {
                 if (self.options.dataRequestHeaders.hasOwnProperty(header)) {
                   xhr.header(header, self.options.dataRequestHeaders[header]);
                 }
@@ -2208,13 +2214,13 @@ document.head.appendChild(__vite_style__);
           });
         });
       }
-      var temp = {};
-      var extractTime = function (d2) {
+      const temp = {};
+      const extractTime = function (d2) {
         return d2.t;
       };
-      for (var d in data) {
-        var date = new Date(d * 1e3);
-        var domainUnit = this.getDomain(date)[0].getTime();
+      for (const d in data) {
+        const date = new Date(d * 1e3);
+        let domainUnit = this.getDomain(date)[0].getTime();
         if (this.DSTDomain.indexOf(domainUnit) >= 0) {
           if (this._domains.has(domainUnit - 3600 * 1e3)) {
             domainUnit -= 3600 * 1e3;
@@ -2228,11 +2234,11 @@ document.head.appendChild(__vite_style__);
         ) {
           continue;
         }
-        var subDomainsData = this._domains.get(domainUnit);
+        const subDomainsData = this._domains.get(domainUnit);
         if (!temp.hasOwnProperty(domainUnit)) {
           temp[domainUnit] = subDomainsData.map(extractTime);
         }
-        var index = temp[domainUnit].indexOf(
+        const index = temp[domainUnit].indexOf(
           this._domainType[this.options.subDomain].extractUnit(date),
         );
         if (updateMode === this.RESET_SINGLE_ON_UPDATE) {
@@ -2254,32 +2260,32 @@ document.head.appendChild(__vite_style__);
       return str;
     },
     interpretCSV: function (data) {
-      var d = {};
-      var keys = Object.keys(data[0]);
-      var i, total;
+      const d = {};
+      const keys = Object.keys(data[0]);
+      let i, total;
       for (i = 0, total = data.length; i < total; i++) {
         d[data[i][keys[0]]] = +data[i][keys[1]];
       }
       return d;
     },
     resize: function () {
-      var parent = this;
-      var options = parent.options;
-      var legendWidth = options.displayLegend
+      const parent = this;
+      const options = parent.options;
+      const legendWidth = options.displayLegend
         ? parent.Legend.getDim("width") +
           options.legendMargin[1] +
           options.legendMargin[3]
         : 0;
-      var legendHeight = options.displayLegend
+      const legendHeight = options.displayLegend
         ? parent.Legend.getDim("height") +
           options.legendMargin[0] +
           options.legendMargin[2]
         : 0;
-      var graphWidth =
+      const graphWidth =
         parent.graphDim.width - options.domainGutter - options.cellPadding;
-      var graphHeight =
+      const graphHeight =
         parent.graphDim.height - options.domainGutter - options.cellPadding;
-      var dayLabelWidth = 0;
+      let dayLabelWidth = 0;
       if (
         options.dayLabel &&
         options.domain === "month" &&
@@ -2345,9 +2351,9 @@ document.head.appendChild(__vite_style__);
       if (arguments.length < 2) {
         reset = false;
       }
-      var domains = this.getDomainKeys();
-      var firstDomain = domains[0];
-      var lastDomain = domains[domains.length - 1];
+      const domains = this.getDomainKeys();
+      const firstDomain = domains[0];
+      const lastDomain = domains[domains.length - 1];
       if (date < firstDomain) {
         return this.loadPreviousDomain(
           this.getDomain(firstDomain, date).length,
@@ -2375,8 +2381,8 @@ document.head.appendChild(__vite_style__);
       if (arguments.length < 3) {
         updateMode = this.RESET_ALL_ON_UPDATE;
       }
-      var domains = this.getDomainKeys();
-      var self = this;
+      const domains = this.getDomainKeys();
+      const self = this;
       this.getDatas(
         dataSource,
         new Date(domains[0]),
@@ -2390,7 +2396,7 @@ document.head.appendChild(__vite_style__);
       );
     },
     setLegend: function () {
-      var oldLegend = this.options.legend.slice(0);
+      const oldLegend = this.options.legend.slice(0);
       if (arguments.length >= 1 && Array.isArray(arguments[0])) {
         this.options.legend = arguments[0];
       }
@@ -2459,7 +2465,7 @@ document.head.appendChild(__vite_style__);
       return null;
     },
     getSVG: function () {
-      var styles = {
+      const styles = {
         ".cal-heatmap-container": {},
         ".graph": {},
         ".graph-rect": {},
@@ -2475,11 +2481,11 @@ document.head.appendChild(__vite_style__);
         ".q0": {},
         ".qi": {},
       };
-      for (var j = 1, total = this.options.legend.length + 1; j <= total; j++) {
+      for (let j = 1, total = this.options.legend.length + 1; j <= total; j++) {
         styles[".q" + j] = {};
       }
-      var root = this.root;
-      var whitelistStyles = [
+      const root = this.root;
+      const whitelistStyles = [
         "stroke",
         "stroke-width",
         "stroke-opacity",
@@ -2508,26 +2514,26 @@ document.head.appendChild(__vite_style__);
         "font-size",
         "font-weight",
       ];
-      var filterStyles = function (attribute, property, value) {
+      const filterStyles = function (attribute, property, value) {
         if (whitelistStyles.indexOf(property) !== -1) {
           styles[attribute][property] = value;
         }
       };
-      var getElement = function (e) {
+      const getElement = function (e) {
         return root.select(e)[0][0];
       };
-      for (var element in styles) {
+      for (const element in styles) {
         if (!styles.hasOwnProperty(element)) {
           continue;
         }
-        var dom = getElement(element);
+        const dom = getElement(element);
         if (dom === null) {
           continue;
         }
         if ("getComputedStyle" in window) {
-          var cs = getComputedStyle(dom, null);
+          const cs = getComputedStyle(dom, null);
           if (cs.length !== 0) {
-            for (var i = 0; i < cs.length; i++) {
+            for (let i = 0; i < cs.length; i++) {
               filterStyles(
                 element,
                 cs.item(i),
@@ -2535,24 +2541,24 @@ document.head.appendChild(__vite_style__);
               );
             }
           } else {
-            for (var k in cs) {
+            for (const k in cs) {
               if (cs.hasOwnProperty(k)) {
                 filterStyles(element, k, cs[k]);
               }
             }
           }
         } else if ("currentStyle" in dom) {
-          var css = dom.currentStyle;
-          for (var p in css) {
+          const css = dom.currentStyle;
+          for (const p in css) {
             filterStyles(element, p, css[p]);
           }
         }
       }
-      var string =
+      let string =
         '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><style type="text/css"><![CDATA[ ';
-      for (var style in styles) {
+      for (const style in styles) {
         string += style + " {\n";
-        for (var l in styles[style]) {
+        for (const l in styles[style]) {
           string += "	" + l + ":" + styles[style][l] + ";\n";
         }
         string += "}\n";
@@ -2570,11 +2576,11 @@ document.head.appendChild(__vite_style__);
     return this.positions.get(d);
   };
   DomainPosition.prototype.getPositionFromIndex = function (i) {
-    var domains = this.getKeys();
+    const domains = this.getKeys();
     return this.positions.get(domains[i]);
   };
   DomainPosition.prototype.getLast = function () {
-    var domains = this.getKeys();
+    const domains = this.getKeys();
     return this.positions.get(domains[domains.length - 1]);
   };
   DomainPosition.prototype.setPosition = function (d, dim) {
@@ -2584,14 +2590,14 @@ document.head.appendChild(__vite_style__);
     this.positions.forEach(function (key, value) {
       this.set(key, value - exitingDomainDim);
     });
-    var domains = this.getKeys();
+    const domains = this.getKeys();
     this.positions.remove(domains[0]);
   };
   DomainPosition.prototype.shiftLeftBy = function (enteringDomainDim) {
     this.positions.forEach(function (key, value) {
       this.set(key, value + enteringDomainDim);
     });
-    var domains = this.getKeys();
+    const domains = this.getKeys();
     this.positions.remove(domains[domains.length - 1]);
   };
   DomainPosition.prototype.getKeys = function () {
@@ -2607,7 +2613,7 @@ document.head.appendChild(__vite_style__);
     }
   };
   Legend.prototype.computeDim = function () {
-    var options = this.calendar.options;
+    const options = this.calendar.options;
     this.dim = {
       width:
         options.legendCellSize * (options.legend.length + 1) +
@@ -2623,15 +2629,15 @@ document.head.appendChild(__vite_style__);
     if (!this.calendar.options.displayLegend) {
       return false;
     }
-    var parent = this;
-    var calendar = this.calendar;
-    var legend = calendar.root;
-    var legendItem;
-    var options = calendar.options;
+    const parent = this;
+    const calendar = this.calendar;
+    let legend = calendar.root;
+    let legendItem;
+    const options = calendar.options;
     this.computeDim();
-    var _legend = options.legend.slice(0);
+    const _legend = options.legend.slice(0);
     _legend.push(_legend[_legend.length - 1] + 1);
-    var legendElement = calendar.root.select(".graph-legend");
+    const legendElement = calendar.root.select(".graph-legend");
     if (legendElement[0][0] !== null) {
       legend = legendElement;
       legendItem = legend.select("g").selectAll("rect").data(_legend);
@@ -2784,7 +2790,8 @@ document.head.appendChild(__vite_style__);
     calendar.resize();
   };
   Legend.prototype.getDim = function (axis) {
-    var isHorizontal = this.calendar.options.legendOrientation === "horizontal";
+    const isHorizontal =
+      this.calendar.options.legendOrientation === "horizontal";
     switch (axis) {
       case "width":
         return this.dim[isHorizontal ? "width" : "height"];
@@ -2793,12 +2800,12 @@ document.head.appendChild(__vite_style__);
     }
   };
   Legend.prototype.buildColors = function () {
-    var options = this.calendar.options;
+    const options = this.calendar.options;
     if (options.legendColors === null) {
       this.calendar.legendScale = null;
       return false;
     }
-    var _colorRange = [];
+    let _colorRange = [];
     if (Array.isArray(options.legendColors)) {
       _colorRange = options.legendColors;
     } else if (
@@ -2810,7 +2817,7 @@ document.head.appendChild(__vite_style__);
       options.legendColors = null;
       return false;
     }
-    var _legend = options.legend.slice(0);
+    const _legend = options.legend.slice(0);
     if (_legend[0] > 0) {
       _legend.unshift(0);
     } else if (_legend[0] <= 0) {
@@ -2819,12 +2826,12 @@ document.head.appendChild(__vite_style__);
           (_legend[_legend.length - 1] - _legend[0]) / _legend.length,
       );
     }
-    var colorScale = d3.scale
+    const colorScale = d3.scale
       .linear()
       .range(_colorRange)
       .interpolate(d3.interpolateHcl)
       .domain([d3.min(_legend), d3.max(_legend)]);
-    var legendColors = _legend.map(function (element) {
+    const legendColors = _legend.map(function (element) {
       return colorScale(element);
     });
     this.calendar.legendScale = d3.scale
@@ -2837,9 +2844,9 @@ document.head.appendChild(__vite_style__);
     if (n === null || isNaN(n)) {
       return "";
     }
-    var index = [this.calendar.options.legend.length + 1];
+    let index = [this.calendar.options.legend.length + 1];
     for (
-      var i = 0, total = this.calendar.options.legend.length - 1;
+      let i = 0, total = this.calendar.options.legend.length - 1;
       i <= total;
       i++
     ) {
@@ -2860,7 +2867,7 @@ document.head.appendChild(__vite_style__);
   };
   // codeql[js/prototype-pollution] Third-party library function, not exposed to user input
   function mergeRecursive(obj1, obj2) {
-    for (var p in obj2) {
+    for (const p in obj2) {
       if (p === "__proto__" || p === "constructor" || p === "prototype")
         continue;
       try {
@@ -2883,7 +2890,7 @@ document.head.appendChild(__vite_style__);
     if (arrayA.length !== arrayB.length) {
       return false;
     }
-    for (var i = 0; i < arrayA.length; i++) {
+    for (let i = 0; i < arrayA.length; i++) {
       if (arrayA[i] instanceof Array && arrayB[i] instanceof Array) {
         if (!arrayEquals(arrayA[i], arrayB[i])) {
           return false;
@@ -2913,31 +2920,31 @@ document.head.appendChild(__vite_style__);
     }
     create(data) {
       let calStartDate = applyDateOffset(new Date());
-      let calMinDate = applyDateOffset(new Date(this.options.start));
+      const calMinDate = applyDateOffset(new Date(this.options.start));
       let calMaxDate = applyDateOffset(new Date(this.options.stop));
-      let calTodayDate = applyDateOffset(new Date(this.options.today));
+      const calTodayDate = applyDateOffset(new Date(this.options.today));
       if (this.options.domain === "month") {
-        let padding = this.options.range / 2;
-        let paddingLower = Math.round(padding - 1);
-        let paddingUpper = Math.round(padding + 1);
+        const padding = this.options.range / 2;
+        const paddingLower = Math.round(padding - 1);
+        const paddingUpper = Math.round(padding + 1);
         calStartDate.setMonth(calStartDate.getMonth() - paddingLower);
         calStartDate.setDate(1);
         if (calMinDate.getTime() > calStartDate.getTime()) {
           calStartDate = calMinDate;
         }
-        let tempDate = new Date(calTodayDate);
+        const tempDate = new Date(calTodayDate);
         tempDate.setMonth(tempDate.getMonth() + paddingUpper);
         tempDate.setDate(1);
         if (tempDate.getTime() > calMaxDate.getTime()) {
           calMaxDate = tempDate;
         }
       }
-      let heatmap = new CalHeatMap();
-      let cellShape = this.options.cell_shape;
-      let isCircle = cellShape === "circle";
-      let cellRadius = isCircle ? 5 : 0;
-      let cellPadding = isCircle ? 1 : 2;
-      let cellSize = isCircle ? 9.5 : 10;
+      const heatmap = new CalHeatMap();
+      const cellShape = this.options.cell_shape;
+      const isCircle = cellShape === "circle";
+      const cellRadius = isCircle ? 5 : 0;
+      const cellPadding = isCircle ? 1 : 2;
+      const cellSize = isCircle ? 9.5 : 10;
       heatmap.init({
         domain: this.options.domain,
         subDomain: this.options.subdomain,
@@ -2978,14 +2985,14 @@ document.head.appendChild(__vite_style__);
             return;
           }
           let cmd = this.options.whole ? "" : "deck:current ";
-          let today = new Date(calTodayDate);
+          const today = new Date(calTodayDate);
           today.setHours(0, 0, 0);
-          let diffSecs = Math.abs(today.getTime() - date.getTime()) / 1e3;
-          let diffDays = Math.round(diffSecs / 86400);
+          const diffSecs = Math.abs(today.getTime() - date.getTime()) / 1e3;
+          const diffDays = Math.round(diffSecs / 86400);
           if (nb >= 0) {
             if (!window.rhNewFinderAPI) {
-              let cutoff1 = date.getTime() + this.options.offset * 3600 * 1e3;
-              let cutoff2 = cutoff1 + 86400 * 1e3;
+              const cutoff1 = date.getTime() + this.options.offset * 3600 * 1e3;
+              const cutoff2 = cutoff1 + 86400 * 1e3;
               cmd += "rid:" + cutoff1 + ":" + cutoff2;
             } else {
               cmd += "prop:rated=" + (diffDays ? -diffDays : 0);
@@ -2997,10 +3004,10 @@ document.head.appendChild(__vite_style__);
           heatmap.highlight([calTodayDate, date]);
         },
         afterLoadData: function afterLoadData(timestamps) {
-          let results = {};
-          for (let timestamp_string in timestamps) {
-            let value = timestamps[timestamp_string];
-            let timestamp = parseInt(timestamp_string, 10);
+          const results = {};
+          for (const timestamp_string in timestamps) {
+            const value = timestamps[timestamp_string];
+            const timestamp = parseInt(timestamp_string, 10);
             results[timestamp + tzOffsetByTimestamp(timestamp)] = value;
           }
           return results;
@@ -3074,7 +3081,7 @@ document.head.appendChild(__vite_style__);
     return new Date(date.getTime() + date.getTimezoneOffset() * 60 * 1e3);
   }
   function tzOffsetByTimestamp(timestamp) {
-    let date = new Date(timestamp * 1e3);
+    const date = new Date(timestamp * 1e3);
     return date.getTimezoneOffset() * 60;
   }
   globalThis.ReviewHeatmap = ReviewHeatmap;

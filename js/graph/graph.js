@@ -72,7 +72,6 @@ try {
 
   if (historyRes.ok) historyData = await historyRes.json();
 } catch (e) {
-  // eslint-disable-next-line no-console
   console.warn("Caught exception initializing graph:", e);
   loading.textContent = "";
   const errDiv = document.createElement("div");

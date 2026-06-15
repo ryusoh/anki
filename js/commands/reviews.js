@@ -42,7 +42,7 @@ export function getReviewStatsData(rangeKey = DEFAULT_RANGE, byDeck = false) {
     }
     const firstTargetDate = targetDates.length > 0 ? targetDates[0] : null;
 
-    let preSliceGlobalTime = 0;
+    const preSliceGlobalTime = 0;
 
     // For each deck, construct an array matching targetDates
     const processedByDeck = {};
@@ -508,10 +508,10 @@ export function renderReviewsChart(
     };
     // Bolt: Replace multiple array maps with a single loop to reduce O(N) array allocations and GC pressure
     totalTimes = new Array(data.length);
-    let matureData = new Array(data.length);
-    let youngData = new Array(data.length);
-    let learnData = new Array(data.length);
-    let relearnData = new Array(data.length);
+    const matureData = new Array(data.length);
+    const youngData = new Array(data.length);
+    const learnData = new Array(data.length);
+    const relearnData = new Array(data.length);
 
     let runSum = isCumulative ? Number((preSumObj.time / 3600).toFixed(1)) : 0;
     let mSum = isCumulative

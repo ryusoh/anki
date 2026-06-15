@@ -104,7 +104,7 @@ export class TableGlassEffect {
     const target = this.table || this.container;
 
     // Observe size changes on the table (content) instead of just the container
-    // eslint-disable-next-line no-undef
+
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(target);
 

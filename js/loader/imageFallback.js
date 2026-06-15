@@ -11,7 +11,6 @@
       try {
         list = JSON.parse(listAttr);
       } catch (error) {
-        // eslint-disable-next-line no-console
         console.warn("Caught exception:", error);
         list = [];
       }
@@ -44,7 +43,6 @@
       attach(imgs[j]);
     }
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.warn("Caught exception:", error);
   }
 })();

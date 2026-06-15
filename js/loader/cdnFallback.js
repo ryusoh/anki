@@ -14,7 +14,6 @@
         document.head.appendChild(l);
       }
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.warn("Caught exception:", error);
     }
   }
@@ -60,7 +59,6 @@
               resolve();
             })
             .catch(function (error) {
-              // eslint-disable-next-line no-console
               console.warn("Caught exception:", error);
               resolve();
             });

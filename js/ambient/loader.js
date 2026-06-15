@@ -36,11 +36,9 @@
       .then(() => loadScript("/js/ambient/config.js", true))
       .then(() => loadScript("/js/ambient/ambient.js", true))
       .catch((error) => {
-        // eslint-disable-next-line no-console
         console.warn("Caught exception loading ambient scripts:", error);
       });
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.warn("Caught exception initializing ambient loader:", error);
   }
 })();

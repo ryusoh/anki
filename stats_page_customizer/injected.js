@@ -9,13 +9,13 @@
   // ======= ONE-TIME SETUP: Fetch interceptor =======
   if (!window.__scFetchPatched) {
     window.__scFetchPatched = true;
-    var origFetch = window.fetch;
+    const origFetch = window.fetch;
     window.__scActiveFetches = 0;
     window.__scOnFetchComplete = null;
 
     window.fetch = function (url, opts) {
       window.__scActiveFetches++;
-      var fetchPromise;
+      let fetchPromise;
 
       if (
         window.__scSixMonthMode &&
@@ -23,14 +23,14 @@
         opts.method === "POST" &&
         opts.body
       ) {
-        var u = typeof url === "string" ? url : "";
+        const u = typeof url === "string" ? url : "";
         if (u.includes("graph") || u.includes("Graph")) {
           if (typeof Blob !== "undefined" && opts.body instanceof Blob) {
-            var self = this;
-            var args = arguments;
+            const self = this;
+            const args = arguments;
             fetchPromise = opts.body.arrayBuffer().then(function (buf) {
               try {
-                var modified = patchProtobufDays(new Uint8Array(buf), 182);
+                const modified = patchProtobufDays(new Uint8Array(buf), 182);
                 return origFetch.call(
                   self,
                   url,
@@ -42,7 +42,7 @@
             });
           } else {
             try {
-              var modified = patchProtobufDays(opts.body, 182);
+              const modified = patchProtobufDays(opts.body, 182);
               if (modified !== opts.body) {
                 fetchPromise = origFetch.call(
                   this,
@@ -60,7 +60,7 @@
                 try {
                   buf = patchGraphsResponse(buf, 182);
                 } catch (e) {}
-                var init = { status: res.status, statusText: res.statusText };
+                const init = { status: res.status, statusText: res.statusText };
                 if (res.headers) init.headers = res.headers;
                 return new Response(buf, init);
               });
@@ -72,12 +72,12 @@
 
       if (!fetchPromise) fetchPromise = origFetch.apply(this, arguments);
 
-      var finalize = function (res) {
+      const finalize = function (res) {
         window.__scActiveFetches--;
         if (window.__scActiveFetches <= 0) {
           window.__scActiveFetches = 0;
           if (window.__scOnFetchComplete) {
-            var cb = window.__scOnFetchComplete;
+            const cb = window.__scOnFetchComplete;
             window.__scOnFetchComplete = null;
             setTimeout(cb, 50);
           }
@@ -94,10 +94,10 @@
   // ======= ONE-TIME SETUP: Math.min patch =======
   if (!window.__scMathMinPatched) {
     window.__scMathMinPatched = true;
-    var origMin = Math.min;
+    const origMin = Math.min;
     Math.min = function () {
       if (window.__scSixMonthMode && arguments.length === 2) {
-        var a = arguments[0],
+        const a = arguments[0],
           b = arguments[1];
         if (a === 70 && b > 70 && b <= 183 && Number.isInteger(b)) return b;
         if (b === 70 && a > 70 && a <= 183 && Number.isInteger(a)) return a;
@@ -109,7 +109,7 @@
   // ======= Protobuf helpers =======
 
   function decodeVarint(arr, offset) {
-    var val = 0,
+    let val = 0,
       shift = 0,
       i = offset,
       b;
@@ -124,29 +124,29 @@
   }
 
   function patchGraphsResponse(buf, maxDays) {
-    var arr = new Uint8Array(buf),
+    let arr = new Uint8Array(buf),
       i = 0;
     while (i < arr.length) {
-      var tagRes = decodeVarint(arr, i),
+      const tagRes = decodeVarint(arr, i),
         tag = tagRes.value,
         fieldNum = tag >>> 3,
         wireType = tag & 0x07;
       i = tagRes.next;
       if (wireType === 2) {
-        var lenRes = decodeVarint(arr, i),
+        const lenRes = decodeVarint(arr, i),
           len = lenRes.value;
         i = lenRes.next;
         if (fieldNum === 7 || fieldNum === 8 || fieldNum === 9) {
-          var endField = i + len;
+          const endField = i + len;
           while (i < endField) {
-            var startSub = i,
+            const startSub = i,
               subTagRes = decodeVarint(arr, i),
               subTag = subTagRes.value,
               subFieldNum = subTag >>> 3,
               subWireType = subTag & 0x07;
             i = subTagRes.next;
             if (subWireType === 2) {
-              var subLenRes = decodeVarint(arr, i),
+              const subLenRes = decodeVarint(arr, i),
                 subLen = subLenRes.value;
               i = subLenRes.next;
               if (subFieldNum === 1 || subFieldNum === 2) {
@@ -154,7 +154,7 @@
                   keyVal = 0,
                   mapI = i;
                 while (mapI < endMap) {
-                  var mTagRes = decodeVarint(arr, mapI),
+                  const mTagRes = decodeVarint(arr, mapI),
                     mTag = mTagRes.value,
                     mNum = mTag >>> 3,
                     mWType = mTag & 0x07;
@@ -165,12 +165,12 @@
                   } else if (mWType === 0) {
                     while (mapI < endMap && arr[mapI++] & 0x80);
                   } else if (mWType === 2) {
-                    var lRes = decodeVarint(arr, mapI);
+                    const lRes = decodeVarint(arr, mapI);
                     mapI = lRes.next + lRes.value;
                   } else if (mWType === 5) mapI += 4;
                   else if (mWType === 1) mapI += 8;
                 }
-                var shouldTruncate = false;
+                let shouldTruncate = false;
                 if (fieldNum === 7 && keyVal > maxDays) shouldTruncate = true;
                 if ((fieldNum === 8 || fieldNum === 9) && keyVal < -maxDays)
                   shouldTruncate = true;
@@ -192,17 +192,17 @@
   }
 
   function patchProtobufDays(body, newDays) {
-    var arr;
+    let arr;
     if (body instanceof Uint8Array) arr = body;
     else if (body instanceof ArrayBuffer) arr = new Uint8Array(body);
     else if (ArrayBuffer.isView(body))
       arr = new Uint8Array(body.buffer, body.byteOffset, body.byteLength);
     else return body;
-    var i = 0,
+    let i = 0,
       field2Start = -1,
       field2End = -1;
     while (i < arr.length) {
-      var startI = i,
+      const startI = i,
         tagRes = decodeVarint(arr, i),
         tag = tagRes.value,
         fieldNumber = tag >>> 3,
@@ -217,14 +217,14 @@
       if (wireType === 0) {
         while (i < arr.length && arr[i++] & 0x80);
       } else if (wireType === 2) {
-        var lRes = decodeVarint(arr, i);
+        const lRes = decodeVarint(arr, i);
         i = lRes.next + lRes.value;
       } else if (wireType === 5) i += 4;
       else if (wireType === 1) i += 8;
       else return body;
     }
-    var varint = [];
-    var v = newDays;
+    const varint = [];
+    let v = newDays;
     while (v > 0x7f) {
       varint.push((v & 0x7f) | 0x80);
       v >>>= 7;
@@ -253,7 +253,7 @@
   // ======= Helpers =======
 
   function isGraphRangeGroup(parentEl) {
-    for (var v = 0; v <= 3; v++) {
+    for (let v = 0; v <= 3; v++) {
       if (!parentEl.querySelector("input[type='radio'][value='" + v + "']"))
         return false;
     }
@@ -261,15 +261,15 @@
   }
 
   function isTimeSeriesGraph(radioGroupParent) {
-    var el = radioGroupParent;
-    for (var d = 0; d < 8 && el; d++) {
-      var headings = el.querySelectorAll(
+    let el = radioGroupParent;
+    for (let d = 0; d < 8 && el; d++) {
+      const headings = el.querySelectorAll(
         "h1, h2, h3, h4, h5, h6, .graph-title",
       );
       if (headings.length > 0) {
-        for (var h = 0; h < headings.length; h++) {
-          var text = headings[h].textContent || "";
-          var excludes = [
+        for (let h = 0; h < headings.length; h++) {
+          const text = headings[h].textContent || "";
+          const excludes = [
             "\u9593\u9694",
             "\u6642\u9593\u5E2F",
             "\u56DE\u7B54",
@@ -280,7 +280,7 @@
             "Retention",
             "Answer",
           ];
-          for (var e = 0; e < excludes.length; e++)
+          for (let e = 0; e < excludes.length; e++)
             if (text.indexOf(excludes[e]) >= 0) return false;
         }
         return true;
@@ -291,12 +291,12 @@
   }
 
   function triggerRefetch() {
-    var rangeBox = document.querySelector(".range-box");
+    const rangeBox = document.querySelector(".range-box");
     if (!rangeBox) return;
-    var yearRadio = null,
+    let yearRadio = null,
       allRadio = null;
-    var inputs = rangeBox.querySelectorAll("input[type='radio']");
-    for (var i = 0; i < inputs.length; i++) {
+    const inputs = rangeBox.querySelectorAll("input[type='radio']");
+    for (let i = 0; i < inputs.length; i++) {
       if (inputs[i].value === "1") yearRadio = inputs[i];
       if (inputs[i].value === "2") allRadio = inputs[i];
     }
@@ -313,17 +313,17 @@
     window.__scSixMonthMode = true;
     window.__scActivating = true;
     window.__scOnFetchComplete = null;
-    var synced = document.querySelectorAll("[data-sc-synced]");
-    for (var s = 0; s < synced.length; s++)
+    const synced = document.querySelectorAll("[data-sc-synced]");
+    for (let s = 0; s < synced.length; s++)
       synced[s].removeAttribute("data-sc-synced");
 
     triggerRefetch();
     setTimeout(function () {
-      var sixLabels = document.querySelectorAll("[data-six-month-label]");
-      for (var i = 0; i < sixLabels.length; i++) {
-        var parent = sixLabels[i].parentElement;
+      const sixLabels = document.querySelectorAll("[data-six-month-label]");
+      for (let i = 0; i < sixLabels.length; i++) {
+        const parent = sixLabels[i].parentElement;
         if (!parent) continue;
-        var allTimeRadio = parent.querySelector(
+        const allTimeRadio = parent.querySelector(
           "input[type='radio'][value='3']",
         );
         if (allTimeRadio) {
@@ -332,15 +332,15 @@
           window.__scActivating = false;
         }
       }
-      var sixRadios = document.querySelectorAll("[data-six-month-radio]");
-      for (var j = 0; j < sixRadios.length; j++) {
+      const sixRadios = document.querySelectorAll("[data-six-month-radio]");
+      for (let j = 0; j < sixRadios.length; j++) {
         sixRadios[j].checked = true;
-        var p = sixRadios[j].parentElement;
+        const p = sixRadios[j].parentElement;
         if (p && p.parentElement) {
-          var others = p.parentElement.querySelectorAll(
+          const others = p.parentElement.querySelectorAll(
             "input[type='radio']:not([data-six-month-radio])",
           );
-          for (var k = 0; k < others.length; k++) others[k].checked = false;
+          for (let k = 0; k < others.length; k++) others[k].checked = false;
         }
       }
       window.__scActivating = false;
@@ -349,18 +349,18 @@
 
   function deactivateSixMonthMode(clickedRadio) {
     window.__scSixMonthMode = false;
-    var sixRadios = document.querySelectorAll("[data-six-month-radio]");
+    const sixRadios = document.querySelectorAll("[data-six-month-radio]");
     for (var i = 0; i < sixRadios.length; i++) sixRadios[i].checked = false;
-    var synced = document.querySelectorAll("[data-sc-synced]");
-    for (var s = 0; s < synced.length; s++)
+    const synced = document.querySelectorAll("[data-sc-synced]");
+    for (let s = 0; s < synced.length; s++)
       synced[s].removeAttribute("data-sc-synced");
 
-    var graphTitle = "",
+    let graphTitle = "",
       clickedValue = clickedRadio ? clickedRadio.value : "";
     if (clickedRadio) {
-      var el = clickedRadio;
+      let el = clickedRadio;
       for (var i = 0; i < 8 && el; i++) {
-        var h = el.querySelector(".graph-title, h1, h2, h3, h4, h5, h6");
+        const h = el.querySelector(".graph-title, h1, h2, h3, h4, h5, h6");
         if (h) {
           graphTitle = (h.textContent || "").trim();
           break;
@@ -369,20 +369,20 @@
       }
     }
 
-    var restored = false;
-    var executeRestore = function () {
+    let restored = false;
+    const executeRestore = function () {
       if (restored) return;
       restored = true;
       if (!graphTitle || clickedValue === "") return;
-      var allRadios = document.querySelectorAll(
+      const allRadios = document.querySelectorAll(
         "input[type='radio'][value='" + clickedValue + "']",
       );
-      for (var i = 0; i < allRadios.length; i++) {
-        var r = allRadios[i],
+      for (let i = 0; i < allRadios.length; i++) {
+        let r = allRadios[i],
           el = r,
           foundMatch = false;
-        for (var d = 0; d < 8 && el; d++) {
-          var h = el.querySelector(".graph-title, h1, h2, h3, h4, h5, h6");
+        for (let d = 0; d < 8 && el; d++) {
+          const h = el.querySelector(".graph-title, h1, h2, h3, h4, h5, h6");
           if (h && (h.textContent || "").trim() === graphTitle) {
             foundMatch = true;
             break;
@@ -392,13 +392,13 @@
         if (foundMatch) {
           window.__scActivating = true;
           r.click();
-          var container = r;
-          for (var c = 0; c < 8 && container; c++) {
-            var siblingRadios = container.querySelectorAll(
+          let container = r;
+          for (let c = 0; c < 8 && container; c++) {
+            const siblingRadios = container.querySelectorAll(
               "input[type='radio']",
             );
             if (siblingRadios.length >= 4) {
-              for (var j = 0; j < siblingRadios.length; j++)
+              for (let j = 0; j < siblingRadios.length; j++)
                 siblingRadios[j].checked =
                   siblingRadios[j].value === clickedValue;
               break;
@@ -411,11 +411,11 @@
       }
     };
 
-    var rangeBox = document.querySelector(".range-box");
+    const rangeBox = document.querySelector(".range-box");
     if (rangeBox) {
-      var yearRadio = null,
+      let yearRadio = null,
         allRadio = null;
-      var inputs = rangeBox.querySelectorAll("input[type='radio']");
+      const inputs = rangeBox.querySelectorAll("input[type='radio']");
       for (var i = 0; i < inputs.length; i++) {
         if (inputs[i].value === "1") yearRadio = inputs[i];
         if (inputs[i].value === "2") allRadio = inputs[i];
@@ -442,26 +442,28 @@
   // ======= Main DOM manipulation =======
   function applyChanges() {
     if (window.__scSixMonthMode) {
-      var activeSixRadios = document.querySelectorAll("[data-six-month-radio]");
+      const activeSixRadios = document.querySelectorAll(
+        "[data-six-month-radio]",
+      );
       for (var i = 0; i < activeSixRadios.length; i++) {
         if (!activeSixRadios[i].checked) activeSixRadios[i].checked = true;
-        var p = activeSixRadios[i].parentElement;
+        const p = activeSixRadios[i].parentElement;
         if (p && p.parentElement) {
-          var nativeOthers = p.parentElement.querySelectorAll(
+          const nativeOthers = p.parentElement.querySelectorAll(
             "input[type='radio']:not([data-six-month-radio])",
           );
-          for (var k = 0; k < nativeOthers.length; k++)
+          for (let k = 0; k < nativeOthers.length; k++)
             if (nativeOthers[k].checked) nativeOthers[k].checked = false;
         }
       }
     }
 
-    var rangeBox = document.querySelector(".range-box");
+    const rangeBox = document.querySelector(".range-box");
     if (rangeBox) {
-      var rbLabels = rangeBox.querySelectorAll("label");
-      var rbYearLabel = null,
+      const rbLabels = rangeBox.querySelectorAll("label");
+      let rbYearLabel = null,
         rbAllLabel = null;
-      for (var ri = 0; ri < rbLabels.length; ri++) {
+      for (let ri = 0; ri < rbLabels.length; ri++) {
         var inp = rbLabels[ri].querySelector("input[type='radio']");
         if (!inp) continue;
         if (inp.value === "1") rbYearLabel = rbLabels[ri];
@@ -470,12 +472,12 @@
       if (rbYearLabel && rbYearLabel.style.display !== "none")
         rbYearLabel.style.display = "none";
       if (rbAllLabel) {
-        var allInp = rbAllLabel.querySelector("input[type='radio']");
+        const allInp = rbAllLabel.querySelector("input[type='radio']");
         if (allInp && !allInp.checked) allInp.click();
         if (rbAllLabel.style.display !== "none")
           rbAllLabel.style.display = "none";
         if (rbAllLabel.parentElement) {
-          var vis = Array.from(
+          const vis = Array.from(
             rbAllLabel.parentElement.querySelectorAll("label"),
           ).filter(function (l) {
             return l.style.display !== "none";
@@ -485,20 +487,20 @@
       }
     }
 
-    var allLabelsForHide = document.querySelectorAll("label");
+    const allLabelsForHide = document.querySelectorAll("label");
     for (var i = 0; i < allLabelsForHide.length; i++) {
-      var l = allLabelsForHide[i],
+      const l = allLabelsForHide[i],
         radio0 = l.querySelector("input[type='radio'][value='0']");
       if (radio0) {
-        var el = l,
+        let el = l,
           isIntervals = false;
-        for (var d = 0; d < 8 && el; d++) {
-          var headings = el.querySelectorAll(
+        for (let d = 0; d < 8 && el; d++) {
+          const headings = el.querySelectorAll(
             "h1, h2, h3, h4, h5, h6, .graph-title",
           );
           if (headings.length > 0) {
-            for (var h = 0; h < headings.length; h++) {
-              var text = headings[h].textContent || "";
+            for (let h = 0; h < headings.length; h++) {
+              const text = headings[h].textContent || "";
               if (
                 text.indexOf("\u9593\u9694") >= 0 ||
                 text.indexOf("Interval") >= 0
@@ -514,9 +516,9 @@
         if (isIntervals && l.style.display !== "none") {
           l.style.display = "none";
           if (radio0.checked) {
-            var parentGrp = l.parentElement;
+            const parentGrp = l.parentElement;
             if (parentGrp) {
-              var r1 = parentGrp.querySelector(
+              const r1 = parentGrp.querySelector(
                 "input[type='radio'][value='1']",
               );
               if (r1) r1.click();
@@ -526,23 +528,23 @@
       }
     }
 
-    var allLabels = document.querySelectorAll(
+    const allLabels = document.querySelectorAll(
       "label:not([data-six-month-label])",
     );
-    for (var ti = 0; ti < allLabels.length; ti++) {
-      var label = allLabels[ti];
+    for (let ti = 0; ti < allLabels.length; ti++) {
+      const label = allLabels[ti];
       if (label.closest && label.closest(".range-box")) continue;
       if (label.getAttribute("data-six-month-added")) continue;
       var inp = label.querySelector("input[type='radio']");
       if (!inp || inp.value !== "1") continue;
-      var parent = label.parentElement;
+      const parent = label.parentElement;
       if (!parent || !isGraphRangeGroup(parent) || !isTimeSeriesGraph(parent))
         continue;
 
       label.setAttribute("data-six-month-added", "true");
-      var sixLabel = document.createElement("label");
+      const sixLabel = document.createElement("label");
       sixLabel.setAttribute("data-six-month-label", "true");
-      var sixRadio = document.createElement("input");
+      const sixRadio = document.createElement("input");
       sixRadio.type = "radio";
       sixRadio.setAttribute("data-six-month-radio", "true");
       if (inp.name) sixRadio.name = inp.name;
@@ -562,10 +564,10 @@
         })(sixRadio),
       );
 
-      var nativeRadios = parent.querySelectorAll(
+      const nativeRadios = parent.querySelectorAll(
         "input[type='radio']:not([data-six-month-radio])",
       );
-      for (var ni = 0; ni < nativeRadios.length; ni++) {
+      for (let ni = 0; ni < nativeRadios.length; ni++) {
         if (nativeRadios[ni].getAttribute("data-sc-deact")) continue;
         nativeRadios[ni].setAttribute("data-sc-deact", "true");
         nativeRadios[ni].addEventListener(
@@ -581,7 +583,7 @@
       if (window.__scSixMonthMode) {
         if (!parent.getAttribute("data-sc-synced")) {
           parent.setAttribute("data-sc-synced", "true");
-          var allTimeRadio = parent.querySelector(
+          const allTimeRadio = parent.querySelector(
             "input[type='radio'][value='3']",
           );
           if (allTimeRadio) {

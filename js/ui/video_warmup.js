@@ -71,7 +71,6 @@
         try {
           video.load();
         } catch (error) {
-          // eslint-disable-next-line no-console
           console.warn("Caught exception:", error);
           // Ignore playback readiness errors; fallback will still cache the source
         }
@@ -91,7 +90,6 @@
       cache: "force-cache",
       redirect: "follow",
     }).catch((err) => {
-      // eslint-disable-next-line no-console
       console.warn("Failed to pre-warm video source:", err);
     });
   }

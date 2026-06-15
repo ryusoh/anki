@@ -33,7 +33,7 @@ if (typeof window !== "undefined" && window.matchMedia(MOBILE_QUERY).matches) {
     })
     .catch((error) => {
       // Safely ignore failures so desktop remains unaffected.
-      // eslint-disable-next-line no-console
+
       console.warn(
         "Caught exception initializing mobile ambient/fallback:",
         error,

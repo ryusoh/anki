@@ -38,14 +38,14 @@ function init() {
 $(init);
 
 function handleDropEvent(event, ui) {
-  var draggedDeckId = ui.draggable.attr("id");
-  var ontoDeckId = $(this).attr("id") || "";
+  const draggedDeckId = ui.draggable.attr("id");
+  const ontoDeckId = $(this).attr("id") || "";
 
   pycmd("drag:" + draggedDeckId + "," + ontoDeckId);
 }
 
 function columnDropEvent(event, ui) {
-  var draggedDeckId = ui.draggable.attr("colpos");
-  var ontoDeckId = $(this).attr("colpos") || "";
+  const draggedDeckId = ui.draggable.attr("colpos");
+  const ontoDeckId = $(this).attr("colpos") || "";
   pycmd("dragColumn:" + draggedDeckId + "," + ontoDeckId);
 }

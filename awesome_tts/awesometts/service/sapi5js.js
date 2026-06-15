@@ -26,20 +26,20 @@
 
 /*globals WScript*/
 
-var argv = WScript.arguments;
+const argv = WScript.arguments;
 
 if (typeof argv !== "object") {
   throw new Error("Unable to read from the arguments list");
 }
 
-var argc = argv.count();
+const argc = argv.count();
 
 if (typeof argc !== "number" || argc < 1) {
   throw new Error("Expecting the command to execute");
 }
 
-var command = argv.item(0);
-var options = {};
+const command = argv.item(0);
+const options = {};
 
 if (command === "voice-list") {
   if (argc > 1) {
@@ -50,7 +50,7 @@ if (command === "voice-list") {
     throw new Error("Expecting exactly 7 arguments for speech-output");
   }
 
-  var getWavePath = function (path) {
+  const getWavePath = function (path) {
     if (path.length < 5 || !/\.wav$/i.test(path)) {
       throw new Error("Expecting a path ending in .wav");
     }
@@ -58,12 +58,12 @@ if (command === "voice-list") {
     return path;
   };
 
-  var getInteger = function (str, lower, upper, what) {
+  const getInteger = function (str, lower, upper, what) {
     if (!/^-?\d{1,3}$/.test(str)) {
       throw new Error("Expected an integer for " + what);
     }
 
-    var value = parseInt(str, 10);
+    const value = parseInt(str, 10);
 
     if (value < lower || value > upper) {
       throw new Error("Value for " + what + " out of range");
@@ -72,13 +72,13 @@ if (command === "voice-list") {
     return value;
   };
 
-  var getUnicodeFromHex = function (hex, what) {
+  const getUnicodeFromHex = function (hex, what) {
     if (typeof hex !== "string" || hex.length < 4 || hex.length % 4 !== 0) {
       throw new Error("Expected quad-chunked hex string for " + what);
     }
 
-    var i;
-    var unicode = [];
+    let i;
+    const unicode = [];
 
     for (i = 0; i < hex.length; i += 4) {
       unicode.push(parseInt(hex.substr(i, 4), 16));
@@ -99,13 +99,13 @@ if (command === "voice-list") {
   throw new Error("Unrecognized command sent");
 }
 
-var sapi = WScript.createObject("SAPI.SpVoice");
+const sapi = WScript.createObject("SAPI.SpVoice");
 
 if (typeof sapi !== "object") {
   throw new Error("SAPI does not seem to be available");
 }
 
-var voices = sapi.getVoices();
+const voices = sapi.getVoices();
 
 if (typeof voices !== "object") {
   throw new Error("Voice retrieval does not seem to be available");
@@ -115,19 +115,19 @@ if (typeof voices.count !== "number" || voices.count < 1) {
   throw new Error("There does not seem to be any voices installed");
 }
 
-var i;
+let i;
 
 if (command === "voice-list") {
   WScript.echo("__AWESOMETTS_VOICE_LIST__");
 
-  var getHexFromUnicode = function (unicode) {
+  const getHexFromUnicode = function (unicode) {
     if (typeof unicode !== "string" || !unicode.length) {
       return "";
     }
 
-    var i = 0;
-    var chunk;
-    var hex = [];
+    let i = 0;
+    let chunk;
+    const hex = [];
 
     for (i = 0; i < unicode.length; ++i) {
       chunk = unicode.charCodeAt(i).toString(16);
@@ -168,7 +168,7 @@ if (command === "voice-list") {
       WScript.echo("Warning: Attribute extraction failed: " + e.message);
     }
 
-    if (typeof name == "string" && name.length > 0) {
+    if (typeof name === "string" && name.length > 0) {
       WScript.echo(
         getHexFromUnicode(name) +
           " " +
@@ -178,8 +178,8 @@ if (command === "voice-list") {
     }
   }
 } else if (command === "speech-output") {
-  var found = false;
-  var voice;
+  let found = false;
+  let voice;
 
   for (i = 0; i < voices.count; ++i) {
     voice = voices.item(i);
@@ -195,7 +195,7 @@ if (command === "voice-list") {
     throw new Error("Could not find the specified voice.");
   }
 
-  var audioOutputStream = WScript.createObject("SAPI.SpFileStream");
+  const audioOutputStream = WScript.createObject("SAPI.SpFileStream");
 
   if (typeof audioOutputStream !== "object") {
     throw new Error("Unable to create an output file");
