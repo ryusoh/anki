@@ -207,4 +207,4 @@ class GoogleTTS(Service):
                 self._logger.error(f"Network error in Google Cloud TTS API request: {e}")
                 raise ValueError(
                     "A network error occurred while communicating with the Google Cloud TTS API."
-                )
+                ) from e

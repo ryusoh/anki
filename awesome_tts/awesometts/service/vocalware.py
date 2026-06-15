@@ -106,7 +106,7 @@ class VocalWare(Service):
             try:
                 response = requests.get(url, timeout=10)
             except requests.exceptions.RequestException as e:
-                raise ValueError(f"Network error: {e}")
+                raise ValueError(f"Network error: {e}") from e
             if response.status_code == 200:
                 with open(path, 'wb') as audio:
                     audio.write(response.content)

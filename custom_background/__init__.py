@@ -119,7 +119,7 @@ from anki.utils import pointVersion
 
 def maybe_adjust_filename_for_2136(filename):
     if pointVersion() >= 36:
-        filename = filename.lstrip("css/")
+        filename = filename.removeprefix("css/")
     return filename
 
 

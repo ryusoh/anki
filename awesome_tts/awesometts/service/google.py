@@ -357,4 +357,4 @@ class Google(Service):
                 )
                 if getattr(io_error, 'code', None) == 503
                 else io_error
-            )
+            ) from io_error

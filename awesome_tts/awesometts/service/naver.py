@@ -187,7 +187,6 @@ def _generate_headers():
     return {
         'authorization': auth,
         'timestamp': timestamp_str,
-        'Content-Type': 'application/x-www-form-urlencoded',
         'Host': 'papago.naver.com',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0',
         'Accept': 'application/json',
@@ -252,7 +251,7 @@ class Naver(Service):
         try:
             response = requests.post(url, headers=headers, data=params, timeout=10)
         except requests.exceptions.RequestException as e:
-            raise Exception(f"Network error: {e}")
+            raise Exception(f"Network error: {e}") from e
         if response.status_code != 200:
             raise Exception(
                 f'got status_code {response.status_code} from {url}: {response.content} '

@@ -113,7 +113,7 @@ class Watson(Service):
                 )
             except requests.exceptions.RequestException as e:
                 self._logger.error(f"Network error: {e}")
-                raise ValueError(f"Network error: {e}")
+                raise ValueError(f"Network error: {e}") from e
 
             if response.status_code == 200:
                 with open(path, 'wb') as audio:

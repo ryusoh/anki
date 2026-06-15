@@ -61,7 +61,8 @@ class HeatmapInjector(ABC):
     def __init__(self, controller: HeatmapController):
         self._controller = controller
 
-    def register(self): ...
+    def register(self):
+        """Register the injector."""
 
 
 # Deck Browser (Main view)

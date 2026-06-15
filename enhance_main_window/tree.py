@@ -56,7 +56,7 @@ def computeValues():
 
     for table, query_list in queries_by_table.items():
         select_parts = ["did"]
-        for idx, (name, condition, addend) in enumerate(query_list):
+        for _idx, (_name, condition, addend) in enumerate(query_list):
             expr = addend if addend else "1"
             if condition:
                 select_parts.append(f"SUM(CASE WHEN {condition} THEN {expr} ELSE NULL END)")
@@ -69,7 +69,7 @@ def computeValues():
 
         for row in results:
             did = row[0]
-            for idx, (name, condition, addend) in enumerate(query_list):
+            for idx, (name, _condition, _addend) in enumerate(query_list):
                 val = row[idx + 1]
                 if val is not None and val > 0:
                     debug(f"In deck {did} there are {val} cards of kind {name}")

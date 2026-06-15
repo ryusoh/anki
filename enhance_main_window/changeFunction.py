@@ -1,7 +1,3 @@
-try:
-    from anki.sched import Scheduler
-except ModuleNotFoundError:
-    pass
 from aqt.deckbrowser import DeckBrowser
 
 from .column import _linkHandler

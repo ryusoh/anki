@@ -260,7 +260,8 @@ class HeatmapRenderer:
                 levels = dynamic_levels
 
             css_class = self._css_colors[0]
-            for threshold, css_class in levels:
+            for threshold, cls in levels:
+                css_class = cls
                 if value <= threshold:
                     break
 

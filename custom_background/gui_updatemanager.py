@@ -142,27 +142,17 @@ class SettingsDialog(QDialog):
         f.scaleBox.valueChanged.connect(self._updateSpinBox)
 
         # LineEdits -------------
-        a = f.lineEdit_background
-        t = a.text()
-        a.textChanged.connect(
-            lambda t=a.text(): self._updateLineEdit(t, "Image name for background")
+        f.lineEdit_background.textChanged.connect(
+            lambda t: self._updateLineEdit(t, "Image name for background")
         )
 
-        a = f.lineEdit_gear
-        t = a.text()
-        a.textChanged.connect(lambda t=a.text(): self._updateLineEdit(t, "Image name for gear"))
+        f.lineEdit_gear.textChanged.connect(lambda t: self._updateLineEdit(t, "Image name for gear"))
 
-        a = f.lineEdit_color_main
-        t = a.text()
-        a.textChanged.connect(lambda t=a.text(): self._updateLineEdit(t, "background-color main"))
+        f.lineEdit_color_main.textChanged.connect(lambda t: self._updateLineEdit(t, "background-color main"))
 
-        a = f.lineEdit_color_top
-        t = a.text()
-        a.textChanged.connect(lambda t=a.text(): self._updateLineEdit(t, "background-color top"))
+        f.lineEdit_color_top.textChanged.connect(lambda t: self._updateLineEdit(t, "background-color top"))
 
-        a = f.lineEdit_color_bottom
-        t = a.text()
-        a.textChanged.connect(lambda t=a.text(): self._updateLineEdit(t, "background-color bottom"))
+        f.lineEdit_color_bottom.textChanged.connect(lambda t: self._updateLineEdit(t, "background-color bottom"))
 
     def loadConfigData(self):
         f = self.form

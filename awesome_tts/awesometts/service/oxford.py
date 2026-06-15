@@ -179,7 +179,7 @@ class Oxford(Service):
                     "phrases are not."
                     if text.count('-')
                     else "The Oxford Dictionary does not recognize this word."
-                )
+                ) from io_error
             else:
                 raise
         except ValueError as error:
@@ -187,7 +187,7 @@ class Oxford(Service):
                 raise IOError(
                     "The Oxford Dictionary has no exact match for your input. "
                     "You can enable fuzzy-matching in options."
-                )
+                ) from error
             raise error
 
         parser = OxfordLister(self._logger, options['voice'])
