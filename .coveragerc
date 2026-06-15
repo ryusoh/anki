@@ -1,0 +1,15 @@
+# Coverage config for the Python test suites. See the `check-py` Makefile
+# target: it runs each addon's tests as a separate pytest invocation and
+# accumulates coverage with --cov-append, then prints one report. This mirrors
+# the JS coverage report produced by `check-node` (c8).
+[run]
+branch = True
+omit =
+    */tests/*
+    tests/*
+    tools/test_*.py
+    conftest.py
+    */__pycache__/*
+
+[report]
+show_missing = True

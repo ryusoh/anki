@@ -173,10 +173,44 @@ check-handler-regression:
 check-handler-validation:
 	@node tests/validateCommand.real.test.mjs
 
+# Python test suites run as INDEPENDENT pytest invocations: each addon's tests
+# bootstrap their own sys.path (e.g. `sys.path.insert(0, <addon>)`), so a single
+# combined `pytest` run fails to collect. Coverage is accumulated across suites
+# with --cov-append and reported once (mirrors check-node's JS coverage report).
+# Requires pytest-cov (declared in requirements.txt) — run `make install` first.
+# Excluded: tabbed_stats/tests — pre-existing failures under the root conftest
+# mocks (tabbed_stats/tests/test_addcards_deleted_widget.py); fix separately.
+PY_TEST_SUITES := \
+	auto_image/tests \
+	auto_mathjax/tests \
+	auto_wiktionary/tests \
+	data/anki/tests \
+	graph/tests \
+	highlight_search_matches/tests \
+	prioritize_front_field_search/tests \
+	remove_deck_highlight/tests \
+	rewrite_text_of_study_cards/tests \
+	stats_page_customizer/tests \
+	strip_html_tags/tests \
+	unify_review_count_colors/tests \
+	tests \
+	tools
+
 check-py:
-	@echo "🐍 Running Python Test Suite..."
-	@pytest -q --disable-warnings data/anki/tests/test_incremental_upload.py data/anki/tests/test_incremental_upload_comprehensive.py data/anki/tests/test_calculate_future_due.py data/anki/tests/test_fail_open.py
-	@echo "✅ Python tests complete"
+	@echo "🐍 Running Python Test Suite (with coverage)..."
+	@# Invoke coverage via `python -m` (never bare `coverage`): the repo-root
+	@# coverage/ directory shadows the `coverage` command on PATH.
+	@$(PYTHON) -m coverage erase
+	@FAIL=0; \
+	for suite in $(PY_TEST_SUITES); do \
+		echo "  → $$suite"; \
+		pytest -q --disable-warnings --cov --cov-append --cov-report= "$$suite" || FAIL=1; \
+	done; \
+	echo ""; \
+	echo "📊 Combined Python coverage:"; \
+	$(PYTHON) -m coverage report -m; \
+	if [ "$$FAIL" != "0" ]; then echo "❌ Python tests failed"; exit 1; fi; \
+	echo "✅ Python tests complete"
 
 # -----------------------------------------------------------------------------
 # Pre-commit Checks
