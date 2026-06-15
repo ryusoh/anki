@@ -1,0 +1,65 @@
+# Python tooling config for first-party addon code (ruff/black).
+# mypy lives in mypy.ini; bandit in .bandit. Third-party addons
+# (awesome_tts, review_heatmap, enhance_main_window, custom_background, …) are
+# excluded — we do not enforce our style on code we did not author.
+
+[tool.black]
+line-length = 100
+target-version = ["py39"]
+skip-string-normalization = true
+extend-exclude = '''
+/(
+    awesome_tts
+  | review_heatmap
+  | enhance_main_window
+  | custom_background
+  | animated_glass_background
+  | mac_transparent_titlebar
+  | hide_window_title
+  | hide_deck_collapse
+  | toggle_bottom_pane
+  | \.venv
+  | venv
+  | node_modules
+  | coverage
+  | data
+)/
+'''
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+extend-exclude = [
+    "awesome_tts",
+    "review_heatmap",
+    "enhance_main_window",
+    "custom_background",
+    "animated_glass_background",
+    "mac_transparent_titlebar",
+    "hide_window_title",
+    "hide_deck_collapse",
+    "toggle_bottom_pane",
+    ".venv",
+    "venv",
+    "node_modules",
+    "coverage",
+    "data",
+]
+
+[tool.ruff.lint]
+select = [
+    "E", # pycodestyle errors
+    "F", # pyflakes
+    "I", # isort
+    "B", # flake8-bugbear
+]
+ignore = [
+    "E501", # line length handled by black
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Anki addons manipulate sys.path before importing, so imports are not at the
+# top of the module (E402). Tests also re-import fixtures (F401/F811).
+"**/tests/**" = ["E402", "F401", "F811"]
+"conftest.py" = ["E402"]
+"**/__init__.py" = ["F401"]

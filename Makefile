@@ -1,4 +1,5 @@
-.PHONY: help fetch fetch-r2 check precommit precommit-fix fmt fmt-check lint lint-fix hooks
+.PHONY: help fetch fetch-r2 check precommit precommit-fix fmt fmt-check lint lint-js lint-css lint-fix hooks \
+	quality-py lint-py fmt-py fmt-py-check typecheck security-py install-dev
 
 PYTHON := python3
 NPM := npm
@@ -10,6 +11,15 @@ MD_FILES := $(shell git ls-files --cached --others --exclude-standard '*.md' 2>/
 HTML_FILES := $(shell git ls-files --cached --others --exclude-standard '*.html' 2>/dev/null | grep -v '^coverage/' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
 JSON_FILES := $(shell git ls-files --cached --others --exclude-standard '*.json' 2>/dev/null | grep -v '^data/' | grep -v '^graph/' | grep -v '^coverage/' | grep -v 'package-lock.json' | grep -v 'custom_stats_data.json' | grep -v 'review_stats_data.json' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
 PRETTIER_FILES := $(JS_FILES) $(CSS_FILES) $(MD_FILES) $(HTML_FILES) $(JSON_FILES)
+
+# First-party Python we own (mirrors PY_TEST_SUITES). Third-party addons
+# (awesome_tts, review_heatmap, enhance_main_window, custom_background, …) are
+# excluded from style/type/security gates via the tool configs.
+PY_SRC := auto_image auto_mathjax auto_wiktionary data/anki graph \
+	highlight_search_matches prioritize_front_field_search remove_deck_highlight \
+	rewrite_text_of_study_cards stats_page_customizer strip_html_tags \
+	unify_review_count_colors tabbed_stats tools
+PY_ALL := $(PY_SRC) tests conftest.py
 
 help:
 	@echo "Targets:"
@@ -29,8 +39,10 @@ help:
 	@echo "                 MSG='msg' to commit and push after checks pass"
 	@echo "  fmt            Format code (Prettier)"
 	@echo "  fmt-check      Check formatting (dry-run)"
-	@echo "  lint           Run linters (ESLint if available)"
-	@echo "  lint-fix       Auto-fix lint issues"
+	@echo "  lint           Run JS+CSS+Markdown linters (ESLint/Stylelint/markdownlint)"
+	@echo "  lint-fix       Auto-fix JS/CSS/Markdown lint issues"
+	@echo "  quality-py     Python lint/format/type/security (ruff/black/mypy/bandit)"
+	@echo "  fmt-py         Auto-format Python (black + ruff --fix)"
 	@echo "  hooks          Install git pre-commit hook"
 
 # -----------------------------------------------------------------------------
@@ -41,6 +53,11 @@ install:
 	@echo "📦 Installing Python dependencies..."
 	@pip3 install -q -r requirements.txt
 	@echo "✅ Dependencies installed"
+
+install-dev:
+	@echo "📦 Installing Python dev/lint dependencies..."
+	@pip3 install -q -r requirements-dev.txt
+	@echo "✅ Dev dependencies installed"
 
 # -----------------------------------------------------------------------------
 # Data Fetching
@@ -224,10 +241,45 @@ check-py:
 	echo "✅ Python tests complete"
 
 # -----------------------------------------------------------------------------
+# Python Quality (ruff / black / mypy / bandit) — first-party code only.
+# Tools are pinned in requirements-dev.txt; run `pip install -r requirements-dev.txt`
+# (or activate the venv) first. Scope is controlled by pyproject.toml / mypy.ini /
+# .bandit, so third-party addons are excluded automatically.
+# -----------------------------------------------------------------------------
+
+quality-py: lint-py fmt-py-check typecheck security-py
+	@echo "✅ Python quality checks complete"
+
+lint-py:
+	@command -v ruff >/dev/null 2>&1 || { echo "⊘ ruff not installed (pip install -r requirements-dev.txt)"; exit 1; }
+	@echo "🐍 Ruff (lint)..."
+	@ruff check $(PY_ALL)
+
+fmt-py-check:
+	@command -v black >/dev/null 2>&1 || { echo "⊘ black not installed (pip install -r requirements-dev.txt)"; exit 1; }
+	@echo "🐍 Black (format check)..."
+	@black --check $(PY_ALL)
+
+fmt-py:
+	@echo "🐍 Black (format) + Ruff (autofix)..."
+	@black $(PY_ALL)
+	@ruff check --fix $(PY_ALL)
+
+typecheck:
+	@command -v mypy >/dev/null 2>&1 || { echo "⊘ mypy not installed (pip install -r requirements-dev.txt)"; exit 1; }
+	@echo "🐍 mypy (type check)..."
+	@mypy $(PY_SRC)
+
+security-py:
+	@command -v bandit >/dev/null 2>&1 || { echo "⊘ bandit not installed (pip install -r requirements-dev.txt)"; exit 1; }
+	@echo "🐍 Bandit (security, high severity)..."
+	@bandit -rq -lll --ini .bandit $(PY_SRC)
+
+# -----------------------------------------------------------------------------
 # Pre-commit Checks
 # -----------------------------------------------------------------------------
 
-precommit: $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt) fmt-check lint check
+precommit: $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt) fmt-check lint quality-py check
 	@echo ""
 	@echo "✅ Pre-commit checks passed"
 
@@ -325,21 +377,38 @@ fmt-check:
 # Linting
 # -----------------------------------------------------------------------------
 
-lint:
-	@if command -v npx >/dev/null 2>&1 && [ -n "$(strip $(JS_FILES))" ]; then \
+lint: lint-js lint-css lint-md
+
+lint-js:
+	@if command -v npx >/dev/null 2>&1; then \
 		if ls eslint.config.* .eslintrc* >/dev/null 2>&1; then \
-			echo "Linting JavaScript files..."; \
-			npx eslint $(JS_FILES); \
+			echo "Linting JavaScript (ESLint, first-party only)..."; \
+			npx eslint .; \
 		else \
 			echo "⊘ No ESLint config found — skipping JS lint"; \
 		fi; \
 	fi
-	@$(MAKE) lint-md
+
+lint-css:
+	@if command -v npx >/dev/null 2>&1; then \
+		if ls .stylelintrc* stylelint.config.* >/dev/null 2>&1; then \
+			echo "Linting CSS (Stylelint, first-party only)..."; \
+			npx stylelint "**/*.css"; \
+		else \
+			echo "⊘ No Stylelint config found — skipping CSS lint"; \
+		fi; \
+	fi
 
 lint-fix:
-	@if command -v npx >/dev/null 2>&1 && [ -n "$(strip $(JS_FILES))" ]; then \
-		echo "Fixing lint issues..."; \
-		npx eslint --fix $(JS_FILES) 2>/dev/null || echo "ESLint not configured or no issues"; \
+	@if command -v npx >/dev/null 2>&1; then \
+		if ls eslint.config.* .eslintrc* >/dev/null 2>&1; then \
+			echo "Fixing JS lint issues (ESLint)..."; \
+			npx eslint . --fix || true; \
+		fi; \
+		if ls .stylelintrc* stylelint.config.* >/dev/null 2>&1; then \
+			echo "Fixing CSS lint issues (Stylelint)..."; \
+			npx stylelint "**/*.css" --fix || true; \
+		fi; \
 	fi
 	@$(MAKE) lint-md-fix
 

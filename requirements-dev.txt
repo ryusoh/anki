@@ -1,0 +1,17 @@
+# Development & CI tooling (linters, type checks, security).
+# Runtime/test deps live in requirements.txt.
+
+# Python linters and security.
+# Pinned to match the local venv (/Users/lz/dev/.venv) so CI and local runs
+# produce identical formatting/lint results — a newer black/ruff can change
+# style and turn the build red unexpectedly.
+ruff==0.12.10
+black==25.1.0
+mypy==1.17.1
+bandit==1.8.6
+
+# Type stubs
+types-requests
+
+# Include runtime + test deps
+-r requirements.txt

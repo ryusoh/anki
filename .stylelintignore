@@ -1,0 +1,15 @@
+node_modules/
+coverage/
+graph_output/
+assets/vendor/
+data/
+**/*.min.css
+.venv/
+venv/
+.git/
+.claude/
+# Third-party Anki addons (not authored here)
+awesome_tts/
+review_heatmap/
+enhance_main_window/
+custom_background/

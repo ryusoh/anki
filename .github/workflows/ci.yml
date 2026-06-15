@@ -36,10 +36,11 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
-      - name: Install Python dependencies
-        run: make install
+      - name: Install Python dependencies (runtime + dev/lint, pinned)
+        run: pip install -r requirements-dev.txt
 
-      # Mirrors `make precommit SKIP=1`: fmt-check + lint + check (check-node +
-      # check-py), with no interactive fetch/R2 prompts and no auto-fixing.
+      # Mirrors `make precommit SKIP=1`: fmt-check + lint (JS/CSS/MD) +
+      # quality-py (ruff/black/mypy/bandit) + check (check-node + check-py),
+      # with no interactive fetch/R2 prompts and no auto-fixing.
       - name: Run pre-commit checks
         run: make precommit SKIP=1
