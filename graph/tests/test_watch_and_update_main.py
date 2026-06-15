@@ -35,10 +35,20 @@ def test_main_exec():
                         # already imported at the top of this file, so run_module
                         # emits a RuntimeWarning about re-executing it. run_path
                         # runs the file fresh (identical execution) without that.
-                        script = str(
-                            pathlib.Path(__file__).resolve().parent.parent / 'watch_and_update.py'
-                        )
-                        runpy.run_path(script, run_name='__main__')
+                        #
+                        # run_path executes the script in a NEW module namespace, so
+                        # the patch on graph.watch_and_update.increment above does NOT
+                        # apply to the freshly-run __main__ — its increment() is the
+                        # real one, which shells out via subprocess.run and mutates
+                        # the tracked graph/.incremental_config.json. Patch
+                        # subprocess.run at its source module (shared, so the fresh
+                        # module sees it too) to keep this test side-effect-free.
+                        with patch('subprocess.run'):
+                            script = str(
+                                pathlib.Path(__file__).resolve().parent.parent
+                                / 'watch_and_update.py'
+                            )
+                            runpy.run_path(script, run_name='__main__')
 
 
 def test_watch_auto_refresh():
