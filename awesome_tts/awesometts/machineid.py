@@ -38,6 +38,7 @@ try:
 except ImportError:
     winregistry_lib = None
 import logging
+from typing import Optional
 
 
 class MachineIdNotFound(RuntimeError):
@@ -51,7 +52,7 @@ def __sanitize__(id: str) -> str:
     return re.sub(r'[\x00-\x1f\x7f-\x9f\s]', '', id).strip()
 
 
-def __exec__(cmd: list) -> str:
+def __exec__(cmd: list) -> Optional[str]:
     try:
         return subprocess.run(
             cmd, shell=False, capture_output=True, check=True, encoding='utf-8'
@@ -60,7 +61,7 @@ def __exec__(cmd: list) -> str:
         return None
 
 
-def __read__(path: str) -> str:
+def __read__(path: str) -> Optional[str]:
     try:
         with open(path) as f:
             return f.read().strip()
@@ -68,7 +69,7 @@ def __read__(path: str) -> str:
         return None
 
 
-def __reg__(key_name: str, value_name: str) -> str:
+def __reg__(key_name: str, value_name: str) -> Optional[str]:
     if winregistry_lib is None:
         return None
     try:

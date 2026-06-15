@@ -41,10 +41,10 @@ __all__ = [
 def compact_json(obj):
     """Given an object, return a minimal JSON-encoded string."""
 
-    return json.dumps(obj, separators=compact_json.SEPARATORS)
+    return json.dumps(obj, separators=compact_json.SEPARATORS)  # type: ignore[attr-defined]
 
 
-compact_json.SEPARATORS = (',', ':')
+compact_json.SEPARATORS = (',', ':')  # type: ignore[attr-defined]
 
 
 def deserialized_dict(json_str):
@@ -75,12 +75,12 @@ def lax_bool(value):
 
     if isinstance(value, str):
         value = value.strip().strip('-0').lower()
-        return value not in lax_bool.FALSE_STRINGS
+        return value not in lax_bool.FALSE_STRINGS  # type: ignore[attr-defined]
 
     return bool(value)
 
 
-lax_bool.FALSE_STRINGS = ['', 'false', 'no', 'off', 'unset']
+lax_bool.FALSE_STRINGS = ['', 'false', 'no', 'off', 'unset']  # type: ignore[attr-defined]
 
 
 def normalized_ascii(value):
@@ -133,11 +133,11 @@ def substitution_compiled(rule):
     assert rule['input'], "Input pattern may not be empty"
     return re.compile(
         pattern=rule['input'] if rule['regex'] else re.escape(rule['input']),
-        flags=sum(value for key, value in substitution_compiled.FLAGS if rule[key]),
+        flags=sum(value for key, value in substitution_compiled.FLAGS if rule[key]),  # type: ignore[attr-defined]
     )
 
 
-substitution_compiled.FLAGS = [('ignore_case', re.IGNORECASE), ('unicode', re.UNICODE)]
+substitution_compiled.FLAGS = [('ignore_case', re.IGNORECASE), ('unicode', re.UNICODE)]  # type: ignore[attr-defined]
 
 
 def substitution_json(rules):
@@ -178,7 +178,7 @@ def substitution_list(json_str):
         if not ('replace' in candidate and isinstance(candidate['replace'], str)):
             continue
 
-        for key, default in substitution_list.DEFAULTS:
+        for key, default in substitution_list.DEFAULTS:  # type: ignore[attr-defined]
             if key not in candidate:
                 candidate[key] = default
 
@@ -195,4 +195,4 @@ def substitution_list(json_str):
     return rules
 
 
-substitution_list.DEFAULTS = [('regex', False), ('ignore_case', True), ('unicode', True)]
+substitution_list.DEFAULTS = [('regex', False), ('ignore_case', True), ('unicode', True)]  # type: ignore[attr-defined]

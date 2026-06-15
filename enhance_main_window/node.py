@@ -1,5 +1,6 @@
 import sys
 import time
+from typing import Any
 
 from anki.utils import ids2str, int_time
 from aqt import mw
@@ -35,8 +36,8 @@ debugWrongLine = debug
 
 
 # Dict from deck id to deck node
-idToNode = dict()
-idToOldNode = dict()
+idToNode: dict[int, Any] = {}
+idToOldNode: dict[int, Any] = {}
 
 
 def idFromOldNode(node):

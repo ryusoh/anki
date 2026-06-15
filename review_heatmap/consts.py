@@ -38,7 +38,8 @@ from ._version import __version__
 try:
     from .data.patrons import MEMBERS_CREDITED, MEMBERS_TOP
 except ImportError:
-    MEMBERS_CREDITED = MEMBERS_TOP = ()
+    MEMBERS_CREDITED = []
+    MEMBERS_TOP = []
 
 __all__ = ["ADDON"]
 

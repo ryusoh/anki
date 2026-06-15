@@ -103,7 +103,6 @@ HTML_STREAK: str = """
         class="sstats {class_streak_cur}">{text_streak_cur}</span>
 </div>
 """
-HTML_STREAK: str = ""
 HTML_INFO_NODATA: str = """
 No activity data to show (<span class="linkspan" onclick='pycmd("revhm_opts");'>options</span>).
 """

@@ -147,9 +147,9 @@ class _Delegate(aqt.qt.QItemDelegate):
         self, option, index  # pylint:disable=invalid-name
     ):  # pylint:disable=unused-argument
         """Always return the same size."""
-        return self.sizeHint.SIZE
+        return self.sizeHint.SIZE  # type: ignore[attr-defined]
 
-    sizeHint.SIZE = aqt.qt.QSize(-1, 40)
+    sizeHint.SIZE = aqt.qt.QSize(-1, 40)  # type: ignore[attr-defined]
 
 
 class _SubRuleDelegate(_Delegate):
@@ -258,7 +258,7 @@ class _SubRuleDelegate(_Delegate):
 
         if obj['compiled'] and obj['regex']:
             groups = obj['compiled'].groups
-            for group in self.setModelData.RE_SLASH.findall(obj['replace']):
+            for group in self.setModelData.RE_SLASH.findall(obj['replace']):  # type: ignore[attr-defined]
                 group = int(group)
                 if not group or group > groups:
                     obj['bad_replace'] = True
@@ -266,7 +266,7 @@ class _SubRuleDelegate(_Delegate):
 
         model.setData(index, obj)
 
-    setModelData.RE_SLASH = re.compile(r'\\(\d+)')
+    setModelData.RE_SLASH = re.compile(r'\\(\d+)')  # type: ignore[attr-defined]
 
 
 class _GroupPresetDelegate(_Delegate):
@@ -318,9 +318,9 @@ class _ListModel(aqt.qt.QAbstractListModel):  # pylint:disable=R0904
 
     def flags(self, index):  # pylint:disable=unused-argument
         """Always return same item flags."""
-        return self.flags.LIST_ITEM
+        return self.flags.LIST_ITEM  # type: ignore[attr-defined]
 
-    flags.LIST_ITEM = (
+    flags.LIST_ITEM = (  # type: ignore[attr-defined]
         aqt.qt.Qt.ItemFlag.ItemIsSelectable
         | aqt.qt.Qt.ItemFlag.ItemIsEditable
         | aqt.qt.Qt.ItemFlag.ItemIsEnabled

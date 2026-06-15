@@ -61,7 +61,7 @@ class FptAi(Service):
 
     def get_voices(self) -> List[StandardVoice]:
         naver_voices = [x for x in VOICE_LIST if x['service'] == 'FptAi']
-        naver_voices = sorted(naver_voices, key=lambda x: x['voice_description'])
+        naver_voices = sorted(naver_voices, key=lambda x: str(x['voice_description']))
         voice_list = []
         for voice_data in naver_voices:
             voice_list.append(StandardVoice(voice_data))

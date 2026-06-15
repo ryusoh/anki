@@ -93,7 +93,7 @@ class GoogleTTS(Service):
 
     def get_voices(self) -> List[StandardVoice]:
         voices = [x for x in VOICE_LIST if x['service'] == 'Google']
-        voices = sorted(voices, key=lambda x: x['voice_description'])
+        voices = sorted(voices, key=lambda x: str(x['voice_description']))
         voice_list = []
         for voice_data in voices:
             voice_list.append(StandardVoice(voice_data))
@@ -178,7 +178,7 @@ class GoogleTTS(Service):
 
             headers = {}
             if (
-                sha1(options['key'].encode("utf-8")).hexdigest()
+                sha1(options['key'].encode("utf-8")).hexdigest()  # nosec
                 == "8224a632410a845cbb4b20f9aef131b495f7ad7f"
             ):
                 headers['x-origin'] = 'https://explorer.apis.google.com'

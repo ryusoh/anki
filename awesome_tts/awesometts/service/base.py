@@ -27,6 +27,7 @@ import abc
 import os
 import subprocess
 import sys
+from typing import Any, List, Optional
 
 import aqt.sound
 import requests
@@ -151,11 +152,11 @@ class Service(object, metaclass=abc.ABCMeta):
 
     # abstract; to be overridden by the concrete classes
     # e.g. NAME = "ABC Service API"
-    NAME = None
+    NAME: Optional[str] = None
 
     # abstract; to be overridden by the concrete classes
     # e.g. TRAITS = [Trait.INTERNET, Trait.TRANSCODING]
-    TRAITS = None
+    TRAITS: Optional[List[Any]] = None
 
     def __init__(self, temp_dir, lame_flags, normalize, logger, ecosystem, languagetools, config):
         """

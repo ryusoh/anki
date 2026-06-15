@@ -300,7 +300,7 @@ class Configurator(Dialog):
 
         line_edit = aqt.qt.QLineEdit()
         line_edit.setObjectName(infix.join(['spec', suffix]))
-        line_edit.setValidator(self._ui_tabs_text_mode_simple_spec.ucsv)
+        line_edit.setValidator(self._ui_tabs_text_mode_simple_spec.ucsv)  # type: ignore[attr-defined]
         line_edit.setFixedWidth(50)
 
         hor = aqt.qt.QHBoxLayout()
@@ -326,7 +326,7 @@ class Configurator(Dialog):
             filtered = self.fixup(original)
             return aqt.qt.QValidator.State.Acceptable, filtered, len(filtered)
 
-    _ui_tabs_text_mode_simple_spec.ucsv = _UniqueCharacterStringValidator()
+    _ui_tabs_text_mode_simple_spec.ucsv = _UniqueCharacterStringValidator()  # type: ignore[attr-defined]
 
     def _ui_tabs_text_mode_adv(self, infix):
         """

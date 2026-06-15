@@ -144,7 +144,7 @@ class Snanki(QDialog):
         """
         Quick hacky workaround to open Patreon link on gameOver screen click.
         """
-        if self.gameOver and self.lives == 0:
+        if self.isOver and self.lives == 0:
             openLink(ADDON.LINKS["bepatron"])
         QDialog(self).mousePressEvent(event)
 

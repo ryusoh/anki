@@ -931,7 +931,7 @@ class Router(object):
         from hashlib import sha1
 
         hex_digest = (
-            sha1(hash_input.encode('utf-8') if isinstance(hash_input, str) else hash_input)
+            sha1(hash_input.encode('utf-8') if isinstance(hash_input, str) else hash_input)  # nosec
             .hexdigest()
             .lower()
         )

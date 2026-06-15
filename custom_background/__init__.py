@@ -16,6 +16,7 @@ from aqt.editor import pics
 
 # for the toolbar buttons
 from aqt.qt import *
+from aqt.qt import QDir
 from aqt.utils import openFolder
 
 from .adjust_css import *

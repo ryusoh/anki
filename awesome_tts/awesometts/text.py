@@ -173,12 +173,12 @@ class Sanitizer(object):  # call only, pylint:disable=too-few-public-methods
                     ''
                     if mode == 'remove'
                     else (
-                        self._rule_clozes_braced.wrapper
+                        self._rule_clozes_braced.wrapper  # type: ignore[attr-defined]
                         if mode == 'wrap'
                         else (
-                            self._rule_clozes_braced.deleter
+                            self._rule_clozes_braced.deleter  # type: ignore[attr-defined]
                             if mode == 'deleted'
-                            else self._rule_clozes_braced.ankier
+                            else self._rule_clozes_braced.ankier  # type: ignore[attr-defined]
                         )
                     )
                 )
@@ -186,15 +186,15 @@ class Sanitizer(object):  # call only, pylint:disable=too-few-public-methods
             text,
         )
 
-    _rule_clozes_braced.wrapper = lambda match: (
+    _rule_clozes_braced.wrapper = lambda match: (  # type: ignore[attr-defined]
         '... %s ...' % match.group(4).strip('.')
         if (match.group(4) and match.group(4).strip('.'))
         else '...'
     )
 
-    _rule_clozes_braced.deleter = lambda match: (match.group(2) if match.group(2) else '...')
+    _rule_clozes_braced.deleter = lambda match: (match.group(2) if match.group(2) else '...')  # type: ignore[attr-defined]
 
-    _rule_clozes_braced.ankier = lambda match: (match.group(4) if match.group(4) else '...')
+    _rule_clozes_braced.ankier = lambda match: (match.group(4) if match.group(4) else '...')  # type: ignore[attr-defined]
 
     def _rule_clozes_rendered(self, text, mode):
         """
@@ -210,20 +210,20 @@ class Sanitizer(object):  # call only, pylint:disable=too-few-public-methods
                     ''
                     if mode == 'remove'
                     else (
-                        self._rule_clozes_rendered.wrapper
+                        self._rule_clozes_rendered.wrapper  # type: ignore[attr-defined]
                         if mode == 'wrap'
-                        else self._rule_clozes_rendered.ankier
+                        else self._rule_clozes_rendered.ankier  # type: ignore[attr-defined]
                     )
                 )
             ),  # mode == 'anki'
             text,
         )
 
-    _rule_clozes_rendered.wrapper = lambda match: (
+    _rule_clozes_rendered.wrapper = lambda match: (  # type: ignore[attr-defined]
         '... %s ...' % match.group(1).strip('.') if match.group(1).strip('.') else match.group(1)
     )
 
-    _rule_clozes_rendered.ankier = lambda match: match.group(1)
+    _rule_clozes_rendered.ankier = lambda match: match.group(1)  # type: ignore[attr-defined]
 
     def _rule_clozes_revealed(self, text):
         """
@@ -249,13 +249,13 @@ class Sanitizer(object):  # call only, pylint:disable=too-few-public-methods
 
         return re.sub(
             r'[' + re.escape(characters) + ']{2,}',
-            self._rule_counter.wrapper if wrap else self._rule_counter.spacer,
+            self._rule_counter.wrapper if wrap else self._rule_counter.spacer,  # type: ignore[attr-defined]
             text,
         )
 
-    _rule_counter.wrapper = lambda match: (' ... ' + str(len(match.group(0))) + ' ... ')
+    _rule_counter.wrapper = lambda match: (' ... ' + str(len(match.group(0))) + ' ... ')  # type: ignore[attr-defined]
 
-    _rule_counter.spacer = lambda match: (' ' + str(len(match.group(0))) + ' ')
+    _rule_counter.spacer = lambda match: (' ' + str(len(match.group(0))) + ' ')  # type: ignore[attr-defined]
 
     def _rule_custom_sub(self, text, rules):
         """

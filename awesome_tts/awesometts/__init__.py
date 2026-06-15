@@ -25,6 +25,7 @@ import sys
 import uuid
 from os.path import join
 from time import time
+from typing import Any
 
 import anki
 import aqt
@@ -110,7 +111,7 @@ if 'AWESOMETTS_DEBUG_LOGGING' in os.environ:
 
     # on windows, some special characters can't be printed, replace them with ?
     if not hasattr(sys, '_pytest_mode'):
-        sys.stdout = io.TextIOWrapper(sys.stdout.detach(), sys.stdout.encoding, 'replace')
+        sys.stdout = io.TextIOWrapper(sys.stdout.detach(), sys.stdout.encoding, 'replace')  # type: ignore[union-attr]
     if os.environ['AWESOMETTS_DEBUG_LOGGING'] == 'enable':
         logging.basicConfig(
             format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
@@ -126,7 +127,7 @@ if 'AWESOMETTS_DEBUG_LOGGING' in os.environ:
             filename=filename,
             level=logging.DEBUG,
         )
-    logger = logging.getLogger('awesometts')
+    logger: Any = logging.getLogger('awesometts')
     logger.setLevel(logging.DEBUG)
 else:
     logger = Bundle(

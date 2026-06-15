@@ -39,7 +39,7 @@ class Watson(Service):
 
     def get_voices(self) -> List[StandardVoice]:
         voices = [x for x in VOICE_LIST if x['service'] == 'Watson']
-        voices = sorted(voices, key=lambda x: x['voice_description'])
+        voices = sorted(voices, key=lambda x: str(x['voice_description']))
         voice_list = []
         for voice_data in voices:
             voice_list.append(StandardVoice(voice_data))

@@ -24,7 +24,7 @@ Performs any migration tasks and then loads the 'awesometts' package.
 
 from sys import stderr
 
-__all__ = []
+__all__: list[str] = []
 
 
 if __name__ == "__main__":
@@ -44,10 +44,10 @@ import sys
 
 if hasattr(sys, '_pytest_mode'):
     # Use absolute import for testing
-    import awesometts  # noqa, pylint:disable=wrong-import-position
+    import awesometts  # noqa: E402, F401  # pylint:disable=wrong-import-position
 else:
     # Use relative import for normal Anki operation
-    from . import awesometts  # noqa, pylint:disable=wrong-import-position
+    from . import awesometts  # noqa: E402, F401  # pylint:disable=wrong-import-position
 
 
 # If a specific component of AwesomeTTS that you do not need is causing a

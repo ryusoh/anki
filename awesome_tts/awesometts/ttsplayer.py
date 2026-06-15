@@ -113,7 +113,7 @@ class AwesomeTTSPlayer(TTSProcessPlayer):
             groups = self._addon.config['groups']
             group = groups[group_name]
             if group_name not in groups:
-                self.failure(f"group {group_name} not found")
+                self.failure(f"group {group_name} not found", text)
                 return
 
             # print(f"** playing back group {self._addon.config['tts_voices'][language]}")
@@ -131,7 +131,7 @@ class AwesomeTTSPlayer(TTSProcessPlayer):
         # need to wait until we get either a successful callback, or
         self.done_event.wait(timeout=60)
 
-    def failure(self, exception, text):
+    def failure(self, exception, text=""):
         # don't do anything, can't popup any dialogs
         # print(f"* failure: {exception}")
         self.playback_error = True
@@ -153,7 +153,7 @@ class AwesomeTTSPlayer(TTSProcessPlayer):
             av_player.insert_file(self.audio_file_path)
 
         if self.playback_error:
-            aqt.utils.showWarning("AwesomeTTS: " + self.playback_error_message)
+            aqt.utils.showWarning(f"AwesomeTTS: {self.playback_error_message}")
 
         # then tell player to advance, which will cause the file to be played
         cb()

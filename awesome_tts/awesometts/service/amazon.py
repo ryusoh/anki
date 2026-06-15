@@ -34,9 +34,9 @@ class Amazon(Service):
         # no api key required, but this service is only usable with Language Tools
         return []
 
-    def get_voices(self) -> List[StandardVoice]:
+    def get_voices(self) -> List[AmazonVoice]:
         voices = [x for x in VOICE_LIST if x['service'] == 'Amazon']
-        voices = sorted(voices, key=lambda x: x['voice_description'])
+        voices = sorted(voices, key=lambda x: str(x['voice_description']))
         voice_list = []
         for voice_data in voices:
             voice_list.append(AmazonVoice(voice_data))

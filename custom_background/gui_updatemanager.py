@@ -8,20 +8,20 @@
 
 import os
 
-from anki.utils import pointVersion
-from aqt import mw
-from aqt.qt import *
-from aqt.utils import getFile, openFolder, openLink
+from anki.utils import pointVersion  # type: ignore
+from aqt import mw  # type: ignore
+from aqt.qt import QAction, QColorDialog, QDialog, QMenu, Qt  # type: ignore
+from aqt.utils import getFile, openFolder, openLink  # type: ignore
 
 try:
     from .settings_dialog_qt6 import Ui_Dialog
 except ImportError:
-    from .settings_dialog import Ui_Dialog
+    from .settings_dialog import Ui_Dialog  # type: ignore[assignment]
 
 
 from .config import addon_path, getDefaultConfig, getUserOption, writeConfig
 
-conf = getUserOption()
+conf = getUserOption() or getDefaultConfig()
 
 imgfolder = os.path.join(addon_path, "user_files")
 RE_BG_IMG_EXT = "*.gif *.png *.apng *.jpg *.jpeg *.svg *.ico *.bmp"
@@ -146,13 +146,21 @@ class SettingsDialog(QDialog):
             lambda t: self._updateLineEdit(t, "Image name for background")
         )
 
-        f.lineEdit_gear.textChanged.connect(lambda t: self._updateLineEdit(t, "Image name for gear"))
+        f.lineEdit_gear.textChanged.connect(
+            lambda t: self._updateLineEdit(t, "Image name for gear")
+        )
 
-        f.lineEdit_color_main.textChanged.connect(lambda t: self._updateLineEdit(t, "background-color main"))
+        f.lineEdit_color_main.textChanged.connect(
+            lambda t: self._updateLineEdit(t, "background-color main")
+        )
 
-        f.lineEdit_color_top.textChanged.connect(lambda t: self._updateLineEdit(t, "background-color top"))
+        f.lineEdit_color_top.textChanged.connect(
+            lambda t: self._updateLineEdit(t, "background-color top")
+        )
 
-        f.lineEdit_color_bottom.textChanged.connect(lambda t: self._updateLineEdit(t, "background-color bottom"))
+        f.lineEdit_color_bottom.textChanged.connect(
+            lambda t: self._updateLineEdit(t, "background-color bottom")
+        )
 
     def loadConfigData(self):
         f = self.form

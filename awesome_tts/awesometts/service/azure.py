@@ -108,7 +108,7 @@ class Azure(Service):
     def get_voices(self) -> List[AzureVoice]:
         # generated using tools/service_azure_voicelist.py
         azure_voices = [x for x in VOICE_LIST if x['service'] == 'Azure']
-        azure_voices = sorted(azure_voices, key=lambda x: x['voice_description'])
+        azure_voices = sorted(azure_voices, key=lambda x: str(x['voice_description']))
         voice_list = []
         for voice_data in azure_voices:
             voice_list.append(AzureVoice(voice_data))

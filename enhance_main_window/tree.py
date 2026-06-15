@@ -1,3 +1,5 @@
+from typing import Any
+
 from anki.utils import int_time
 from aqt import mw
 
@@ -76,7 +78,7 @@ def computeValues():
                     values[name][did] = val
 
 
-times = dict()
+times: dict[int, Any] = {}
 
 
 def computeTime():

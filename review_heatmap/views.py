@@ -36,7 +36,7 @@ Integration with Anki views
 from __future__ import annotations
 
 import json
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Callable, Optional
 
 from anki.hooks import addHook, remHook, wrap
@@ -61,6 +61,7 @@ class HeatmapInjector(ABC):
     def __init__(self, controller: HeatmapController):
         self._controller = controller
 
+    @abstractmethod
     def register(self):
         """Register the injector."""
 
