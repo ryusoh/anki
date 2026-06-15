@@ -16,6 +16,7 @@ def test_watch_keyboard_interrupt():
 
 def test_main_exec():
     import runpy
+    import pathlib
     with patch('graph.watch_and_update.argparse.ArgumentParser.parse_args') as mock_parse:
         mock_args = mock_parse.return_value
         mock_args.auto_refresh = False
@@ -26,7 +27,12 @@ def test_main_exec():
             with patch('graph.watch_and_update.increment') as mock_inc:
                 with patch('graph.watch_and_update.time.sleep'):
                     with patch('sys.exit'):
-                        runpy.run_module('graph.watch_and_update', run_name='__main__')
+                        # run_path (not run_module): graph.watch_and_update is
+                        # already imported at the top of this file, so run_module
+                        # emits a RuntimeWarning about re-executing it. run_path
+                        # runs the file fresh (identical execution) without that.
+                        script = str(pathlib.Path(__file__).resolve().parent.parent / 'watch_and_update.py')
+                        runpy.run_path(script, run_name='__main__')
 
 def test_watch_auto_refresh():
     with patch('graph.watch_and_update.argparse.ArgumentParser.parse_args') as mock_parse:

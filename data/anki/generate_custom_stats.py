@@ -40,11 +40,13 @@ def get_anki_today():
     
     try:
         conn = sqlite3.connect(collection_db)
-        cur = conn.cursor()
-        cur.execute("SELECT crt FROM col")
-        crt = cur.fetchone()[0]
-        conn.close()
-        
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT crt FROM col")
+            crt = cur.fetchone()[0]
+        finally:
+            conn.close()
+
         # Anki's day 0 is the collection creation date
         crt_date = datetime.fromtimestamp(crt).replace(hour=0, minute=0, second=0, microsecond=0)
         today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)

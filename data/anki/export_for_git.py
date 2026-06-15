@@ -18,44 +18,45 @@ OUTPUT_DIR = SCRIPT_DIR
 def fetch_and_anonymize(source_db):
     """Load data from Anki DB, excluding content fields."""
     conn = sqlite3.connect(source_db)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-    
-    # Cards with deck info
-    cur.execute("""
-        SELECT c.id, c.nid, c.did, c.ord, c.type, c.queue, c.due, 
-               c.ivl, c.factor, c.reps, c.lapses, c.flags,
-               d.name as deck_name
-        FROM cards c
-        LEFT JOIN decks d ON c.did = d.id
-    """)
-    cards = [dict(row) for row in cur.fetchall()]
-    
-    # Reviews (full history)
-    cur.execute("""
-        SELECT id, cid, ease, ivl, lastIvl, factor, time, type
-        FROM revlog
-        ORDER BY id
-    """)
-    reviews = [dict(row) for row in cur.fetchall()]
-    
-    # Decks
-    cur.execute("SELECT id, name FROM decks")
-    decks = {row[0]: row[1] for row in cur.fetchall()}
-    
-    # Note types
-    cur.execute("SELECT id, name FROM notetypes")
-    notetypes = {row[0]: row[1] for row in cur.fetchall()}
-    
-    # Notes metadata (no content)
-    cur.execute("""
-        SELECT id, mid, mod, usn, sfld, csum, flags
-        FROM notes
-    """)
-    notes = [dict(row) for row in cur.fetchall()]
-    
-    conn.close()
-    
+    try:
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+
+        # Cards with deck info
+        cur.execute("""
+            SELECT c.id, c.nid, c.did, c.ord, c.type, c.queue, c.due,
+                   c.ivl, c.factor, c.reps, c.lapses, c.flags,
+                   d.name as deck_name
+            FROM cards c
+            LEFT JOIN decks d ON c.did = d.id
+        """)
+        cards = [dict(row) for row in cur.fetchall()]
+
+        # Reviews (full history)
+        cur.execute("""
+            SELECT id, cid, ease, ivl, lastIvl, factor, time, type
+            FROM revlog
+            ORDER BY id
+        """)
+        reviews = [dict(row) for row in cur.fetchall()]
+
+        # Decks
+        cur.execute("SELECT id, name FROM decks")
+        decks = {row[0]: row[1] for row in cur.fetchall()}
+
+        # Note types
+        cur.execute("SELECT id, name FROM notetypes")
+        notetypes = {row[0]: row[1] for row in cur.fetchall()}
+
+        # Notes metadata (no content)
+        cur.execute("""
+            SELECT id, mid, mod, usn, sfld, csum, flags
+            FROM notes
+        """)
+        notes = [dict(row) for row in cur.fetchall()]
+    finally:
+        conn.close()
+
     return {
         'cards': cards,
         'reviews': reviews,

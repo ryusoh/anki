@@ -204,7 +204,7 @@ check-py:
 	@FAIL=0; \
 	for suite in $(PY_TEST_SUITES); do \
 		echo "  → $$suite"; \
-		pytest -q --disable-warnings --cov --cov-append --cov-report= "$$suite" || FAIL=1; \
+		pytest -q --cov --cov-append --cov-report= "$$suite" || FAIL=1; \
 	done; \
 	echo ""; \
 	echo "📊 Combined Python coverage:"; \

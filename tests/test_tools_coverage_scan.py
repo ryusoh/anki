@@ -85,5 +85,9 @@ def test_if_name_main():
     import runpy
     from unittest.mock import patch
     with patch("sys.exit") as mock_exit:
-        runpy.run_module("tools.security_audit", run_name="__main__")
+        # run_path (not run_module): tools.security_audit is already imported at
+        # the top of this file, and run_module would emit a RuntimeWarning about
+        # re-executing an already-imported module. run_path executes the file in
+        # a fresh namespace, avoiding that.
+        runpy.run_path("tools/security_audit.py", run_name="__main__")
         mock_exit.assert_called()

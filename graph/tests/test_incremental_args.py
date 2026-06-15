@@ -78,4 +78,9 @@ def test_main_exec():
                     mock_stat_method.return_value = mock_stat
                     with patch('sys.exit') as mock_exit:
                         with patch.object(builtins, 'open', mock_open(read_data='{"sample_size": 100, "increment": 10}')):
-                            runpy.run_module('graph.incremental_export', run_name='__main__')
+                            # run_path (not run_module): graph.incremental_export is
+                            # already imported at the top of this file, so run_module
+                            # emits a RuntimeWarning about re-executing it. run_path
+                            # runs the file fresh (identical execution) without that.
+                            script = str(pathlib.Path(__file__).resolve().parent.parent / 'incremental_export.py')
+                            runpy.run_path(script, run_name='__main__')

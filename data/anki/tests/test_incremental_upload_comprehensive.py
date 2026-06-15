@@ -550,7 +550,7 @@ def test_upload_only_checks_hash_map():
         
         # Hash map says everything is already uploaded
         old_hash_map = {
-            'collection/notes.json.gz': hashlib.sha256(open(notes_file, 'rb').read()).hexdigest(),
+            'collection/notes.json.gz': hashlib.sha256(notes_file.read_bytes()).hexdigest(),
             'note1': compute_note_hash(notes_data[0]),
         }
         save_hash_map(old_hash_map, hash_file)
