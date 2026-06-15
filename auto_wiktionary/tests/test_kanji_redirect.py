@@ -577,3 +577,70 @@ def test_full_redirect_flow_sekiwake():
     assert "相撲" in parsed
     assert "大関" in parsed
     assert "せきわけ" in parsed
+
+
+# ---- 天下り (あまくだり) "「」を参照。" redirect test fixtures ----
+
+# Real HTML from ja.wiktionary for 天下り.
+# Note: the redirect uses the pattern '「あまくだり」を参照。' — the reading is
+# wrapped in 「」 corner brackets, joined with を, and followed by 参照 + 。
+AMAKUDARI_REDIRECT_HTML = """
+<html>
+    <body>
+        <section>
+            <h2>日本語</h2>
+            <section>
+                <h3>和語の漢字表記</h3>
+                <p><b><a href="./天#日本語" title="天">天</a><a href="./下#日本語" title="下">下</a>り</b></p>
+                <ol><li>「<a href="./あまくだり" title="あまくだり">あまくだり</a>」を参照。</li></ol>
+            </section>
+        </section>
+    </body>
+</html>
+"""
+
+# Real HTML from ja.wiktionary for あまくだり (the redirect target).
+AMAKUDARI_REAL_HTML = """
+<html>
+    <body>
+        <section>
+            <h2>日本語</h2>
+            <section>
+                <h3>名詞</h3>
+                <p><strong class="Jpan headword" lang="ja">あまくだり</strong><span class="headword-kanji">【<b class="Jpan" lang="ja"><a href="./天下り#日本語" title="天下り">天下り</a></b>】</span></p>
+                <ol>
+                    <li>神仏が天界から地上に降りてくること。</li>
+                    <li>退職した官僚が関連企業などの高い地位に就くこと。</li>
+                </ol>
+            </section>
+        </section>
+    </body>
+</html>
+"""
+
+
+def test_detect_kanji_redirect_amakudari_wo_sanshou():
+    """天下り redirects to あまくだり via the '「あまくだり」を参照。' pattern.
+    The reading must be extracted (corner brackets stripped) so the follow-up
+    fetch uses 'あまくだり', not the redirect notice itself."""
+    result = detect_kanji_redirect(AMAKUDARI_REDIRECT_HTML)
+    assert result is not None, "detect_kanji_redirect should detect '「…」を参照。' redirects"
+    reading, all_readings = result
+    assert reading == "あまくだり"
+    assert all_readings == ["あまくだり"]
+
+
+def test_full_redirect_flow_amakudari():
+    """Full flow: 天下り ('「」を参照。' redirect) → fetch あまくだり → real definition.
+    Must NOT show the bare '「あまくだり」を参照。' notice."""
+    result = detect_kanji_redirect(AMAKUDARI_REDIRECT_HTML)
+    assert result is not None
+    reading, all_readings = result
+    assert reading == "あまくだり"
+
+    parsed = parse_wiktionary_html(AMAKUDARI_REAL_HTML, lang="ja")
+    parsed = inject_redirect_pronunciation(parsed, all_readings)
+    assert "を参照" not in parsed
+    assert "天界" in parsed
+    assert "官僚" in parsed
+    assert "あまくだり" in parsed
