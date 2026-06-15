@@ -147,3 +147,8 @@
 ## 2025-02-26 - Add comprehensive coverage to graph/analyze.py
 
 **Learning:** When using mocking libraries to assert that a sequence of functions is called within a main execution flow, checking that the functions are called with specific parameters provides stronger correctness guarantees than merely checking if they were called. Ensure temporary test scripts or scratchpads used to verify test patches are explicitly removed using `rm` to avoid dirtying the project directory.
+
+## 2024-05-25 - Robust Test Boundaries
+
+**Learning:** Adding robust type-checking, NaN-checking, and bounds tests (e.g. float limits in time parsing or emoji insertions in trie parsing) guarantees that modules with currently 100% coverage will remain crash-resistant in unexpected real-world edge cases.
+**Action:** When adding missing coverage, push the boundaries with special characters, explicit NaN/null injections, and extreme magnitudes to ensure existing coverage metrics actually represent stable logic rather than just traversing lines.
