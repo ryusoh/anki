@@ -37,6 +37,6 @@ class Trait(object):  # enum class, pylint:disable=R0903
     recording many media files from an online service).
     """
 
-    INTERNET = 1     # files retrieved from Internet; use throttling
+    INTERNET = 1  # files retrieved from Internet; use throttling
     TRANSCODING = 2  # LAME transcoder is used
-    DICTIONARY = 4   # for services that have limited vocabularies
+    DICTIONARY = 4  # for services that have limited vocabularies

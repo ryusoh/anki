@@ -1,20 +1,33 @@
-import copy
 import sys
 import time
 
 from anki.utils import ids2str, int_time
 from aqt import mw
 from aqt.qt import *
-from aqt.utils import downArrow
 
 from . import tree
 from .config import getFromName, getUserOption, writeConfig
 from .debug import debug
-from .htmlAndCss import (bar, collapse_children_html, collapse_no_child,
-                         column_header, css, deck_header, deck_name,
-                         deck_option_name, end_header, end_line, gear, js,
-                         number_cell, option_header, option_name_header,
-                         progress, start_header, start_line)
+from .htmlAndCss import (
+    bar,
+    collapse_children_html,
+    collapse_no_child,
+    column_header,
+    css,
+    deck_header,
+    deck_name,
+    deck_option_name,
+    end_header,
+    end_line,
+    gear,
+    js,
+    number_cell,
+    option_header,
+    option_name_header,
+    progress,
+    start_header,
+    start_line,
+)
 from .printing import conditionString, nowLater
 from .strings import getColor, getHeader, getOverlay
 
@@ -34,7 +47,10 @@ def idFromOldNode(node):
     except Exception as e:
         # Fallback for Anki versions where node is an object, not a tuple
         import logging
-        logging.getLogger(__name__).debug(f"Failed to unpack old node tuple, falling back to node.deck_id: {e}")
+
+        logging.getLogger(__name__).debug(
+            f"Failed to unpack old node tuple, falling back to node.deck_id: {e}"
+        )
         return node.deck_id
 
 
@@ -94,12 +110,27 @@ class DeckNode:
         self.pauseParent = pauseParent
         self.givenUpParent = givenUpParent
         try:
-            self.name, self.did, self.dueRevCards, self.dueLrnReps, self.newCardsToday, self.oldChildren = oldNode
+            (
+                self.name,
+                self.did,
+                self.dueRevCards,
+                self.dueLrnReps,
+                self.newCardsToday,
+                self.oldChildren,
+            ) = oldNode
         except Exception as e:
             # Fallback for Anki versions where oldNode is an object, not a tuple
             import logging
-            logging.getLogger(__name__).debug(f"Failed to unpack oldNode tuple, falling back to object attributes: {e}")
-            self.name = oldNode.name; self.did = oldNode.deck_id; self.dueRevCards = oldNode.review_count; self.dueLrnReps = oldNode.learn_count; self.newCardsToday = oldNode.new_count; self.oldChildren = oldNode.children;
+
+            logging.getLogger(__name__).debug(
+                f"Failed to unpack oldNode tuple, falling back to object attributes: {e}"
+            )
+            self.name = oldNode.name
+            self.did = oldNode.deck_id
+            self.dueRevCards = oldNode.review_count
+            self.dueLrnReps = oldNode.learn_count
+            self.newCardsToday = oldNode.new_count
+            self.oldChildren = oldNode.children
         self.deck = mw.col.decks.get(self.did)
 
         self.initDicts()
@@ -113,7 +144,7 @@ class DeckNode:
 
     def setDeckLevel(self):
         """Compute every informations which does not need access to
-        children """
+        children"""
         self.setConfParameters()
         self.initCountFromDb()  # count information of card from database
         self.initNid()  # set of note from database
@@ -131,7 +162,7 @@ class DeckNode:
         self.setPercentAndBoth()
 
     def setConfParameters(self):
-        """ Find the configuration and its name """
+        """Find the configuration and its name"""
         if "conf" in self.deck:  # a classical deck
             conf = mw.col.decks.config_dict_for_deck_id(self.deck["id"])
             self.isFiltered = False
@@ -141,7 +172,7 @@ class DeckNode:
             self.confName = "Filtered"
 
     def testSymbolInName(self, symbolName):
-        """ Whether the symbol associate to symbol name in the
+        """Whether the symbol associate to symbol name in the
         configuration occurs in the deck's name"""
         symbol = getUserOption(symbolName)
         if symbol is None:
@@ -149,7 +180,7 @@ class DeckNode:
         return symbol in self.name
 
     def setSymbolsParameters(self):
-        """ Read the deck name and gather information from it"""
+        """Read the deck name and gather information from it"""
         self.containsEndSymbol = self.testSymbolInName("end symbol")
         self.containsPauseSymbol = self.testSymbolInName("pause symbol")
         self.containsBookSymbol = self.testSymbolInName("book symbol")
@@ -159,7 +190,7 @@ class DeckNode:
         self.pause = self.pauseParent or self.containsPauseSymbol
 
     def initDicts(self):
-        """ Ensure that each dictionarry is created"""
+        """Ensure that each dictionarry is created"""
         self.count = dict()
         for absoluteOrPercent in ["absolute", "percent", "both"]:
             self.count[absoluteOrPercent] = dict()
@@ -173,12 +204,15 @@ class DeckNode:
 
     def initCountFromDb(self):
         for name in tree.values:
-            self.addCount("absolute", "deck", False, name,
-                          tree.values[name].get(self.did, 0))
+            self.addCount("absolute", "deck", False, name, tree.values[name].get(self.did, 0))
 
     def initFromAlreadyComputed(self):
         """Put in dict values already computed by anki"""
-        for subdeckNumber, name in [(self.dueRevCards, "review today"), (self.newCardsToday, "new today"), (self.dueLrnReps, "repetition of today learning")]:
+        for subdeckNumber, name in [
+            (self.dueRevCards, "review today"),
+            (self.newCardsToday, "new today"),
+            (self.dueLrnReps, "repetition of today learning"),
+        ]:
             deckNumber = subdeckNumber
             for child in self.children:
                 deckNumber -= child.count["absolute"]["subdeck"][False][name]
@@ -190,49 +224,70 @@ class DeckNode:
         sum2 = self.count["absolute"]["deck"][False][sum2]
         if negate:
             sum2 = -sum2
-        self.addCount("absolute", "deck", False, newName, (sum1+sum2))
+        self.addCount("absolute", "deck", False, newName, (sum1 + sum2))
 
     def initCountSum(self):
-        self.absoluteDeckSum(
-            "learning now", "learning now from today", "learning today from past")
-        self.absoluteDeckSum(
-            "learning later", "learning later today", "learning future")
+        self.absoluteDeckSum("learning now", "learning now from today", "learning today from past")
+        self.absoluteDeckSum("learning later", "learning later today", "learning future")
         self.absoluteDeckSum("learning card", "learning now", "learning later")
-        self.absoluteDeckSum(
-            "learning today", "learning later today", "learning now")
+        self.absoluteDeckSum("learning today", "learning later today", "learning now")
 
         # Repetition
-        self.absoluteDeckSum("learning today repetition",
-                             "learning today repetition from today", "learning today repetition from past")
         self.absoluteDeckSum(
-            "learning repetition", "learning repetition from today", "learning repetition from past")
-        self.absoluteDeckSum("learning future repetition",
-                             "learning repetition", "learning today repetition", negate=True)
+            "learning today repetition",
+            "learning today repetition from today",
+            "learning today repetition from past",
+        )
+        self.absoluteDeckSum(
+            "learning repetition", "learning repetition from today", "learning repetition from past"
+        )
+        self.absoluteDeckSum(
+            "learning future repetition",
+            "learning repetition",
+            "learning today repetition",
+            negate=True,
+        )
 
         # Review
-        self.absoluteDeckSum("review later", "review due",
-                             "review today", negate=True)
-        self.absoluteDeckSum("unseen later", "unseen",
-                             "new today", negate=True)
-        self.absoluteDeckSum("repetition seen today",
-                             "repetition of today learning", "review today")
-        self.absoluteDeckSum("repetition today",
-                             "repetition seen today", "new today")
-        self.absoluteDeckSum("cards seen today",
-                             "learning today", "review today")
+        self.absoluteDeckSum("review later", "review due", "review today", negate=True)
+        self.absoluteDeckSum("unseen later", "unseen", "new today", negate=True)
+        self.absoluteDeckSum(
+            "repetition seen today", "repetition of today learning", "review today"
+        )
+        self.absoluteDeckSum("repetition today", "repetition seen today", "new today")
+        self.absoluteDeckSum("cards seen today", "learning today", "review today")
         self.absoluteDeckSum("today", "cards seen today", "new today")
 
     def initNid(self):
-        """ set the set of nids of this deck"""
-        self.addSet("deck", "notes", set(mw.col.db.list(
-            """select  nid from cards where did = ?""", self.did)))
+        """set the set of nids of this deck"""
+        self.addSet(
+            "deck",
+            "notes",
+            set(mw.col.db.list("""select  nid from cards where did = ?""", self.did)),
+        )
 
     def initTagged(self):
-        """ set the set of marked cards of this deck, and someMarked"""
-        self.addSet("deck", "marked", set(mw.col.db.list(
-            """select  id from notes where tags like '%marked%' and (not (tags like '%notMain%')) and id in """ + ids2str(self.noteSet["deck"]["notes"]))))
-        self.addSet("deck", "leech", set(mw.col.db.list(
-            """select  id from notes where tags like '%leech%' and (not (tags like '%notMain%')) and id in """ + ids2str(self.noteSet["deck"]["notes"]))))
+        """set the set of marked cards of this deck, and someMarked"""
+        self.addSet(
+            "deck",
+            "marked",
+            set(
+                mw.col.db.list(
+                    """select  id from notes where tags like '%marked%' and (not (tags like '%notMain%')) and id in """
+                    + ids2str(self.noteSet["deck"]["notes"])
+                )
+            ),
+        )
+        self.addSet(
+            "deck",
+            "leech",
+            set(
+                mw.col.db.list(
+                    """select  id from notes where tags like '%leech%' and (not (tags like '%notMain%')) and id in """
+                    + ids2str(self.noteSet["deck"]["notes"])
+                )
+            ),
+        )
         self.someMarked = bool(self.noteSet["deck"]["marked"])
 
         # if self.containsBookSymbol:
@@ -251,18 +306,19 @@ class DeckNode:
         fromTree = tree.times.get(self.did, 0)
         self.timeDue["deck"] = fromTree or 0
         debug(
-            f"""For deck {self.name} with id {self.did!r}, we get from tree {fromTree} and thus {self.timeDue["deck"]}.""")
+            f"""For deck {self.name} with id {self.did!r}, we get from tree {fromTree} and thus {self.timeDue["deck"]}."""
+        )
 
     def setChildren(self):
-        """ create node from every child and save them in
-        self.children """
+        """create node from every child and save them in
+        self.children"""
         self.children = list()
         for oldChild in self.oldChildren:
             childNode = make(oldChild, self.ended, self.givenUp, self.pause)
             self.children.append(childNode)
 
     def setEndedMarkedDescendant(self):
-        """ check whether there is a descendant empty deck with a marked note.
+        """check whether there is a descendant empty deck with a marked note.
         Set the background color appropriately"""
         self.endedMarkedDescendant = False
         if self.ended and self.someMarked:
@@ -274,11 +330,9 @@ class DeckNode:
                 return
         if self.someMarked and getUserOption("do color marked", False):
             if self.endedMarkedDescendant:
-                self.style["background-color"] = getUserOption(
-                    "ended marked background color")
+                self.style["background-color"] = getUserOption("ended marked background color")
             else:
-                self.style["background-color"] = getUserOption(
-                    "marked background color")
+                self.style["background-color"] = getUserOption("marked background color")
 
     def setSubdeckCount(self):
         """Compute subdeck value, as the sum of deck, and children's subdeck value"""
@@ -288,7 +342,8 @@ class DeckNode:
                 childNb = child.count["absolute"]["subdeck"][False][name]
                 if not isinstance(childNb, int):
                     debugWrongLine(
-                        f"For child {child.name}, the value of {name} is not an int but {childNb}")
+                        f"For child {child.name}, the value of {name} is not an int but {childNb}"
+                    )
                 if not isinstance(childNb, int):
                     debugWrongLine(f"childNb for «{name}» is «{childNb}»")
                 count += childNb
@@ -309,14 +364,18 @@ class DeckNode:
         for child in self.children:
             if self.timeDue["subdeck"]:
                 if child.timeDue["subdeck"]:
-                    self.timeDue["subdeck"] = min(
-                        self.timeDue["subdeck"], child.timeDue["subdeck"])
+                    self.timeDue["subdeck"] = min(self.timeDue["subdeck"], child.timeDue["subdeck"])
             else:
                 self.timeDue["subdeck"] = child.timeDue["subdeck"]
 
     def _has_active_empty_child(self):
         for child in self.children:
-            if (child.hasEmptyDescendant and not child.ended and not child.givenUp and not child.pause):
+            if (
+                child.hasEmptyDescendant
+                and not child.ended
+                and not child.givenUp
+                and not child.pause
+            ):
                 return True
         return False
 
@@ -334,8 +393,7 @@ class DeckNode:
 
         if self._has_active_empty_child():
             self.hasEmptyDescendant = True
-            self.style['color'] = getUserOption(
-                "color empty descendant", "black")
+            self.style['color'] = getUserOption("color empty descendant", "black")
             return
 
     def _setPercentAndBoth(self, kind, column, base):
@@ -355,7 +413,7 @@ class DeckNode:
                 percentText = f"{numerator}/{denominator} ?"
                 ret = numerator
             else:
-                percent = (100*numerator)/denominator
+                percent = (100 * numerator) / denominator
                 percentText = f"{int(percent)}%"
         self.addCount("percent", kind, False, column, percent)
         self.addCount("percent", kind, True, column, percentText)
@@ -376,7 +434,7 @@ class DeckNode:
             color = getColor(conf)
             number = self.count['absolute'][kind][False].get(name, 0)
             overlay = f"{number}: {getOverlay(conf)}"
-            width = number*100/total
+            width = number * 100 / total
             content += bar(name, width, cumulative, color, overlay)
             cumulative += width
         return progress(content)
@@ -391,14 +449,16 @@ class DeckNode:
             for column in self.count["absolute"][kind][False]:
                 ret = self._setPercentAndBoth(kind, column, "cards")
                 if ret is not None:
-                    debugWrongLine(f"""{self.name}.count["absolute"]["{kind}"]["{column}"] is {ret}, while for cards its 0: """+str(self.count["absolute"][kind][True]["cards"]))
+                    debugWrongLine(
+                        f"""{self.name}.count["absolute"]["{kind}"]["{column}"] is {ret}, while for cards its 0: """
+                        + str(self.count["absolute"][kind][True]["cards"])
+                    )
 
     def fromSetToCount(self):
         """Add numbers according to number of notes, for deck, subdeck, absolute, percent, both"""
         for kind in ["deck", "subdeck"]:
             for name in self.noteSet[kind]:
-                self.addCount("absolute", kind, False, name,
-                              len(self.noteSet[kind][name]))
+                self.addCount("absolute", kind, False, name, len(self.noteSet[kind][name]))
             for name in self.noteSet[kind]:
                 self._setPercentAndBoth(kind, name, "notes")
 
@@ -409,32 +469,43 @@ class DeckNode:
                 future = self.count[absoluteOrPercent][kind][True]["learning future"]
                 if future:
                     later = nowLater(
-                        self.count[absoluteOrPercent][kind][True]["learning later today"], future)
+                        self.count[absoluteOrPercent][kind][True]["learning later today"], future
+                    )
                 else:
                     later = conditionString(
-                        self.count[absoluteOrPercent][kind][True]["learning later today"], parenthesis=True)
-                string = nowLater(
-                    self.count[absoluteOrPercent][kind][True]["learning now"], later)
-                self.addCount(absoluteOrPercent, kind,
-                              True, "learning all", string)
+                        self.count[absoluteOrPercent][kind][True]["learning later today"],
+                        parenthesis=True,
+                    )
+                string = nowLater(self.count[absoluteOrPercent][kind][True]["learning now"], later)
+                self.addCount(absoluteOrPercent, kind, True, "learning all", string)
 
     def setTextTime(self):
         """set text for the time remaining before next card"""
         for kind in ["deck", "subdeck"]:
             learningNow = self.count["absolute"][kind][False]["learning now"]
-            debug(
-                f"""{self.name}[{kind}]=={learningNow}. Time due is {self.timeDue[kind]}.""")
+            debug(f"""{self.name}[{kind}]=={learningNow}. Time due is {self.timeDue[kind]}.""")
             for absoluteOrPercent in self.count:
                 if ((not learningNow)) and (self.timeDue[kind] != 0):
                     remainingSeconds = self.timeDue[kind] - int_time()
                     if remainingSeconds >= 60:
-                        self.addCount(absoluteOrPercent, kind, True, "learning now", "[%dm]" % (
-                            remainingSeconds // 60))
+                        self.addCount(
+                            absoluteOrPercent,
+                            kind,
+                            True,
+                            "learning now",
+                            "[%dm]" % (remainingSeconds // 60),
+                        )
                     else:
-                        self.addCount(absoluteOrPercent, kind, True,
-                                      "learning now", "[%ds]" % remainingSeconds)
+                        self.addCount(
+                            absoluteOrPercent,
+                            kind,
+                            True,
+                            "learning now",
+                            "[%ds]" % remainingSeconds,
+                        )
                     debug(
-                        f"""Thus we set it to be time {self.count[absoluteOrPercent][kind][True]["learning now"]}""")
+                        f"""Thus we set it to be time {self.count[absoluteOrPercent][kind][True]["learning now"]}"""
+                    )
 
     def setFlags(self):
         flagColor = {1: "red", 2: "orange", 3: "green", 4: "blue"}
@@ -445,35 +516,57 @@ class DeckNode:
                     if self.count[absoluteOrPercent][kind][False].get(f"flag {i}"):
                         hasFlag = True
                         break
-                value = "/".join([f"""<font color = {flagColor[i]}>{self.count[absoluteOrPercent][kind][True][f"flag {i}"]}</font>""" for i in range(1, 5)])
-                self.addCount(absoluteOrPercent, kind, True,
-                              "flags", conditionString(hasFlag, value))
-                value = self.count[absoluteOrPercent][kind][True]["flag 0"]+"/"+value
-                self.addCount(absoluteOrPercent, kind, True, "all flags", conditionString(
-                    hasFlag or self.count[absoluteOrPercent][kind][False].get("flag 0"), value))
+                value = "/".join(
+                    [
+                        f"""<font color = {flagColor[i]}>{self.count[absoluteOrPercent][kind][True][f"flag {i}"]}</font>"""
+                        for i in range(1, 5)
+                    ]
+                )
+                self.addCount(
+                    absoluteOrPercent, kind, True, "flags", conditionString(hasFlag, value)
+                )
+                value = self.count[absoluteOrPercent][kind][True]["flag 0"] + "/" + value
+                self.addCount(
+                    absoluteOrPercent,
+                    kind,
+                    True,
+                    "all flags",
+                    conditionString(
+                        hasFlag or self.count[absoluteOrPercent][kind][False].get("flag 0"), value
+                    ),
+                )
 
     def setPairs(self):
         """Set text for columns which are pair"""
         for absoluteOrPercent in self.count:
             for kind in ["deck", "subdeck"]:
-                for first, second in [("mature", "young"), ("notes", "cards"), ("buried", "suspended"), ("reviewed today", "repeated today")]:
+                for first, second in [
+                    ("mature", "young"),
+                    ("notes", "cards"),
+                    ("buried", "suspended"),
+                    ("reviewed today", "repeated today"),
+                ]:
                     name = f"{first}/{second}"
                     firstValue = self.count[absoluteOrPercent][kind][True][first]
                     secondValue = self.count[absoluteOrPercent][kind][True][second]
-                    values = conditionString(firstValue or secondValue, f"{firstValue}/{secondValue}")
+                    values = conditionString(
+                        firstValue or secondValue, f"{firstValue}/{secondValue}"
+                    )
                     self.addCount(absoluteOrPercent, kind, True, name, values)
 
     def setNowLaters(self):
-        """ Set text for the pairs with cards to see now, and other to see later/another day"""
+        """Set text for the pairs with cards to see now, and other to see later/another day"""
         for absoluteOrPercent in self.count:
             for kind in ["deck", "subdeck"]:
                 for name, left, right in [
-                    ("review",         "review today", "review later"),
-                    ("unseen new",     "new today",    "unseen later"),
+                    ("review", "review today", "review later"),
+                    ("unseen new", "new today", "unseen later"),
                     ("learning today", "learning now", "learning later today"),
                 ]:
-                    value = nowLater(self.count[absoluteOrPercent][kind][True]
-                                     [left], self.count[absoluteOrPercent][kind][True][right])
+                    value = nowLater(
+                        self.count[absoluteOrPercent][kind][True][left],
+                        self.count[absoluteOrPercent][kind][True][right],
+                    )
                     self.addCount(absoluteOrPercent, kind, True, name, value)
 
     def setText(self):
@@ -487,15 +580,13 @@ class DeckNode:
     ###########
     # Initialization tool
 
-    def addCount(self, absoluteOrPercent, kind, isString, name,  value):
+    def addCount(self, absoluteOrPercent, kind, isString, name, value):
         """Ensure that self.count[absoluteOrPercent][kind][name] is defined and equals value"""
-        debug(
-            f"Adding {self.did}, {absoluteOrPercent}, {kind}, {isString}, {name}, {value}")
+        debug(f"Adding {self.did}, {absoluteOrPercent}, {kind}, {isString}, {name}, {value}")
         self.count[absoluteOrPercent][kind][isString][name] = value
         if isString is False:
             if value:
-                self.count[absoluteOrPercent][kind][True][name] = "{:,}".format(
-                    value)
+                self.count[absoluteOrPercent][kind][True][name] = "{:,}".format(value)
             else:
                 self.count[absoluteOrPercent][kind][True][name] = ""
 
@@ -520,8 +611,9 @@ class DeckNode:
         klasses = ["deck"]
         if self.did == mw.col.get_config('curDeck'):
             klasses.append('current')
-        if ((getUserOption("hide values of parent decks") and haveSubdeck) or
-            (getUserOption("hide values of parent decks when subdecks are shown") and showSubdeck)) :
+        if (getUserOption("hide values of parent decks") and haveSubdeck) or (
+            getUserOption("hide values of parent decks when subdecks are shown") and showSubdeck
+        ):
             klasses.append("openDeck")
         return start_line(" ".join(klasses), self.did)
 
@@ -548,7 +640,9 @@ class DeckNode:
             return ""
 
     def getName(self, depth):
-        return deck_name(depth, self.getCollapse(), self.getExtraClass(), self.did, self.getCss(), self.name)
+        return deck_name(
+            depth, self.getCollapse(), self.getExtraClass(), self.did, self.getCss(), self.name
+        )
 
     def _get_number_type(self, conf):
         if conf.get("percent", False):
@@ -560,7 +654,10 @@ class DeckNode:
     def _get_column_contents(self, name, kind, number, conf):
         if name == "bar":
             if "names" not in conf:
-                print("""A configuration whose name is "bar", should have a field "names".""", file=sys.stderr)
+                print(
+                    """A configuration whose name is "bar", should have a field "names".""",
+                    file=sys.stderr,
+                )
                 return None, False
             return self.makeBar(kind, conf["names"]), True
 
@@ -569,7 +666,9 @@ class DeckNode:
             if name not in warned:
                 warned.add(name)
                 debug(
-                    f"The add-on enhance main window does not know any column whose name is {name}. It thus won't be displayed. Please correct your add-on's configuration.", file=sys.stderr)
+                    f"The add-on enhance main window does not know any column whose name is {name}. It thus won't be displayed. Please correct your add-on's configuration.",
+                    file=sys.stderr,
+                )
             return None, False
         return countNumberKind[name], True
 
@@ -634,13 +733,13 @@ class DeckNode:
         if self.emptyRow(cnt):
             return ""
         return (
-            self.getOpenTr(self.deck['collapsed'], self.children) +
-            self.getName(depth) +
-            self.getNumberColumns() +
-            gear(self.did) +
-            self.getOptionName() +
-            end_line +
-            col._renderDeckTree(self.children, depth+1)
+            self.getOpenTr(self.deck['collapsed'], self.children)
+            + self.getName(depth)
+            + self.getNumberColumns()
+            + gear(self.did)
+            + self.getOptionName()
+            + end_line
+            + col._renderDeckTree(self.children, depth + 1)
         )
 
 
@@ -659,6 +758,7 @@ def _column_has_data(nodes, conf):
         if node.hasColumnValue(conf):
             return True
     return False
+
 
 # based on Anki 2.0.36 aqt/deckbrowser.py DeckBrowser._renderDeckTree
 
@@ -679,6 +779,7 @@ def _render_deck_tree_header(nodes):
         buf += end_header
     return buf
 
+
 def renderDeckTree(self, nodes, depth=0):
     # Look at aqt/deckbrowser.py for a description of oldNode
     if not nodes:
@@ -692,7 +793,10 @@ def renderDeckTree(self, nodes, depth=0):
         except Exception as e:
             # Fallback for Anki versions where nodes list is wrapped in an object
             import logging
-            logging.getLogger(__name__).debug(f"Failed to iterate nodes, falling back to nodes.children: {e}")
+
+            logging.getLogger(__name__).debug(
+                f"Failed to iterate nodes, falling back to nodes.children: {e}"
+            )
             nodes = [make(node) for node in nodes.children]
         buf = _render_deck_tree_header(nodes)
         buf += self._topLevelDragRow()

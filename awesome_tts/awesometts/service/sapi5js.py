@@ -61,8 +61,8 @@ class SAPI5JS(Service):
     """
 
     __slots__ = [
-        '_binary',        # path to the cscript binary
-        '_voice_list',    # list of installed voices as a list of tuples
+        '_binary',  # path to the cscript binary
+        '_voice_list',  # list of installed voices as a list of tuples
     ]
 
     NAME = "Microsoft Speech API JScript"
@@ -111,30 +111,28 @@ class SAPI5JS(Service):
             )
         ]
 
-        output = output[output.index('__AWESOMETTS_VOICE_LIST__') + 1:]
+        output = output[output.index('__AWESOMETTS_VOICE_LIST__') + 1 :]
 
         def hex2uni(string):
             """Convert hexadecimal-escaped string back to unicode."""
-            return ''.join(chr(int(string[i:i + 4], 16))
-                           for i in range(0, len(string), 4))
+            return ''.join(chr(int(string[i : i + 4], 16)) for i in range(0, len(string), 4))
 
         def convlang(string):
             """Get language code"""
             string = hex2uni(string).lower().strip()
             return LANGUAGE_CODES.get(string, string)
 
-        self._voice_list = sorted({
-            (voice, voice + ' (' + language + ')')
-            for (voice, language) in [
-                (
-                    hex2uni(tokens[0]).strip(),
-                    convlang(tokens[1]).strip()
-                )
-                for tokens
-                in [line.split() for line in output]
-            ]
-            if voice
-        }, key=lambda voice: voice[1].lower())
+        self._voice_list = sorted(
+            {
+                (voice, voice + ' (' + language + ')')
+                for (voice, language) in [
+                    (hex2uni(tokens[0]).strip(), convlang(tokens[1]).strip())
+                    for tokens in [line.split() for line in output]
+                ]
+                if voice
+            },
+            key=lambda voice: voice[1].lower(),
+        )
 
         if not self._voice_list:
             raise EnvironmentError("No voices in `sapi5js.js voice-list`")
@@ -145,44 +143,41 @@ class SAPI5JS(Service):
         """
 
         count = len(self._voice_list)
-        return ("SAPI 5.0 via JScript (%d %s)" %
-                (count, "voice" if count == 1 else "voices"))
+        return "SAPI 5.0 via JScript (%d %s)" % (count, "voice" if count == 1 else "voices")
 
     def options(self):
         """
         Provides access to voice, speed, volume, and quality.
         """
 
-        voice_lookup = dict([
-            # normalized with characters w/ diacritics stripped
-            (self.normalize(voice[0]), voice[0])
-            for voice in self._voice_list
-        ] + [
-            # normalized with diacritics converted
-            (self.normalize(self.util_approx(voice[0])), voice[0])
-            for voice in self._voice_list
-        ])
+        voice_lookup = dict(
+            [
+                # normalized with characters w/ diacritics stripped
+                (self.normalize(voice[0]), voice[0])
+                for voice in self._voice_list
+            ]
+            + [
+                # normalized with diacritics converted
+                (self.normalize(self.util_approx(voice[0])), voice[0])
+                for voice in self._voice_list
+            ]
+        )
 
         def transform_voice(value):
             """Normalize and attempt to convert to official voice."""
 
             normalized = self.normalize(value)
 
-            return (
-                voice_lookup[normalized] if normalized in voice_lookup
-                else value
-            )
+            return voice_lookup[normalized] if normalized in voice_lookup else value
 
         return [
             # See also sapi5js.js when adjusting any of these
-
             dict(
                 key='voice',
                 label="Voice",
                 values=self._voice_list,
                 transform=transform_voice,
             ),
-
             dict(
                 key='speed',
                 label="Speed",
@@ -190,7 +185,6 @@ class SAPI5JS(Service):
                 transform=int,
                 default=0,
             ),
-
             dict(
                 key='volume',
                 label="Volume",
@@ -198,7 +192,6 @@ class SAPI5JS(Service):
                 transform=int,
                 default=100,
             ),
-
             dict(
                 key='quality',
                 label="Quality",
@@ -243,7 +236,6 @@ class SAPI5JS(Service):
                 transform=int,
                 default=39,
             ),
-
             dict(
                 key='xml',
                 label="XML",

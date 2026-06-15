@@ -77,9 +77,7 @@ class Snanki(QDialog):
     lastKeyPress: str
     timer: QBasicTimer
 
-    def __init__(
-        self, highscore: int = 0, lives: int = 5, parent: Optional[QWidget] = None
-    ):
+    def __init__(self, highscore: int = 0, lives: int = 5, parent: Optional[QWidget] = None):
         super(Snanki, self).__init__(parent=parent)
         self.highscore = highscore
         self.lives = lives
@@ -284,7 +282,6 @@ class Snanki(QDialog):
             self.repaint()
         else:
             QFrame.timerEvent(self, event)
-
 
 
 defaults: Dict[str, Dict] = {

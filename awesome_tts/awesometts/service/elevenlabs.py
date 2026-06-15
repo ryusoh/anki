@@ -1,30 +1,26 @@
-
-
 """
 ElevenLabs TTS service
 https://beta.elevenlabs.io/
 """
 
-import time
-import datetime
+from typing import List
+
 import requests
-import json
-import base64
+
 from .base import Service
 from .languages import StandardVoice
 from .voicelist import VOICE_LIST
-from typing import List
 
 SERVICE_NAME = 'ElevenLabs'
 
 __all__ = ['ElevenLabs']
 
+
 class ElevenLabs(Service):
     DEFAULT_STABILITY = 0.75
     DEFAULT_SIMILARITY = 0.75
 
-    __slots__ = [
-    ]
+    __slots__ = []
 
     NAME = SERVICE_NAME
 
@@ -38,10 +34,8 @@ class ElevenLabs(Service):
     def extras(self):
         if self.languagetools.use_plus_mode():
             # plus mode, no need for an API key
-            return []        
-        return [
-            dict(key='api_key', label="API Key", required=True)
-        ]
+            return []
+        return [dict(key='api_key', label="API Key", required=True)]
 
     def get_voices(self) -> List[StandardVoice]:
         voices = [x for x in VOICE_LIST if x['service'] == SERVICE_NAME]
@@ -54,7 +48,7 @@ class ElevenLabs(Service):
 
     def get_voice_for_key(self, key) -> StandardVoice:
         voice = [voice for voice in self.get_voices() if voice.get_voice_key() == key]
-        assert(len(voice) == 1)
+        assert len(voice) == 1
         return voice[0]
 
     def get_voice_list(self):
@@ -66,20 +60,22 @@ class ElevenLabs(Service):
         """Provides access to voice only."""
 
         return [
-            dict(key='voice',
-                 label="Voice",
-                 values=self.get_voice_list(),
-                 transform=lambda value: value),
-            dict(key='stability',
-                label='Stability',
-                values=(0.0, 1.0),
-                default=0.75,
-                transform=float),
-            dict(key='similarity_boost',
+            dict(
+                key='voice',
+                label="Voice",
+                values=self.get_voice_list(),
+                transform=lambda value: value,
+            ),
+            dict(
+                key='stability', label='Stability', values=(0.0, 1.0), default=0.75, transform=float
+            ),
+            dict(
+                key='similarity_boost',
                 label='Similary',
                 values=(0.0, 1.0),
                 default=0.75,
-                transform=float),
+                transform=float,
+            ),
         ]
 
     def run(self, text, options, path):
@@ -89,15 +85,17 @@ class ElevenLabs(Service):
 
         if self.languagetools.use_plus_mode():
 
-            self._logger.info(f'using language tools API')
+            self._logger.info('using language tools API')
             service = SERVICE_NAME
             voice_key = voice.get_voice_key()
             language = voice.get_language_code()
             options = {
                 "stability": options.get('stability', self.DEFAULT_STABILITY),
-                "similarity_boost": options.get('similarity_boost', self.DEFAULT_SIMILARITY)
+                "similarity_boost": options.get('similarity_boost', self.DEFAULT_SIMILARITY),
             }
-            self.languagetools.generate_audio_v2(text, service, 'batch', language, 'n/a', voice_key, options, path)
+            self.languagetools.generate_audio_v2(
+                text, service, 'batch', language, 'n/a', voice_key, options, path
+            )
 
         else:
 
@@ -106,10 +104,7 @@ class ElevenLabs(Service):
             voice_id = voice.voice_key['voice_id']
             url = f'https://api.elevenlabs.io/v1/text-to-speech/{voice_id}'
 
-            headers = {
-                "Accept": "application/json",
-                "xi-api-key": api_key
-            }
+            headers = {"Accept": "application/json", "xi-api-key": api_key}
             headers['Accept'] = "audio/mpeg"
 
             data = {
@@ -117,8 +112,8 @@ class ElevenLabs(Service):
                 "model_id": voice.voice_key['model_id'],
                 "voice_settings": {
                     "stability": options.get('stability', self.DEFAULT_STABILITY),
-                    "similarity_boost": options.get('similarity_boost', self.DEFAULT_SIMILARITY)
-                }
+                    "similarity_boost": options.get('similarity_boost', self.DEFAULT_SIMILARITY),
+                },
             }
 
             response = requests.post(url, json=data, headers=headers, timeout=10)

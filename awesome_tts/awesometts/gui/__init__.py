@@ -20,27 +20,15 @@
 GUI classes for AwesomeTTS
 """
 
-from .common import (
-    Action,
-    Button,
-    Filter,
-    ICON,
-    ICON_FILE
-)
-
+from .common import ICON, ICON_FILE, Action, Button, Filter
 from .configurator import Configurator
-
 from .generator import (
     BrowserGenerator,
     EditorGenerator,
 )
-
+from .homescreen import makeDeckBrowserRenderContent, makeLinkHandler
 from .stripper import BrowserStripper
-
 from .templater import Templater
-
-from .homescreen import makeDeckBrowserRenderContent
-from .homescreen import makeLinkHandler
 
 __all__ = [
     # common
@@ -49,14 +37,11 @@ __all__ = [
     'Filter',
     'ICON',
     'ICON_FILE'
-
     # dialog windows
     'Configurator',
     'BrowserGenerator',
     'EditorGenerator',
     'BrowserStripper',
     'Templater',
-    'makeDeckBrowserRenderContent'
-    'makeLinkHandler'
-
+    'makeDeckBrowserRenderContent' 'makeLinkHandler',
 ]

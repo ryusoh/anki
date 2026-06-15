@@ -79,11 +79,13 @@ class SpanishDict(Service):
         self.net_download(
             path,
             [
-                ('https://audio1.spanishdict.com/audio', dict(
-                    lang=options['voice'],
-                    text=subtext,
-                ))
-
+                (
+                    'https://audio1.spanishdict.com/audio',
+                    dict(
+                        lang=options['voice'],
+                        text=subtext,
+                    ),
+                )
                 for subtext in self.util_split(text, 200)
             ],
             add_padding=True,

@@ -20,29 +20,35 @@
 Add-on package initialization
 """
 
-from os.path import join
 import os
 import sys
-from time import time
 import uuid
+from os.path import join
+from time import time
 
 import anki
 import aqt
 import aqt.qt
 
-from . import conversion as to, gui, paths, service
+from . import conversion as to
+from . import gui, paths, service
 from .bundle import Bundle
-from .config import Config, CONFIG_ADDON_NAME
+from .config import CONFIG_ADDON_NAME, Config
+from .languagetools import LanguageTools
 from .player import Player
 from .router import Router
 from .text import Sanitizer
 from .ttsplayer import register_tts_player
-from .languagetools import LanguageTools
 from .version import AWESOMETTS_VERSION
 
-__all__ = ['browser_menus', 'cards_button', 'config_menu', 'editor_button',
-           'reviewer_hooks', 
-           'window_shortcuts']
+__all__ = [
+    'browser_menus',
+    'cards_button',
+    'config_menu',
+    'editor_button',
+    'reviewer_hooks',
+    'window_shortcuts',
+]
 
 
 def get_platform_info():
@@ -55,61 +61,80 @@ def get_platform_info():
         import platform
     except Exception as e:
         import logging
+
         logging.getLogger('awesometts').debug("Failed to import platform: %s", e)
     else:
         try:
             implementation = platform.python_implementation()
         except Exception as e:
             import logging
-            logging.getLogger('awesometts').debug("Failed to get platform.python_implementation(): %s", e)
+
+            logging.getLogger('awesometts').debug(
+                "Failed to get platform.python_implementation(): %s", e
+            )
 
         try:
             python_version = platform.python_version()
         except Exception as e:
             import logging
+
             logging.getLogger('awesometts').debug("Failed to get platform.python_version(): %s", e)
 
         try:
             system_description = platform.platform().replace('-', ' ')
         except Exception as e:
             import logging
+
             logging.getLogger('awesometts').debug("Failed to get platform.platform(): %s", e)
 
     return "%s %s; %s" % (implementation, python_version, system_description)
+
 
 VERSION = AWESOMETTS_VERSION
 
 WEB = 'https://github.com/AwesomeTTS/awesometts-anki-addon'
 
-AGENT = 'AwesomeTTS/%s (Anki %s; PyQt %s; %s)' % (VERSION, anki.version,
-                                                  aqt.qt.PYQT_VERSION_STR,
-                                                  get_platform_info())
+AGENT = 'AwesomeTTS/%s (Anki %s; PyQt %s; %s)' % (
+    VERSION,
+    anki.version,
+    aqt.qt.PYQT_VERSION_STR,
+    get_platform_info(),
+)
 
 
 # Begin core class initialization and dependency setup, pylint:disable=C0103
 
 if 'AWESOMETTS_DEBUG_LOGGING' in os.environ:
-    import logging 
     import io
+    import logging
+
     # on windows, some special characters can't be printed, replace them with ?
     if not hasattr(sys, '_pytest_mode'):
         sys.stdout = io.TextIOWrapper(sys.stdout.detach(), sys.stdout.encoding, 'replace')
     if os.environ['AWESOMETTS_DEBUG_LOGGING'] == 'enable':
-        logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s', 
-                            datefmt='%Y%m%d-%H:%M:%S',
-                            stream=sys.stdout, 
-                            level=logging.DEBUG)
+        logging.basicConfig(
+            format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
+            datefmt='%Y%m%d-%H:%M:%S',
+            stream=sys.stdout,
+            level=logging.DEBUG,
+        )
     elif os.environ['AWESOMETTS_DEBUG_LOGGING'] == 'file':
         filename = os.environ['AWESOMETTS_DEBUG_FILE']
-        logging.basicConfig(format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s', 
-                            datefmt='%Y%m%d-%H:%M:%S',
-                            filename=filename, 
-                            level=logging.DEBUG)        
+        logging.basicConfig(
+            format='%(asctime)s,%(msecs)d %(levelname)-8s [%(filename)s:%(lineno)d] %(message)s',
+            datefmt='%Y%m%d-%H:%M:%S',
+            filename=filename,
+            level=logging.DEBUG,
+        )
     logger = logging.getLogger('awesometts')
     logger.setLevel(logging.DEBUG)
 else:
-    logger = Bundle(debug=lambda *a, **k: None, error=lambda *a, **k: None,
-                    info=lambda *a, **k: None, warn=lambda *a, **k: None)
+    logger = Bundle(
+        debug=lambda *a, **k: None,
+        error=lambda *a, **k: None,
+        info=lambda *a, **k: None,
+        warn=lambda *a, **k: None,
+    )
 
 addon_config = aqt.mw.addonManager.getConfig(CONFIG_ADDON_NAME)
 user_uuid = addon_config.get('user_uuid', None)
@@ -120,17 +145,14 @@ if user_uuid == None:
 
 
 config = Config(
-    db=Bundle(path=paths.CONFIG,
-              table='general',
-              normalize=to.normalized_ascii),
+    db=Bundle(path=paths.CONFIG, table='general', normalize=to.normalized_ascii),
     cols=[
         ('cache_days', 'integer', 365, int, int),
         ('ellip_note_newlines', 'integer', False, to.lax_bool, int),
         ('ellip_template_newlines', 'integer', False, to.lax_bool, int),
         ('extras', 'text', {}, to.deserialized_dict, to.compact_json),
         ('filenames', 'text', 'hash', str, str),
-        ('filenames_human', 'text',
-         '{{text}} ({{service}} {{voice}})', str, str),
+        ('filenames_human', 'text', '{{text}} ({{service}} {{voice}})', str, str),
         ('groups', 'text', {}, to.deserialized_dict, to.compact_json),
         ('homescreen_last_preset', 'text', '', str, str),
         ('homescreen_show', 'integer', True, to.lax_bool, int),
@@ -140,9 +162,17 @@ config = Config(
         ('last_mass_dest', 'text', 'Back', str, str),
         ('last_mass_source', 'text', 'Front', str, str),
         ('last_options', 'text', {}, to.deserialized_dict, to.compact_json),
-        ('last_service', 'text', ('sapi5js' if 'win32' in sys.platform
-                                  else 'say' if 'darwin' in sys.platform
-                                  else 'yandex'), str, str),
+        (
+            'last_service',
+            'text',
+            (
+                'sapi5js'
+                if 'win32' in sys.platform
+                else 'say' if 'darwin' in sys.platform else 'yandex'
+            ),
+            str,
+            str,
+        ),
         ('last_strip_mode', 'text', 'ours', str, str),
         ('shortcut_launch_browser_generator', 'text', 'Ctrl+T', str, str),
         ('shortcut_launch_browser_stripper', 'text', 'Ctrl+T', str, str),
@@ -175,22 +205,20 @@ config = Config(
         ('sub_note_xml_entities', 'integer', False, to.lax_bool, int),
         ('sub_template_xml_entities', 'integer', False, to.lax_bool, int),
         ('sul_note', 'text', [], to.substitution_list, to.substitution_json),
-        ('sul_template', 'text', [], to.substitution_list,
-         to.substitution_json),
+        ('sul_template', 'text', [], to.substitution_list, to.substitution_json),
         ('throttle_sleep', 'integer', 30, int, int),
         ('throttle_threshold', 'integer', 10, int, int),
         ('tts_voices', 'text', {}, to.deserialized_dict, to.compact_json),
     ],
     logger=logger,
-    events=[
-    ],
+    events=[],
 )
 
 languagetools = LanguageTools(config['plus_api_key'], logger, VERSION, user_uuid)
 
 try:
-    from aqt.sound import av_player
     from anki.sound import SoundOrVideoTag
+    from aqt.sound import av_player
 
     def append_file(self, filename: str) -> None:
         self._enqueued.append(SoundOrVideoTag(filename=filename))
@@ -199,6 +227,7 @@ try:
     anki.sound.play = lambda filename: append_file(av_player, filename)
 except ImportError as e:
     import logging
+
     logging.getLogger('awesometts').debug("Failed to import av_player or SoundOrVideoTag: %s", e)
 
 player = Player(
@@ -245,30 +274,45 @@ router = Router(
             ('youdao', service.Youdao),
             ('forvo', service.Forvo),
             ('vocalware', service.VocalWare),
-            ('watson', service.Watson)
+            ('watson', service.Watson),
         ],
         dead=dict(
             ttsapicom="TTS-API.com has gone offline and can no longer be "
-                      "used. Please switch to another service with English.",
+            "used. Please switch to another service with English.",
         ),
-        aliases=[('b', 'baidu'), ('g', 'google'), ('macosx', 'say'),
-                 ('microsoft', 'sapi5js'), ('microsoftjs', 'sapi5js'),
-                 ('microsoftjscript', 'sapi5js'), ('oed', 'oxford'),
-                 ('osx', 'say'), ('sapi', 'sapi5js'), ('sapi5', 'sapi5js'),
-                 ('sapi5jscript', 'sapi5js'), ('sapijs', 'sapi5js'),
-                 ('sapijscript', 'sapi5js'), ('svox', 'pico2wave'),
-                 ('svoxpico', 'pico2wave'), ('ttsapi', 'ttsapicom'),
-                 ('windows', 'sapi5js'), ('windowsjs', 'sapi5js'),
-                 ('windowsjscript', 'sapi5js'), ('y', 'yandex')],
+        aliases=[
+            ('b', 'baidu'),
+            ('g', 'google'),
+            ('macosx', 'say'),
+            ('microsoft', 'sapi5js'),
+            ('microsoftjs', 'sapi5js'),
+            ('microsoftjscript', 'sapi5js'),
+            ('oed', 'oxford'),
+            ('osx', 'say'),
+            ('sapi', 'sapi5js'),
+            ('sapi5', 'sapi5js'),
+            ('sapi5jscript', 'sapi5js'),
+            ('sapijs', 'sapi5js'),
+            ('sapijscript', 'sapi5js'),
+            ('svox', 'pico2wave'),
+            ('svoxpico', 'pico2wave'),
+            ('ttsapi', 'ttsapicom'),
+            ('windows', 'sapi5js'),
+            ('windowsjs', 'sapi5js'),
+            ('windowsjscript', 'sapi5js'),
+            ('y', 'yandex'),
+        ],
         normalize=to.normalized_ascii,
         args=(),
-        kwargs=dict(temp_dir=paths.TEMP,
-                    lame_flags=lambda: config['lame_flags'],
-                    normalize=to.normalized_ascii,
-                    logger=logger,
-                    ecosystem=Bundle(web=WEB, agent=AGENT),
-                    languagetools=languagetools,
-                    config=config),
+        kwargs=dict(
+            temp_dir=paths.TEMP,
+            lame_flags=lambda: config['lame_flags'],
+            normalize=to.normalized_ascii,
+            logger=logger,
+            ecosystem=Bundle(web=WEB, agent=AGENT),
+            languagetools=languagetools,
+            config=config,
+        ),
     ),
     cache_dir=paths.CACHE,
     temp_dir=join(paths.TEMP, '_awesometts_scratch_' + str(int(time()))),
@@ -292,8 +336,10 @@ STRIP_TEMPLATE_POSTHTML = [
     'whitespace',
 ]
 
+
 def bundlefail(message, text="Not available by addon.Bundle.downloader.fail"):
     aqt.utils.showCritical(message, aqt.mw)
+
 
 addon = Bundle(
     config=config,
@@ -313,8 +359,7 @@ addon = Bundle(
     language=service.languages.Language,
     languagetools=languagetools,
     logger=logger,
-    paths=Bundle(cache=paths.CACHE,
-                 is_link=paths.ADDON_IS_LINKED),
+    paths=Bundle(cache=paths.CACHE, is_link=paths.ADDON_IS_LINKED),
     player=player,
     router=router,
     strip=Bundle(
@@ -322,87 +367,93 @@ addon = Bundle(
         # - we need the <span>...</span> markup in on-the-fly to identify it
         # - Anki won't recognize cloze w/ HTML beginning/ending within braces
         # - the following 'html' rule will cleanse the HTML out anyway
-
         # for content directly from a note field (e.g. BrowserGenerator runs,
         # prepopulating a modal input based on some note field, where cloze
         # placeholders are still in their unprocessed state)
-        from_note=Sanitizer([
-            ('ruby_tags', 'strip_ruby_tags'),
-            ('clozes_braced', 'sub_note_cloze'),
-            ('newline_ellipsize', 'ellip_note_newlines'),
-            'html',
-            'whitespace',
-            'sounds_univ',
-            'filenames',
-            ('within_parens', 'strip_note_parens'),
-            ('within_brackets', 'strip_note_brackets'),
-            ('within_braces', 'strip_note_braces'),
-            ('char_remove', 'spec_note_strip'),
-            ('counter', 'spec_note_count', 'spec_note_count_wrap'),
-            ('char_ellipsize', 'spec_note_ellipsize'),
-            ('custom_sub', 'sul_note'),
-            'ellipses',
-            'whitespace',
-            ('xml_entities', 'sub_note_xml_entities')
-        ], config=config, logger=logger),
-
+        from_note=Sanitizer(
+            [
+                ('ruby_tags', 'strip_ruby_tags'),
+                ('clozes_braced', 'sub_note_cloze'),
+                ('newline_ellipsize', 'ellip_note_newlines'),
+                'html',
+                'whitespace',
+                'sounds_univ',
+                'filenames',
+                ('within_parens', 'strip_note_parens'),
+                ('within_brackets', 'strip_note_brackets'),
+                ('within_braces', 'strip_note_braces'),
+                ('char_remove', 'spec_note_strip'),
+                ('counter', 'spec_note_count', 'spec_note_count_wrap'),
+                ('char_ellipsize', 'spec_note_ellipsize'),
+                ('custom_sub', 'sul_note'),
+                'ellipses',
+                'whitespace',
+                ('xml_entities', 'sub_note_xml_entities'),
+            ],
+            config=config,
+            logger=logger,
+        ),
         # clean up fields coming from templates (on the fly TTS)
-        from_template=Sanitizer([
-            ('ruby_tags', 'strip_ruby_tags'),
-            ('clozes_rendered', 'sub_template_cloze'),
-            ('clozes_revealed', 'otf_only_revealed_cloze'),
-            'hint_links',
-            ('hint_content', 'otf_remove_hints'),
-            ('newline_ellipsize', 'ellip_template_newlines'),
-            'html',
-            ('xml_entities', 'sub_template_xml_entities'),
-        ] + STRIP_TEMPLATE_POSTHTML, config=config, logger=logger),
-
+        from_template=Sanitizer(
+            [
+                ('ruby_tags', 'strip_ruby_tags'),
+                ('clozes_rendered', 'sub_template_cloze'),
+                ('clozes_revealed', 'otf_only_revealed_cloze'),
+                'hint_links',
+                ('hint_content', 'otf_remove_hints'),
+                ('newline_ellipsize', 'ellip_template_newlines'),
+                'html',
+                ('xml_entities', 'sub_template_xml_entities'),
+            ]
+            + STRIP_TEMPLATE_POSTHTML,
+            config=config,
+            logger=logger,
+        ),
         # for cleaning up text from unknown sources (e.g. system clipboard);
         # n.b. clozes_revealed is not used here without the card context and
         # it would be a weird thing to apply to the clipboard content anyway
-        from_unknown=Sanitizer([
-            ('clozes_braced', 'sub_note_cloze'),
-            ('clozes_rendered', 'sub_template_cloze'),
-            'hint_links',
-            ('hint_content', 'otf_remove_hints'),
-            ('newline_ellipsize', 'ellip_note_newlines'),
-            ('newline_ellipsize', 'ellip_template_newlines'),
-            'html',
-            'html',  # clipboards often have escaped HTML, so we run twice
-            'whitespace',
-            'sounds_univ',
-            'filenames',
-            ('within_parens', ['strip_note_parens', 'strip_template_parens']),
-            ('within_brackets', ['strip_note_brackets',
-                                 'strip_template_brackets']),
-            ('within_braces', ['strip_note_braces', 'strip_template_braces']),
-            ('char_remove', 'spec_note_strip'),
-            ('char_remove', 'spec_template_strip'),
-            ('counter', 'spec_note_count', 'spec_note_count_wrap'),
-            ('counter', 'spec_template_count', 'spec_template_count_wrap'),
-            ('char_ellipsize', 'spec_note_ellipsize'),
-            ('char_ellipsize', 'spec_template_ellipsize'),
-            ('custom_sub', 'sul_note'),
-            ('custom_sub', 'sul_template'),
-            'ellipses',
-            'whitespace',
-            ('xml_entities', 'sub_note_xml_entities')
-        ], config=config, logger=logger),
-
+        from_unknown=Sanitizer(
+            [
+                ('clozes_braced', 'sub_note_cloze'),
+                ('clozes_rendered', 'sub_template_cloze'),
+                'hint_links',
+                ('hint_content', 'otf_remove_hints'),
+                ('newline_ellipsize', 'ellip_note_newlines'),
+                ('newline_ellipsize', 'ellip_template_newlines'),
+                'html',
+                'html',  # clipboards often have escaped HTML, so we run twice
+                'whitespace',
+                'sounds_univ',
+                'filenames',
+                ('within_parens', ['strip_note_parens', 'strip_template_parens']),
+                ('within_brackets', ['strip_note_brackets', 'strip_template_brackets']),
+                ('within_braces', ['strip_note_braces', 'strip_template_braces']),
+                ('char_remove', 'spec_note_strip'),
+                ('char_remove', 'spec_template_strip'),
+                ('counter', 'spec_note_count', 'spec_note_count_wrap'),
+                ('counter', 'spec_template_count', 'spec_template_count_wrap'),
+                ('char_ellipsize', 'spec_note_ellipsize'),
+                ('char_ellipsize', 'spec_template_ellipsize'),
+                ('custom_sub', 'sul_note'),
+                ('custom_sub', 'sul_template'),
+                'ellipses',
+                'whitespace',
+                ('xml_entities', 'sub_note_xml_entities'),
+            ],
+            config=config,
+            logger=logger,
+        ),
         # for direct user input (e.g. previews, EditorGenerator insertion)
-        from_user=Sanitizer(rules=[
-            'ellipses', 
-            'whitespace',
-            ('xml_entities', 'sub_note_xml_entities')
-        ], config=config, logger=logger),
-
+        from_user=Sanitizer(
+            rules=['ellipses', 'whitespace', ('xml_entities', 'sub_note_xml_entities')],
+            config=config,
+            logger=logger,
+        ),
         # target sounds specifically
         sounds=Bundle(
             # using Anki's method (used if we need to reproduce how Anki does
             # something, e.g. when Reviewer emulates {{FrontSide}})
             anki=anki.sound.stripSounds,
-
             # using AwesomeTTS's methods (which have access to precompiled re
             # objects, usable for everything else, e.g. when BrowserGenerator
             # or BrowserStripper need to remove old sounds)
@@ -443,11 +494,13 @@ def browser_menus():
             target=Bundle(
                 constructor=gui.BrowserGenerator,
                 args=(),
-                kwargs=dict(browser=browser,
-                            addon=addon,
-                            alerts=aqt.utils.showWarning,
-                            ask=aqt.utils.getText,
-                            parent=browser),
+                kwargs=dict(
+                    browser=browser,
+                    addon=addon,
+                    alerts=aqt.utils.showWarning,
+                    ask=aqt.utils.getText,
+                    parent=browser,
+                ),
             ),
             text="&Add Audio to Selected...",
             sequence=aqt.qt.QKeySequence(config.get('shortcut_launch_browser_generator')),
@@ -457,10 +510,9 @@ def browser_menus():
             target=Bundle(
                 constructor=gui.BrowserStripper,
                 args=(),
-                kwargs=dict(browser=browser,
-                            addon=addon,
-                            alerts=aqt.utils.showWarning,
-                            parent=browser),
+                kwargs=dict(
+                    browser=browser, addon=addon, alerts=aqt.utils.showWarning, parent=browser
+                ),
             ),
             text="&Remove Audio from Selected...",
             sequence=aqt.qt.QKeySequence(config.get('shortcut_launch_browser_stripper')),
@@ -513,8 +565,7 @@ def cache_control():
             from os.path import getmtime
 
             limit = time() - 86400 * config['cache_days']
-            targets = (prospect for prospect in prospects
-                       if getmtime(prospect) < limit)
+            targets = (prospect for prospect in prospects if getmtime(prospect) < limit)
         else:
             targets = prospects
 
@@ -540,7 +591,6 @@ def cards_button():
             # position 3 puts our button after "Add Field", but in the event
             # that the form suddenly has a different number of buttons, let's
             # just fallback to the far left position
-
             3 if card_layout.buttons.count() in [6, 7] else 0,
             gui.Button(
                 text="Add &TTS",
@@ -549,11 +599,13 @@ def cards_button():
                 target=Bundle(
                     constructor=gui.Templater,
                     args=(),
-                    kwargs=dict(card_layout=card_layout,
-                                addon=addon,
-                                alerts=aqt.utils.showWarning,
-                                ask=aqt.utils.getText,
-                                parent=card_layout),
+                    kwargs=dict(
+                        card_layout=card_layout,
+                        addon=addon,
+                        alerts=aqt.utils.showWarning,
+                        ask=aqt.utils.getText,
+                        parent=card_layout,
+                    ),
                 ),
             ),
         ),
@@ -571,12 +623,14 @@ def config_menu():
         target=Bundle(
             constructor=gui.Configurator,
             args=(),
-            kwargs=dict(addon=addon,
-                        logger=logger,
-                        sul_compiler=to.substitution_compiled,
-                        alerts=aqt.utils.showWarning,
-                        ask=aqt.utils.getText,
-                        parent=aqt.mw),
+            kwargs=dict(
+                addon=addon,
+                logger=logger,
+                sul_compiler=to.substitution_compiled,
+                alerts=aqt.utils.showWarning,
+                ask=aqt.utils.getText,
+                parent=aqt.mw,
+            ),
         ),
         text="Awesome&TTS...",
         sequence=aqt.qt.QKeySequence(config.get('shortcut_launch_configurator')),
@@ -585,21 +639,25 @@ def config_menu():
 
     # setup AwesomeTTS resources menu
     resources_menu = aqt.qt.QMenu('AwesomeTTS Resources', aqt.mw)
-    
+
     def open_url_lambda(url):
         def open_url():
             aqt.qt.QDesktopServices.openUrl(aqt.qt.QUrl(url))
+
         return open_url
 
     links = [
         {'name': """What's New / Updates""", 'url_path': 'updates'},
-        {'name': 'Getting Started with AwesomeTTS', 'url_path': 'tutorials/awesometts-getting-started'},
+        {
+            'name': 'Getting Started with AwesomeTTS',
+            'url_path': 'tutorials/awesometts-getting-started',
+        },
         {'name': 'Batch Audio Generation', 'url_path': 'tutorials/awesometts-batch-generation'},
         {'name': 'On the fly Audio', 'url_path': 'tutorials/awesometts-on-the-fly-tts'},
         {'name': 'All Tutorials', 'url_path': 'tutorials'},
         {'name': 'Listen to Voice Samples', 'url_path': 'languages'},
         {'name': 'Get Access to All Voices / All Services', 'url_path': 'awesometts-plus'},
-    ]    
+    ]
     for link in links:
         action = aqt.qt.QAction(link['name'], aqt.mw)
         url_path = link['url_path']
@@ -618,19 +676,24 @@ def editor_button():
 
     def createAwesomeTTSEditorLambda():
         def launch(editor):
-            editor_generator = gui.EditorGenerator(editor=editor,
-                                                   addon=addon,
-                                                   alerts=aqt.utils.showWarning,
-                                                   ask=aqt.utils.getText,
-                                                   parent=editor.parentWindow)
+            editor_generator = gui.EditorGenerator(
+                editor=editor,
+                addon=addon,
+                alerts=aqt.utils.showWarning,
+                ask=aqt.utils.getText,
+                parent=editor.parentWindow,
+            )
             editor_generator.show()
+
         return launch
 
     def addAwesomeTTSEditorButton(buttons, editor):
-        new_button = editor.addButton(gui.ICON_FILE,
+        new_button = editor.addButton(
+            gui.ICON_FILE,
             'AwesomeTTS',
             createAwesomeTTSEditorLambda(),
-            tip = "Record and insert an audio clip here w/ AwesomeTTS")
+            tip="Record and insert an audio clip here w/ AwesomeTTS",
+        )
         buttons.append(new_button)
         return buttons
 
@@ -638,12 +701,15 @@ def editor_button():
 
     def createAwesomeTTSEditorShortcutLambda(editor):
         def launch():
-            editor_generator = gui.EditorGenerator(editor=editor,
-                                                   addon=addon,
-                                                   alerts=aqt.utils.showWarning,
-                                                   ask=aqt.utils.getText,
-                                                   parent=editor.parentWindow)
+            editor_generator = gui.EditorGenerator(
+                editor=editor,
+                addon=addon,
+                alerts=aqt.utils.showWarning,
+                ask=aqt.utils.getText,
+                parent=editor.parentWindow,
+            )
             editor_generator.show()
+
         return launch
 
     def editor_init_shortcuts(shortcuts, editor: aqt.editor.Editor):
@@ -680,11 +746,13 @@ def reviewer_hooks():
     context menu.
     """
 
-
     # context menu playback
 
-    strip = Sanitizer([('newline_ellipsize', 'ellip_template_newlines')] +
-                      STRIP_TEMPLATE_POSTHTML, config=config, logger=logger)
+    strip = Sanitizer(
+        [('newline_ellipsize', 'ellip_template_newlines')] + STRIP_TEMPLATE_POSTHTML,
+        config=config,
+        logger=logger,
+    )
 
     def say_text_preset_handler(text, preset, parent):
         """Play the selected text using the preset."""
@@ -710,7 +778,7 @@ def reviewer_hooks():
                 okay=player.menu_click,
                 fail=lambda exception, text: (),
             ),
-        )    
+        )
 
     def on_context_menu(web_view, menu):
         """Populate context menu, given the context/configuration."""
@@ -732,17 +800,19 @@ def reviewer_hooks():
         if atts_button:
             submenu.addAction(
                 "Add MP3 to the Note",
-                lambda: atts_button.click() if atts_button.isEnabled()
-                else aqt.utils.showWarning(
-                    "Select the note field to which you want to add an MP3.",
-                    window,
-                )
+                lambda: (
+                    atts_button.click()
+                    if atts_button.isEnabled()
+                    else aqt.utils.showWarning(
+                        "Select the note field to which you want to add an MP3.",
+                        window,
+                    )
+                ),
             )
             needs_separator = True
 
         if say_text:
-            say_display = (say_text if len(say_text) < 25
-                           else say_text[0:20].rstrip(' .') + "...")
+            say_display = say_text if len(say_text) < 25 else say_text[0:20].rstrip(' .') + "..."
 
             if config['presets']:
                 if needs_separator:
@@ -755,12 +825,10 @@ def reviewer_hooks():
                     (name, preset) = preset_item
                     submenu.addAction(
                         'Say "%s" w/ %s' % (say_display, name),
-                        lambda: say_text_preset_handler(say_text,
-                                                           preset,
-                                                           window),
+                        lambda: say_text_preset_handler(say_text, preset, window),
                     )
-                for item in sorted(config['presets'].items(),
-                                   key=lambda item: item[0].lower()):
+
+                for item in sorted(config['presets'].items(), key=lambda item: item[0].lower()):
                     preset_glue(item)
 
             if config['groups']:
@@ -774,12 +842,10 @@ def reviewer_hooks():
                     (name, group) = group_item
                     submenu.addAction(
                         'Say "%s" w/ %s' % (say_display, name),
-                        lambda: say_text_group_handler(say_text,
-                                                                 group,
-                                                                 window),
+                        lambda: say_text_group_handler(say_text, group, window),
                     )
-                for item in sorted(config['groups'].items(),
-                                   key=lambda item: item[0].lower()):
+
+                for item in sorted(config['groups'].items(), key=lambda item: item[0].lower()):
                     group_glue(item)
 
         menu.addMenu(submenu)
@@ -800,14 +866,17 @@ def temp_files():
         files, then removes the directories themselves.
         """
 
-        from os import listdir, unlink, rmdir
+        from os import listdir, rmdir, unlink
         from os.path import isdir
 
         temp = paths.TEMP
 
         try:
-            subdirs = [join(temp, filename) for filename in listdir(temp)
-                       if filename.startswith('_awesometts_scratch')]
+            subdirs = [
+                join(temp, filename)
+                for filename in listdir(temp)
+                if filename.startswith('_awesometts_scratch')
+            ]
         except Exception as e:
             logger.debug("Failed to listdir temp dir: %s", e)
             return
@@ -820,7 +889,9 @@ def temp_files():
                     try:
                         unlink(join(subdir, filename))
                     except Exception as e:
-                        logger.debug("Failed to unlink busy file %s in scratch dir: %s", filename, e)
+                        logger.debug(
+                            "Failed to unlink busy file %s in scratch dir: %s", filename, e
+                        )
                 try:
                     rmdir(subdir)
                 except Exception as e:
@@ -832,11 +903,12 @@ def temp_files():
 def register_tts_tag():
     register_tts_player(addon)
 
+
 def display_homescreen():
     linkHandler = gui.homescreen.makeLinkHandler(addon)
     aqt.deckbrowser.DeckBrowser._linkHandler = anki.hooks.wrap(
         aqt.deckbrowser.DeckBrowser._linkHandler, linkHandler, "before"
-    )    
+    )
 
     on_deckbrowser_will_render_content = gui.homescreen.makeDeckBrowserRenderContent(addon)
     aqt.gui_hooks.deck_browser_will_render_content.append(on_deckbrowser_will_render_content)

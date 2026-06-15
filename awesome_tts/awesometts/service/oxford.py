@@ -39,11 +39,12 @@ RE_DISCARD = re.compile(r'[^-.\s\w]+', re.UNICODE)
 
 class OxfordLister(HTMLParser):
     """Accumulate all found MP3s into `sounds` member."""
+
     def __init__(self, logger, lang):
         HTMLParser.__init__(self)
         self.lang = lang
         self._logger = logger
-        wanted_class_map = { 
+        wanted_class_map = {
             'en-GB': 'sound audio_play_button pron-uk icon-audio',
             'en-US': 'sound audio_play_button pron-us icon-audio',
         }
@@ -63,6 +64,7 @@ class OxfordLister(HTMLParser):
                     self.sounds.append(attr_value)
                     self._logger.debug(f'found mp3 link: {attr_value}')
 
+
 class Oxford(Service):
     """
     Provides a Service-compliant implementation for Oxford Dictionary.
@@ -79,25 +81,39 @@ class Oxford(Service):
         Returns a short, static description.
         """
 
-        return "Oxford Dictionary (British and American English); " \
+        return (
+            "Oxford Dictionary (British and American English); "
             "dictionary words only, with (optional) fuzzy matching"
+        )
 
     def options(self):
         """
         Provides access to voice and fuzzy matching switch.
         """
 
-        voice_lookup = dict([
-            # aliases for English, American
-            (self.normalize(alias), 'en-US')
-            for alias in ['American', 'American English', 'English, American',
-                          'US']
-        ] + [
-            # aliases for English, British ("default" for the OED)
-            (self.normalize(alias), 'en-GB')
-            for alias in ['British', 'British English', 'English, British',
-                          'English', 'en', 'en-EU', 'en-UK', 'EU', 'GB', 'UK']
-        ])
+        voice_lookup = dict(
+            [
+                # aliases for English, American
+                (self.normalize(alias), 'en-US')
+                for alias in ['American', 'American English', 'English, American', 'US']
+            ]
+            + [
+                # aliases for English, British ("default" for the OED)
+                (self.normalize(alias), 'en-GB')
+                for alias in [
+                    'British',
+                    'British English',
+                    'English, British',
+                    'English',
+                    'en',
+                    'en-EU',
+                    'en-UK',
+                    'EU',
+                    'GB',
+                    'UK',
+                ]
+            ]
+        )
 
         def transform_voice(value):
             """Normalize and attempt to convert to official code."""
@@ -110,8 +126,10 @@ class Oxford(Service):
             dict(
                 key='voice',
                 label="Voice",
-                values=[('en-US', "English, American (en-US)"),
-                        ('en-GB', "English, British (en-GB)")],
+                values=[
+                    ('en-US', "English, American (en-US)"),
+                    ('en-GB', "English, British (en-GB)"),
+                ],
                 default='en-GB',
                 transform=transform_voice,
             ),
@@ -120,8 +138,8 @@ class Oxford(Service):
                 label="Fuzzy matching",
                 values=[(True, 'Enabled'), (False, 'Disabled')],
                 default=True,
-                transform=bool
-            )
+                transform=bool,
+            ),
         ]
 
     def modify(self, text):
@@ -144,7 +162,6 @@ class Oxford(Service):
             raise IOError("Input text is too long for the Oxford Dictionary")
 
         from urllib.parse import quote
-
 
         # note: british english and american english pronunciations are on the same page
         language_path = 'english'
@@ -192,7 +209,5 @@ class Oxford(Service):
                 "consider either using a different service or switching to "
                 "British English."
                 if options['voice'] == 'en-US'
-
-                else
-                "The Oxford Dictionary has no recorded audio for your input."
+                else "The Oxford Dictionary has no recorded audio for your input."
             )

@@ -31,8 +31,7 @@ class Yandex(Service):
     Provides a Service-compliant implementation for Yandex.Translate.
     """
 
-    __slots__ = [
-    ]
+    __slots__ = []
 
     NAME = "Yandex.Translate"
 
@@ -44,14 +43,24 @@ class Yandex(Service):
         # code from the two-character language code. If, in the future,
         # there are two kinds of any particular language, the alias list
         # logic will have to be reworked.
-
-        'ar_AE': "Arabic", 'ca_ES': "Catalan", 'cs_CZ': "Czech",
-        'da_DK': "Danish", 'de_DE': "German", 'el_GR': "Greek",
-        'en_GB': "English, British", 'es_ES': "Spanish, European",
-        'fi_FI': "Finnish", 'fr_FR': "French", 'it_IT': "Italian",
-        'nl_NL': "Dutch", 'no_NO': "Norwegian", 'pl_PL': "Polish",
-        'pt_PT': "Portuguese, European", 'ru_RU': "Russian",
-        'sv_SE': "Swedish", 'tr_TR': "Turkish",
+        'ar_AE': "Arabic",
+        'ca_ES': "Catalan",
+        'cs_CZ': "Czech",
+        'da_DK': "Danish",
+        'de_DE': "German",
+        'el_GR': "Greek",
+        'en_GB': "English, British",
+        'es_ES': "Spanish, European",
+        'fi_FI': "Finnish",
+        'fr_FR': "French",
+        'it_IT': "Italian",
+        'nl_NL': "Dutch",
+        'no_NO': "Norwegian",
+        'pl_PL': "Polish",
+        'pt_PT': "Portuguese, European",
+        'ru_RU': "Russian",
+        'sv_SE': "Swedish",
+        'tr_TR': "Turkish",
     }
 
     def desc(self):
@@ -59,43 +68,50 @@ class Yandex(Service):
         Returns a short, static description.
         """
 
-        return "Yandex.Translate text-to-speech web API " \
-            "(%d voices)" % len(self._VOICE_CODES)
+        return "Yandex.Translate text-to-speech web API " "(%d voices)" % len(self._VOICE_CODES)
 
     def options(self):
         """
         Provides access to voice and quality.
         """
 
-        voice_lookup = dict([
-            # two-character language codes
-            (self.normalize(code[:2]), code)
-            for code in self._VOICE_CODES.keys()
-        ] + [
-            # aliases for Spanish, European
-            (self.normalize(alias), 'es_ES')
-            for alias in ['es_EU']
-        ] + [
-            # aliases for English, British
-            (self.normalize(alias), 'en_GB')
-            for alias in ['en_EU', 'en_UK']
-        ] + [
-            # aliases for Portuguese, European
-            (self.normalize(alias), 'pt_PT')
-            for alias in ['pt_EU']
-        ] + [
-            # then add/override for full names (e.g. Spanish, European)
-            (self.normalize(name), code)
-            for code, name in self._VOICE_CODES.items()
-        ] + [
-            # then add/override for shorter names (e.g. Spanish)
-            (self.normalize(name.split(',')[0]), code)
-            for code, name in self._VOICE_CODES.items()
-        ] + [
-            # then add/override for official voices (e.g. es_ES)
-            (self.normalize(code), code)
-            for code in self._VOICE_CODES.keys()
-        ])
+        voice_lookup = dict(
+            [
+                # two-character language codes
+                (self.normalize(code[:2]), code)
+                for code in self._VOICE_CODES.keys()
+            ]
+            + [
+                # aliases for Spanish, European
+                (self.normalize(alias), 'es_ES')
+                for alias in ['es_EU']
+            ]
+            + [
+                # aliases for English, British
+                (self.normalize(alias), 'en_GB')
+                for alias in ['en_EU', 'en_UK']
+            ]
+            + [
+                # aliases for Portuguese, European
+                (self.normalize(alias), 'pt_PT')
+                for alias in ['pt_EU']
+            ]
+            + [
+                # then add/override for full names (e.g. Spanish, European)
+                (self.normalize(name), code)
+                for code, name in self._VOICE_CODES.items()
+            ]
+            + [
+                # then add/override for shorter names (e.g. Spanish)
+                (self.normalize(name.split(',')[0]), code)
+                for code, name in self._VOICE_CODES.items()
+            ]
+            + [
+                # then add/override for official voices (e.g. es_ES)
+                (self.normalize(code), code)
+                for code in self._VOICE_CODES.keys()
+            ]
+        )
 
         def transform_voice(value):
             """Normalize and attempt to convert to official code."""
@@ -110,8 +126,10 @@ class Yandex(Service):
             dict(
                 key='voice',
                 label="Voice",
-                values=[(code, "%s (%s)" % (name, code.replace('_', '-')))
-                        for code, name in sorted(self._VOICE_CODES.items())],
+                values=[
+                    (code, "%s (%s)" % (name, code.replace('_', '-')))
+                    for code, name in sorted(self._VOICE_CODES.items())
+                ],
                 transform=transform_voice,
             ),
             dict(
@@ -134,13 +152,15 @@ class Yandex(Service):
         self.net_download(
             path,
             [
-                ('http://tts.voicetech.yandex.net/tts', dict(
-                    format='mp3',
-                    quality=options['quality'],
-                    lang=options['voice'],
-                    text=subtext,
-                ))
-
+                (
+                    'http://tts.voicetech.yandex.net/tts',
+                    dict(
+                        format='mp3',
+                        quality=options['quality'],
+                        lang=options['voice'],
+                        text=subtext,
+                    ),
+                )
                 # n.b. limit seems to be much higher than 750, but this is
                 # a safe place to start (the web UI limits the user to 100)
                 for subtext in self.util_split(text, 750)

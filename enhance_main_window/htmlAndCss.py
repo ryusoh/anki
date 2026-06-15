@@ -1,13 +1,10 @@
 import gettext
 import os
 
-from .config import getUserOption
-
 # Use Python's gettext directly instead of deprecated anki.lang._
 _ = gettext.gettext
 
-__location__ = os.path.realpath(
-    os.path.join(os.getcwd(), os.path.dirname(__file__)))
+__location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 js_file = os.path.join(__location__, "deckbrowser.js")
 css_file = os.path.join(__location__, "defaultcss.css")
 
@@ -18,7 +15,7 @@ with open(css_file, "r") as f:
 
 
 ######################
-#header related html #
+# header related html #
 ######################
 start_header = """
   <tr style = "vertical-align:text-top">"""
@@ -49,7 +46,7 @@ end_header = """
 
 
 ##############
-#deck's html #
+# deck's html #
 ##############
 def start_line(klass, did):
     return f"""
@@ -83,14 +80,14 @@ def deck_name(depth, collapse, extraclass, did, cssStyle, name):
 def number_cell(colour, number, description):
     if description is None or description is False:
         description = ""
-        t = f"""
+        t = """
     <td align = 'center' class='number_cell'>"""
     else:
         description = f"""
       <span class = 'tooltiptext'>
         {description}
       </span>"""
-        t = f"""
+        t = """
     <td align = 'right' class = 'tooltip number_cell'>"""
     # if number:
     t += f"""

@@ -36,10 +36,9 @@ Options dialog and associated components
 import time
 from typing import Optional
 
-from aqt.qt import QAction, QApplication, QWidget
-
 from anki.lang import _
 from aqt import mw
+from aqt.qt import QAction, QApplication, QWidget
 from aqt.studydeck import StudyDeck
 
 from ..config import config, heatmap_cell_shapes, heatmap_colors, heatmap_modes
@@ -50,7 +49,6 @@ from .forms import options as qtform_options
 
 
 class RevHmOptions(OptionsDialog):
-
     """
     Add-on-specific options dialog implementation
     """
@@ -113,11 +111,7 @@ class RevHmOptions(OptionsDialog):
         self.parent = parent or mw
         self.mw = mw
         super(RevHmOptions, self).__init__(
-            self._mapped_widgets,
-            config,
-            form_module=qtform_options,
-            parent=self.parent,
-            **kwargs
+            self._mapped_widgets, config, form_module=qtform_options, parent=self.parent, **kwargs
         )
         # Instance methods that modify the initialized UI should either be
         # called from self._setupUI or from here

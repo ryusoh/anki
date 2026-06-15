@@ -25,10 +25,10 @@ __all__ = ['Youdao']
 
 
 VOICE_CODES = [
-    ('en-GB', ("English, British", 1,"en")),
-    ('en-US', ("English, American", 2,"en")),
-    ('en', ("English, alternative", 3,"en")),
-    ('jp', ("Japanese, alternative", 4,"jp")),
+    ('en-GB', ("English, British", 1, "en")),
+    ('en-US', ("English, American", 2, "en")),
+    ('en', ("English, alternative", 3, "en")),
+    ('jp', ("Japanese, alternative", 4, "jp")),
 ]
 
 VOICE_LOOKUP = dict(VOICE_CODES)
@@ -51,30 +51,23 @@ class Youdao(Service):
     def options(self):
         """Returns an option to select the voice."""
 
-        voice_lookup = dict([
-            (self.normalize(alias), 'en-GB')
-            for alias in ['en-EU', 'en-UK']
-        ] + [
-            (self.normalize(alias), 'en')
-            for alias in ['English', 'en', 'eng']
-        ] + [
-            (self.normalize(code), code)
-            for code in VOICE_LOOKUP.keys()
-        ])
+        voice_lookup = dict(
+            [(self.normalize(alias), 'en-GB') for alias in ['en-EU', 'en-UK']]
+            + [(self.normalize(alias), 'en') for alias in ['English', 'en', 'eng']]
+            + [(self.normalize(code), code) for code in VOICE_LOOKUP.keys()]
+        )
 
         def transform_voice(value):
             """Normalize and attempt to convert to official code."""
 
             normalized = self.normalize(value)
-            return (voice_lookup[normalized]
-                    if normalized in voice_lookup else value)
+            return voice_lookup[normalized] if normalized in voice_lookup else value
 
         return [
             dict(
                 key='voice',
                 label="Voice",
-                values=[(key, description)
-                        for key, (description, _,_) in VOICE_CODES],
+                values=[(key, description) for key, (description, _, _) in VOICE_CODES],
                 transform=transform_voice,
                 default='en-US',
             ),
@@ -86,10 +79,14 @@ class Youdao(Service):
         self.net_download(
             path,
             [
-                ('http://dict.youdao.com/dictvoice', dict(
-                    audio=subtext,
-                    type=VOICE_LOOKUP[options['voice']][1],le=VOICE_LOOKUP[options['voice']][2]
-                ))
+                (
+                    'http://dict.youdao.com/dictvoice',
+                    dict(
+                        audio=subtext,
+                        type=VOICE_LOOKUP[options['voice']][1],
+                        le=VOICE_LOOKUP[options['voice']][2],
+                    ),
+                )
                 for subtext in self.util_split(text, 1000)
             ],
             require=dict(mime='audio/mpeg', size=256),

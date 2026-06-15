@@ -21,11 +21,10 @@ Template generation dialog
 """
 
 import aqt.qt
-
-from .base import ServiceDialog
-from .common import Checkbox, Label, Note
 import aqt.utils
 
+from .base import ServiceDialog
+from .common import Label, Note
 
 __all__ = ['Templater']
 
@@ -48,7 +47,7 @@ class Templater(ServiceDialog):
 
     __slots__ = [
         '_card_layout',  # reference to the card layout window
-        '_is_cloze',     # True if the model attached
+        '_is_cloze',  # True if the model attached
     ]
 
     def __init__(self, card_layout, *args, **kwargs):
@@ -57,14 +56,11 @@ class Templater(ServiceDialog):
         """
 
         from anki.consts import MODEL_CLOZE
+
         self._card_layout = card_layout
         self._is_cloze = card_layout.model['type'] == MODEL_CLOZE
 
-
-        super(Templater, self).__init__(
-            title="Add On-the-Fly TTS Tag to Template",
-            *args, **kwargs
-        )
+        super(Templater, self).__init__(title="Add On-the-Fly TTS Tag to Template", *args, **kwargs)
 
     # UI Construction ########################################################
 
@@ -83,8 +79,12 @@ class Templater(ServiceDialog):
         layout.addStretch()
         layout.addLayout(self._ui_control_fields())
         layout.addStretch()
-        layout.addWidget(Note("This feature will use AwesomeTTS on Anki desktop, and will fallback to other voices (based on the selected language) " +
-        "where AwesomeTTS is not available."))
+        layout.addWidget(
+            Note(
+                "This feature will use AwesomeTTS on Anki desktop, and will fallback to other voices (based on the selected language) "
+                + "where AwesomeTTS is not available."
+            )
+        )
         layout.addStretch()
         layout.addWidget(self._ui_buttons())
 
@@ -100,25 +100,37 @@ class Templater(ServiceDialog):
 
         full_language_list = [(x.name, x.lang_name) for x in self._addon.language]
         # sort by human name
-        full_language_list.sort(key=lambda x:x[1])
+        full_language_list.sort(key=lambda x: x[1])
 
         for row, label, name, options in [
-                (0, "Field:", 'field', [
+            (
+                0,
+                "Field:",
+                'field',
+                [
                     (field, field)
-                    for field in sorted({field['name']
-                                         for field
-                                         in self._card_layout.model['flds']})
-                ]),
-
-                (1, "Type:", 'type', [
+                    for field in sorted(
+                        {field['name'] for field in self._card_layout.model['flds']}
+                    )
+                ],
+            ),
+            (
+                1,
+                "Type:",
+                'type',
+                [
                     (Templater.FIELD_TYPE_REGULAR, "Regular field"),
-                    (Templater.FIELD_TYPE_CLOZE, "Cloze field: speak non-hidden parts of front, speak everything on back"),
-                    (Templater.FIELD_TYPE_CLOZE_HIDDEN, "Cloze field: hidden part only, on back side only"),
-                ]),
-
-                (2, "Language:", 'language', full_language_list),
-
-
+                    (
+                        Templater.FIELD_TYPE_CLOZE,
+                        "Cloze field: speak non-hidden parts of front, speak everything on back",
+                    ),
+                    (
+                        Templater.FIELD_TYPE_CLOZE_HIDDEN,
+                        "Cloze field: hidden part only, on back side only",
+                    ),
+                ],
+            ),
+            (2, "Language:", 'language', full_language_list),
         ]:
             label = Label(label)
             label.setFont(self._FONT_LABEL)
@@ -156,7 +168,7 @@ class Templater(ServiceDialog):
         if self.front_template_selected:
             target_name = "Front Template"
         elif self.back_template_selected:
-            target_name = "Back Template"        
+            target_name = "Back Template"
         self.findChild(aqt.qt.QAbstractButton, 'okay').setText("&Insert into " + target_name)
 
     def get_target_selected(self):
@@ -165,7 +177,7 @@ class Templater(ServiceDialog):
         if self._card_layout.tform.front_button.isChecked():
             self.front_template_selected = True
         if self._card_layout.tform.back_button.isChecked():
-            self.back_template_selected = True        
+            self.back_template_selected = True
 
     # Events #################################################################
 
@@ -183,11 +195,12 @@ class Templater(ServiceDialog):
 
         # if the user selected styling, exit as it doesn't make sense to insert a TTS tag there
         if self.front_template_selected == False and self.back_template_selected == False:
-            aqt.utils.showCritical("Please Select Front Template or Back Template", title="AwesomeTTS")
+            aqt.utils.showCritical(
+                "Please Select Front Template or Back Template", title="AwesomeTTS"
+            )
             return
 
         super(Templater, self).show(*args, **kwargs)
-
 
     def accept(self):
         """
@@ -202,9 +215,9 @@ class Templater(ServiceDialog):
         group_name = settings['group_name']
         # get language
         language = settings['language']
-        language_enum = self._addon.language[language]        
+        language_enum = self._addon.language[language]
 
-        #print(settings)
+        # print(settings)
 
         if not is_group and preset_name == None:
             aqt.utils.showCritical("You must select a service preset", self)
@@ -217,7 +230,7 @@ class Templater(ServiceDialog):
 
         tform = self._card_layout.tform
         # there's now a single edit area, as of anki 2.1.28
-        target = getattr(tform, 'edit_area')
+        target = tform.edit_area
 
         field_syntax = settings['field']
         field_type = settings['type']
@@ -229,14 +242,20 @@ class Templater(ServiceDialog):
         language = settings['language']
         tag_syntax = f"tts {language} voices=AwesomeTTS:{field_syntax}"
 
-        target.setPlainText('\n'.join([target.toPlainText(), '{{' + tag_syntax + '}}'] ))
+        target.setPlainText('\n'.join([target.toPlainText(), '{{' + tag_syntax + '}}']))
 
         if is_group:
-            aqt.utils.showInfo(f"You have now associated the {language_enum.lang_name} language with the [{group_name}] group. To change this association, "+ 
-        "delete the tag and add it again.", self)
+            aqt.utils.showInfo(
+                f"You have now associated the {language_enum.lang_name} language with the [{group_name}] group. To change this association, "
+                + "delete the tag and add it again.",
+                self,
+            )
         else:
-            aqt.utils.showInfo(f"You have now associated the {language_enum.lang_name} language with the [{preset_name}] preset. To change this association, "+ 
-        "delete the tag and add it again.", self)
+            aqt.utils.showInfo(
+                f"You have now associated the {language_enum.lang_name} language with the [{preset_name}] preset. To change this association, "
+                + "delete the tag and add it again.",
+                self,
+            )
 
         self._addon.config['tts_voices'] = tts_voices
 
@@ -255,8 +274,8 @@ class Templater(ServiceDialog):
         }
 
         presets = self.findChild(aqt.qt.QComboBox, 'presets_dropdown')
-        
-        #service
+
+        # service
         services = self.findChild(aqt.qt.QComboBox, 'service')
         service_index = services.currentIndex()
         service_id = services.itemData(service_index)

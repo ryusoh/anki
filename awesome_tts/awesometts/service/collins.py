@@ -35,10 +35,18 @@ MAPPINGS = [
     ('en', "English", 'english', [re.compile(BASE_PATTERN % r'\d+')]),
     ('fr', "French", 'french-english', [re.compile(BASE_PATTERN % r'fr_')]),
     ('de', "German", 'german-english', [re.compile(BASE_PATTERN % r'de_')]),
-    ('es-419', "Spanish, prefer Americas", 'spanish-english',
-     [re.compile(BASE_PATTERN % r'es_419_'), RE_ANY_SPANISH]),
-    ('es-es', "Spanish, prefer European", 'spanish-english',
-     [re.compile(BASE_PATTERN % r'es_es_'), RE_ANY_SPANISH]),
+    (
+        'es-419',
+        "Spanish, prefer Americas",
+        'spanish-english',
+        [re.compile(BASE_PATTERN % r'es_419_'), RE_ANY_SPANISH],
+    ),
+    (
+        'es-es',
+        "Spanish, prefer European",
+        'spanish-english',
+        [re.compile(BASE_PATTERN % r'es_es_'), RE_ANY_SPANISH],
+    ),
     ('it', "Italian", 'italian-english', [re.compile(BASE_PATTERN % r'it_')]),
     ('zh', "Chinese", 'chinese-english', [re.compile(BASE_PATTERN % r'zh_')]),
 ]
@@ -48,15 +56,31 @@ LANG_TO_REGEXPS = {lang: regexps for lang, _, _, regexps in MAPPINGS}
 DEFAULT_LANG = 'en'
 
 RE_NONWORD = re.compile(r'\W+', re.UNICODE)
-DEFINITE_ARTICLES = ['das', 'der', 'die', 'el', 'gli', 'i', 'il', 'l', 'la',
-                     'las', 'le', 'les', 'lo', 'los', 'the']
+DEFINITE_ARTICLES = [
+    'das',
+    'der',
+    'die',
+    'el',
+    'gli',
+    'i',
+    'il',
+    'l',
+    'la',
+    'las',
+    'le',
+    'les',
+    'lo',
+    'los',
+    'the',
+]
 
 TEXT_SPACE_LIMIT = 1
 TEXT_LENGTH_LIMIT = 75
 COLLINS_WEBSITE = 'http://www.collinsdictionary.com'
 SEARCH_FORM = COLLINS_WEBSITE + '/search/'
-RE_MP3_URL = re.compile(r'<a[^>]+class="[^>"]*hwd_sound[^>"]*"[^>]+'
-                        r'data-src-mp3="(/[^>"]+)"[^>]*>')
+RE_MP3_URL = re.compile(
+    r'<a[^>]+class="[^>"]*hwd_sound[^>"]*"[^>]+' r'data-src-mp3="(/[^>"]+)"[^>]*>'
+)
 REQUIRE_MP3 = dict(mime='audio/mpeg', size=256)
 
 
@@ -72,24 +96,25 @@ class Collins(Service):
     def desc(self):
         """Returns a short, static description."""
 
-        return "Collins Dictionary (%d languages); single words and " \
+        return (
+            "Collins Dictionary (%d languages); single words and "
             "two-word phrases only with fuzzy matching" % len(MAPPINGS)
+        )
 
     def options(self):
         """Provides access to voice only."""
 
-        voice_lookup = dict([(self.normalize(desc), lang)
-                             for lang, desc, _, _ in MAPPINGS] +
-                            [(self.normalize(lang), lang)
-                             for lang, _, _, _ in MAPPINGS])
+        voice_lookup = dict(
+            [(self.normalize(desc), lang) for lang, desc, _, _ in MAPPINGS]
+            + [(self.normalize(lang), lang) for lang, _, _, _ in MAPPINGS]
+        )
 
         return [
             dict(
                 key='voice',
                 label="Voice",
                 values=[(lang, desc) for lang, desc, _, _ in MAPPINGS],
-                transform=lambda value: voice_lookup.get(self.normalize(value),
-                                                         value),
+                transform=lambda value: voice_lookup.get(self.normalize(value), value),
                 default=DEFAULT_LANG,
             ),
         ]
@@ -132,11 +157,8 @@ class Collins(Service):
 
             match = regexp.search(payload)
             if match:
-                self.net_download(path,
-                                  COLLINS_WEBSITE + match.group(1),
-                                  require=REQUIRE_MP3)
+                self.net_download(path, COLLINS_WEBSITE + match.group(1), require=REQUIRE_MP3)
                 break
 
         else:
-            raise IOError("Cannot find any recorded audio in Collins "
-                          "dictionary for this input.")
+            raise IOError("Cannot find any recorded audio in Collins " "dictionary for this input.")

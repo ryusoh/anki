@@ -22,7 +22,6 @@ Service implementation for SAPI 5 on the Windows platform via win32com
 
 from .base import Service
 from .common import Trait
-
 from .sapi5js import LANGUAGE_CODES
 
 __all__ = ['SAPI5COM']
@@ -34,7 +33,7 @@ class SAPI5COM(Service):
     """
 
     __slots__ = [
-        '_client',     # reference to the win32com.client module
+        '_client',  # reference to the win32com.client module
         '_pythoncom',  # reference to the pythoncom module
         '_voice_map',  # dict of voice names to their SAPI objects
     ]
@@ -61,17 +60,20 @@ class SAPI5COM(Service):
         try:
             import win32com.client
         except IOError:  # some Anki packages have an unwritable cache path
-            self._logger.warn("win32com.client import failed; trying again "
-                              "with alternate __gen_path__ set")
-            import win32com
+            self._logger.warn(
+                "win32com.client import failed; trying again " "with alternate __gen_path__ set"
+            )
             import os.path
             import tempfile
-            win32com.__gen_path__ = os.path.join(tempfile.gettempdir(),
-                                                 'gen_py')
+
+            import win32com
+
+            win32com.__gen_path__ = os.path.join(tempfile.gettempdir(), 'gen_py')
             import win32com.client
         self._client = win32com.client
 
         import pythoncom
+
         self._pythoncom = pythoncom
 
         # pylint:enable=import-error
@@ -91,33 +93,32 @@ class SAPI5COM(Service):
         """
 
         count = len(self._voice_map)
-        return ("SAPI 5.0 via win32com (%d %s)" %
-                (count, "voice" if count == 1 else "voices"))
+        return "SAPI 5.0 via win32com (%d %s)" % (count, "voice" if count == 1 else "voices")
 
     def options(self):
         """
         Provides access to voice, speed, and volume.
         """
 
-        voice_lookup = dict([
-            # normalized with characters w/ diacritics stripped
-            (self.normalize(voice[0]), voice[0])
-            for voice in self._voice_map.keys()
-        ] + [
-            # normalized with diacritics converted
-            (self.normalize(self.util_approx(voice[0])), voice[0])
-            for voice in self._voice_map.keys()
-        ])
+        voice_lookup = dict(
+            [
+                # normalized with characters w/ diacritics stripped
+                (self.normalize(voice[0]), voice[0])
+                for voice in self._voice_map.keys()
+            ]
+            + [
+                # normalized with diacritics converted
+                (self.normalize(self.util_approx(voice[0])), voice[0])
+                for voice in self._voice_map.keys()
+            ]
+        )
 
         def transform_voice(value):
             """Normalize and attempt to convert to official voice."""
 
             normalized = self.normalize(value)
 
-            return (
-                voice_lookup[normalized] if normalized in voice_lookup
-                else value
-            )
+            return voice_lookup[normalized] if normalized in voice_lookup else value
 
         def get_voice_desc(name):
             try:
@@ -125,6 +126,7 @@ class SAPI5COM(Service):
                 return '%s (%s)' % (name, LANGUAGE_CODES.get(lang, lang))
             except Exception as e:
                 import logging
+
                 logging.getLogger(__name__).debug(f"Failed to get SAPI5 voice desc for {name}: {e}")
                 return name
 
@@ -132,11 +134,9 @@ class SAPI5COM(Service):
             dict(
                 key='voice',
                 label="Voice",
-                values=[(voice, get_voice_desc(voice))
-                        for voice in sorted(self._voice_map.keys())],
+                values=[(voice, get_voice_desc(voice)) for voice in sorted(self._voice_map.keys())],
                 transform=transform_voice,
             ),
-
             dict(
                 key='speed',
                 label="Speed",
@@ -144,7 +144,6 @@ class SAPI5COM(Service):
                 transform=int,
                 default=0,
             ),
-
             dict(
                 key='volume',
                 label="Volume",
@@ -152,7 +151,6 @@ class SAPI5COM(Service):
                 transform=int,
                 default=100,
             ),
-
             dict(
                 key='quality',
                 label="Quality",
@@ -197,7 +195,6 @@ class SAPI5COM(Service):
                 transform=int,
                 default=39,
             ),
-
             dict(
                 key='xml',
                 label="XML",

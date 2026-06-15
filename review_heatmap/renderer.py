@@ -162,16 +162,14 @@ class HeatmapRenderer:
         classes = self._get_css_classes(view)
 
         if prefs["display"][view.name]:
-            heatmap = self._generate_heatmap_elm(
-                report, heatmap_legend, current_deck_only
-            )
+            heatmap = self._generate_heatmap_elm(report, heatmap_legend, current_deck_only)
         else:
             heatmap = ""
             classes.append(CSS_DISABLE_HEATMAP)
 
         if prefs["display"][view.name] or prefs["statsvis"]:
             stats = ""
-            #classes.append(CSS_DISABLE_STATS)
+            # classes.append(CSS_DISABLE_STATS)
         else:
             stats = ""
             classes.append(CSS_DISABLE_STATS)
@@ -179,9 +177,7 @@ class HeatmapRenderer:
         if not current_deck_only:
             self._save_current_perf(report)
 
-        render = HTML_MAIN_ELEMENT.format(
-            content=heatmap + stats, classes=" ".join(classes)
-        )
+        render = HTML_MAIN_ELEMENT.format(content=heatmap + stats, classes=" ".join(classes))
 
         self._render_cache = _RenderCache(
             html=render,
@@ -245,9 +241,7 @@ class HeatmapRenderer:
             "cell_shape": cell_shape,
         }
 
-        return HTML_HEATMAP.format(
-            options=json.dumps(options), data=json.dumps(report.activity)
-        )
+        return HTML_HEATMAP.format(options=json.dumps(options), data=json.dumps(report.activity))
 
     def _generate_stats_elm(self, data: ActivityReport, dynamic_legend) -> str:
         dynamic_levels = self._get_dynamic_levels(dynamic_legend)

@@ -18,18 +18,16 @@
 
 """Naver Papago"""
 
-from .base import Service
-from .common import Trait
-
 import base64
+import datetime
 import hashlib
 import hmac
-import json
-import time
 import uuid
-import requests
-import datetime
 
+import requests
+
+from .base import Service
+from .common import Trait
 
 __all__ = ['Naver']
 
@@ -38,105 +36,126 @@ TRANSLATE_ENDPOINT = 'https://papago.naver.com/apis/tts/'
 TRANSLATE_MKID = TRANSLATE_ENDPOINT + 'makeID'
 
 VOICE_CODES = [
-    ('ko', (
-        "Korean",
-        [
-            ('alpha', 0),
-            ('pitch', 0),
-            ('speaker', 'kyuri'),
-            ('speed', 0),
-        ],
-    )),
-
-    ('en', (
-        "English",
-        [
-            ('alpha', 0),
-            ('pitch', 0),
-            ('speaker', 'clara'),
-            ('speed', 0),
-        ],
-    )),
-
-    ('ja', (
-        "Japanese",
-        [
-            ('alpha', 0),
-            ('pitch', 0),
-            ('speaker', 'yuri'),
-            ('speed', 0),
-        ],
-    )),
-
-    ('zh-CN', (
-        "Chinese - Simplified",
-        [
-            ('alpha', 0),
-            ('pitch', 0),
-            ('speaker', 'meimei'),
-            ('speed', 0),
-        ],
-    )),
-
-    ('zh-TW', (
-        "Chinese - Traditional",
-        [
-            ('alpha', 0),
-            ('pitch', 0),
-            ('speaker', 'chiahua'),
-            ('speed', 0),
-        ],
-    )),
-
-    ('es', (
-        "Spanish",
-        [
-            ('alpha', 0),
-            ('pitch', 0),
-            ('speaker', 'carmen'),
-            ('speed', 0),
-        ],
-    )),
-
-    ('fr', (
-        "French",
-        [
-            ('alpha', 0),
-            ('pitch', 0),
-            ('speaker', 'roxane'),
-            ('speed', 0),
-        ],
-    )),
-
-    ('de', (
-        "German",
-        [
-            ('alpha', 0),
-            ('pitch', 0),
-            ('speaker', 'lena'),
-            ('speed', 0),
-        ],
-    )),
-
-    ('ru', (
-        "Russian",
-        [
-            ('alpha', 0),
-            ('pitch', 0),
-            ('speaker', 'vera'),
-            ('speed', 0),
-        ],
-    )),
-
-    ('th', (
-        "Thai",
-        [
-            ('alpha', 0),
-            ('pitch', 0),
-            ('speaker', 'somsi'),
-            ('speed', 0),
-        ],
-    )),
+    (
+        'ko',
+        (
+            "Korean",
+            [
+                ('alpha', 0),
+                ('pitch', 0),
+                ('speaker', 'kyuri'),
+                ('speed', 0),
+            ],
+        ),
+    ),
+    (
+        'en',
+        (
+            "English",
+            [
+                ('alpha', 0),
+                ('pitch', 0),
+                ('speaker', 'clara'),
+                ('speed', 0),
+            ],
+        ),
+    ),
+    (
+        'ja',
+        (
+            "Japanese",
+            [
+                ('alpha', 0),
+                ('pitch', 0),
+                ('speaker', 'yuri'),
+                ('speed', 0),
+            ],
+        ),
+    ),
+    (
+        'zh-CN',
+        (
+            "Chinese - Simplified",
+            [
+                ('alpha', 0),
+                ('pitch', 0),
+                ('speaker', 'meimei'),
+                ('speed', 0),
+            ],
+        ),
+    ),
+    (
+        'zh-TW',
+        (
+            "Chinese - Traditional",
+            [
+                ('alpha', 0),
+                ('pitch', 0),
+                ('speaker', 'chiahua'),
+                ('speed', 0),
+            ],
+        ),
+    ),
+    (
+        'es',
+        (
+            "Spanish",
+            [
+                ('alpha', 0),
+                ('pitch', 0),
+                ('speaker', 'carmen'),
+                ('speed', 0),
+            ],
+        ),
+    ),
+    (
+        'fr',
+        (
+            "French",
+            [
+                ('alpha', 0),
+                ('pitch', 0),
+                ('speaker', 'roxane'),
+                ('speed', 0),
+            ],
+        ),
+    ),
+    (
+        'de',
+        (
+            "German",
+            [
+                ('alpha', 0),
+                ('pitch', 0),
+                ('speaker', 'lena'),
+                ('speed', 0),
+            ],
+        ),
+    ),
+    (
+        'ru',
+        (
+            "Russian",
+            [
+                ('alpha', 0),
+                ('pitch', 0),
+                ('speaker', 'vera'),
+                ('speed', 0),
+            ],
+        ),
+    ),
+    (
+        'th',
+        (
+            "Thai",
+            [
+                ('alpha', 0),
+                ('pitch', 0),
+                ('speaker', 'somsi'),
+                ('speed', 0),
+            ],
+        ),
+    ),
 ]
 
 VOICE_LOOKUP = dict(VOICE_CODES)
@@ -149,14 +168,15 @@ UUID = str(uuid.uuid4())
 # 2021/05/27 update:
 # HMAC_KEY has changed, and the timestamp is now in milliseconds
 
+
 def _compute_token(timestamp, uuid_str):
     msg = uuid_str + '\n' + TRANSLATE_MKID + '\n' + timestamp
     # codeql[py/weak-cryptographic-hash] MD5 required by Naver Papago API for auth signature
-    signature = hmac.new(bytes(HMAC_KEY, 'ascii'), bytes(msg, 'ascii'),
-                         hashlib.md5).digest()
+    signature = hmac.new(bytes(HMAC_KEY, 'ascii'), bytes(msg, 'ascii'), hashlib.md5).digest()
     signature = base64.b64encode(signature).decode()
     auth = 'PPG ' + uuid_str + ':' + signature
     return auth
+
 
 def _generate_headers():
     timestamp_seconds_float = datetime.datetime.now().timestamp()
@@ -164,25 +184,24 @@ def _generate_headers():
     timestamp_str = str(int(timestamp_milliseconds))
     auth = _compute_token(timestamp_str, UUID)
 
-    return {'authorization': auth, 
-            'timestamp': timestamp_str,
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Host': 'papago.naver.com',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0',
-            'Accept': 'application/json',
-            'Accept-Language': 'en-US',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-            'Content-Length': '64',
-            'Origin': 'https://papago.naver.com',
-            'Referer': 'https://papago.naver.com/',
-            'Connection': 'keep-alive',
-            'Pragma': 'no-cache',
-            'Cache-Control': 'no-cache',
-            'TE': 'Trailers'
+    return {
+        'authorization': auth,
+        'timestamp': timestamp_str,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Host': 'papago.naver.com',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0',
+        'Accept': 'application/json',
+        'Accept-Language': 'en-US',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'Content-Length': '64',
+        'Origin': 'https://papago.naver.com',
+        'Referer': 'https://papago.naver.com/',
+        'Connection': 'keep-alive',
+        'Pragma': 'no-cache',
+        'Cache-Control': 'no-cache',
+        'TE': 'Trailers',
     }
-
-
 
 
 class Naver(Service):
@@ -206,14 +225,12 @@ class Naver(Service):
             dict(
                 key='voice',
                 label="Voice",
-                values=[(key, description)
-                        for key, (description, _) in VOICE_CODES],
+                values=[(key, description) for key, (description, _) in VOICE_CODES],
                 transform=lambda value: value,
                 default='ko',
-                test_default='en'
+                test_default='en',
             ),
         ]
-
 
     def run(self, text, options, path):
         """Downloads from Internet directly to an MP3."""
@@ -225,11 +242,11 @@ class Naver(Service):
 
         url = TRANSLATE_MKID
         params = dict(
-            config +
-            [
+            config
+            + [
                 ('text', text),
             ]
-        )        
+        )
         headers = _generate_headers()
         self._logger.info(f'executing POST request on {url} with headers={headers}, data={params}')
         try:
@@ -237,7 +254,9 @@ class Naver(Service):
         except requests.exceptions.RequestException as e:
             raise Exception(f"Network error: {e}")
         if response.status_code != 200:
-            raise Exception(f'got status_code {response.status_code} from {url}: {response.content} ')
+            raise Exception(
+                f'got status_code {response.status_code} from {url}: {response.content} '
+            )
 
         response_data = response.json()
         sound_id = response_data['id']
@@ -251,9 +270,6 @@ class Naver(Service):
 
         self.net_download(
             path,
-            (
-                final_url,
-                dict()
-            ),
+            (final_url, dict()),
             require=dict(mime='audio/mpeg', size=256),
         )

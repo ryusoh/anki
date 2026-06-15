@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 
 import json
-from .base import Service
-from .common import Trait
-import urllib.request
 import urllib.parse
+import urllib.request
 from urllib.error import HTTPError, URLError
 
+from .base import Service
+from .common import Trait
+
 __all__ = ['FreeDictionary']
+
 
 class FreeDictionary(Service):
     """
@@ -36,6 +38,7 @@ class FreeDictionary(Service):
         """
         Provides access to the dialect (voice) option.
         """
+
         def transform_voice(value):
             normalized = self.normalize(value)
             for code in self._VOICE_CODES:
@@ -49,7 +52,7 @@ class FreeDictionary(Service):
                 label="Voice/Dialect",
                 values=[(code, name) for code, name in self._VOICE_CODES.items()],
                 transform=transform_voice,
-                default='us'
+                default='us',
             ),
         ]
 
@@ -66,10 +69,7 @@ class FreeDictionary(Service):
         encoded_word = urllib.parse.quote(word)
         url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{encoded_word}"
 
-        req = urllib.request.Request(
-            url,
-            headers={"User-Agent": "AwesomeTTS-FreeDictionary/1.0"}
-        )
+        req = urllib.request.Request(url, headers={"User-Agent": "AwesomeTTS-FreeDictionary/1.0"})
 
         try:
             with urllib.request.urlopen(req, timeout=10) as response:

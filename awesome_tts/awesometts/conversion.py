@@ -25,15 +25,24 @@ import re
 
 import aqt.qt
 
-__all__ = ['compact_json', 'deserialized_dict', 'lax_bool',
-           'normalized_ascii', 'nullable_key', 'nullable_int',
-           'substitution_compiled', 'substitution_json', 'substitution_list']
+__all__ = [
+    'compact_json',
+    'deserialized_dict',
+    'lax_bool',
+    'normalized_ascii',
+    'nullable_key',
+    'nullable_int',
+    'substitution_compiled',
+    'substitution_json',
+    'substitution_list',
+]
 
 
 def compact_json(obj):
     """Given an object, return a minimal JSON-encoded string."""
 
     return json.dumps(obj, separators=compact_json.SEPARATORS)
+
 
 compact_json.SEPARATORS = (',', ':')
 
@@ -51,6 +60,7 @@ def deserialized_dict(json_str):
         obj = json.loads(json_str)
     except Exception as e:
         import logging
+
         logging.getLogger(__name__).debug(f"Failed to load json in safe_json_dict: {e}")
         return {}
 
@@ -69,6 +79,7 @@ def lax_bool(value):
 
     return bool(value)
 
+
 lax_bool.FALSE_STRINGS = ['', 'false', 'no', 'off', 'unset']
 
 
@@ -79,9 +90,7 @@ def normalized_ascii(value):
     """
     value = value.encode('ascii', 'ignore').decode()
 
-    return ''.join(char.lower()
-                   for char in value
-                   if char.isalnum())
+    return ''.join(char.lower() for char in value if char.isalnum())
 
 
 def nullable_key(value):
@@ -91,7 +100,7 @@ def nullable_key(value):
     returns None.
     """
 
-    if isinstance(value,aqt.qt.Qt.Key):
+    if isinstance(value, aqt.qt.Qt.Key):
         return value
 
     value = nullable_int(value)
@@ -108,6 +117,7 @@ def nullable_int(value):
         return int(value)
     except Exception as e:
         import logging
+
         logging.getLogger(__name__).debug(f"Failed to convert {value} to int in safe_int: {e}")
         return None
 
@@ -123,15 +133,11 @@ def substitution_compiled(rule):
     assert rule['input'], "Input pattern may not be empty"
     return re.compile(
         pattern=rule['input'] if rule['regex'] else re.escape(rule['input']),
-        flags=sum(
-            value
-            for key, value in substitution_compiled.FLAGS
-            if rule[key]
-        ),
+        flags=sum(value for key, value in substitution_compiled.FLAGS if rule[key]),
     )
 
-substitution_compiled.FLAGS = [('ignore_case', re.IGNORECASE),
-                               ('unicode', re.UNICODE)]
+
+substitution_compiled.FLAGS = [('ignore_case', re.IGNORECASE), ('unicode', re.UNICODE)]
 
 
 def substitution_json(rules):
@@ -141,15 +147,9 @@ def substitution_json(rules):
     """
 
     return (
-        compact_json([
-            {
-                key: value
-                for key, value
-                in item.items()
-                if key != 'compiled'
-            }
-            for item in rules
-        ])
+        compact_json(
+            [{key: value for key, value in item.items() if key != 'compiled'} for item in rules]
+        )
         if rules and isinstance(rules, list)
         else '[]'
     )
@@ -168,14 +168,14 @@ def substitution_list(json_str):
 
     except Exception as e:
         import logging
+
         logging.getLogger(__name__).debug(f"Failed to load json in safe_substitutions: {e}")
         return []
 
     rules = []
 
     for candidate in candidates:
-        if not ('replace' in candidate and
-                isinstance(candidate['replace'], str)):
+        if not ('replace' in candidate and isinstance(candidate['replace'], str)):
             continue
 
         for key, default in substitution_list.DEFAULTS:
@@ -186,6 +186,7 @@ def substitution_list(json_str):
             candidate['compiled'] = substitution_compiled(candidate)
         except Exception as e:  # sre_constants.error, pylint:disable=broad-except
             import logging
+
             logging.getLogger(__name__).debug(f"Failed to compile substitution {candidate}: {e}")
             continue
 
@@ -193,5 +194,5 @@ def substitution_list(json_str):
 
     return rules
 
-substitution_list.DEFAULTS = [('regex', False), ('ignore_case', True),
-                              ('unicode', True)]
+
+substitution_list.DEFAULTS = [('regex', False), ('ignore_case', True), ('unicode', True)]

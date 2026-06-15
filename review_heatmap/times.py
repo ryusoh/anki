@@ -35,7 +35,7 @@ Shared datetime/timezone handling
 
 from __future__ import annotations
 
-from typing import Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
     from anki.dbproxy import DBProxy

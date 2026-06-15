@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 # Copyright: Lovac42 (much of this card heavily borrowed from the Dancing Baloney Add-on)
-# Copyright: The AnKing 
+# Copyright: The AnKing
 # Also thanks to ijgnord who helped on this
-# Support: 
+# Support:
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 
 import os
-from aqt.qt import *
-from aqt import mw
-from aqt.utils import getFile, openFolder, openLink
+
 from anki.utils import pointVersion
+from aqt import mw
+from aqt.qt import *
+from aqt.utils import getFile, openFolder, openLink
 
 try:
     from .settings_dialog_qt6 import Ui_Dialog
@@ -18,10 +19,11 @@ except ImportError:
     from .settings_dialog import Ui_Dialog
 
 
-from .config import getUserOption, writeConfig, addon_path, getDefaultConfig
+from .config import addon_path, getDefaultConfig, getUserOption, writeConfig
+
 conf = getUserOption()
 
-imgfolder = os.path.join(addon_path, "user_files") 
+imgfolder = os.path.join(addon_path, "user_files")
 RE_BG_IMG_EXT = "*.gif *.png *.apng *.jpg *.jpeg *.svg *.ico *.bmp"
 
 
@@ -35,6 +37,7 @@ def getMenu(parent, menuName):
         menu = parent.form.menubar.addMenu(menuName)
     return menu
 
+
 class SettingsDialog(QDialog):
     timer = None
 
@@ -46,9 +49,8 @@ class SettingsDialog(QDialog):
         self.setupDialog()
         self.loadConfigData()
         self.setupConnections()
-        
-        self.exec()
 
+        self.exec()
 
     def reject(self):
         self.accept()
@@ -64,55 +66,49 @@ class SettingsDialog(QDialog):
 
     def setupConnections(self):
         f = self.form
-        
+
         # PushButtons -------------
         f.OkButton.clicked.connect(self.accept)
         f.RestoreButton.clicked.connect(self.resetConfig)
 
         f.pushButton_randomize.clicked.connect(self.random)
         f.pushButton_imageFolder.clicked.connect(lambda: openFolder(imgfolder))
-        f.pushButton_videoTutorial.clicked.connect(lambda _:self.openWeb("video"))
+        f.pushButton_videoTutorial.clicked.connect(lambda _: self.openWeb("video"))
 
-        f.toolButton_website.clicked.connect(lambda _:self.openWeb("anking")) 
-        f.toolButton_youtube.clicked.connect(lambda _:self.openWeb("youtube"))
-        f.toolButton_patreon.clicked.connect(lambda _:self.openWeb("patreon"))
-        f.toolButton_instagram.clicked.connect(lambda _:self.openWeb("instagram"))
-        f.toolButton_facebook.clicked.connect(lambda _:self.openWeb("facebook"))
-        f.toolButton_course.clicked.connect(lambda _:self.openWeb("course"))
+        f.toolButton_website.clicked.connect(lambda _: self.openWeb("anking"))
+        f.toolButton_youtube.clicked.connect(lambda _: self.openWeb("youtube"))
+        f.toolButton_patreon.clicked.connect(lambda _: self.openWeb("patreon"))
+        f.toolButton_instagram.clicked.connect(lambda _: self.openWeb("instagram"))
+        f.toolButton_facebook.clicked.connect(lambda _: self.openWeb("facebook"))
+        f.toolButton_course.clicked.connect(lambda _: self.openWeb("course"))
 
         # Color Pickers -------------
         controller = {
-            f.toolButton_color_main : (f.lineEdit_color_main,),
-            f.toolButton_color_top : (f.lineEdit_color_top,),
-            f.toolButton_color_bottom : (f.lineEdit_color_bottom,),
+            f.toolButton_color_main: (f.lineEdit_color_main,),
+            f.toolButton_color_top: (f.lineEdit_color_top,),
+            f.toolButton_color_bottom: (f.lineEdit_color_bottom,),
         }
-        for btn,args in controller.items():
-            btn.clicked.connect(
-                lambda a="a",args=args:self.getColors(a,*args)
-            )
+        for btn, args in controller.items():
+            btn.clicked.connect(lambda a="a", args=args: self.getColors(a, *args))
 
         # File Buttons -----------------------
         controller = {
-          # Image Buttons -----------------------
-            f.toolButton_background : (f.lineEdit_background,),
+            # Image Buttons -----------------------
+            f.toolButton_background: (f.lineEdit_background,),
         }
-        for btn,args in controller.items():
+        for btn, args in controller.items():
             # 'a' is used to get around an issue
             # with pything binding
-            btn.clicked.connect(
-                lambda a="a",args=args:self._getFile(a,*args)
-            )
+            btn.clicked.connect(lambda a="a", args=args: self._getFile(a, *args))
         # File Buttons -----------------------
         controller = {
-          # Image Buttons -----------------------
-            f.toolButton_gear : (f.lineEdit_gear,),
+            # Image Buttons -----------------------
+            f.toolButton_gear: (f.lineEdit_gear,),
         }
-        for btn,args in controller.items():
+        for btn, args in controller.items():
             # 'a' is used to get around an issue
             # with pything binding
-            btn.clicked.connect(
-                lambda a="a",args=args:self._getGearFile(a,*args)
-            )
+            btn.clicked.connect(lambda a="a", args=args: self._getGearFile(a, *args))
 
         # Checkboxes ----------------
         controller = {
@@ -120,10 +116,8 @@ class SettingsDialog(QDialog):
             f.checkBox_toolbar: ("Toolbar image",),
             f.checkBox_topbottom: ("Toolbar top/bottom",),
         }
-        for cb,args in controller.items():
-            cb.stateChanged.connect(
-                lambda cb=cb,args=args:self._updateCheckbox(cb, *args)
-            )  
+        for cb, args in controller.items():
+            cb.stateChanged.connect(lambda cb=cb, args=args: self._updateCheckbox(cb, *args))
 
         # Comboboxes ---------------
         controller = {
@@ -131,22 +125,18 @@ class SettingsDialog(QDialog):
             f.comboBox_position: ("background-position",),
             f.comboBox_size: ("background-size",),
         }
-        for cb,args in controller.items():
+        for cb, args in controller.items():
             t = cb.currentText()
-            cb.currentTextChanged.connect(
-                lambda t=t,args=args:self._updateComboBox(t, *args)
-            )           
+            cb.currentTextChanged.connect(lambda t=t, args=args: self._updateComboBox(t, *args))
 
-        # Sliders --------------             
+        # Sliders --------------
         controller = {
-            f.Slider_main : ("background opacity main",),
-            f.Slider_review : ("background opacity review",),
+            f.Slider_main: ("background opacity main",),
+            f.Slider_review: ("background opacity review",),
         }
-        for slider,args in controller.items():
+        for slider, args in controller.items():
             s = slider.value()
-            slider.valueChanged.connect(
-                lambda s=s,args=args:self._updateSliderLabel(s, *args)
-            )
+            slider.valueChanged.connect(lambda s=s, args=args: self._updateSliderLabel(s, *args))
 
         # QDoubleSpinBox ------------
         f.scaleBox.valueChanged.connect(self._updateSpinBox)
@@ -154,24 +144,25 @@ class SettingsDialog(QDialog):
         # LineEdits -------------
         a = f.lineEdit_background
         t = a.text()
-        a.textChanged.connect(lambda t=a.text():self._updateLineEdit(t,"Image name for background")) 
+        a.textChanged.connect(
+            lambda t=a.text(): self._updateLineEdit(t, "Image name for background")
+        )
 
         a = f.lineEdit_gear
         t = a.text()
-        a.textChanged.connect(lambda t=a.text():self._updateLineEdit(t,"Image name for gear")) 
+        a.textChanged.connect(lambda t=a.text(): self._updateLineEdit(t, "Image name for gear"))
 
         a = f.lineEdit_color_main
         t = a.text()
-        a.textChanged.connect(lambda t=a.text():self._updateLineEdit(t,"background-color main")) 
+        a.textChanged.connect(lambda t=a.text(): self._updateLineEdit(t, "background-color main"))
 
         a = f.lineEdit_color_top
         t = a.text()
-        a.textChanged.connect(lambda t=a.text():self._updateLineEdit(t,"background-color top")) 
+        a.textChanged.connect(lambda t=a.text(): self._updateLineEdit(t, "background-color top"))
 
         a = f.lineEdit_color_bottom
         t = a.text()
-        a.textChanged.connect(lambda t=a.text():self._updateLineEdit(t,"background-color bottom")) 
-
+        a.textChanged.connect(lambda t=a.text(): self._updateLineEdit(t, "background-color bottom"))
 
     def loadConfigData(self):
         f = self.form
@@ -201,10 +192,10 @@ class SettingsDialog(QDialog):
 
         # Sliders --------------
         c = float(conf["background opacity main"])
-        f.Slider_main.setValue(int(c*100))
+        f.Slider_main.setValue(int(c * 100))
 
         c = float(conf["background opacity review"])
-        f.Slider_review.setValue(int(c*100))
+        f.Slider_review.setValue(int(c * 100))
 
         # QDoubleSpinBox ------------------
         c = float(conf["background scale"])
@@ -224,18 +215,15 @@ class SettingsDialog(QDialog):
         f.lineEdit_color_top.setText(t)
 
         t = conf["background-color bottom"]
-        f.lineEdit_color_bottom.setText(t)        
-
+        f.lineEdit_color_bottom.setText(t)
 
     def _getFile(self, pad, lineEditor, ext=RE_BG_IMG_EXT):
         def setWallpaper(path):
             f = path.split("user_files/background/")[-1]
             lineEditor.setText(f)
 
-        f = getFile(mw, "Wallpaper",
-            cb=setWallpaper,
-            filter=ext,
-            dir=f"{addon_path}/user_files/background"
+        f = getFile(
+            mw, "Wallpaper", cb=setWallpaper, filter=ext, dir=f"{addon_path}/user_files/background"
         )
 
     def _getGearFile(self, pad, lineEditor, ext=RE_BG_IMG_EXT):
@@ -243,15 +231,13 @@ class SettingsDialog(QDialog):
             f = path.split("user_files/gear/")[-1]
             lineEditor.setText(f)
 
-        f = getFile(mw, "Gear icon",
-            cb=setWallpaper,
-            filter=ext,
-            dir=f"{addon_path}/user_files/gear"
+        f = getFile(
+            mw, "Gear icon", cb=setWallpaper, filter=ext, dir=f"{addon_path}/user_files/gear"
         )
 
     def _updateCheckbox(self, cb, key):
-        n = -1 if cb==2 else 1
-        v = True if n ==-1 else False
+        n = -1 if cb == 2 else 1
+        v = True if n == -1 else False
         conf[key] = v
         writeConfig(conf)
         self._refresh()
@@ -262,13 +248,13 @@ class SettingsDialog(QDialog):
         self._refresh()
 
     def _updateSliderLabel(self, val, key):
-        conf[key] = str(round(val/100,2))
+        conf[key] = str(round(val / 100, 2))
         writeConfig(conf)
         self._refresh()
 
     def _updateSpinBox(self):
         f = self.form
-        n = round(f.scaleBox.value(),2)
+        n = round(f.scaleBox.value(), 2)
         conf["background scale"] = str(n)
         writeConfig(conf)
         self._refresh()
@@ -284,7 +270,7 @@ class SettingsDialog(QDialog):
             return
         color = qcolor.name()
         lineEditor.setText(color)
-   
+
     def openWeb(self, site):
         if site == "anking":
             openLink("https://www.ankingmed.com")
@@ -299,14 +285,16 @@ class SettingsDialog(QDialog):
         elif site == "video":
             openLink("https://youtu.be/5XAq0KpU3Jc")
         elif site == "course":
-            openLink("https://www.theanking.com/anki-mastery-course/?utm_source=anking_bg_add-on&utm_medium=anki_add-on&utm_campaign=mastery_course")
+            openLink(
+                "https://www.theanking.com/anki-mastery-course/?utm_source=anking_bg_add-on&utm_medium=anki_add-on&utm_campaign=mastery_course"
+            )
 
     def random(self):
         f = self.form
         f.lineEdit_background.setText("random")
         f.lineEdit_gear.setText("random")
         self._refresh()
-    
+
     def resetConfig(self):
         global conf
         conf = getDefaultConfig()
@@ -320,14 +308,11 @@ class SettingsDialog(QDialog):
             self.timer.stop()
 
         if pointVersion() < 27:
-            self.timer = mw.progress.timer(
-                ms, lambda:mw.reset(True), False)  
+            self.timer = mw.progress.timer(ms, lambda: mw.reset(True), False)
         elif pointVersion() < 45:
-            self.timer = mw.progress.timer(
-                ms, self._resetMainWindow, False)
+            self.timer = mw.progress.timer(ms, self._resetMainWindow, False)
         else:
-            self.timer = mw.progress.timer(
-                ms, lambda : mw.moveToState("deckBrowser"), False) 
+            self.timer = mw.progress.timer(ms, lambda: mw.moveToState("deckBrowser"), False)
 
     def _resetMainWindow(self):
         mw.reset(True)
@@ -342,11 +327,9 @@ class SettingsDialog(QDialog):
         # having to reload the web view.
 
 
-
-
 def SettingsDialogExecute():
     SettingsDialog(mw)
-    
+
 
 '''
 m = getMenu(mw, "&View")

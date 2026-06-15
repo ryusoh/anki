@@ -14,9 +14,12 @@ Initializes generated Qt forms/resources
 """
 
 from pathlib import Path
+
 from aqt.qt import QDir
+
 
 def initialize_qt_resources():
     QDir.addSearchPath("review_heatmap", str(Path(__file__).parent / "review_heatmap"))
+
 
 initialize_qt_resources()

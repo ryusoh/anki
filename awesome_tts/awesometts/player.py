@@ -20,9 +20,7 @@
 Playback interface, providing user-configured delays
 """
 
-import inspect
 
-from .text import RE_FILENAMES
 
 __all__ = ['Player']
 
@@ -31,8 +29,8 @@ class Player(object):
     """Once instantiated, provides interfaces for playing audio."""
 
     __slots__ = [
-        '_anki',    # bundle with mw, native (play function), sound (module)
-        '_blank',   # path to a blank 1-second MP3
+        '_anki',  # bundle with mw, native (play function), sound (module)
+        '_blank',  # path to a blank 1-second MP3
         '_config',  # dict-like interface for looking up user configuration
         '_logger',  # logger-like interface for debugging the Player instance
     ]
@@ -52,5 +50,3 @@ class Player(object):
         """Play path with no delay, from context menu."""
 
         self._anki.native(path)
-
-

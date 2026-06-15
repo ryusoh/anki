@@ -1,4 +1,7 @@
+import pathlib
+import runpy
 import sys
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from graph.watch_and_update import main
@@ -6,7 +9,7 @@ from graph.watch_and_update import main
 
 def test_watch_keyboard_interrupt():
     with patch('graph.watch_and_update.argparse.ArgumentParser.parse_args') as mock_parse:
-        mock_args = mock_parse.return_value
+        mock_args: Any = mock_parse.return_value
         mock_args.auto_refresh = False
 
         with patch('graph.watch_and_update.get_current_size') as mock_size:
@@ -18,11 +21,8 @@ def test_watch_keyboard_interrupt():
 
 
 def test_main_exec():
-    import pathlib
-    import runpy
-
     with patch('graph.watch_and_update.argparse.ArgumentParser.parse_args') as mock_parse:
-        mock_args = mock_parse.return_value
+        mock_args: Any = mock_parse.return_value
         mock_args.auto_refresh = False
 
         with patch('graph.watch_and_update.get_current_size') as mock_size:
@@ -53,7 +53,7 @@ def test_main_exec():
 
 def test_watch_auto_refresh():
     with patch('graph.watch_and_update.argparse.ArgumentParser.parse_args') as mock_parse:
-        mock_args = mock_parse.return_value
+        mock_args: Any = mock_parse.return_value
         mock_args.auto_refresh = True
         mock_args.max = 1000
 
@@ -74,7 +74,7 @@ def test_watch_auto_refresh():
 
 def test_watch_exceeds_max():
     with patch('graph.watch_and_update.argparse.ArgumentParser.parse_args') as mock_parse:
-        mock_args = mock_parse.return_value
+        mock_args: Any = mock_parse.return_value
         mock_args.auto_refresh = False
         mock_args.max = 150
 
@@ -89,7 +89,7 @@ def test_watch_exceeds_max():
 
 def test_watch_changed_size_skip():
     with patch('graph.watch_and_update.argparse.ArgumentParser.parse_args') as mock_parse:
-        mock_args = mock_parse.return_value
+        mock_args: Any = mock_parse.return_value
         mock_args.auto_refresh = True
         mock_args.max = 1000
 
@@ -144,7 +144,7 @@ def test_refresh_browser_apple_script():
 
 def test_watch_once_auto_refresh():
     with patch('graph.watch_and_update.argparse.ArgumentParser.parse_args') as mock_parse:
-        mock_args = mock_parse.return_value
+        mock_args: Any = mock_parse.return_value
         mock_args.once = True
         mock_args.auto_refresh = True
 
@@ -158,7 +158,7 @@ def test_watch_once_auto_refresh():
 def test_auto_refresh_explicit():
     # specifically test line 103
     with patch('graph.watch_and_update.argparse.ArgumentParser.parse_args') as mock_parse:
-        mock_args = mock_parse.return_value
+        mock_args: Any = mock_parse.return_value
         mock_args.auto_refresh = True
         mock_args.max = None
         mock_args.once = False

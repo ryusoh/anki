@@ -33,11 +33,14 @@
 Custom exceptions
 """
 
+
 class ReviewHeatmapError(Exception):
     pass
 
+
 class CollectionError(ReviewHeatmapError):
     pass
+
 
 class CommandError(ReviewHeatmapError):
     pass

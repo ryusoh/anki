@@ -23,15 +23,7 @@ Path and directory initialization
 import os
 import tempfile
 
-__all__ = [
-    'ADDON',
-    'ADDON_IS_LINKED',
-    'CACHE',
-    'CONFIG',
-    'LOG',
-    'TEMP',
-    'ICONS'
-]
+__all__ = ['ADDON', 'ADDON_IS_LINKED', 'CACHE', 'CONFIG', 'LOG', 'TEMP', 'ICONS']
 
 
 # n.b. When determining the code directory, abspath() is needed since

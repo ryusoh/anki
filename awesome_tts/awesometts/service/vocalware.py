@@ -2,24 +2,22 @@
 Service implementation for VocalWare TTS service
 """
 
-from .base import Service
-import requests
-import json
-import time
-import urllib
 import hashlib
+import urllib
+from typing import List
+
+import requests
+
+from .base import Service
 from .languages import StandardVoice
 from .voicelist import VOICE_LIST
-from typing import List
 
 __all__ = ['VocalWare']
 
 
-
 class VocalWare(Service):
 
-    __slots__ = [
-    ]
+    __slots__ = []
 
     NAME = "VocalWare"
 
@@ -35,7 +33,7 @@ class VocalWare(Service):
 
         if self.languagetools.use_plus_mode():
             # plus mode, no need for an API key
-            return []        
+            return []
 
         return [
             dict(key='secretphrase', label="Secret Phrase", required=True),
@@ -43,48 +41,52 @@ class VocalWare(Service):
             dict(key='apiid', label="API ID", required=True),
         ]
 
-
     def get_voices(self) -> List[StandardVoice]:
         voices = [x for x in VOICE_LIST if x['service'] == 'VocalWare']
         voices = sorted(voices, key=lambda x: x['voice_description'])
         voice_list = []
         for voice_data in voices:
             voice_list.append(StandardVoice(voice_data))
-        return voice_list        
+        return voice_list
 
     def get_voice_list(self):
-        voice_list = [(voice.get_voice_key(), voice.get_description()) for voice in self.get_voices()]
+        voice_list = [
+            (voice.get_voice_key(), voice.get_description()) for voice in self.get_voices()
+        ]
         voice_list.sort(key=lambda x: x[1])
         return voice_list
 
     def get_voice_for_key(self, key) -> StandardVoice:
         voice = [voice for voice in self.get_voices() if voice.get_voice_key() == key]
-        assert(len(voice) == 1)
+        assert len(voice) == 1
         return voice[0]
 
     def options(self):
         """Provides access to voice and speed."""
 
         return [
-            dict(key='voice',
-                 label="Voice",
-                 values=self.get_voice_list(),
-                 transform=lambda value: value),
+            dict(
+                key='voice',
+                label="Voice",
+                values=self.get_voice_list(),
+                transform=lambda value: value,
+            ),
         ]
 
     def run(self, text, options, path):
-        
+
         voice_key = options['voice']
         voice = self.get_voice_for_key(voice_key)
 
         if self.languagetools.use_plus_mode():
-            self._logger.info(f'using language tools API')
+            self._logger.info('using language tools API')
             service = 'VocalWare'
             voice_key = voice.get_voice_key()
             language = voice.get_language_code()
-            options = {
-            }
-            self.languagetools.generate_audio_v2(text, service, 'batch', language, 'n/a', voice_key, options, path)        
+            options = {}
+            self.languagetools.generate_audio_v2(
+                text, service, 'batch', language, 'n/a', voice_key, options, path
+            )
         else:
             secret_phrase = options['secretphrase']
             account_id = options['accountid']
@@ -111,5 +113,3 @@ class VocalWare(Service):
             else:
                 error_message = f"Ran into error generating VocalWare voice, status code: {response.status_code}: {response.content}"
                 raise ValueError(error_message)
-
-

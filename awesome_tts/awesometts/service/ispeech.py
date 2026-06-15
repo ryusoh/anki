@@ -76,8 +76,7 @@ class ISpeech(Service):
     Provides a Service-compliant implementation for iSpeech.
     """
 
-    __slots__ = [
-    ]
+    __slots__ = []
 
     NAME = "iSpeech"
 
@@ -99,36 +98,41 @@ class ISpeech(Service):
     def options(self):
         """Provides access to voice only."""
 
-        voice_lookup = {self.normalize(api_name): api_name
-                        for api_name in VOICES.keys()}
+        voice_lookup = {self.normalize(api_name): api_name for api_name in VOICES.keys()}
 
         def transform_voice(user_value):
             """Fixes whitespace and casing only."""
             normalized_value = self.normalize(user_value)
-            return (voice_lookup[normalized_value]
-                    if normalized_value in voice_lookup else user_value)
+            return (
+                voice_lookup[normalized_value] if normalized_value in voice_lookup else user_value
+            )
 
         return [
-            dict(key='voice',
-                 label="Voice",
-                 values=[(api_name, f"{api_name} ({gender} {language})")
-                         for api_name, (language, gender)
-                         in sorted(VOICES.items(),
-                                   key=lambda item: (item[1][0],
-                                                     item[1][1]))],
-                 transform=transform_voice),
-
-            dict(key='speed',
-                 label="Speed",
-                 values=(-10, +10),
-                 transform=lambda i: min(max(-10, int(round(float(i)))), +10),
-                 default=0),
-
-            dict(key='pitch',
-                 label="Pitch",
-                 values=(0, +200),
-                 transform=lambda i: min(max(0, int(round(float(i)))), +200),
-                 default=100),
+            dict(
+                key='voice',
+                label="Voice",
+                values=[
+                    (api_name, f"{api_name} ({gender} {language})")
+                    for api_name, (language, gender) in sorted(
+                        VOICES.items(), key=lambda item: (item[1][0], item[1][1])
+                    )
+                ],
+                transform=transform_voice,
+            ),
+            dict(
+                key='speed',
+                label="Speed",
+                values=(-10, +10),
+                transform=lambda i: min(max(-10, int(round(float(i)))), +10),
+                default=0,
+            ),
+            dict(
+                key='pitch',
+                label="Pitch",
+                values=(0, +200),
+                transform=lambda i: min(max(0, int(round(float(i)))), +200),
+                default=100,
+            ),
         ]
 
     def run(self, text, options, path):
@@ -138,10 +142,17 @@ class ISpeech(Service):
             self.net_download(
                 path,
                 [
-                    ('http://api.ispeech.org/api/rest',
-                     dict(apikey=options['key'], action='convert',
-                          text=subtext, voice=options['voice'],
-                          speed=options['speed'], pitch=options['pitch']))
+                    (
+                        'http://api.ispeech.org/api/rest',
+                        dict(
+                            apikey=options['key'],
+                            action='convert',
+                            text=subtext,
+                            voice=options['voice'],
+                            speed=options['speed'],
+                            pitch=options['pitch'],
+                        ),
+                    )
                     for subtext in self.util_split(text, 250)
                 ],
                 require=dict(mime='audio/mpeg', size=256),
@@ -150,10 +161,14 @@ class ISpeech(Service):
         except ValueError as error:
             try:
                 from urllib.parse import parse_qs
+
                 error = ValueError(parse_qs(error.payload)['message'][0])
             except Exception as e:
                 import logging
-                logging.getLogger('AwesomeTTS').debug("Failed to parse iSpeech error payload: %s", e)
+
+                logging.getLogger('AwesomeTTS').debug(
+                    "Failed to parse iSpeech error payload: %s", e
+                )
             raise error
 
         self.net_reset()  # no throttle; FIXME should be controlled by trait

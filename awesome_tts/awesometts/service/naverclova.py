@@ -21,10 +21,8 @@ Service implementation for the Naver Clova cloud service
 https://apidocs.ncloud.com/en/ai-naver/clova_speech_synthesis/tts/
 """
 
-import time
-import datetime
-import requests
 import urllib
+
 from .base import Service
 
 __all__ = ['NaverClova']
@@ -38,9 +36,8 @@ VOICE_LIST = [
     ('meimei', 'Chinese, female voice'),
     ('liangliang', 'Chinese, male voice'),
     ('jose', 'Spanish, male voice'),
-    ('carmen', 'Spanish, female voice')
+    ('carmen', 'Spanish, female voice'),
 ]
-
 
 
 class NaverClova(Service):
@@ -48,8 +45,7 @@ class NaverClova(Service):
     Provides a Service-compliant implementation for Naver Clova Text To Speech.
     """
 
-    __slots__ = [
-    ]
+    __slots__ = []
 
     NAME = "Naver Clova"
 
@@ -66,25 +62,23 @@ class NaverClova(Service):
     def extras(self):
         """The Azure API requires an API key."""
 
-        return [dict(key='clientid', label="API Client Id", required=True),
-            dict(key='clientsecret', label="API Client Secret", required=True)]
+        return [
+            dict(key='clientid', label="API Client Id", required=True),
+            dict(key='clientsecret', label="API Client Secret", required=True),
+        ]
 
     def options(self):
 
         return [
-            dict(key='voice',
-                 label="Voice",
-                 values=VOICE_LIST,
-                 transform=lambda value: value),
+            dict(key='voice', label="Voice", values=VOICE_LIST, transform=lambda value: value),
             dict(
                 key='speed',
                 label="Speed",
                 values=(-5, 5),
                 transform=int,
                 default=0,
-            )
+            ),
         ]
-
 
     def run(self, text, options, path):
         """Downloads from Naver Clova API directly to an MP3."""
@@ -98,17 +92,16 @@ class NaverClova(Service):
         url = "https://naveropenapi.apigw.ntruss.com/voice/v1/tts"
         self._logger.debug(f"url: {url}, data: {data}")
         request = urllib.request.Request(url)
-        request.add_header("X-NCP-APIGW-API-KEY-ID",client_id)
-        request.add_header("X-NCP-APIGW-API-KEY",client_secret)
+        request.add_header("X-NCP-APIGW-API-KEY-ID", client_id)
+        request.add_header("X-NCP-APIGW-API-KEY", client_secret)
         response = urllib.request.urlopen(request, data=data.encode('utf-8'), timeout=10)
         rescode = response.getcode()
-        if(rescode==200):
+        if rescode == 200:
             self._logger.debug("successful response")
             response_body = response.read()
             with open(path, 'wb') as f:
                 f.write(response_body)
         else:
             error_message = f"Status code: {rescode}"
-            self._logger.error(error_message)            
-            raise ValueError(error_message)            
-
+            self._logger.error(error_message)
+            raise ValueError(error_message)

@@ -1,4 +1,5 @@
 import re
+
 # whether debug may be turned on eventually. Less efficient
 mayDebug = False
 
@@ -26,17 +27,17 @@ def debug(text, indentToAdd=0, force=False, **kwargs):
         return
     global indentation
     indentToPrint = indentation
-    t = " "*indentToPrint
+    t = " " * indentToPrint
     if indentToAdd > 0:
         t += "{<"
     space = " "
     newline = "\n"
-    t += re.sub(newline, newline+space, text)
-    print (t, file=kwargs.get("file"))
+    t += re.sub(newline, newline + space, text)
+    print(t, file=kwargs.get("file"))
     indentation += indentToAdd
     if indentToAdd < 0:
         indentToPrint += indentToAdd
-        print((" "*indentToPrint)+">}", file=kwargs.get("file"))
+        print((" " * indentToPrint) + ">}", file=kwargs.get("file"))
 
 
 nbInsideThis = 0
@@ -55,6 +56,7 @@ def debugInsideThisMethod(fun):
         if nbInsideThis == 0:
             endDebug()
         return ret
+
     return aux_debugInsideThisMethod
 
 
@@ -65,13 +67,17 @@ def debugOnlyThisMethod(fun):
 def assertEqual(left, right):
     if left == right:
         return True
-    print(f"""\n\nReceived\n\"\"\"{left}\"\"\"\nwhich is distinct from expected\n\"\"\"{right}\"\"\"\n""")
+    print(
+        f"""\n\nReceived\n\"\"\"{left}\"\"\"\nwhich is distinct from expected\n\"\"\"{right}\"\"\"\n"""
+    )
     if hasattr(left, "firstDifference"):
         if hasattr(right, "firstDifference"):
             pair = left.firstDifference(right)
             if isinstance(pair, tuple):
                 left_dif, right_dif = pair
-                print(f"""\n\nThe first difference is\n\"\"\"{left_dif}\"\"\"\nand\n\"\"\"{right_dif}\"\"\"\n""")
+                print(
+                    f"""\n\nThe first difference is\n\"\"\"{left_dif}\"\"\"\nand\n\"\"\"{right_dif}\"\"\"\n"""
+                )
             elif isinstance(pair, None):
                 print("Strangely, firstDifference find no difference")
             else:
@@ -81,7 +87,6 @@ def assertEqual(left, right):
     elif hasattr(right, "firstDifference"):
         print("Only the second is a Gen")
     return False
-
 
 
 def assertType(element, types):
@@ -110,6 +115,7 @@ def debugFun(fun, debug=debug):
             else:
                 t += ", "
             t += text
+
         for arg in args:
             comma(f"{arg}")
         for kw in kwargs:
@@ -119,6 +125,7 @@ def debugFun(fun, debug=debug):
         ret = fun(*args, **kwargs)
         debug(f"returns {ret}", -1)
         return ret
+
     aux_debugFun.__name__ = f"debug_{fun.__name__}"
     aux_debugFun.__qualname__ = f"debug_{fun.__qualname__}"
     return aux_debugFun
@@ -139,6 +146,7 @@ def debugInit(fun, debug=debug):
             else:
                 t += ", "
             t += text
+
         isSelf = True
         for arg in args:
             if isSelf:
@@ -151,6 +159,7 @@ def debugInit(fun, debug=debug):
         debug(f"{t}", 1)
         fun(self, *args, **kwargs)
         debug(f"returns {self}", -1)
+
     aux_debugInit.__name__ = f"debug_{fun.__name__}"
     aux_debugInit.__qualname__ = f"debug_{fun.__qualname__}"
     return aux_debugInit
@@ -162,7 +171,7 @@ def debugOnlyThisInit(fun):
 
 class ExceptionInverse(Exception):
     def __init__(self, text):
-        self.text = "\n".join(reversed((str(text)+"\n").split("\n")))
+        self.text = "\n".join(reversed((str(text) + "\n").split("\n")))
 
     def __str__(self):
         return f"Exception: {self.text}"

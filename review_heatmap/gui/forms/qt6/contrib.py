@@ -12,7 +12,9 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(Dialog.sizePolicy().hasHeightForWidth())
@@ -24,12 +26,18 @@ class Ui_Dialog(object):
         self.contribLayout.setObjectName("contribLayout")
         self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
-        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
+        spacerItem = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum
+        )
         self.horizontalLayout_3.addItem(spacerItem)
         self.labHeart = QtWidgets.QLabel(Dialog)
         self.labHeart.setText("")
         self.labHeart.setPixmap(QtGui.QPixmap("review_heatmap:icons/heart.svg"))
-        self.labHeart.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight|QtCore.Qt.AlignmentFlag.AlignTrailing|QtCore.Qt.AlignmentFlag.AlignVCenter)
+        self.labHeart.setAlignment(
+            QtCore.Qt.AlignmentFlag.AlignRight
+            | QtCore.Qt.AlignmentFlag.AlignTrailing
+            | QtCore.Qt.AlignmentFlag.AlignVCenter
+        )
         self.labHeart.setObjectName("labHeart")
         self.horizontalLayout_3.addWidget(self.labHeart)
         self.fmtLabContrib = QtWidgets.QLabel(Dialog)
@@ -37,14 +45,22 @@ class Ui_Dialog(object):
         font.setPointSize(14)
         font.setBold(True)
         self.fmtLabContrib.setFont(font)
-        self.fmtLabContrib.setAlignment(QtCore.Qt.AlignmentFlag.AlignLeading|QtCore.Qt.AlignmentFlag.AlignLeft|QtCore.Qt.AlignmentFlag.AlignVCenter)
+        self.fmtLabContrib.setAlignment(
+            QtCore.Qt.AlignmentFlag.AlignLeading
+            | QtCore.Qt.AlignmentFlag.AlignLeft
+            | QtCore.Qt.AlignmentFlag.AlignVCenter
+        )
         self.fmtLabContrib.setObjectName("fmtLabContrib")
         self.horizontalLayout_3.addWidget(self.fmtLabContrib)
-        spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
+        spacerItem1 = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum
+        )
         self.horizontalLayout_3.addItem(spacerItem1)
         self.contribLayout.addLayout(self.horizontalLayout_3)
         self.fmtLabHeader = QtWidgets.QLabel(Dialog)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.fmtLabHeader.sizePolicy().hasHeightForWidth())
@@ -53,25 +69,35 @@ class Ui_Dialog(object):
         self.fmtLabHeader.setOpenExternalLinks(False)
         self.fmtLabHeader.setObjectName("fmtLabHeader")
         self.contribLayout.addWidget(self.fmtLabHeader)
-        spacerItem2 = QtWidgets.QSpacerItem(20, 5, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed)
+        spacerItem2 = QtWidgets.QSpacerItem(
+            20, 5, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed
+        )
         self.contribLayout.addItem(spacerItem2)
         self.gridLayout = QtWidgets.QGridLayout()
         self.gridLayout.setObjectName("gridLayout")
         self.btnPatreon = QtWidgets.QPushButton(Dialog)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Minimum
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.btnPatreon.sizePolicy().hasHeightForWidth())
         self.btnPatreon.setSizePolicy(sizePolicy)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("review_heatmap:icons/patreon.svg"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon.addPixmap(
+            QtGui.QPixmap("review_heatmap:icons/patreon.svg"),
+            QtGui.QIcon.Mode.Normal,
+            QtGui.QIcon.State.Off,
+        )
         self.btnPatreon.setIcon(icon)
         self.btnPatreon.setIconSize(QtCore.QSize(32, 32))
         self.btnPatreon.setObjectName("btnPatreon")
         self.gridLayout.addWidget(self.btnPatreon, 1, 0, 1, 2)
         self.contribLayout.addLayout(self.gridLayout)
         self.labFooter = QtWidgets.QLabel(Dialog)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.labFooter.sizePolicy().hasHeightForWidth())
@@ -85,20 +111,27 @@ class Ui_Dialog(object):
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
         self.btnCredits = QtWidgets.QPushButton(Dialog)
         icon1 = QtGui.QIcon()
-        icon1.addPixmap(QtGui.QPixmap("review_heatmap:icons/heart.svg"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon1.addPixmap(
+            QtGui.QPixmap("review_heatmap:icons/heart.svg"),
+            QtGui.QIcon.Mode.Normal,
+            QtGui.QIcon.State.Off,
+        )
         self.btnCredits.setIcon(icon1)
         self.btnCredits.setObjectName("btnCredits")
         self.horizontalLayout_2.addWidget(self.btnCredits)
         self.buttonBox = QtWidgets.QDialogButtonBox(Dialog)
         self.buttonBox.setOrientation(QtCore.Qt.Orientation.Horizontal)
-        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.StandardButton.Cancel|QtWidgets.QDialogButtonBox.StandardButton.Ok)
+        self.buttonBox.setStandardButtons(
+            QtWidgets.QDialogButtonBox.StandardButton.Cancel
+            | QtWidgets.QDialogButtonBox.StandardButton.Ok
+        )
         self.buttonBox.setObjectName("buttonBox")
         self.horizontalLayout_2.addWidget(self.buttonBox)
         self.verticalLayout.addLayout(self.horizontalLayout_2)
 
         self.retranslateUi(Dialog)
-        self.buttonBox.accepted.connect(Dialog.accept) # type: ignore
-        self.buttonBox.rejected.connect(Dialog.reject) # type: ignore
+        self.buttonBox.accepted.connect(Dialog.accept)  # type: ignore
+        self.buttonBox.rejected.connect(Dialog.reject)  # type: ignore
         QtCore.QMetaObject.connectSlotsByName(Dialog)
         Dialog.setTabOrder(self.btnPatreon, self.btnCredits)
         Dialog.setTabOrder(self.btnCredits, self.buttonBox)
@@ -107,9 +140,27 @@ class Ui_Dialog(object):
         _translate = QtCore.QCoreApplication.translate
         Dialog.setWindowTitle(_translate("Dialog", "Please support my work"))
         self.fmtLabContrib.setText(_translate("Dialog", "Love {ADDON_NAME}?"))
-        self.fmtLabHeader.setText(_translate("Dialog", "<html><head/><body><p>Hi! <strong>Glutanimate</strong> here :) Thanks for checking out Review Heatmap and some of my other add-ons. I hope you\'ve been enjoying them! </p><p>If <strong>{ADDON_NAME}</strong> or any of <a href=\"action://installed-addons\"><span style=\" text-decoration: underline; color:#2980b9;\">my other projects</span></a> has been a valuable asset in your studies, please do consider <strong>supporting my work</strong>:</p></body></html>"))
-        self.btnPatreon.setToolTip(_translate("Dialog", "Perks include access to Patron-only add-ons, <br>exclusive blog posts, mentions in the credits, and more!"))
-        self.btnPatreon.setText(_translate("Dialog", "Become a Patron and receive \n"
-"exclusive add-ons && other goodies!"))
-        self.labFooter.setText(_translate("Dialog", "<html><head/><body><p>Each contribution is greatly appreciated and will help me <strong>update and improve</strong> my add-ons as time goes by! Thank you.</p></body></html>"))
+        self.fmtLabHeader.setText(
+            _translate(
+                "Dialog",
+                "<html><head/><body><p>Hi! <strong>Glutanimate</strong> here :) Thanks for checking out Review Heatmap and some of my other add-ons. I hope you\'ve been enjoying them! </p><p>If <strong>{ADDON_NAME}</strong> or any of <a href=\"action://installed-addons\"><span style=\" text-decoration: underline; color:#2980b9;\">my other projects</span></a> has been a valuable asset in your studies, please do consider <strong>supporting my work</strong>:</p></body></html>",
+            )
+        )
+        self.btnPatreon.setToolTip(
+            _translate(
+                "Dialog",
+                "Perks include access to Patron-only add-ons, <br>exclusive blog posts, mentions in the credits, and more!",
+            )
+        )
+        self.btnPatreon.setText(
+            _translate(
+                "Dialog", "Become a Patron and receive \n" "exclusive add-ons && other goodies!"
+            )
+        )
+        self.labFooter.setText(
+            _translate(
+                "Dialog",
+                "<html><head/><body><p>Each contribution is greatly appreciated and will help me <strong>update and improve</strong> my add-ons as time goes by! Thank you.</p></body></html>",
+            )
+        )
         self.btnCredits.setText(_translate("Dialog", "Credits"))

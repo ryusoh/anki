@@ -61,8 +61,7 @@ class HeatmapInjector(ABC):
     def __init__(self, controller: HeatmapController):
         self._controller = controller
 
-    def register(self):
-        ...
+    def register(self): ...
 
 
 # Deck Browser (Main view)
@@ -110,23 +109,17 @@ class OverviewInjector(HeatmapInjector):
         overview_will_render_content.append(self.overview_will_render_content)
         overview_did_refresh.append(self.overview_did_refresh)
 
-    def overview_will_render_content(
-        self, overview: Overview, content: OverviewContent
-    ):
+    def overview_will_render_content(self, overview: Overview, content: OverviewContent):
         if overview.mw.col and overview.mw.col.sched._is_finished():
             return
-        heatmap_html = self._controller.render_for_view(
-            self._view, current_deck_only=True
-        )
+        heatmap_html = self._controller.render_for_view(self._view, current_deck_only=True)
         content.table += heatmap_html
 
     def overview_did_refresh(self, overview: Overview):
         if not overview.mw.col or not overview.mw.col.sched._is_finished():
             return
 
-        heatmap_html = self._controller.render_for_view(
-            self._view, current_deck_only=True
-        )
+        heatmap_html = self._controller.render_for_view(self._view, current_deck_only=True)
         self._inject_finished_heatmap(overview, heatmap_html)
 
     def _inject_finished_heatmap(self, overview: Overview, heatmap_html: str) -> None:
@@ -364,9 +357,8 @@ class OverviewInjector(HeatmapInjector):
 })();
 """
 
-        script = (
-            script_template.replace("__FRAME_HTML__", heatmap_html_json)
-            .replace("__CONTAINER_ID__", container_id_json)
+        script = script_template.replace("__FRAME_HTML__", heatmap_html_json).replace(
+            "__CONTAINER_ID__", container_id_json
         )
 
         overview.web.eval(script)
@@ -388,9 +380,14 @@ class DeckStatsInjector(HeatmapInjector):
         DeckStats.reject = wrap(DeckStats.reject, self.on_deck_stats_reject, "after")
 
         import aqt.stats
+
         if hasattr(aqt.stats, "NewDeckStats"):
-            aqt.stats.NewDeckStats.__init__ = wrap(aqt.stats.NewDeckStats.__init__, self.on_deck_stats_init, "after")
-            aqt.stats.NewDeckStats.reject = wrap(aqt.stats.NewDeckStats.reject, self.on_deck_stats_reject, "after")
+            aqt.stats.NewDeckStats.__init__ = wrap(
+                aqt.stats.NewDeckStats.__init__, self.on_deck_stats_init, "after"
+            )
+            aqt.stats.NewDeckStats.reject = wrap(
+                aqt.stats.NewDeckStats.reject, self.on_deck_stats_reject, "after"
+            )
 
     def on_deck_stats_init(self, deck_stats: DeckStats, mw: AnkiQt):
         deck_stats.form.web.onBridgeCmd = deck_stats._linkHandler  # type: ignore

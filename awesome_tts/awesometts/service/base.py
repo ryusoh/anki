@@ -25,11 +25,11 @@ TTS services for use with AwesomeTTS.
 
 import abc
 import os
-import shutil
-import sys
 import subprocess
-import requests
+import sys
+
 import aqt.sound
+import requests
 
 __all__ = ['Service']
 
@@ -65,14 +65,14 @@ class Service(object, metaclass=abc.ABCMeta):
         """Raises when a download is too small."""
 
     __slots__ = [
-        '_netops',      # number of network ops required by the last run
+        '_netops',  # number of network ops required by the last run
         '_lame_flags',  # callable to get flag string for LAME transcoder
-        '_logger',      # logging interface with debug(), info(), etc.
-        'normalize',    # callable for standardizing string values
-        '_temp_dir',    # for temporary scratch space
-        'ecosystem',    # get information about web API, user agent
-        'languagetools', # communicate with cloud language tools backend
-        'config'         # awesometts config
+        '_logger',  # logging interface with debug(), info(), etc.
+        'normalize',  # callable for standardizing string values
+        '_temp_dir',  # for temporary scratch space
+        'ecosystem',  # get information about web API, user agent
+        'languagetools',  # communicate with cloud language tools backend
+        'config',  # awesometts config
     ]
 
     # when getting CLI output, try using these decodings, in this order
@@ -80,6 +80,7 @@ class Service(object, metaclass=abc.ABCMeta):
 
     # where we can find the lame transcoder
     from anki.sound import _packagedCmd
+
     CLI_LAME = _packagedCmd(['lame'])[0][0]
 
     # where we can find the mplayer binary
@@ -99,15 +100,42 @@ class Service(object, metaclass=abc.ABCMeta):
 
     # work-in-progress
     APPROX_MAPPER = {
-        '\u00c1': 'A', '\u00c4': 'A', '\u00c5': 'A', '\u00c9': 'E',
-        '\u00cb': 'E', '\u00cd': 'I', '\u00d1': 'N', '\u00d3': 'O',
-        '\u00d6': 'O', '\u00da': 'U', '\u00dc': 'U', '\u00df': 'ss',
-        '\u00e1': 'a', '\u00e4': 'a', '\u00e5': 'a', '\u00e9': 'e',
-        '\u00eb': 'e', '\u00ed': 'i', '\u00cf': 'I', '\u00ef': 'i',
-        '\u0152': 'OE', '\u0153': 'oe', '\u00d8': 'O', '\u00f8': 'o',
-        '\u00c7': 'C', '\u00e7': 'c', '\u00f1': 'n', '\u00f3': 'o',
-        '\u00f6': 'o', '\u00fa': 'u', '\u00fc': 'u', '\u2018': "'",
-        '\u2019': "'", '\u201c': '"', '\u201d': '"', '\u212b': 'A',
+        '\u00c1': 'A',
+        '\u00c4': 'A',
+        '\u00c5': 'A',
+        '\u00c9': 'E',
+        '\u00cb': 'E',
+        '\u00cd': 'I',
+        '\u00d1': 'N',
+        '\u00d3': 'O',
+        '\u00d6': 'O',
+        '\u00da': 'U',
+        '\u00dc': 'U',
+        '\u00df': 'ss',
+        '\u00e1': 'a',
+        '\u00e4': 'a',
+        '\u00e5': 'a',
+        '\u00e9': 'e',
+        '\u00eb': 'e',
+        '\u00ed': 'i',
+        '\u00cf': 'I',
+        '\u00ef': 'i',
+        '\u0152': 'OE',
+        '\u0153': 'oe',
+        '\u00d8': 'O',
+        '\u00f8': 'o',
+        '\u00c7': 'C',
+        '\u00e7': 'c',
+        '\u00f1': 'n',
+        '\u00f3': 'o',
+        '\u00f6': 'o',
+        '\u00fa': 'u',
+        '\u00fc': 'u',
+        '\u2018': "'",
+        '\u2019': "'",
+        '\u201c': '"',
+        '\u201d': '"',
+        '\u212b': 'A',
     }
 
     SPLIT_PRIORITY = [
@@ -117,11 +145,7 @@ class Service(object, metaclass=abc.ABCMeta):
         ['-', '\u2027', '\u30fb'],
     ]
 
-    SPLIT_CHARACTERS = ''.join(
-        symbol
-        for symbols in SPLIT_PRIORITY
-        for symbol in symbols
-    )
+    SPLIT_CHARACTERS = ''.join(symbol for symbols in SPLIT_PRIORITY for symbol in symbols)
 
     SPLIT_MINIMUM = 5
 
@@ -158,8 +182,7 @@ class Service(object, metaclass=abc.ABCMeta):
         """
 
         assert self.NAME, "Please specify a NAME for the service"
-        assert isinstance(self.TRAITS, list), \
-            "Please specify a TRAITS list for the service"
+        assert isinstance(self.TRAITS, list), "Please specify a TRAITS list for the service"
 
         self._netops = None
         self._lame_flags = lame_flags
@@ -169,7 +192,6 @@ class Service(object, metaclass=abc.ABCMeta):
         self.ecosystem = ecosystem
         self.languagetools = languagetools
         self.config = config
-
 
     @abc.abstractmethod
     def desc(self):
@@ -356,8 +378,7 @@ class Service(object, metaclass=abc.ABCMeta):
 
         return returned
 
-    def cli_transcode(self, input_path, output_path, require=None,
-                      add_padding=False):
+    def cli_transcode(self, input_path, output_path, require=None, add_padding=False):
         """
         transcode wav to mp3
         """
@@ -370,10 +391,7 @@ class Service(object, metaclass=abc.ABCMeta):
         a call to one of the cli_xxx() methods is made.
         """
 
-        args = [
-            arg if isinstance(arg, str) else str(arg)
-            for arg in self._flatten(args)
-        ]
+        args = [arg if isinstance(arg, str) else str(arg) for arg in self._flatten(args)]
 
         self._logger.debug(
             "Calling %s binary with %s %s",
@@ -388,26 +406,30 @@ class Service(object, metaclass=abc.ABCMeta):
             startupinfo=self.CLI_SI,
         )
 
-    def cli_pipe(self, args, input_path, output_path, input_mode='r',
-                 output_mode='wb'):
+    def cli_pipe(self, args, input_path, output_path, input_mode='r', output_mode='wb'):
         """
         Takes the given input path, passes it to the specific program as
         stdin, and then pipes the stdout of the program to the other
         given path.
         """
 
-        args = [arg if isinstance(arg, str) else str(arg)
-                for arg in args]
+        args = [arg if isinstance(arg, str) else str(arg) for arg in args]
 
-        self._logger.debug("Piping %s into %s binary with %s then onto %s",
-                           input_path, args[0],
-                           args[1:] if len(args) > 1 else "no arguments",
-                           output_path)
+        self._logger.debug(
+            "Piping %s into %s binary with %s then onto %s",
+            input_path,
+            args[0],
+            args[1:] if len(args) > 1 else "no arguments",
+            output_path,
+        )
 
-        with open(input_path, input_mode) as input_stream, \
-                open(output_path, output_mode) as output_stream:
-            subprocess.Popen(args, stdin=input_stream.fileno(),
-                             stdout=output_stream.fileno()).communicate()
+        with (
+            open(input_path, input_mode) as input_stream,
+            open(output_path, output_mode) as output_stream,
+        ):
+            subprocess.Popen(
+                args, stdin=input_stream.fileno(), stdout=output_stream.fileno()
+            ).communicate()
 
     def cli_background(self, *args):
         """
@@ -415,16 +437,18 @@ class Service(object, metaclass=abc.ABCMeta):
         the session has ended.
         """
 
-        args = [arg if isinstance(arg, str) else str(arg)
-                for arg in self._flatten(args)]
+        args = [arg if isinstance(arg, str) else str(arg) for arg in self._flatten(args)]
 
-        self._logger.debug("Spinning up %s binary w/ %s to run in background",
-                           args[0],
-                           args[1:] if len(args) > 1 else "no arguments")
+        self._logger.debug(
+            "Spinning up %s binary w/ %s to run in background",
+            args[0],
+            args[1:] if len(args) > 1 else "no arguments",
+        )
 
         service = subprocess.Popen(args)
 
         import atexit
+
         atexit.register(service.terminate)
 
     def net_headers(self, url):
@@ -433,7 +457,9 @@ class Service(object, metaclass=abc.ABCMeta):
         self._logger.debug("GET %s for headers", url)
         self._netops += 1
         return requests.request(
-            method='GET', url=url, headers={'User-Agent': DEFAULT_UA},
+            method='GET',
+            url=url,
+            headers={'User-Agent': DEFAULT_UA},
             timeout=DEFAULT_TIMEOUT,
         ).headers
 
@@ -445,25 +471,31 @@ class Service(object, metaclass=abc.ABCMeta):
 
     def _parse_net_stream_targets(self, targets, custom_quoter):
         from urllib.parse import quote
+
         targets = targets if isinstance(targets, list) else [targets]
         return [
-            (target, None) if isinstance(target, str)
-            else (
-                target[0],
-                '&'.join(
-                    '='.join([
-                        key,
-                        (
-                            custom_quoter[key] if (custom_quoter and
-                                                   key in custom_quoter)
-                            else quote
-                        )(
-                            str(val),
-                            safe='',
-                        ),
-                    ])
-                    for key, val in list(target[1].items())
-                ),
+            (
+                (target, None)
+                if isinstance(target, str)
+                else (
+                    target[0],
+                    '&'.join(
+                        '='.join(
+                            [
+                                key,
+                                (
+                                    custom_quoter[key]
+                                    if (custom_quoter and key in custom_quoter)
+                                    else quote
+                                )(
+                                    str(val),
+                                    safe='',
+                                ),
+                            ]
+                        )
+                        for key, val in list(target[1].items())
+                    ),
+                )
             )
             for target in targets
         ]
@@ -473,10 +505,7 @@ class Service(object, metaclass=abc.ABCMeta):
             raise IOError("No response for %s" % desc)
 
         if response.status_code != 200:
-            value_error = ValueError(
-                "Got %d status for %s" %
-                (response.status_code, desc)
-            )
+            value_error = ValueError("Got %d status for %s" % (response.status_code, desc))
             try:
                 value_error.payload = response.content
                 response.close()
@@ -489,8 +518,7 @@ class Service(object, metaclass=abc.ABCMeta):
 
         if 'mime' in require and require['mime'] != simplified_mime:
             value_error = ValueError(
-                f"Request got {got_mime} Content-Type for {desc};"
-                f" wanted {require['mime']}"
+                f"Request got {got_mime} Content-Type for {desc};" f" wanted {require['mime']}"
             )
             value_error.got_mime = got_mime
             value_error.wanted_mime = require['mime']
@@ -504,15 +532,22 @@ class Service(object, metaclass=abc.ABCMeta):
 
         if 'size' in require and len(payload) < require['size']:
             raise self.TinyDownloadError(
-                "Request got %d-byte stream for %s; wanted %d+ bytes" %
-                (len(payload), desc, require['size'])
+                "Request got %d-byte stream for %s; wanted %d+ bytes"
+                % (len(payload), desc, require['size'])
             )
         return payload
 
-    def net_stream(self, targets, require=None, method='GET',
-                   awesome_ua=False, add_padding=False,
-                   custom_quoter=None, custom_headers=None,
-                   allow_redirects=True):
+    def net_stream(
+        self,
+        targets,
+        require=None,
+        method='GET',
+        awesome_ua=False,
+        add_padding=False,
+        custom_quoter=None,
+        custom_headers=None,
+        allow_redirects=True,
+    ):
         """
         Returns the raw payload string from the specified target(s).
         If multiple targets are specified, their resulting payloads are
@@ -545,28 +580,32 @@ class Service(object, metaclass=abc.ABCMeta):
         payloads = []
 
         for number, (url, params) in enumerate(targets, 1):
-            desc = "web request" if len(targets) == 1 \
+            desc = (
+                "web request"
+                if len(targets) == 1
                 else "web request (%d of %d)" % (number, len(targets))
+            )
 
-            self._logger.debug("%s %s%s%s for %s", method, url,
-                               "?" if params else "", params or "", desc)
+            self._logger.debug(
+                "%s %s%s%s for %s", method, url, "?" if params else "", params or "", desc
+            )
 
-            headers = {'User-Agent': (self.ecosystem.agent
-                                      if awesome_ua else DEFAULT_UA)}
+            headers = {'User-Agent': (self.ecosystem.agent if awesome_ua else DEFAULT_UA)}
             if custom_headers:
                 headers.update(custom_headers)
 
             self._netops += 1
             response = requests.request(
                 method=method,
-                url=('?'.join([url, params]) if params and method == 'GET'
-                     else url),
+                url=('?'.join([url, params]) if params and method == 'GET' else url),
                 headers=headers,
                 data=params.encode() if params and method == 'POST' else None,
                 timeout=DEFAULT_TIMEOUT,
             )
 
-            payload = self._validate_net_stream_response(response, desc, require, allow_redirects, url)
+            payload = self._validate_net_stream_response(
+                response, desc, require, allow_redirects, url
+            )
             payloads.append(payload)
 
         if add_padding:
@@ -601,18 +640,24 @@ class Service(object, metaclass=abc.ABCMeta):
             self.cli_call(
                 self.CLI_MPLAYER,
                 '-benchmark',  # supposedly speeds up dump
-                '-vc', 'null',
-                '-vo', 'dummy' if self.IS_WINDOWS else 'null',
-                '-ao', 'pcm:fast:file="%s"' % output_path,
+                '-vc',
+                'null',
+                '-vo',
+                'dummy' if self.IS_WINDOWS else 'null',
+                '-ao',
+                'pcm:fast:file="%s"' % output_path,
                 url,
             )
 
         except OSError as os_error:
             from errno import ENOENT
+
             if os_error.errno == ENOENT:
-                raise OSError(ENOENT,
-                              "Unable to find mplayer to dump audio stream. "
-                              "It might not have been installed.")
+                raise OSError(
+                    ENOENT,
+                    "Unable to find mplayer to dump audio stream. "
+                    "It might not have been installed.",
+                )
             else:
                 raise
 
@@ -642,14 +687,17 @@ class Service(object, metaclass=abc.ABCMeta):
         """
 
         from string import ascii_lowercase, digits
+
         alphanumerics = ascii_lowercase + digits
 
         from os.path import join
         from random import choice
         from time import time
+
         return join(
             self._temp_dir,
-            '%x-%s.%s' % (
+            '%x-%s.%s'
+            % (
                 int(time()),
                 ''.join(choice(alphanumerics) for i in range(30)),
                 extension,
@@ -663,6 +711,7 @@ class Service(object, metaclass=abc.ABCMeta):
         """
 
         from os import unlink
+
         for path in self._flatten(args):
             if path:
                 try:
@@ -698,6 +747,7 @@ class Service(object, metaclass=abc.ABCMeta):
         temporary_txt = self.path_temp('txt')
 
         from codecs import open as copen
+
         with copen(temporary_txt, mode='w', encoding='utf-8') as out:
             out.write(text)
 
@@ -716,6 +766,7 @@ class Service(object, metaclass=abc.ABCMeta):
         )
 
         import winreg as wr  # for Windows only, pylint: disable=F0401
+
         with wr.ConnectRegistry(None, wr.HKEY_LOCAL_MACHINE) as hklm:
             with wr.OpenKey(hklm, key) as subkey:
                 return wr.QueryValueEx(subkey, name)[0]
@@ -727,10 +778,9 @@ class Service(object, metaclass=abc.ABCMeta):
         """
 
         return (
-            ''.join(
-                self.APPROX_MAPPER.get(char, char)
-                for char in text
-            ).encode('ascii', 'ignore').decode()
+            ''.join(self.APPROX_MAPPER.get(char, char) for char in text)
+            .encode('ascii', 'ignore')
+            .decode()
         )
 
     def util_merge(self, input_files, output_file):
@@ -767,17 +817,14 @@ class Service(object, metaclass=abc.ABCMeta):
             for symbols in self.SPLIT_PRIORITY:
                 offsets = [
                     offset
-                    for offset in [
-                        text.rfind(symbol, 0, limit)
-                        for symbol in symbols
-                    ]
+                    for offset in [text.rfind(symbol, 0, limit) for symbol in symbols]
                     if offset > self.SPLIT_MINIMUM
                 ]
 
                 if offsets:
                     offset = sorted(offsets).pop()
-                    bits.append(text[:offset + 1].rstrip())
-                    text = text[offset + 1:]
+                    bits.append(text[: offset + 1].rstrip())
+                    text = text[offset + 1 :]
                     break
 
             else:  # force a mid-word break
@@ -792,10 +839,7 @@ class Service(object, metaclass=abc.ABCMeta):
             self._logger.debug(
                 "Input phrase split using %d-character limit:\n%s",
                 limit,
-                "\n".join(
-                    '    #%d: "%s"' % (number, bit)
-                    for number, bit in enumerate(bits, 1)
-                ),
+                "\n".join('    #%d: "%s"' % (number, bit) for number, bit in enumerate(bits, 1)),
             )
 
         return bits
@@ -831,12 +875,12 @@ if sys.platform == 'win32':
     except AttributeError:
         try:
             Service.CLI_SI.dwFlags |= (
-                subprocess._subprocess.  # workaround, pylint:disable=W0212
-                STARTF_USESHOWWINDOW
+                subprocess._subprocess.STARTF_USESHOWWINDOW  # workaround, pylint:disable=W0212
             )
 
         except AttributeError as e:
             import logging
+
             logging.getLogger('AwesomeTTS').debug("Failed to set dwFlags workaround: %s", e)
 
 elif sys.platform.startswith('darwin'):

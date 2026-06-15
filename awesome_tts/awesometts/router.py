@@ -22,9 +22,9 @@ Dispatch management of available services
 
 import os
 import os.path
-from random import shuffle
 import re
 from http.client import IncompleteRead
+from random import shuffle
 from socket import error as SocketError
 from time import time
 from urllib.error import URLError
@@ -42,17 +42,36 @@ RE_MUSTACHE = re.compile(r'\{?\{\{(.+?)\}\}\}?')
 RE_UNSAFE = re.compile(r'[^\w\s()-]', re.UNICODE)
 RE_WHITESPACE = re.compile(r'[\0\s]+', re.UNICODE)
 
-WINDOWS_RESERVED = ['com1', 'com2', 'com3', 'com4', 'com5', 'com6', 'com7',
-                    'com8', 'com9', 'con', 'lpt1', 'lpt2', 'lpt3', 'lpt4',
-                    'lpt5', 'lpt6', 'lpt7', 'lpt8', 'lpt9', 'nul', 'prn']
+WINDOWS_RESERVED = [
+    'com1',
+    'com2',
+    'com3',
+    'com4',
+    'com5',
+    'com6',
+    'com7',
+    'com8',
+    'com9',
+    'con',
+    'lpt1',
+    'lpt2',
+    'lpt3',
+    'lpt4',
+    'lpt5',
+    'lpt6',
+    'lpt7',
+    'lpt8',
+    'lpt9',
+    'nul',
+    'prn',
+]
 
 
 def _prefixed(lines, prefix="!!! "):
     """Take incoming `lines` and prefix each line with `prefix`."""
 
     return "\n".join(
-        prefix + line
-        for line in (lines if isinstance(lines, list) else lines.split("\n"))
+        prefix + line for line in (lines if isinstance(lines, list) else lines.split("\n"))
     )
 
 
@@ -72,14 +91,14 @@ class Router(object):
         """Raised for requests for files that are already underway."""
 
     __slots__ = [
-        '_busy',       # list of file paths that are in-progress
+        '_busy',  # list of file paths that are in-progress
         '_cache_dir',  # path for writing cached media files
-        '_config',     # user configuration (dict-like)
-        '_failures',   # lookup of file paths that raised exceptions
-        '_logger',     # logger-like interface with debug(), info(), etc.
-        '_pool',       # instance of the _Pool class for managing threads
-        '_services',   # bundle with dead services, aliases, avail, lookup
-        '_temp_dir',   # path for writing human-readable filenames
+        '_config',  # user configuration (dict-like)
+        '_failures',  # lookup of file paths that raised exceptions
+        '_logger',  # logger-like interface with debug(), info(), etc.
+        '_pool',  # instance of the _Pool class for managing threads
+        '_services',  # bundle with dead services, aliases, avail, lookup
+        '_temp_dir',  # path for writing human-readable filenames
     ]
 
     def __init__(self, services, cache_dir, temp_dir, logger, config):
@@ -132,12 +151,14 @@ class Router(object):
         Returns a list of service names that advertise the given trait.
         """
 
-        return sorted([
-            service['name']
-            for service
-            in self._services.lookup.values()
-            if trait in service['traits']
-        ], key=lambda name: name.lower())
+        return sorted(
+            [
+                service['name']
+                for service in self._services.lookup.values()
+                if trait in service['traits']
+            ],
+            key=lambda name: name.lower(),
+        )
 
     def has_trait(self, svc_id, trait):
         """
@@ -168,8 +189,11 @@ class Router(object):
         service ID is not available (e.g. in the GUI).
         """
 
-        return (self._services.dead[svc_id] if svc_id in self._services.dead
-                else "'%s' service is not available." % svc_id)
+        return (
+            self._services.dead[svc_id]
+            if svc_id in self._services.dead
+            else "'%s' service is not available." % svc_id
+        )
 
     def get_services(self):
         """
@@ -182,11 +206,14 @@ class Router(object):
             for service in self._services.lookup.values():
                 self._load_service(service)
 
-            self._services.avail = sorted([
-                (svc_id, service['name'])
-                for svc_id, service in self._services.lookup.items()
-                if service['instance']
-            ], key=lambda service: service[1].lower())
+            self._services.avail = sorted(
+                [
+                    (svc_id, service['name'])
+                    for svc_id, service in self._services.lookup.items()
+                    if service['instance']
+                ],
+                key=lambda service: service[1].lower(),
+            )
 
         return self._services.avail
 
@@ -216,7 +243,9 @@ class Router(object):
         service, with defaults highlighted.
         """
 
-        svc_id, service = self._fetch_options_and_extras(svc_id, force_options_reload=force_options_reload)
+        svc_id, service = self._fetch_options_and_extras(
+            svc_id, force_options_reload=force_options_reload
+        )
         return service['options']
 
     def get_extras(self, svc_id):
@@ -246,8 +275,7 @@ class Router(object):
 
         self._failures = {}
 
-    def group(self, text, group, presets, callbacks,
-              want_human=False, note=None):
+    def group(self, text, group, presets, callbacks, want_human=False, note=None):
         """
         Execute a group playback request using the passed group to be
         looked up using the passed presets.
@@ -287,6 +315,7 @@ class Router(object):
                 callbacks['then']()
 
         else:
+
             def on_okay(path):
                 """Executes caller callbacks with path."""
                 if 'done' in callbacks:
@@ -318,22 +347,30 @@ class Router(object):
                 except IndexError:
                     if 'done' in callbacks:
                         callbacks['done']()
-                    callbacks['fail'](IndexError(
-                        "None of the presets in this group were able to play "
-                        "the input text."
-                    ), text)
+                    callbacks['fail'](
+                        IndexError(
+                            "None of the presets in this group were able to play " "the input text."
+                        ),
+                        text,
+                    )
                     if 'then' in callbacks:
                         callbacks['then']()
                 else:
                     svc_id = preset.pop('service')
-                    self(svc_id=svc_id, text=text, options=preset,
-                         callbacks=internal_callbacks,
-                         want_human=want_human, note=note)
+                    self(
+                        svc_id=svc_id,
+                        text=text,
+                        options=preset,
+                        callbacks=internal_callbacks,
+                        want_human=want_human,
+                        note=note,
+                    )
 
             try_next()
 
-    def __call__(self, svc_id, text, options, callbacks,
-                 want_human=False, note=None, async_variable=True):
+    def __call__(
+        self, svc_id, text, options, callbacks, want_human=False, note=None, async_variable=True
+    ):
         """
         Given the service ID and associated options, pass the text into
         the service for processing.
@@ -402,7 +439,11 @@ class Router(object):
 
             self._logger.debug(
                 "Parsed call to '%s' w/ %s and \"%s\" at %s (cache %s)",
-                svc_id, options, text, path, "hit" if cache_hit else "miss",
+                svc_id,
+                options,
+                text,
+                path,
+                "hit" if cache_hit else "miss",
             )
 
             # If we didn't get a cache hit, we have to call the real service,
@@ -428,8 +469,7 @@ class Router(object):
                     except KeyError:
                         if extra['required']:
                             raise KeyError(
-                                "%s required to access %s" %
-                                (extra['label'].rstrip(':'), svc_id)
+                                "%s required to access %s" % (extra['label'].rstrip(':'), svc_id)
                             )
                         else:
                             options[key] = None
@@ -492,6 +532,7 @@ class Router(object):
             filename = 'ATTS ' + filename + '.mp3'
 
             from shutil import copyfile
+
             new_path = os.path.join(self._temp_dir, filename)
             copyfile(path, new_path)
 
@@ -504,8 +545,7 @@ class Router(object):
             if 'then' in callbacks:
                 callbacks['then']()
 
-        elif (path in self._failures and
-              time() - self._failures[path][0] < FAILURE_CACHE_SECS):
+        elif path in self._failures and time() - self._failures[path][0] < FAILURE_CACHE_SECS:
             if 'done' in callbacks:
                 callbacks['done']()
             callbacks['fail'](self._failures[path][1], text)
@@ -513,6 +553,7 @@ class Router(object):
                 callbacks['then']()
 
         else:
+
             def on_error(exception):
                 """
                 For Internet-based services, cache errors. Certain
@@ -522,17 +563,21 @@ class Router(object):
                 Afterward, pass exception to the fail handler.
                 """
 
-                if BaseTrait.INTERNET in service['class'].TRAITS and \
-                   not isinstance(exception, IncompleteRead) and \
-                   not isinstance(exception, SocketError) and \
-                   not isinstance(exception, URLError):
+                if (
+                    BaseTrait.INTERNET in service['class'].TRAITS
+                    and not isinstance(exception, IncompleteRead)
+                    and not isinstance(exception, SocketError)
+                    and not isinstance(exception, URLError)
+                ):
                     self._failures[path] = time(), exception
                 callbacks['fail'](exception, text)
 
             service['instance'].net_reset()
             self._busy.append(path)
 
-            def completion_callback(exception, text="Not available by Router.__call__.completion_callback"):
+            def completion_callback(
+                exception, text="Not available by Router.__call__.completion_callback"
+            ):
                 """Intermediate callback handler for all service calls."""
 
                 self._busy.remove(path)
@@ -548,10 +593,12 @@ class Router(object):
                 elif os.path.exists(path):
                     callbacks['okay'](human(path))
                 else:
-                    on_error(RuntimeError(
-                        "The %s service did not successfully write out an "
-                        "MP3." % service['name']
-                    ))
+                    on_error(
+                        RuntimeError(
+                            "The %s service did not successfully write out an "
+                            "MP3." % service['name']
+                        )
+                    )
 
                 if 'then' in callbacks:
                     callbacks['then']()
@@ -560,12 +607,14 @@ class Router(object):
                 service['instance'].run(text, options, path)
 
             if async_variable:
+
                 def do_spawn():
                     """Call if ready to start a thread to run the service."""
                     self._pool.spawn(
                         task=task,
                         callback=completion_callback,
                     )
+
             else:
                 callback_exception = None
                 try:
@@ -575,6 +624,7 @@ class Router(object):
                 completion_callback(callback_exception)
 
             if hasattr(service['instance'], 'prerun'):
+
                 def prerun_ok(result):
                     """Callback handler for successful prerun hook."""
                     options['prerun'] = result
@@ -582,16 +632,13 @@ class Router(object):
 
                 def prerun_error(exception):
                     """Callback handler for unsuccessful prerun hook."""
-                    self._logger.error("Asynchronous exception in prerun: %s",
-                                       exception)
+                    self._logger.error("Asynchronous exception in prerun: %s", exception)
                     completion_callback(exception)
 
                 try:
-                    service['instance'].prerun(text, options, path,
-                                               prerun_ok, prerun_error)
+                    service['instance'].prerun(text, options, path, prerun_ok, prerun_error)
                 except Exception as exception:  # all, pylint:disable=W0703
-                    self._logger.error("Synchronous exception in prerun: %s",
-                                       exception)
+                    self._logger.error("Synchronous exception in prerun: %s", exception)
                     completion_callback(exception)
             else:
                 do_spawn()
@@ -624,8 +671,7 @@ class Router(object):
         options = {
             key: value
             for key, value in [
-                (self._services.normalize(key), value)
-                for key, value in options.items()
+                (self._services.normalize(key), value) for key, value in options.items()
             ]
             if key in svc_options_keys
         }
@@ -633,8 +679,8 @@ class Router(object):
         problems = self._validate_options(options, svc_options)
         if problems:
             raise ValueError(
-                "Running the '%s' (%s) service failed: %s." %
-                (svc_id, service['name'], "; ".join(problems))
+                "Running the '%s' (%s) service failed: %s."
+                % (svc_id, service['name'], "; ".join(problems))
             )
 
         return svc_id, service, options
@@ -658,33 +704,35 @@ class Router(object):
                     transformed_value = svc_option['transform'](options[key])
 
                     if isinstance(svc_option['values'], tuple):
-                        if transformed_value < svc_option['values'][0] or \
-                           transformed_value > svc_option['values'][1]:
-                            raise ValueError("outside of %d..%d" % (
-                                svc_option['values'][0],
-                                svc_option['values'][1],
-                            ))
+                        if (
+                            transformed_value < svc_option['values'][0]
+                            or transformed_value > svc_option['values'][1]
+                        ):
+                            raise ValueError(
+                                "outside of %d..%d"
+                                % (
+                                    svc_option['values'][0],
+                                    svc_option['values'][1],
+                                )
+                            )
 
                     else:  # list of tuples
-                        next(
-                            True
-                            for item in svc_option['values']
-                            if item[0] == transformed_value
-                        )
+                        next(True for item in svc_option['values'] if item[0] == transformed_value)
 
                     options[key] = transformed_value
 
                 except ValueError as exception:
                     problems.append(
-                        "invalid value '%s' for '%s' attribute (%s)" %
-                        (options[key], key, exception)
+                        "invalid value '%s' for '%s' attribute (%s)"
+                        % (options[key], key, exception)
                     )
 
                 except StopIteration:
                     problems.append(
-                        "'%s' is not an option for '%s' attribute (try %s)" %
-                        (
-                            options[key], key,
+                        "'%s' is not an option for '%s' attribute (try %s)"
+                        % (
+                            options[key],
+                            key,
                             ", ".join(v[0] for v in svc_option['values']),
                         )
                     )
@@ -712,10 +760,7 @@ class Router(object):
 
         path = self._path_cache(svc_id, text, options)
         if path in self._busy:
-            raise self.BusyError(
-                "The '%s' service is already busy processing %s." %
-                (svc_id, path)
-            )
+            raise self.BusyError("The '%s' service is already busy processing %s." % (svc_id, path))
 
         return path
 
@@ -738,49 +783,57 @@ class Router(object):
 
             for option in service['instance'].options():
                 assert 'key' in option, "missing option key for %s" % svc_id
-                assert self._services.normalize(option['key']) == \
-                    option['key'], "bad %s key %s" % (svc_id, option['key'])
-                assert option['key'] not in ['group', 'preset', 'service',
-                                             'style'], \
+                assert self._services.normalize(option['key']) == option['key'], "bad %s key %s" % (
+                    svc_id,
+                    option['key'],
+                )
+                assert option['key'] not in ['group', 'preset', 'service', 'style'], (
                     option['key'] + " is reserved for use in TTS tags"
-                assert 'label' in option, \
-                    "missing %s label for %s" % (option['key'], svc_id)
-                assert 'values' in option, \
-                    "missing %s values for %s" % (option['key'], svc_id)
-                assert isinstance(option['values'], list) or \
-                    isinstance(option['values'], tuple) and \
-                    len(option['values']) in range(2, 4), \
-                    "%s values for %s should be list or 2-3-tuple" % \
-                    (option['key'], svc_id)
-                assert 'transform' in option, \
-                    "missing %s transform for %s" % (option['key'], svc_id)
+                )
+                assert 'label' in option, "missing %s label for %s" % (option['key'], svc_id)
+                assert 'values' in option, "missing %s values for %s" % (option['key'], svc_id)
+                assert (
+                    isinstance(option['values'], list)
+                    or isinstance(option['values'], tuple)
+                    and len(option['values']) in range(2, 4)
+                ), "%s values for %s should be list or 2-3-tuple" % (option['key'], svc_id)
+                assert 'transform' in option, "missing %s transform for %s" % (
+                    option['key'],
+                    svc_id,
+                )
 
                 if not option['label'].endswith(":"):
                     option['label'] += ":"
 
-                if 'default' in option and \
-                   isinstance(option['values'], list) and \
-                   len(option['values']) > 1:
+                if (
+                    'default' in option
+                    and isinstance(option['values'], list)
+                    and len(option['values']) > 1
+                ):
                     option['values'] = [
-                        item if item[0] != option['default'] or item[1] == 'Default'
-                        else (item[0], item[1] + " [default]")
+                        (
+                            item
+                            if item[0] != option['default'] or item[1] == 'Default'
+                            else (item[0], item[1] + " [default]")
+                        )
                         for item in option['values']
                     ]
 
                 service['options'].append(option)
 
-        if 'extras' not in service or force_options_reload == True:  # extras are like options, but universal
+        if (
+            'extras' not in service or force_options_reload == True
+        ):  # extras are like options, but universal
             service['extras'] = []
 
             if hasattr(service['instance'], 'extras'):
-                self._logger.debug("Building the extras list for %s",
-                                   service['name'])
+                self._logger.debug("Building the extras list for %s", service['name'])
                 for extra in service['instance'].extras():
                     assert 'key' in extra, "missing extra key for %s" % svc_id
-                    assert self._services.normalize(extra['key']) == \
-                        extra['key'], "bad %s key %s" % (svc_id, extra['key'])
-                    assert 'label' in extra, \
-                        "missing %s label for %s" % (extra['key'], svc_id)
+                    assert (
+                        self._services.normalize(extra['key']) == extra['key']
+                    ), "bad %s key %s" % (svc_id, extra['key'])
+                    assert 'label' in extra, "missing %s label for %s" % (extra['key'], svc_id)
 
                     if 'required' not in extra:
                         extra['required'] = False
@@ -811,17 +864,15 @@ class Router(object):
             service = self._services.lookup[svc_id]
         except KeyError:
             raise ValueError(
-                self._services.dead[svc_id] if svc_id in self._services.dead
+                self._services.dead[svc_id]
+                if svc_id in self._services.dead
                 else "There is no '%s' service" % svc_id
             )
 
         self._load_service(service)
 
         if not service['instance']:
-            raise EnvironmentError(
-                "The %s service is not currently available" %
-                service['name']
-            )
+            raise EnvironmentError("The %s service is not currently available" % service['name'])
 
         return svc_id, service
 
@@ -839,20 +890,19 @@ class Router(object):
         self._logger.info("Initializing %s service...", service['name'])
 
         try:
-            service['instance'] = service['class'](
-                *self._services.args,
-                **self._services.kwargs
-            )
+            service['instance'] = service['class'](*self._services.args, **self._services.kwargs)
 
             self._logger.info("%s service initialized", service['name'])
 
-        except Exception as e:  # catch all, pylint:disable=W0703
+        except Exception:  # catch all, pylint:disable=W0703
             service['instance'] = None  # flag this service as unavailable
 
             from traceback import format_exc
+
             self._logger.warn(
                 "Initialization failed for %s service\n%s",
-                service['name'], _prefixed(format_exc()),
+                service['name'],
+                _prefixed(format_exc()),
             )
 
     def _path_cache(self, svc_id, text, options):
@@ -862,36 +912,48 @@ class Router(object):
         the same path.
         """
 
-        hash_input = '/'.join([
-            text,
-            svc_id,
-            ';'.join(
-                '='.join([
-                    key,
-                    value if isinstance(value, str) else str(value),
-                ])
-                for key, value
-                in sorted(options.items())
-            )
-        ])
+        hash_input = '/'.join(
+            [
+                text,
+                svc_id,
+                ';'.join(
+                    '='.join(
+                        [
+                            key,
+                            value if isinstance(value, str) else str(value),
+                        ]
+                    )
+                    for key, value in sorted(options.items())
+                ),
+            ]
+        )
 
         from hashlib import sha1
 
-        hex_digest = sha1(
-            hash_input.encode('utf-8') if isinstance(hash_input, str)
-            else hash_input
-        ).hexdigest().lower()
+        hex_digest = (
+            sha1(hash_input.encode('utf-8') if isinstance(hash_input, str) else hash_input)
+            .hexdigest()
+            .lower()
+        )
 
         assert len(hex_digest) == 40, "unexpected output from hash library"
         return os.path.join(
             self._cache_dir,
-            '.'.join([
-                '-'.join([
-                    svc_id, hex_digest[:8], hex_digest[8:16],
-                    hex_digest[16:24], hex_digest[24:32], hex_digest[32:],
-                ]),
-                'mp3',
-            ]),
+            '.'.join(
+                [
+                    '-'.join(
+                        [
+                            svc_id,
+                            hex_digest[:8],
+                            hex_digest[8:16],
+                            hex_digest[16:24],
+                            hex_digest[24:32],
+                            hex_digest[32:],
+                        ]
+                    ),
+                    'mp3',
+                ]
+            ),
         )
 
 
@@ -902,8 +964,8 @@ class _Pool(aqt.qt.QWidget):
 
     __slots__ = [
         '_current_id',  # the last/current worker ID in-use
-        '_logger',      # for writing messages about threads
-        '_threads',     # dict of IDs mapping workers and callbacks in Router
+        '_logger',  # for writing messages about threads
+        '_threads',  # dict of IDs mapping workers and callbacks in Router
     ]
 
     def __init__(self, logger, *args, **kwargs):
@@ -939,7 +1001,8 @@ class _Pool(aqt.qt.QWidget):
 
         self._logger.debug(
             "Spawned thread [%d]; pool=%s",
-            self._current_id, self._threads,
+            self._current_id,
+            self._threads,
         )
 
     def _on_worker_signal(self, thread_id, exception=None, stack_trace=None):
@@ -955,12 +1018,13 @@ class _Pool(aqt.qt.QWidget):
 
             self._logger.debug(
                 "Exception from thread [%d] (%s); executing callback\n%s",
-
-                thread_id, message,
-
-                _prefixed(stack_trace)
-                if isinstance(stack_trace, str)
-                else "Stack trace unavailable",
+                thread_id,
+                message,
+                (
+                    _prefixed(stack_trace)
+                    if isinstance(stack_trace, str)
+                    else "Stack trace unavailable"
+                ),
             )
 
         else:
@@ -993,7 +1057,9 @@ class _Pool(aqt.qt.QWidget):
 
         self._logger.debug(
             "Reaped thread%s %s; pool=%s",
-            "s" if len(thread_ids) != 1 else "", thread_ids, self._threads,
+            "s" if len(thread_ids) != 1 else "",
+            thread_ids,
+            self._threads,
         )
 
 
@@ -1007,7 +1073,7 @@ class _Worker(aqt.qt.QThread):
 
     __slots__ = [
         '_thread_id',  # my thread ID; used to communicate back to main thread
-        '_task',       # the task I will need to call when run
+        '_task',  # the task I will need to call when run
     ]
 
     def __init__(self, thread_id, task):
@@ -1030,6 +1096,7 @@ class _Worker(aqt.qt.QThread):
             self._task()
         except Exception as exception:  # catch all, pylint:disable=W0703
             from traceback import format_exc
+
             self.tts_thread_raised.emit(self._id, exception, format_exc())
             return
 

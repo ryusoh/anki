@@ -34,7 +34,7 @@ JS <-> PY communication
 """
 
 import json
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, Union
 
 import aqt
 from aqt.deckbrowser import DeckBrowser
@@ -42,6 +42,7 @@ from aqt.main import AnkiQt
 from aqt.overview import Overview
 from aqt.qt import QWidget
 from aqt.stats import DeckStats
+
 try:
     from aqt.stats import NewDeckStats
 except ImportError:
@@ -97,9 +98,7 @@ class HeatmapBridge:
 
         return (True, ret)
 
-    def bridge_legacy(
-        self, context: SUPPORTED_CONTEXT_TYPES, url: str, _old=None
-    ) -> Any:
+    def bridge_legacy(self, context: SUPPORTED_CONTEXT_TYPES, url: str, _old=None) -> Any:
         if not url.startswith(self._identifier):
             return None if not _old else _old(context, url)
 
@@ -125,14 +124,14 @@ class HeatmapBridge:
                 payload = json.loads(payload)
             except (ValueError, TypeError):
                 # not JSON, keep as-is
-                logger.debug("Failed to decode payload as JSON in Web Bridge message. Proceeding with raw payload.")
+                logger.debug(
+                    "Failed to decode payload as JSON in Web Bridge message. Proceeding with raw payload."
+                )
 
         return self._command_handler(command, payload, context)
 
 
-COMMAND_HANDLER_TYPE = Callable[
-    ["_CommandHandler", Any, SUPPORTED_CONTEXT_TYPES], Optional[Any]
-]
+COMMAND_HANDLER_TYPE = Callable[["_CommandHandler", Any, SUPPORTED_CONTEXT_TYPES], Optional[Any]]
 
 _command_handler_registry: Dict[str, COMMAND_HANDLER_TYPE] = {}
 

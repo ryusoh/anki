@@ -45,7 +45,6 @@ def initialize_addon():
     """
 
     from .consts import ADDON
-
     from .libaddon.consts import set_addon_properties
 
     set_addon_properties(ADDON)
@@ -62,11 +61,11 @@ def initialize_addon():
     mw.addonManager.setWebExports(__name__, r"web.*")
 
     from .config import config as config_manager
+    from .controller import initialize_controller
+    from .finder import initialize_finder
     from .gui import initialize_qt_resources
     from .gui.options import initialize_options
-    from .controller import initialize_controller
     from .views import initialize_views
-    from .finder import initialize_finder
 
     initialize_qt_resources()
     initialize_options()

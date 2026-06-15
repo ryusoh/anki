@@ -83,6 +83,7 @@ class ESpeak(Service):
                 output[alt] = self.cli_output(self._binary, '--voices=' + alt)
             except Exception as e:  # catch-all, pylint:disable=broad-except
                 import logging
+
                 logging.getLogger(__name__).debug(f"Failed to fetch espeak alt voices '{alt}': {e}")
                 output[alt] = []
 
@@ -90,11 +91,11 @@ class ESpeak(Service):
         from os.path import basename
 
         re_voice = re.compile(
-            r'\s*(\d+)'               # priority; lower numbers preferred
-            r'\s+([-\w]+)'            # language code (or "variant")
-            r'\s+(\d+)?([-\w])'       # age, gender
-            r'\s+([-\w]+)'            # voice name
-            r'\s+([-!/\\\w]+)'        # file name
+            r'\s*(\d+)'  # priority; lower numbers preferred
+            r'\s+([-\w]+)'  # language code (or "variant")
+            r'\s+(\d+)?([-\w])'  # age, gender
+            r'\s+([-\w]+)'  # voice name
+            r'\s+([-!/\\\w]+)'  # file name
             r'(\s+\(([- ()\w]+)\))?'  # other languages
         )
 
@@ -109,16 +110,18 @@ class ESpeak(Service):
                     'age': int(match.group(3)) if match.group(3) else None,
                     'gender': match.group(4).upper(),
                     'name': match.group(5),
-                    'file': (basename(match.group(6)) if key == 'variant'
-                             else match.group(6)),
-                    'others': [
-                        code
-                        for code in [
-                            re_lang_filter.sub('', code)
-                            for code in match.group(8).split(')(')
+                    'file': (basename(match.group(6)) if key == 'variant' else match.group(6)),
+                    'others': (
+                        [
+                            code
+                            for code in [
+                                re_lang_filter.sub('', code) for code in match.group(8).split(')(')
+                            ]
+                            if code
                         ]
-                        if code
-                    ] if match.group(8) else [],
+                        if match.group(8)
+                        else []
+                    ),
                 }
                 for match in [re_voice.match(line) for line in lines]
                 if match
@@ -131,11 +134,8 @@ class ESpeak(Service):
             # voices are preferred over MBROLA ones and where lesser priority
             # numbers win out over greater ones (native voices are preferred
             # over MBROLA ones since the MBROLA ones do not always work)
-
-            sorted(self._lookup['mbrola'],
-                   key=lambda voice: -voice['priority']) +
-            sorted(self._lookup['native'],
-                   key=lambda voice: -voice['priority'])
+            sorted(self._lookup['mbrola'], key=lambda voice: -voice['priority'])
+            + sorted(self._lookup['native'], key=lambda voice: -voice['priority'])
         )
 
         del self._lookup['mbrola']
@@ -162,38 +162,47 @@ class ESpeak(Service):
 
         lookup = self._lookup
 
-        voice_lookup = dict([
-            # language codes from each "others" list
-            (self.normalize(other), voice['file'])
-            for voice in lookup['voices']
-            for other in voice['others']
-        ] + [
-            # language code listed as the primary for each
-            (self.normalize(voice['code']), voice['file'])
-            for voice in lookup['voices']
-        ] + [
-            # voice name given for each
-            (self.normalize(voice['name']), voice['file'])
-            for voice in lookup['voices']
-        ] + [
-            # official file name for each
-            (self.normalize(voice['file']), voice['file'])
-            for voice in lookup['voices']
-        ])
+        voice_lookup = dict(
+            [
+                # language codes from each "others" list
+                (self.normalize(other), voice['file'])
+                for voice in lookup['voices']
+                for other in voice['others']
+            ]
+            + [
+                # language code listed as the primary for each
+                (self.normalize(voice['code']), voice['file'])
+                for voice in lookup['voices']
+            ]
+            + [
+                # voice name given for each
+                (self.normalize(voice['name']), voice['file'])
+                for voice in lookup['voices']
+            ]
+            + [
+                # official file name for each
+                (self.normalize(voice['file']), voice['file'])
+                for voice in lookup['voices']
+            ]
+        )
 
-        variant_lookup = dict([
-            # variant name given for each
-            (self.normalize(variant['name']), variant['file'])
-            for variant in lookup['variant']
-        ] + [
-            # official file name for each
-            (self.normalize(variant['file']), variant['file'])
-            for variant in lookup['variant']
-        ] + [
-            # helpful aliases for "normal"
-            ('', 'normal'),
-            ('none', 'normal'),
-        ])
+        variant_lookup = dict(
+            [
+                # variant name given for each
+                (self.normalize(variant['name']), variant['file'])
+                for variant in lookup['variant']
+            ]
+            + [
+                # official file name for each
+                (self.normalize(variant['file']), variant['file'])
+                for variant in lookup['variant']
+            ]
+            + [
+                # helpful aliases for "normal"
+                ('', 'normal'),
+                ('none', 'normal'),
+            ]
+        )
 
         def transform_voice(value):
             """Normalize and attempt to convert to official voice."""
@@ -220,10 +229,7 @@ class ESpeak(Service):
             """Normalize and attempt to convert to official variant."""
 
             normalized = self.normalize(value)
-            return (
-                variant_lookup[normalized] if normalized in variant_lookup
-                else value
-            )
+            return variant_lookup[normalized] if normalized in variant_lookup else value
 
         return [
             dict(
@@ -232,59 +238,61 @@ class ESpeak(Service):
                 values=[
                     (
                         voice['file'],
-                        "%s (%s%s%s)" % (
+                        "%s (%s%s%s)"
+                        % (
                             voice['name'],
-
-                            str(voice['age']) + "-year-old " if
-                            voice['age'] else "",
-
-                            "male " if voice['gender'] == 'M'
-                            else "female " if voice['gender'] == 'F'
-                            else "",
-
+                            str(voice['age']) + "-year-old " if voice['age'] else "",
+                            (
+                                "male "
+                                if voice['gender'] == 'M'
+                                else "female " if voice['gender'] == 'F' else ""
+                            ),
                             voice['code'],
                         ),
                     )
                     for voice in sorted(
                         lookup['voices'],
-                        key=lambda voice: (voice['code'],
-                                           voice['type'] == 'mbrola',
-                                           voice['gender'] not in 'MF',
-                                           voice['gender'] == 'F',
-                                           voice['name']),
+                        key=lambda voice: (
+                            voice['code'],
+                            voice['type'] == 'mbrola',
+                            voice['gender'] not in 'MF',
+                            voice['gender'] == 'F',
+                            voice['name'],
+                        ),
                     )
                 ],
                 transform=transform_voice,
             ),
-
             dict(
                 key='variant',
                 label="Variant",
-                values=[('normal', "normal")] + [
+                values=[('normal', "normal")]
+                + [
                     (
                         variant['file'],
-                        "%s (%s%s)" % (
+                        "%s (%s%s)"
+                        % (
                             variant['name'],
-
-                            str(variant['age']) + "-year-old " if
-                            variant['age'] else "",
-
-                            "male" if variant['gender'] == 'M'
-                            else "female" if variant['gender'] == 'F'
-                            else "other",
+                            str(variant['age']) + "-year-old " if variant['age'] else "",
+                            (
+                                "male"
+                                if variant['gender'] == 'M'
+                                else "female" if variant['gender'] == 'F' else "other"
+                            ),
                         ),
                     )
                     for variant in sorted(
                         lookup['variant'],
-                        key=lambda variant: (variant['gender'] not in 'MF',
-                                             variant['gender'] == 'F',
-                                             variant['name']),
+                        key=lambda variant: (
+                            variant['gender'] not in 'MF',
+                            variant['gender'] == 'F',
+                            variant['name'],
+                        ),
                     )
                 ],
                 transform=transform_variant,
-                default="normal"
+                default="normal",
             ),
-
             dict(
                 key='speed',
                 label="Speed",
@@ -292,7 +300,6 @@ class ESpeak(Service):
                 transform=int,
                 default=175,
             ),
-
             dict(
                 key='gap',
                 label="Word Gap",
@@ -300,7 +307,6 @@ class ESpeak(Service):
                 transform=float,
                 default=0.0,
             ),
-
             dict(
                 key='pitch',
                 label="Pitch",
@@ -308,7 +314,6 @@ class ESpeak(Service):
                 transform=int,
                 default=50,
             ),
-
             dict(
                 key='volume',
                 label="Volume",
@@ -327,24 +332,30 @@ class ESpeak(Service):
         input_file = self.path_workaround(text)
         output_wav = self.path_temp('wav')
 
-        voice = ('+'.join([options['voice'], options['variant']])
-                 if options['variant'] and options['variant'] != "normal"
-                 else options['voice'])
+        voice = (
+            '+'.join([options['voice'], options['variant']])
+            if options['variant'] and options['variant'] != "normal"
+            else options['voice']
+        )
 
         try:
             self.cli_call(
                 [
                     self._binary,
-                    '-v', voice,
-                    '-s', options['speed'],
-                    '-g', int(options['gap'] * 100.0),
-                    '-p', options['pitch'],
-                    '-a', options['volume'],
-                    '-w', output_wav,
-                ] + (
-                    ['-f', input_file] if input_file
-                    else ['--', text]
-                )
+                    '-v',
+                    voice,
+                    '-s',
+                    options['speed'],
+                    '-g',
+                    int(options['gap'] * 100.0),
+                    '-p',
+                    options['pitch'],
+                    '-a',
+                    options['volume'],
+                    '-w',
+                    output_wav,
+                ]
+                + (['-f', input_file] if input_file else ['--', text])
             )
 
             self.cli_transcode(

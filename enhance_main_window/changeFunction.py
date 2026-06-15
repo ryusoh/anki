@@ -1,14 +1,12 @@
-from anki.decks import DeckManager
-from anki.notes import Note
+
 try:
     from anki.sched import Scheduler
 except ModuleNotFoundError:
-    from anki.scheduler import v3
+    pass
 from aqt.deckbrowser import DeckBrowser
 
 from .column import _linkHandler
-from .debug import debug
-from .node import idToNode, renderDeckTree
+from .node import renderDeckTree
 
 
 # based on Anki 2.0.36 aqt/deckbrowser.py DeckBrowser._deckRow

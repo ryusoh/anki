@@ -41,7 +41,6 @@ from .forms import contrib as qtform_contrib
 
 
 class RevHmContrib(ContribDialog):
-
     """
     Add-on-specific contrib dialog implementation
     """

@@ -174,7 +174,9 @@ class Ui_Dialog(object):
         self.toolButton_color_bottom.setObjectName("toolButton_color_bottom")
         self.gridLayout.addWidget(self.toolButton_color_bottom, 1, 5, 1, 1)
         self.gridLayout_6.addWidget(self.groupBox_5, 4, 0, 1, 12)
-        spacerItem = QtWidgets.QSpacerItem(20, 5, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
+        spacerItem = QtWidgets.QSpacerItem(
+            20, 5, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
+        )
         self.gridLayout_6.addItem(spacerItem, 7, 0, 1, 1)
         self.groupBox_2 = QtWidgets.QGroupBox(Dialog)
         self.groupBox_2.setTitle("")
@@ -200,14 +202,18 @@ class Ui_Dialog(object):
         self.OkButton = QtWidgets.QPushButton(Dialog)
         self.OkButton.setObjectName("OkButton")
         self.gridLayout_6.addWidget(self.OkButton, 8, 11, 1, 1)
-        spacerItem1 = QtWidgets.QSpacerItem(20, 5, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
+        spacerItem1 = QtWidgets.QSpacerItem(
+            20, 5, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
+        )
         self.gridLayout_6.addItem(spacerItem1, 5, 0, 1, 1)
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setSizeConstraint(QtWidgets.QLayout.SetNoConstraint)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.toolButton_course = QtWidgets.QToolButton(Dialog)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("CustomBackground:AnKingSmall.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(
+            QtGui.QPixmap("CustomBackground:AnKingSmall.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.toolButton_course.setIcon(icon)
         self.toolButton_course.setIconSize(QtCore.QSize(40, 40))
         self.toolButton_course.setObjectName("toolButton_course")
@@ -231,7 +237,9 @@ class Ui_Dialog(object):
         self.toolButton_youtube = QtWidgets.QToolButton(Dialog)
         self.toolButton_youtube.setMaximumSize(QtCore.QSize(31, 31))
         icon1 = QtGui.QIcon()
-        icon1.addPixmap(QtGui.QPixmap("CustomBackground:YouTube.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon1.addPixmap(
+            QtGui.QPixmap("CustomBackground:YouTube.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.toolButton_youtube.setIcon(icon1)
         self.toolButton_youtube.setIconSize(QtCore.QSize(31, 31))
         self.toolButton_youtube.setObjectName("toolButton_youtube")
@@ -239,7 +247,9 @@ class Ui_Dialog(object):
         self.toolButton_patreon = QtWidgets.QToolButton(Dialog)
         self.toolButton_patreon.setMaximumSize(QtCore.QSize(171, 26))
         icon2 = QtGui.QIcon()
-        icon2.addPixmap(QtGui.QPixmap("CustomBackground:Patreon.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon2.addPixmap(
+            QtGui.QPixmap("CustomBackground:Patreon.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.toolButton_patreon.setIcon(icon2)
         self.toolButton_patreon.setIconSize(QtCore.QSize(200, 31))
         self.toolButton_patreon.setObjectName("toolButton_patreon")
@@ -247,7 +257,9 @@ class Ui_Dialog(object):
         self.toolButton_instagram = QtWidgets.QToolButton(Dialog)
         self.toolButton_instagram.setMaximumSize(QtCore.QSize(31, 31))
         icon3 = QtGui.QIcon()
-        icon3.addPixmap(QtGui.QPixmap("CustomBackground:Instagram.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon3.addPixmap(
+            QtGui.QPixmap("CustomBackground:Instagram.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.toolButton_instagram.setIcon(icon3)
         self.toolButton_instagram.setIconSize(QtCore.QSize(31, 31))
         self.toolButton_instagram.setObjectName("toolButton_instagram")
@@ -255,7 +267,9 @@ class Ui_Dialog(object):
         self.toolButton_facebook = QtWidgets.QToolButton(Dialog)
         self.toolButton_facebook.setMaximumSize(QtCore.QSize(31, 31))
         icon4 = QtGui.QIcon()
-        icon4.addPixmap(QtGui.QPixmap("CustomBackground:Facebook.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon4.addPixmap(
+            QtGui.QPixmap("CustomBackground:Facebook.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.toolButton_facebook.setIcon(icon4)
         self.toolButton_facebook.setIconSize(QtCore.QSize(31, 31))
         self.toolButton_facebook.setObjectName("toolButton_facebook")
@@ -300,11 +314,21 @@ class Ui_Dialog(object):
         self.label_5.setText(_translate("Dialog", "Main"))
         self.label_6.setText(_translate("Dialog", "Review"))
         self.toolButton_gear.setText(_translate("Dialog", "..."))
-        self.label.setToolTip(_translate("Dialog", "<html><head/><body><p>Name of the background image file.</p><p>&quot;Random&quot; will shuffle through defaults</p></body></html>"))
+        self.label.setToolTip(
+            _translate(
+                "Dialog",
+                "<html><head/><body><p>Name of the background image file.</p><p>&quot;Random&quot; will shuffle through defaults</p></body></html>",
+            )
+        )
         self.label.setText(_translate("Dialog", "Image name for background:"))
         self.pushButton_randomize.setText(_translate("Dialog", "Random Images"))
         self.pushButton_imageFolder.setText(_translate("Dialog", "Open Image Folders"))
-        self.label_2.setToolTip(_translate("Dialog", "<html><head/><body><p>Name of the file to replace the gear icon. </p><p>Anki default is gears.svg</p><p>&quot;Random&quot; will shuffle through defaults</p></body></html>"))
+        self.label_2.setToolTip(
+            _translate(
+                "Dialog",
+                "<html><head/><body><p>Name of the file to replace the gear icon. </p><p>Anki default is gears.svg</p><p>&quot;Random&quot; will shuffle through defaults</p></body></html>",
+            )
+        )
         self.label_2.setText(_translate("Dialog", "Image name for gear icon:"))
         self.toolButton_background.setText(_translate("Dialog", "..."))
         self.groupBox_5.setTitle(_translate("Dialog", "Background color"))
@@ -314,15 +338,35 @@ class Ui_Dialog(object):
         self.toolButton_color_top.setText(_translate("Dialog", "..."))
         self.label_13.setText(_translate("Dialog", "Bottom toolbar:"))
         self.toolButton_color_bottom.setText(_translate("Dialog", "..."))
-        self.checkBox_reviewer.setToolTip(_translate("Dialog", "<html><head/><body><p>Show the background image in the reviewer screen</p></body></html>"))
+        self.checkBox_reviewer.setToolTip(
+            _translate(
+                "Dialog",
+                "<html><head/><body><p>Show the background image in the reviewer screen</p></body></html>",
+            )
+        )
         self.checkBox_reviewer.setText(_translate("Dialog", "Show in reviewer"))
-        self.checkBox_toolbar.setToolTip(_translate("Dialog", "<html><head/><body><p>Show the background image in the top and bottom toolbars in addition to the main screen</p></body></html>"))
+        self.checkBox_toolbar.setToolTip(
+            _translate(
+                "Dialog",
+                "<html><head/><body><p>Show the background image in the top and bottom toolbars in addition to the main screen</p></body></html>",
+            )
+        )
         self.checkBox_toolbar.setText(_translate("Dialog", "Show in toolbar"))
-        self.checkBox_topbottom.setToolTip(_translate("Dialog", "<html><head/><body><p>Set the background position of the toolbars to top and bottom (if the main background position is set to center, this will look cleaner for most images)<br/></p></body></html>"))
+        self.checkBox_topbottom.setToolTip(
+            _translate(
+                "Dialog",
+                "<html><head/><body><p>Set the background position of the toolbars to top and bottom (if the main background position is set to center, this will look cleaner for most images)<br/></p></body></html>",
+            )
+        )
         self.checkBox_topbottom.setText(_translate("Dialog", "Toolbar top/bottom"))
         self.OkButton.setText(_translate("Dialog", "OK"))
         self.toolButton_course.setText(_translate("Dialog", "..."))
-        self.label_3.setText(_translate("Dialog", "Interested in learning how to use Anki effectively? Check out the Anki Mastery Course, a comprehensive series of lessons and video tutorials on Anki designed by the AnKing team."))
+        self.label_3.setText(
+            _translate(
+                "Dialog",
+                "Interested in learning how to use Anki effectively? Check out the Anki Mastery Course, a comprehensive series of lessons and video tutorials on Anki designed by the AnKing team.",
+            )
+        )
         self.toolButton_website.setText(_translate("Dialog", "..."))
         self.toolButton_youtube.setText(_translate("Dialog", "..."))
         self.toolButton_patreon.setText(_translate("Dialog", "..."))

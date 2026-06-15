@@ -93,9 +93,7 @@ class ADDON:
         "twitter": "https://twitter.com/glutanimate",
         "youtube": "https://www.youtube.com/c/glutanimate",
         "changelog": (
-            "https://github.com/glutanimate/{repo}/blob/main/CHANGELOG.md".format(
-                repo=REPO
-            )
+            "https://github.com/glutanimate/{repo}/blob/main/CHANGELOG.md".format(repo=REPO)
         ),
         "help": "https://github.com/glutanimate/review-heatmap/wiki",
     }

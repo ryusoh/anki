@@ -1,8 +1,7 @@
-import aqt
-import anki.hooks
+import base64
 import html
 import json
-import base64
+
 import aqt
 
 
@@ -19,7 +18,7 @@ def makeLinkHandler(addon):
             # load the json part
             colon_index = url.find(':')
 
-            base64_str = url[colon_index+1:]
+            base64_str = url[colon_index + 1 :]
             # print(f"* base64 string: {base64_str}")
 
             # base64_bytes = str.encode(base64_str)
@@ -29,28 +28,20 @@ def makeLinkHandler(addon):
 
             data = json.loads(json_str)
 
-            callbacks = dict(
-                okay=addon.player.preview,
-                fail=playbackFailure
-            )
+            callbacks = dict(okay=addon.player.preview, fail=playbackFailure)
 
             text = data['text']
             awesometts_preset_name = data['preset']
             preset = addon.config['presets'][awesometts_preset_name]
 
-            addon.router(
-                svc_id=preset['service'],
-                text=text,
-                options=preset,
-                callbacks=callbacks
-            )
+            addon.router(svc_id=preset['service'], text=text, options=preset, callbacks=callbacks)
 
             addon.config['homescreen_last_preset'] = awesometts_preset_name
 
         return False
 
-    
     return linkHandler
+
 
 def makeDeckBrowserRenderContent(addon):
 
@@ -66,7 +57,10 @@ def makeDeckBrowserRenderContent(addon):
             # no presets defined
             return
         preset_names.sort()
-        html_select_options = [f'<option value="{html.escape(preset_name, quote=True)}" {"selected" if preset_name == addon.config["homescreen_last_preset"] else ""}>{html.escape(preset_name, quote=False)}</option>' for preset_name in preset_names]
+        html_select_options = [
+            f'<option value="{html.escape(preset_name, quote=True)}" {"selected" if preset_name == addon.config["homescreen_last_preset"] else ""}>{html.escape(preset_name, quote=False)}</option>'
+            for preset_name in preset_names
+        ]
         html_select_options_str = '\n'.join(html_select_options)
 
         # theme colors are plagiarized from review heatmap
@@ -82,10 +76,10 @@ def makeDeckBrowserRenderContent(addon):
 
         awesometts_plus_tag = ''
         if addon.languagetools.use_plus_mode():
-            awesometts_plus_tag= '<span style="font-size: 18px;">AwesomeTTS <span style="color:#FF0000; font-weight: bold;">Plus</span></span>'
+            awesometts_plus_tag = '<span style="font-size: 18px;">AwesomeTTS <span style="color:#FF0000; font-weight: bold;">Plus</span></span>'
 
-
-        html_content = """
+        html_content = (
+            """
         <br/>
 
         <style>
@@ -95,8 +89,12 @@ def makeDeckBrowserRenderContent(addon):
         }
 
         .atts-common-background {
-            background-color: """ + light_dark_background + """;
-            border: 1px solid """ + light_dark_border_color + """;
+            background-color: """
+            + light_dark_background
+            + """;
+            border: 1px solid """
+            + light_dark_border_color
+            + """;
             border-radius: 4px;
         }
 
@@ -108,7 +106,9 @@ def makeDeckBrowserRenderContent(addon):
             color: #0063de;
         }
         .atts-text-input::placeholder { /* Chrome, Firefox, Opera, Safari 10.1+ */
-            color: """ + light_dark_placeholder_color + """;
+            color: """
+            + light_dark_placeholder_color
+            + """;
         }        
 
         .atts-presets {
@@ -131,11 +131,15 @@ def makeDeckBrowserRenderContent(addon):
 
         </style>
         <div class="atts-frame-common atts-frame">
-        """ + awesometts_plus_tag + """
+        """
+            + awesometts_plus_tag
+            + """
         <input id='speech-input' class="atts-common atts-text-input atts-common-background" placeholder="Pronounce with AwesomeTTS">
         <br/>
         <select name='preset' id='preset' class='atts-common atts-presets atts-common-background'>
-        """ + html_select_options_str + """
+        """
+            + html_select_options_str
+            + """
         </select>
         <script>
         function getCommand() {
@@ -150,10 +154,8 @@ def makeDeckBrowserRenderContent(addon):
         <button onclick="return pycmd(getCommand())" class="atts-common atts-say-button"><span class="atts-common atts-say-button-label">Say</span></button>
         </div>
         """
+        )
 
         content.stats += html_content
 
     return on_deckbrowser_will_render_content
-
-
-

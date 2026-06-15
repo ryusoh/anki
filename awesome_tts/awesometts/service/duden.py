@@ -20,8 +20,9 @@
 Service implementation for Duden
 """
 
-from bs4 import BeautifulSoup
 import urllib
+
+from bs4 import BeautifulSoup
 
 from .base import Service
 from .common import Trait
@@ -62,10 +63,7 @@ class Duden(Service):
                 key='voice',
                 label="Voice",
                 values=[('de', "German (de)")],
-                transform=lambda value: (
-                    'de' if self.normalize(value).startswith('de')
-                    else value
-                ),
+                transform=lambda value: ('de' if self.normalize(value).startswith('de') else value),
                 default='de',
             ),
         ]
@@ -106,26 +104,30 @@ class Duden(Service):
 
         # collect all the candidates, which look like this:
         # <a class="vignette__label" href="/rechtschreibung/Groesze"> <strong>Grö­ße</strong> </a>
-        definition_entries = soup.find_all('a', {"class":'vignette__label'})
+        definition_entries = soup.find_all('a', {"class": 'vignette__label'})
         definition_candidates = []
         for entry in definition_entries:
             definition_url = entry['href']
             definition_word = entry.find('strong').string
             definition_candidates.append({'url': definition_url, 'word': definition_word})
-            self._logger.debug(f'found {entry}, definition_url: {definition_url} definition_word: {definition_word}')
+            self._logger.debug(
+                f'found {entry}, definition_url: {definition_url} definition_word: {definition_word}'
+            )
 
         # step 2: identify the correct candidate
         # ======================================
 
         def process_candidate_definition(input):
-            input = input.replace('\u00AD', '')
+            input = input.replace('\u00ad', '')
             return input
 
         self._logger.debug(f'found candidates: {definition_candidates}')
         # self._logger.debug(f"first entry: {definition_candidates[0]}  matches: {definition_candidates[0]['word'] == text} text={text}")
 
         # simple strategy, lower-cased words should match.
-        correct_candidates = [x for x in definition_candidates if process_candidate_definition(x['word']) == text]
+        correct_candidates = [
+            x for x in definition_candidates if process_candidate_definition(x['word']) == text
+        ]
         if len(correct_candidates) == 0:
             error_message = f"Couldn't find definition for {text} on page {search_url}"
             raise IOError(error_message)
@@ -142,20 +144,20 @@ class Duden(Service):
 
         payload = self.net_stream(definition_url)
         soup = BeautifulSoup(payload, 'html.parser')
-        #print(payload)
+        # print(payload)
 
         # step 4: download pronounciation mp3 file
         # ========================================
 
-        sound_element = soup.find('a', {'class':'pronunciation-guide__sound'})
+        sound_element = soup.find('a', {'class': 'pronunciation-guide__sound'})
         if sound_element is None:
-            error_message = f"Couldn't find pronunciation for word [{text}] on page {definition_url}"
+            error_message = (
+                f"Couldn't find pronunciation for word [{text}] on page {definition_url}"
+            )
             raise IOError(error_message)
 
         self._logger.debug(f'sound_element: {sound_element}')
         mp3_url = sound_element['href']
 
-        self.net_download(path, mp3_url,
-                        require=dict(mime='audio/mpeg'))
+        self.net_download(path, mp3_url, require=dict(mime='audio/mpeg'))
         return
-

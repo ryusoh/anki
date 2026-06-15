@@ -26,11 +26,38 @@ from .common import Trait
 __all__ = ['Oddcast']
 
 
-LANGUAGES = {1: 'en', 2: 'es', 3: 'de', 4: 'fr', 5: 'ca', 6: 'pt', 7: 'it',
-             8: 'el', 9: 'sv', 10: 'zh', 11: 'nl', 12: 'ja', 13: 'ko',
-             14: 'pl', 15: 'gl', 16: 'tr', 18: 'cs', 19: 'da', 20: 'no',
-             21: 'ru', 22: 'eu', 23: 'fi', 24: 'hi', 25: 'is', 26: 'th',
-             27: 'ar', 28: 'id', 29: 'hu', 30: 'ro', 31: 'eo'}
+LANGUAGES = {
+    1: 'en',
+    2: 'es',
+    3: 'de',
+    4: 'fr',
+    5: 'ca',
+    6: 'pt',
+    7: 'it',
+    8: 'el',
+    9: 'sv',
+    10: 'zh',
+    11: 'nl',
+    12: 'ja',
+    13: 'ko',
+    14: 'pl',
+    15: 'gl',
+    16: 'tr',
+    18: 'cs',
+    19: 'da',
+    20: 'no',
+    21: 'ru',
+    22: 'eu',
+    23: 'fi',
+    24: 'hi',
+    25: 'is',
+    26: 'th',
+    27: 'ar',
+    28: 'id',
+    29: 'hu',
+    30: 'ro',
+    31: 'eo',
+}
 
 MAPPINGS = [
     # Note that some of the voices below are dummied out because of various
@@ -50,7 +77,6 @@ MAPPINGS = [
     # these voices are still problematic because they frequently time out when
     # fed multiple sentences (presumably because whatever backend system
     # generates the audio is really busy generating all that silence).
-
     # engine ID, language ID, voice ID, language variant, gender, name
     (2, 1, 1, 'US', 'female', "Susan"),
     (2, 1, 2, 'US', 'male', "Dave"),
@@ -146,8 +172,6 @@ MAPPINGS = [
     (7, 12, 1, None, 'female', "Himari"),
     (7, 12, 2, None, 'male', "Kaito"),
     (4, 12, 1, None, 'female', "Kyoko"),
-
-
     (3, 13, 1, None, 'female', "Yumi"),
     (3, 13, 2, None, 'male', "Junwoo"),
     (4, 1, 1, 'US', 'female', "Jennifer"),
@@ -213,15 +237,13 @@ MAPPINGS = [
     (4, 26, 1, None, 'female', "Narisa"),
     (3, 26, 1, None, 'male', "Sarawut"),
     (3, 26, 2, None, 'female', "Somsi"),
-
     (4, 27, 1, None, 'male', "Maged"),
     (4, 28, 1, None, 'female', "Damayanti"),
     (4, 29, 1, None, 'female', "Eszter"),
     (4, 30, 1, None, 'female', "Simona"),
 ]
 
-VOICES = {'%s/%s' % (LANGUAGES[mapping[1]], mapping[5].lower()): mapping
-          for mapping in MAPPINGS}
+VOICES = {'%s/%s' % (LANGUAGES[mapping[1]], mapping[5].lower()): mapping for mapping in MAPPINGS}
 
 
 class Oddcast(Service):
@@ -267,12 +289,20 @@ VocalWare service which has the same voices, but requires an API key. After Awes
                 values=[
                     (
                         key,
-                        "%s (%s %s)" % (name, gend,
-                                        "%s-%s" % (LANGUAGES[lang_id], variant)
-                                        if variant else LANGUAGES[lang_id]),
+                        "%s (%s %s)"
+                        % (
+                            name,
+                            gend,
+                            (
+                                "%s-%s" % (LANGUAGES[lang_id], variant)
+                                if variant
+                                else LANGUAGES[lang_id]
+                            ),
+                        ),
                     )
-                    for key, (_, lang_id, _, variant, gend, name)
-                    in sorted(VOICES.items(), key=voice_sorter)
+                    for key, (_, lang_id, _, variant, gend, name) in sorted(
+                        VOICES.items(), key=voice_sorter
+                    )
                 ],
                 test_default='en/steven',
                 transform=transform_voice,
@@ -283,7 +313,7 @@ VocalWare service which has the same voices, but requires an API key. After Awes
         """Downloads from Oddcast directly to an MP3."""
 
         raise ValueError(
-f"""on 2021/06/16, the OddCast team asked us to remove the Oddcast service from AwesomeTTS. Starting with AwesomeTTS 1.47, Oddcast will not be available anymore.
+            """on 2021/06/16, the OddCast team asked us to remove the Oddcast service from AwesomeTTS. Starting with AwesomeTTS 1.47, Oddcast will not be available anymore.
 As a substitute, you may sign up for the VocalWare service which is the commercial version of OddCast, but requires a subscription.
-Please email awesometts@airpost.net if you have any questions.""")
-
+Please email awesometts@airpost.net if you have any questions."""
+        )

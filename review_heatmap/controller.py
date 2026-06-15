@@ -38,9 +38,9 @@ from typing import TYPE_CHECKING, Optional
 from aqt.main import AnkiQt
 
 from .activity import ActivityReporter
+from .errors import CollectionError
 from .renderer import HeatmapRenderer, HeatmapView
 from .web_bridge import HeatmapBridge
-from .errors import CollectionError
 
 if TYPE_CHECKING:
     from .libaddon.anki.configmanager import ConfigManager

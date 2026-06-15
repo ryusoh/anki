@@ -32,14 +32,13 @@ class Groups(Dialog):
     """Provides a dialog for editing groups of presets."""
 
     __slots__ = [
-        '_ask',            # dialog interface for asking for user input
+        '_ask',  # dialog interface for asking for user input
         '_current_group',  # current group name
-        '_groups',         # deep copy from config['groups']
+        '_groups',  # deep copy from config['groups']
     ]
 
     def __init__(self, ask, *args, **kwargs):
-        super(Groups, self).__init__(title="Manage Preset Groups",
-                                     *args, **kwargs)
+        super(Groups, self).__init__(title="Manage Preset Groups", *args, **kwargs)
         self._ask = ask
         self._current_group = None
         self._groups = None  # set in show()
@@ -56,8 +55,9 @@ class Groups(Dialog):
 
         groups = aqt.qt.QComboBox()
         groups.setObjectName('groups')
-        groups.setSizePolicy(aqt.qt.QSizePolicy.Policy.MinimumExpanding,
-                             aqt.qt.QSizePolicy.Policy.Preferred)
+        groups.setSizePolicy(
+            aqt.qt.QSizePolicy.Policy.MinimumExpanding, aqt.qt.QSizePolicy.Policy.Preferred
+        )
         groups.activated.connect(self._on_group_activated)
 
         delete = aqt.qt.QPushButton(aqt.qt.QIcon(f'{ICONS}/editdelete.png'), "✖")
@@ -135,23 +135,26 @@ class Groups(Dialog):
 
             inner = aqt.qt.QVBoxLayout()
             inner.addLayout(hor)
-            inner.addLayout(Slate(
-                "Preset",
-                GroupListView,
-                [sorted(
-                    self._addon.config['presets'].keys(),
-                    key=lambda preset: preset.lower(),
-                )],
-                'presets',
-            ))
+            inner.addLayout(
+                Slate(
+                    "Preset",
+                    GroupListView,
+                    [
+                        sorted(
+                            self._addon.config['presets'].keys(),
+                            key=lambda preset: preset.lower(),
+                        )
+                    ],
+                    'presets',
+                )
+            )
 
             slate = aqt.qt.QWidget()
             slate.setLayout(inner)
 
             vert.addWidget(slate)
 
-            self.findChild(aqt.qt.QListView,
-                           'presets').setModel(group['presets'])
+            self.findChild(aqt.qt.QListView, 'presets').setModel(group['presets'])
 
         else:
             delete.setEnabled(False)
@@ -162,23 +165,31 @@ class Groups(Dialog):
             header.setFont(self._FONT_HEADER)
 
             vert.addWidget(header)
-            vert.addWidget(Note("Preset groups can operate in two modes: "
-                                "randomized or in-order."))
-            vert.addWidget(Note("The randomized mode can be helpful if you "
-                                "want to hear playback in a variety of preset "
-                                "voices while you study."))
-            vert.addWidget(Note("The in-order mode can be used if you prefer "
-                                "playback from a particular preset, but want "
-                                "to fallback to another preset if your first "
-                                "choice does not have audio for your input "
-                                "phrase."))
+            vert.addWidget(
+                Note("Preset groups can operate in two modes: " "randomized or in-order.")
+            )
+            vert.addWidget(
+                Note(
+                    "The randomized mode can be helpful if you "
+                    "want to hear playback in a variety of preset "
+                    "voices while you study."
+                )
+            )
+            vert.addWidget(
+                Note(
+                    "The in-order mode can be used if you prefer "
+                    "playback from a particular preset, but want "
+                    "to fallback to another preset if your first "
+                    "choice does not have audio for your input "
+                    "phrase."
+                )
+            )
             vert.addWidget(Label(""), 1)
 
     def _on_group_delete(self):
         """Delete the selected group."""
 
-        del self._groups[self.findChild(aqt.qt.QComboBox,
-                                        'groups').currentText()]
+        del self._groups[self.findChild(aqt.qt.QComboBox, 'groups').currentText()]
         self._on_refresh()
 
     def _on_group_add(self):
@@ -213,8 +224,7 @@ class Groups(Dialog):
         if self._groups:
             groups.setEnabled(True)
             groups.insertSeparator(1)
-            groups.addItems(sorted(self._groups.keys(),
-                                   key=lambda name: name.upper()))
+            groups.addItems(sorted(self._groups.keys(), key=lambda name: name.upper()))
             if select:
                 idx = groups.findText(select)
                 groups.setCurrentIndex(idx)

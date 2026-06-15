@@ -36,8 +36,7 @@ class Presets(ServiceDialog):
     __slots__ = []
 
     def __init__(self, *args, **kwargs):
-        super(Presets, self).__init__(title="Manage Service Presets",
-                                      *args, **kwargs)
+        super(Presets, self).__init__(title="Manage Service Presets", *args, **kwargs)
 
     # UI Construction ########################################################
 
@@ -49,16 +48,20 @@ class Presets(ServiceDialog):
 
         layout = super(Presets, self)._ui_control()
         layout.addWidget(header)
-        layout.addWidget(Note(
-            'Once saved, your service option presets can be easily recalled '
-            'in most AwesomeTTS dialog windows and/or used for on-the-fly '
-            'playback with tts template tags.'
-        ))
-        layout.addWidget(Note(
-            "Selecting text and then side-clicking in some Anki panels (e.g. "
-            "review mode, card layout editor, note editor fields) will also "
-            "allow playback of the selected text using any of your presets."
-        ))
+        layout.addWidget(
+            Note(
+                'Once saved, your service option presets can be easily recalled '
+                'in most AwesomeTTS dialog windows and/or used for on-the-fly '
+                'playback with tts template tags.'
+            )
+        )
+        layout.addWidget(
+            Note(
+                "Selecting text and then side-clicking in some Anki panels (e.g. "
+                "review mode, card layout editor, note editor fields) will also "
+                "allow playback of the selected text using any of your presets."
+            )
+        )
         layout.addSpacing(self._SPACING)
         layout.addStretch()
         layout.addWidget(self._ui_buttons())

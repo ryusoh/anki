@@ -13,10 +13,6 @@
 Initializes generated Qt forms/resources
 """
 
-__all__ = [
-    "options",
-    "contrib"
-]
+__all__ = ["options", "contrib"]
 
-from . import options
-from . import contrib
+from . import contrib, options

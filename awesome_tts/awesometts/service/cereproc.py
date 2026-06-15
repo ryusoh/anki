@@ -1,27 +1,23 @@
-
-
 """
 CereProc TTS service
 https://www.cereproc.com/
 """
 
-import time
-import datetime
-import requests
-import json
 import base64
+from typing import List
+
+import requests
+
 from .base import Service
 from .languages import StandardVoice
 from .voicelist import VOICE_LIST
-from typing import List
 
 __all__ = ['CereProc']
 
 
 class CereProc(Service):
 
-    __slots__ = [
-    ]
+    __slots__ = []
 
     NAME = "CereProc"
 
@@ -35,9 +31,10 @@ class CereProc(Service):
     def extras(self):
         if self.languagetools.use_plus_mode():
             # plus mode, no need for an API key
-            return []        
-        return [dict(key='username', label="Username", required=True),
-            dict(key='password', label="Password", required=True)
+            return []
+        return [
+            dict(key='username', label="Username", required=True),
+            dict(key='password', label="Password", required=True),
         ]
 
     def get_voices(self) -> List[StandardVoice]:
@@ -50,7 +47,7 @@ class CereProc(Service):
 
     def get_voice_for_key(self, key) -> StandardVoice:
         voice = [voice for voice in self.get_voices() if voice.get_key() == key]
-        assert(len(voice) == 1)
+        assert len(voice) == 1
         return voice[0]
 
     def get_voice_list(self):
@@ -62,10 +59,12 @@ class CereProc(Service):
         """Provides access to voice only."""
 
         return [
-            dict(key='voice',
-                 label="Voice",
-                 values=self.get_voice_list(),
-                 transform=lambda value: value),
+            dict(
+                key='voice',
+                label="Voice",
+                values=self.get_voice_list(),
+                transform=lambda value: value,
+            ),
         ]
 
     def get_access_token(self, username, password):
@@ -83,7 +82,7 @@ class CereProc(Service):
         return access_token
 
     def get_auth_headers(self, username, password):
-        headers={'Authorization': f'Bearer {self.get_access_token(username, password)}'}
+        headers = {'Authorization': f'Bearer {self.get_access_token(username, password)}'}
         return headers
 
     def run(self, text, options, path):
@@ -93,12 +92,14 @@ class CereProc(Service):
 
         if self.languagetools.use_plus_mode():
 
-            self._logger.info(f'using language tools API')
+            self._logger.info('using language tools API')
             service = 'CereProc'
             voice_key = voice.get_voice_key()
             language = voice.get_language_code()
             options = {}
-            self.languagetools.generate_audio_v2(text, service, 'batch', language, 'n/a', voice_key, options, path)
+            self.languagetools.generate_audio_v2(
+                text, service, 'batch', language, 'n/a', voice_key, options, path
+            )
 
         else:
 
@@ -108,12 +109,19 @@ class CereProc(Service):
             password = options['password']
 
             ssml_text = f"""<?xml version="1.0" encoding="UTF-8"?>
-    <speak xmlns="http://www.w3.org/2001/10/synthesis">{text}</speak>""".encode(encoding='utf-8')
+    <speak xmlns="http://www.w3.org/2001/10/synthesis">{text}</speak>""".encode(
+                encoding='utf-8'
+            )
 
             url = f'https://api.cerevoice.com/v2/speak?voice={voice_name}&audio_format=mp3'
-            # logging.debug(f'querying url: {url}')            
+            # logging.debug(f'querying url: {url}')
             try:
-                response = requests.post(url, data=ssml_text, headers=self.get_auth_headers(username, password), timeout=10)
+                response = requests.post(
+                    url,
+                    data=ssml_text,
+                    headers=self.get_auth_headers(username, password),
+                    timeout=10,
+                )
             except requests.exceptions.RequestException as e:
                 self._logger.error(f"Network error: {e}")
                 raise ValueError(f"Network error: {e}")

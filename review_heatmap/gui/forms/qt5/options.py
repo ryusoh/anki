@@ -90,7 +90,9 @@ class Ui_Dialog(object):
         self.gridLayout_2 = QtWidgets.QGridLayout()
         self.gridLayout_2.setObjectName("gridLayout_2")
         self.spinLimFcst = QtWidgets.QSpinBox(self.tab_2)
-        self.spinLimFcst.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.spinLimFcst.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.spinLimFcst.setMinimum(0)
         self.spinLimFcst.setMaximum(1000000)
         self.spinLimFcst.setObjectName("spinLimFcst")
@@ -106,13 +108,17 @@ class Ui_Dialog(object):
         self.label_7.setObjectName("label_7")
         self.gridLayout_2.addWidget(self.label_7, 1, 0, 1, 1)
         self.dateLimData = QtWidgets.QDateEdit(self.tab_2)
-        self.dateLimData.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.dateLimData.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.dateLimData.setMinimumDate(QtCore.QDate(2006, 10, 5))
         self.dateLimData.setCalendarPopup(True)
         self.dateLimData.setObjectName("dateLimData")
         self.gridLayout_2.addWidget(self.dateLimData, 1, 1, 1, 1)
         self.spinLimHist = QtWidgets.QSpinBox(self.tab_2)
-        self.spinLimHist.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.spinLimHist.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.spinLimHist.setMinimum(0)
         self.spinLimHist.setMaximum(1000000)
         self.spinLimHist.setObjectName("spinLimHist")
@@ -140,7 +146,9 @@ class Ui_Dialog(object):
         self.btnDeckAdd.setMinimumSize(QtCore.QSize(32, 0))
         self.btnDeckAdd.setText("")
         icon5 = QtGui.QIcon()
-        icon5.addPixmap(QtGui.QPixmap("review_heatmap:icons/plus.svg"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon5.addPixmap(
+            QtGui.QPixmap("review_heatmap:icons/plus.svg"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.btnDeckAdd.setIcon(icon5)
         self.btnDeckAdd.setIconSize(QtCore.QSize(16, 16))
         self.btnDeckAdd.setObjectName("btnDeckAdd")
@@ -149,11 +157,15 @@ class Ui_Dialog(object):
         self.btnDeckDel.setMinimumSize(QtCore.QSize(32, 0))
         self.btnDeckDel.setText("")
         icon6 = QtGui.QIcon()
-        icon6.addPixmap(QtGui.QPixmap("review_heatmap:icons/minus.svg"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon6.addPixmap(
+            QtGui.QPixmap("review_heatmap:icons/minus.svg"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.btnDeckDel.setIcon(icon6)
         self.btnDeckDel.setObjectName("btnDeckDel")
         self.verticalLayout_7.addWidget(self.btnDeckDel)
-        spacerItem8 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem8 = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.verticalLayout_7.addItem(spacerItem8)
         self.horizontalLayout_4.addLayout(self.verticalLayout_7)
         self.verticalLayout_2.addWidget(self.groupBox_2)
@@ -162,7 +174,11 @@ class Ui_Dialog(object):
         self.verticalLayout.addWidget(self.tabWidget)
         self.buttonBox = QtWidgets.QDialogButtonBox(Dialog)
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok|QtWidgets.QDialogButtonBox.RestoreDefaults)
+        self.buttonBox.setStandardButtons(
+            QtWidgets.QDialogButtonBox.Cancel
+            | QtWidgets.QDialogButtonBox.Ok
+            | QtWidgets.QDialogButtonBox.RestoreDefaults
+        )
         self.buttonBox.setObjectName("buttonBox")
         self.verticalLayout.addWidget(self.buttonBox)
         self.label.setBuddy(self.selHmColor)
@@ -173,8 +189,8 @@ class Ui_Dialog(object):
 
         self.retranslateUi(Dialog)
         self.tabWidget.setCurrentIndex(0)
-        self.buttonBox.accepted.connect(Dialog.accept) # type: ignore
-        self.buttonBox.rejected.connect(Dialog.reject) # type: ignore
+        self.buttonBox.accepted.connect(Dialog.accept)  # type: ignore
+        self.buttonBox.rejected.connect(Dialog.reject)  # type: ignore
         QtCore.QMetaObject.connectSlotsByName(Dialog)
         Dialog.setTabOrder(self.tabWidget, self.selHmColor)
         Dialog.setTabOrder(self.selHmColor, self.selHmCalMode)
@@ -200,38 +216,80 @@ class Ui_Dialog(object):
         self.label.setText(_translate("Dialog", "Color"))
         self.label_2.setText(_translate("Dialog", "Calendar"))
         self.label_5.setText(_translate("Dialog", "Cell"))
-        self.selHmColor.setToolTip(_translate("Dialog", "Sets the general color scheme of the add-on"))
+        self.selHmColor.setToolTip(
+            _translate("Dialog", "Sets the general color scheme of the add-on")
+        )
         self.selHmCalMode.setToolTip(_translate("Dialog", "Sets the display mode of the calendar"))
         self.selHmCellShape.setToolTip(_translate("Dialog", "Sets the shape of the heatmap cells"))
         self.groupBox_3.setTitle(_translate("Dialog", "Visibility"))
-        self.cbHmMain.setToolTip(_translate("Dialog", "Screen you\'re presented with when starting Anki"))
+        self.cbHmMain.setToolTip(
+            _translate("Dialog", "Screen you\'re presented with when starting Anki")
+        )
         self.cbHmMain.setText(_translate("Dialog", "Mai&n screen"))
-        self.cbHmDeck.setToolTip(_translate("Dialog", "Screen you see when clicking on a deck from the main screen"))
+        self.cbHmDeck.setToolTip(
+            _translate("Dialog", "Screen you see when clicking on a deck from the main screen")
+        )
         self.cbHmDeck.setText(_translate("Dialog", "Dec&k screen"))
         self.cbHmStats.setToolTip(_translate("Dialog", "Stats window"))
         self.cbHmStats.setText(_translate("Dialog", "Sta&ts screen"))
         self.groupBox_4.setTitle(_translate("Dialog", "Streak"))
-        self.cbStreakAll.setToolTip(_translate("Dialog", "<html>Overrides the heatmap visibility setting, always showing you information on your stats (e.g. streaks, average, etc.)</html>"))
-        self.cbStreakAll.setText(_translate("Dialog", "Show streak &stats even when heatmap disabled"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("Dialog", "&General"))
-        self.spinLimFcst.setToolTip(_translate("Dialog", "<html>Limits the number of days in the future that the heatmap displays. Only applies to main screen and deck overview.</html>"))
+        self.cbStreakAll.setToolTip(
+            _translate(
+                "Dialog",
+                "<html>Overrides the heatmap visibility setting, always showing you information on your stats (e.g. streaks, average, etc.)</html>",
+            )
+        )
+        self.cbStreakAll.setText(
+            _translate("Dialog", "Show streak &stats even when heatmap disabled")
+        )
+        self.tabWidget.setTabText(
+            self.tabWidget.indexOf(self.tab), _translate("Dialog", "&General")
+        )
+        self.spinLimFcst.setToolTip(
+            _translate(
+                "Dialog",
+                "<html>Limits the number of days in the future that the heatmap displays. Only applies to main screen and deck overview.</html>",
+            )
+        )
         self.spinLimFcst.setSpecialValueText(_translate("Dialog", "No Limit"))
         self.spinLimFcst.setSuffix(_translate("Dialog", " days"))
         self.label_3.setText(_translate("Dialog", "&History limit"))
         self.label_4.setText(_translate("Dialog", "Fore&cast limit"))
         self.label_7.setText(_translate("Dialog", "&Ignore data before"))
-        self.dateLimData.setToolTip(_translate("Dialog", "<html>Allows you to exclude a period of time from your stats (e.g. when you were still getting familiar with Anki).<br>Only applies to main screen and deck overview.</html>"))
-        self.spinLimHist.setToolTip(_translate("Dialog", "<html>Limits the number of days in the past that the heatmap displays. Only applies to main screen and deck overview.</html>"))
+        self.dateLimData.setToolTip(
+            _translate(
+                "Dialog",
+                "<html>Allows you to exclude a period of time from your stats (e.g. when you were still getting familiar with Anki).<br>Only applies to main screen and deck overview.</html>",
+            )
+        )
+        self.spinLimHist.setToolTip(
+            _translate(
+                "Dialog",
+                "<html>Limits the number of days in the past that the heatmap displays. Only applies to main screen and deck overview.</html>",
+            )
+        )
         self.spinLimHist.setSpecialValueText(_translate("Dialog", "No Limit"))
         self.spinLimHist.setSuffix(_translate("Dialog", " days"))
-        self.cbLimDel.setToolTip(_translate("Dialog", "<html>Ignores any reviews performed of cards that have been deleted since</html>"))
+        self.cbLimDel.setToolTip(
+            _translate(
+                "Dialog",
+                "<html>Ignores any reviews performed of cards that have been deleted since</html>",
+            )
+        )
         self.cbLimDel.setText(_translate("Dialog", "&Exclude deleted cards from history"))
         self.cbLimResched.setText(_translate("Dialog", "Exclude manual reschedules from history"))
         self.groupBox_2.setTitle(_translate("Dialog", "Exclude decks from main heatmap:"))
-        self.listDecks.setToolTip(_translate("Dialog", "<html>Any decks listed here will not be included in the calculations for the main heatmap. Each individual deck\'s heatmap will still work, however.</html>"))
+        self.listDecks.setToolTip(
+            _translate(
+                "Dialog",
+                "<html>Any decks listed here will not be included in the calculations for the main heatmap. Each individual deck\'s heatmap will still work, however.</html>",
+            )
+        )
         self.listDecks.setSortingEnabled(True)
         self.btnDeckAdd.setToolTip(_translate("Dialog", "Add new deck exclusion rule"))
         self.btnDeckAdd.setShortcut(_translate("Dialog", "Ctrl+D"))
         self.btnDeckDel.setToolTip(_translate("Dialog", "Delete deck exclusion rule"))
         self.btnDeckDel.setShortcut(_translate("Dialog", "Ctrl+Del, Ctrl+S"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("Dialog", "&Fine Tuning"))
+        self.tabWidget.setTabText(
+            self.tabWidget.indexOf(self.tab_2), _translate("Dialog", "&Fine Tuning")
+        )

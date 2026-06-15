@@ -32,8 +32,8 @@ class Say(Service):
     """
 
     __slots__ = [
-        '_binary',        # path to the eSpeak binary
-        '_voice_list',    # list of installed voices as a list of tuples
+        '_binary',  # path to the eSpeak binary
+        '_voice_list',  # list of installed voices as a list of tuples
     ]
 
     NAME = "OS X Speech Synthesis"
@@ -61,6 +61,7 @@ class Say(Service):
         # know, the `say -v ?` output always includes something in the
         # language code column, so this should be fine)
         import re
+
         # Updated regex to handle voice names with brackets
         re_voice = re.compile(r'^\s*([-\w() ]+)\s+([-\w]+)')
 
@@ -68,12 +69,10 @@ class Say(Service):
             (name.strip(), "%s (%s)" % (name.strip(), code.replace('_', '-')))
             for code, name in sorted(
                 (match.group(2), match.group(1))
-                for match in [re_voice.match(line)
-                              for line in self.cli_output('say', '-v', '?')]
+                for match in [re_voice.match(line) for line in self.cli_output('say', '-v', '?')]
                 if match
             )
         ]
-
 
         if not self._voice_list:
             raise EnvironmentError("No usable output from call to `say -v ?`")
@@ -90,20 +89,14 @@ class Say(Service):
         Provides access to voice and speed.
         """
 
-        voice_lookup = {
-            self.normalize(voice[0]): voice[0]
-            for voice in self._voice_list
-        }
+        voice_lookup = {self.normalize(voice[0]): voice[0] for voice in self._voice_list}
 
         def transform_voice(value):
             """Normalize and attempt to convert to official voice."""
 
             normalized = self.normalize(value)
 
-            return (
-                voice_lookup[normalized] if normalized in voice_lookup
-                else value
-            )
+            return voice_lookup[normalized] if normalized in voice_lookup else value
 
         return [
             dict(
@@ -112,7 +105,6 @@ class Say(Service):
                 values=self._voice_list,
                 transform=transform_voice,
             ),
-
             dict(
                 key='speed',
                 label="Speed",
@@ -132,10 +124,14 @@ class Say(Service):
         try:
             self.cli_call(
                 'say',
-                '-v', options['voice'],
-                '-r', options['speed'],
-                '-o', output_aiff,
-                '--', text,
+                '-v',
+                options['voice'],
+                '-r',
+                options['speed'],
+                '-o',
+                output_aiff,
+                '--',
+                text,
             )
 
             self.cli_transcode(

@@ -32,8 +32,8 @@ class Festival(Service):
     """
 
     __slots__ = [
-        '_version',       # we get this while testing for the festival binary
-        '_voice_list',    # list of installed voices as a list of tuples
+        '_version',  # we get this while testing for the festival binary
+        '_voice_list',  # list of installed voices as a list of tuples
     ]
 
     NAME = "Festival"
@@ -66,16 +66,17 @@ class Festival(Service):
             except OSError:
                 return []
 
-        base_dirs = ['/usr/share/festival/voices',
-                     '/usr/local/share/festival/voices']
-        self._voice_list = list(set(
-            (voice_dir, "%s (%s)" % (voice_dir, lang_dir))
-            for base_dir in base_dirs
-            for lang_dir in sorted(listdir(base_dir))
-            if os.path.isdir(os.path.join(base_dir, lang_dir))
-            for voice_dir in sorted(listdir(os.path.join(base_dir, lang_dir)))
-            if os.path.isdir(os.path.join(base_dir, lang_dir, voice_dir))
-        ))
+        base_dirs = ['/usr/share/festival/voices', '/usr/local/share/festival/voices']
+        self._voice_list = list(
+            set(
+                (voice_dir, "%s (%s)" % (voice_dir, lang_dir))
+                for base_dir in base_dirs
+                for lang_dir in sorted(listdir(base_dir))
+                if os.path.isdir(os.path.join(base_dir, lang_dir))
+                for voice_dir in sorted(listdir(os.path.join(base_dir, lang_dir)))
+                if os.path.isdir(os.path.join(base_dir, lang_dir, voice_dir))
+            )
+        )
 
         if not self._voice_list:
             raise EnvironmentError("No usable voices found")
@@ -94,20 +95,14 @@ class Festival(Service):
         Provides access to voice and volume.
         """
 
-        voice_lookup = {
-            self.normalize(voice[0]): voice[0]
-            for voice in self._voice_list
-        }
+        voice_lookup = {self.normalize(voice[0]): voice[0] for voice in self._voice_list}
 
         def transform_voice(value):
             """Normalize and attempt to convert to official voice."""
 
             normalized = self.normalize(value)
 
-            return (
-                voice_lookup[normalized] if normalized in voice_lookup
-                else value
-            )
+            return voice_lookup[normalized] if normalized in voice_lookup else value
 
         return [
             dict(
@@ -116,7 +111,6 @@ class Festival(Service):
                 values=self._voice_list,
                 transform=transform_voice,
             ),
-
             dict(
                 key='volume',
                 label="Volume",
@@ -138,9 +132,12 @@ class Festival(Service):
         try:
             self.cli_call(
                 'text2wave',
-                '-o', output_wav,
-                '-eval', '(voice_%s)' % options['voice'],
-                '-scale', options['volume'] / 100.0,
+                '-o',
+                output_wav,
+                '-eval',
+                '(voice_%s)' % options['voice'],
+                '-scale',
+                options['volume'] / 100.0,
                 input_file,
             )
 

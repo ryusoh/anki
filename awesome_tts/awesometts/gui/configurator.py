@@ -18,21 +18,21 @@
 
 """Configuration dialog"""
 
-from locale import format_string as locale
 import os
 import os.path
-from sys import platform
 import pprint
-import aqt.utils
+from locale import format_string as locale
+from sys import platform
 
 import aqt.qt
+import aqt.utils
 
 from ..paths import ICONS
 from .base import Dialog
 from .common import Checkbox, Label, Note, Slate
+from .groups import Groups
 from .listviews import SubListView
 from .presets import Presets
-from .groups import Groups
 
 __all__ = ['Configurator']
 
@@ -43,29 +43,59 @@ class Configurator(Dialog):
     """Provides a dialog for configuring the add-on."""
 
     _PROPERTY_KEYS = [
-        'cache_days', 'ellip_note_newlines',
-        'ellip_template_newlines', 'filenames', 'filenames_human', 'homescreen_show',
-        'lame_flags', 'shortcut_launch_browser_generator', 'shortcut_launch_browser_stripper',
-        'shortcut_launch_configurator', 'shortcut_launch_editor_generator', 'shorcut_launch_templater',
-        'otf_only_revealed_cloze', 'otf_remove_hints', 'spec_note_strip',
-        'spec_note_ellipsize', 'spec_template_ellipsize', 'spec_note_count',
-        'spec_note_count_wrap', 'spec_template_count',
-        'spec_template_count_wrap', 'spec_template_strip', 'strip_note_braces',
-        'strip_note_brackets', 'strip_note_parens', 'strip_template_braces',
-        'strip_template_brackets', 'strip_template_parens', 'sub_note_cloze',
-        'sub_template_cloze', 'sul_note', 'sul_template', 'throttle_sleep',
-        'throttle_threshold', 'plus_api_key', 'service_forvo_preferred_users',
+        'cache_days',
+        'ellip_note_newlines',
+        'ellip_template_newlines',
+        'filenames',
+        'filenames_human',
+        'homescreen_show',
+        'lame_flags',
+        'shortcut_launch_browser_generator',
+        'shortcut_launch_browser_stripper',
+        'shortcut_launch_configurator',
+        'shortcut_launch_editor_generator',
+        'shorcut_launch_templater',
+        'otf_only_revealed_cloze',
+        'otf_remove_hints',
+        'spec_note_strip',
+        'spec_note_ellipsize',
+        'spec_template_ellipsize',
+        'spec_note_count',
+        'spec_note_count_wrap',
+        'spec_template_count',
+        'spec_template_count_wrap',
+        'spec_template_strip',
+        'strip_note_braces',
+        'strip_note_brackets',
+        'strip_note_parens',
+        'strip_template_braces',
+        'strip_template_brackets',
+        'strip_template_parens',
+        'sub_note_cloze',
+        'sub_template_cloze',
+        'sul_note',
+        'sul_template',
+        'throttle_sleep',
+        'throttle_threshold',
+        'plus_api_key',
+        'service_forvo_preferred_users',
         'service_azure_sleep_time',
         'strip_ruby_tags',
-        'sub_note_xml_entities', 'sub_template_xml_entities'
+        'sub_note_xml_entities',
+        'sub_template_xml_entities',
     ]
 
-    _PROPERTY_WIDGETS = (Checkbox, aqt.qt.QComboBox, aqt.qt.QLineEdit,
-                         aqt.qt.QPushButton, aqt.qt.QSpinBox, aqt.qt.QListView,
-                         aqt.qt.QKeySequenceEdit)
+    _PROPERTY_WIDGETS = (
+        Checkbox,
+        aqt.qt.QComboBox,
+        aqt.qt.QLineEdit,
+        aqt.qt.QPushButton,
+        aqt.qt.QSpinBox,
+        aqt.qt.QListView,
+        aqt.qt.QKeySequenceEdit,
+    )
 
-    __slots__ = ['_alerts', '_ask', '_preset_editor', '_group_editor',
-                 '_sul_compiler']
+    __slots__ = ['_alerts', '_ask', '_preset_editor', '_group_editor', '_sul_compiler']
 
     def __init__(self, logger, alerts, ask, sul_compiler, *args, **kwargs):
         self._logger = logger
@@ -75,8 +105,7 @@ class Configurator(Dialog):
         self._group_editor = None
         self._sul_compiler = sul_compiler
 
-        super(Configurator, self).__init__(title="Configuration",
-                                           *args, **kwargs)
+        super(Configurator, self).__init__(title="Configuration", *args, **kwargs)
 
     # UI Construction ########################################################
 
@@ -95,48 +124,55 @@ class Configurator(Dialog):
         tabs = aqt.qt.QTabWidget()
 
         for content, icon, label in [
-                (self._ui_tabs_text, 'editclear', "Text"),
-                (self._ui_tabs_mp3gen, 'document-new', "MP3s"),
-                (self._ui_tabs_windows, 'kpersonalizer', "Windows"),
-                (self._ui_tabs_services, 'rating', "Services"),
-                (self._ui_tabs_advanced, 'configure', "Advanced"),
+            (self._ui_tabs_text, 'editclear', "Text"),
+            (self._ui_tabs_mp3gen, 'document-new', "MP3s"),
+            (self._ui_tabs_windows, 'kpersonalizer', "Windows"),
+            (self._ui_tabs_services, 'rating', "Services"),
+            (self._ui_tabs_advanced, 'configure', "Advanced"),
         ]:
             if use_icons:
-                tabs.addTab(content(), aqt.qt.QIcon(f'{ICONS}/{icon}.png'),
-                            label)
+                tabs.addTab(content(), aqt.qt.QIcon(f'{ICONS}/{icon}.png'), label)
             else:  # active tabs do not display correctly on Mac OS X w/ icons
                 tabs.addTab(content(), label)
 
-        tabs.currentChanged.connect(lambda: (tabs.adjustSize(),
-                                             self.adjustSize()))
+        tabs.currentChanged.connect(lambda: (tabs.adjustSize(), self.adjustSize()))
         return tabs
-
 
     def _ui_tabs_text(self):
         """Returns the "Text" tab."""
 
         layout = aqt.qt.QVBoxLayout()
         layout.setContentsMargins(10, 0, 10, 0)
-        layout.addWidget(self._ui_tabs_text_mode(
-            '_template_',
-            "Handling Template Text (e.g. On-the-Fly, Context Menus)",
-            "For a front-side rendered cloze,",
-            [('anki', "read however Anki displayed it"),
-             ('wrap', "read w/ hint wrapped in ellipses"),
-             ('ellipsize', "read as an ellipsis, ignoring hint"),
-             ('remove', "remove entirely")],
-            template_options=True,
-        ), 50)
-        layout.addWidget(self._ui_tabs_text_mode(
-            '_note_',
-            "Handling Text from a Note Field (e.g. Browser Generator)",
-            "For a braced cloze marker,",
-            [('anki', "read as Anki would display on a card front"),
-             ('wrap', "replace w/ hint wrapped in ellipses"),
-             ('deleted', "replace w/ deleted text"),
-             ('ellipsize', "replace w/ ellipsis, ignoring both"),
-             ('remove', "remove entirely")],
-        ), 50)
+        layout.addWidget(
+            self._ui_tabs_text_mode(
+                '_template_',
+                "Handling Template Text (e.g. On-the-Fly, Context Menus)",
+                "For a front-side rendered cloze,",
+                [
+                    ('anki', "read however Anki displayed it"),
+                    ('wrap', "read w/ hint wrapped in ellipses"),
+                    ('ellipsize', "read as an ellipsis, ignoring hint"),
+                    ('remove', "remove entirely"),
+                ],
+                template_options=True,
+            ),
+            50,
+        )
+        layout.addWidget(
+            self._ui_tabs_text_mode(
+                '_note_',
+                "Handling Text from a Note Field (e.g. Browser Generator)",
+                "For a braced cloze marker,",
+                [
+                    ('anki', "read as Anki would display on a card front"),
+                    ('wrap', "replace w/ hint wrapped in ellipses"),
+                    ('deleted', "replace w/ deleted text"),
+                    ('ellipsize', "replace w/ ellipsis, ignoring both"),
+                    ('remove', "remove entirely"),
+                ],
+            ),
+            50,
+        )
 
         tab = aqt.qt.QWidget()
         tab.setLayout(layout)
@@ -149,9 +185,8 @@ class Configurator(Dialog):
         subtabs.setTabPosition(aqt.qt.QTabWidget.TabPosition.West)
 
         for sublabel, sublayout in [
-                ("Simple", self._ui_tabs_text_mode_simple(infix, *args,
-                                                          **kwargs)),
-                ("Advanced", self._ui_tabs_text_mode_adv(infix)),
+            ("Simple", self._ui_tabs_text_mode_simple(infix, *args, **kwargs)),
+            ("Advanced", self._ui_tabs_text_mode_adv(infix)),
         ]:
             subwidget = aqt.qt.QWidget()
             subwidget.setLayout(sublayout)
@@ -174,8 +209,9 @@ class Configurator(Dialog):
 
         return group
 
-    def _ui_tabs_text_mode_simple(self, infix, cloze_description,
-                                  cloze_options, template_options=False):
+    def _ui_tabs_text_mode_simple(
+        self, infix, cloze_description, cloze_options, template_options=False
+    ):
         """
         Returns a layout with the "simple" configuration options
         available for manipulating text from the given context.
@@ -197,58 +233,69 @@ class Configurator(Dialog):
 
         if template_options:
             hor = aqt.qt.QHBoxLayout()
-            hor.addWidget(Checkbox("For cloze answers, read revealed text "
-                                   "only", 'otf_only_revealed_cloze'))
-            hor.addWidget(Checkbox("Ignore {{hint}} fields",
-                                   'otf_remove_hints'))
+            hor.addWidget(
+                Checkbox("For cloze answers, read revealed text " "only", 'otf_only_revealed_cloze')
+            )
+            hor.addWidget(Checkbox("Ignore {{hint}} fields", 'otf_remove_hints'))
             layout.addLayout(hor)
 
-        layout.addWidget(Checkbox(
-            "Convert any newline(s) in input into an ellipsis",
-            infix.join(['ellip', 'newlines'])
-        ))
+        layout.addWidget(
+            Checkbox(
+                "Convert any newline(s) in input into an ellipsis",
+                infix.join(['ellip', 'newlines']),
+            )
+        )
 
         if not template_options:
-            layout.addWidget(Checkbox(
-                "Process Ruby/Furigana tags", 'strip_ruby_tags'
-            ))
-            layout.addWidget(Checkbox(
-                """Escape HTML special characters like <,>,&&. 
+            layout.addWidget(Checkbox("Process Ruby/Furigana tags", 'strip_ruby_tags'))
+            layout.addWidget(
+                Checkbox(
+                    """Escape HTML special characters like <,>,&&. 
     This may be necessary for technical content, 
-    such as medical flashcards.""", 
-                'sub_note_xml_entities'
-            ))            
+    such as medical flashcards.""",
+                    'sub_note_xml_entities',
+                )
+            )
         else:
-            layout.addWidget(Checkbox(
-                """Escape HTML special characters like <,>,&&. 
+            layout.addWidget(
+                Checkbox(
+                    """Escape HTML special characters like <,>,&&. 
     This may be necessary for technical content, 
-    such as medical flashcards.""", 
-                'sub_template_xml_entities'
-            ))                        
-
-
+    such as medical flashcards.""",
+                    'sub_template_xml_entities',
+                )
+            )
 
         hor = aqt.qt.QHBoxLayout()
         hor.addWidget(Label("Strip off text within:"))
-        for option_subkey, option_label in [('parens', "parentheses"),
-                                            ('brackets', "brackets"),
-                                            ('braces', "braces")]:
-            hor.addWidget(Checkbox(option_label,
-                                   infix.join(['strip', option_subkey])))
+        for option_subkey, option_label in [
+            ('parens', "parentheses"),
+            ('brackets', "brackets"),
+            ('braces', "braces"),
+        ]:
+            hor.addWidget(Checkbox(option_label, infix.join(['strip', option_subkey])))
         hor.addStretch()
 
         layout.addLayout(hor)
-        layout.addLayout(self._ui_tabs_text_mode_simple_spec(
-            infix, 'strip', ("Remove all", "characters from the input")))
-        layout.addLayout(self._ui_tabs_text_mode_simple_spec(
-            infix, 'count', ("Count adjacent", "characters"), True))
-        layout.addLayout(self._ui_tabs_text_mode_simple_spec(
-            infix, 'ellipsize', ("Replace", "characters with an ellipsis")))
+        layout.addLayout(
+            self._ui_tabs_text_mode_simple_spec(
+                infix, 'strip', ("Remove all", "characters from the input")
+            )
+        )
+        layout.addLayout(
+            self._ui_tabs_text_mode_simple_spec(
+                infix, 'count', ("Count adjacent", "characters"), True
+            )
+        )
+        layout.addLayout(
+            self._ui_tabs_text_mode_simple_spec(
+                infix, 'ellipsize', ("Replace", "characters with an ellipsis")
+            )
+        )
         layout.addStretch()
         return layout
 
-    def _ui_tabs_text_mode_simple_spec(self, infix, suffix, labels,
-                                       wrap=False):
+    def _ui_tabs_text_mode_simple_spec(self, infix, suffix, labels, wrap=False):
         """Returns a layout for specific character handling."""
 
         line_edit = aqt.qt.QLineEdit()
@@ -261,8 +308,7 @@ class Configurator(Dialog):
         hor.addWidget(line_edit)
         hor.addWidget(Label(labels[1]))
         if wrap:
-            hor.addWidget(Checkbox("wrap in ellipses",
-                                   ''.join(['spec', infix, suffix, '_wrap'])))
+            hor.addWidget(Checkbox("wrap in ellipses", ''.join(['spec', infix, suffix, '_wrap'])))
         hor.addStretch()
         return hor
 
@@ -288,8 +334,7 @@ class Configurator(Dialog):
         panel for manipulating text from the given context.
         """
 
-        return Slate("Rule", SubListView, [self._sul_compiler],
-                     'sul' + infix.rstrip('_'))
+        return Slate("Rule", SubListView, [self._sul_compiler], 'sul' + infix.rstrip('_'))
 
     def _ui_tabs_mp3gen(self):
         """Returns the "MP3s" tab."""
@@ -327,8 +372,7 @@ class Configurator(Dialog):
         human_line.addWidget(human)
         human_line.addWidget(Label(".mp3"))
 
-        dropdown.currentIndexChanged. \
-            connect(lambda index: human.setEnabled(index > 0))
+        dropdown.currentIndexChanged.connect(lambda index: human.setEnabled(index > 0))
 
         vertical = aqt.qt.QVBoxLayout()
         vertical.addLayout(dropdown_line)
@@ -351,9 +395,12 @@ class Configurator(Dialog):
         vert = aqt.qt.QVBoxLayout()
         vert.addWidget(Note("Specify flags passed to lame when making MP3s."))
         vert.addWidget(flags)
-        vert.addWidget(Note("Affects %s. Changes are not retroactive to old "
-                            "files." %
-                            ', '.join(rtr.by_trait(rtr.Trait.TRANSCODING))))
+        vert.addWidget(
+            Note(
+                "Affects %s. Changes are not retroactive to old "
+                "files." % ', '.join(rtr.by_trait(rtr.Trait.TRANSCODING))
+            )
+        )
 
         group = aqt.qt.QGroupBox("LAME Transcoder")
         group.setLayout(vert)
@@ -383,11 +430,14 @@ class Configurator(Dialog):
 
         rtr = self._addon.router
         vert = aqt.qt.QVBoxLayout()
-        vert.addWidget(Note("Tweak how often AwesomeTTS takes a break when "
-                            "mass downloading files from online services."))
+        vert.addWidget(
+            Note(
+                "Tweak how often AwesomeTTS takes a break when "
+                "mass downloading files from online services."
+            )
+        )
         vert.addLayout(hor)
-        vert.addWidget(Note("Affects %s." %
-                            ', '.join(rtr.by_trait(rtr.Trait.INTERNET))))
+        vert.addWidget(Note("Affects %s." % ', '.join(rtr.by_trait(rtr.Trait.INTERNET))))
 
         group = aqt.qt.QGroupBox("Download Throttling during Batch Processing")
         group.setLayout(vert)
@@ -397,13 +447,15 @@ class Configurator(Dialog):
         """Returns the "Window" tab."""
 
         grid = aqt.qt.QGridLayout()
-        for i, (desc, sub) in enumerate([
+        for i, (desc, sub) in enumerate(
+            [
                 ("open configuration in main window", 'configurator'),
                 ("insert <tts> tag in template editor", 'templater'),
                 ("mass generate MP3s in card browser", 'browser_generator'),
                 ("mass remove audio in card browser", 'browser_stripper'),
                 ("generate single MP3 in note editor*", 'editor_generator'),
-        ]):
+            ]
+        ):
             object_name = 'shortcut_launch_' + sub
             grid.addWidget(Label("To " + desc + ", use keyboard shortcut: "), i, 0)
             grid.addWidget(self._get_keyboard_shortcut_textedit(object_name), i, 1)
@@ -415,19 +467,24 @@ class Configurator(Dialog):
 
         vert = aqt.qt.QVBoxLayout()
         vert.addWidget(group)
-        vert.addWidget(Note(
-            "* By default, AwesomeTTS binds %(native)s for most actions. If "
-            "you use math equations and LaTeX with Anki using the %(native)s "
-            "E/M/T keystrokes, you may want to reassign or unbind the "
-            "shortcut for generating in the note editor." %
-            dict(native='Ctrl + T')
-        ))
+        vert.addWidget(
+            Note(
+                "* By default, AwesomeTTS binds %(native)s for most actions. If "
+                "you use math equations and LaTeX with Anki using the %(native)s "
+                "E/M/T keystrokes, you may want to reassign or unbind the "
+                "shortcut for generating in the note editor." % dict(native='Ctrl + T')
+            )
+        )
         vert.addWidget(Note("Please restart Anki after changing keyboard shortcuts."))
-        vert.addWidget(Note("Some keys cannot be used as shortcuts and some "
-                            "keystrokes might not work in some windows, "
-                            "depending on your operating system and other "
-                            "add-ons you are running. You may have to "
-                            "experiment to find what works best."))
+        vert.addWidget(
+            Note(
+                "Some keys cannot be used as shortcuts and some "
+                "keystrokes might not work in some windows, "
+                "depending on your operating system and other "
+                "add-ons you are running. You may have to "
+                "experiment to find what works best."
+            )
+        )
         vert.addStretch()
 
         tab = aqt.qt.QWidget()
@@ -449,7 +506,9 @@ class Configurator(Dialog):
     def _ui_tabs_services_forvo(self):
 
         ver = aqt.qt.QVBoxLayout()
-        url_label = aqt.qt.QLabel("Preferred Users (Enter a comma-separated list of preferred Forvo users)")
+        url_label = aqt.qt.QLabel(
+            "Preferred Users (Enter a comma-separated list of preferred Forvo users)"
+        )
         ver.addWidget(url_label)
 
         forvo_preferred_users = aqt.qt.QLineEdit()
@@ -466,8 +525,7 @@ class Configurator(Dialog):
         ver = aqt.qt.QVBoxLayout()
         url_label = aqt.qt.QLabel("Sleep between each request (for free API keys)")
         ver.addWidget(url_label)
-        
-        
+
         azure_sleep_time = aqt.qt.QSpinBox()
         azure_sleep_time.setObjectName('service_azure_sleep_time')
         azure_sleep_time.setRange(0, 10)
@@ -508,8 +566,9 @@ class Configurator(Dialog):
         hor.addStretch()
 
         vert = aqt.qt.QVBoxLayout()
-        vert.addWidget(Note("Setup services for easy access, menu playback, "
-                            "randomization, or fallbacks."))
+        vert.addWidget(
+            Note("Setup services for easy access, menu playback, " "randomization, or fallbacks.")
+        )
         vert.addLayout(hor)
 
         group = aqt.qt.QGroupBox("Service Presets and Groups")
@@ -531,9 +590,13 @@ class Configurator(Dialog):
         hor.addStretch()
 
         layout = aqt.qt.QVBoxLayout()
-        layout.addWidget(Note("AwesomeTTS caches generated audio files and "
-                              "remembers failures during each session to "
-                              "speed up repeated playback."))
+        layout.addWidget(
+            Note(
+                "AwesomeTTS caches generated audio files and "
+                "remembers failures during each session to "
+                "speed up repeated playback."
+            )
+        )
         layout.addLayout(hor)
 
         abutton = aqt.qt.QPushButton("Delete Files")
@@ -565,7 +628,7 @@ class Configurator(Dialog):
     def _ui_tabs_advanced_plus(self):
 
         ver = aqt.qt.QVBoxLayout()
-        urlLink="<a href=\"https://www.vocab.ai/awesometts-plus?utm_campaign=atts_settings&utm_source=awesometts&utm_medium=addon\">1100+ High Quality TTS voices - free trial</a>" 
+        urlLink = "<a href=\"https://www.vocab.ai/awesometts-plus?utm_campaign=atts_settings&utm_source=awesometts&utm_medium=addon\">1100+ High Quality TTS voices - free trial</a>"
         url_label = aqt.qt.QLabel(urlLink)
         url_label.setOpenExternalLinks(True)
         ver.addWidget(url_label)
@@ -577,27 +640,31 @@ class Configurator(Dialog):
         verify_button = aqt.qt.QPushButton()
         verify_button.setObjectName('verify_plus_api_key')
         verify_button.setText('Verify')
-        verify_button.clicked.connect(lambda: self._on_verify_plus_api_key(verify_button, plus_api_key))
+        verify_button.clicked.connect(
+            lambda: self._on_verify_plus_api_key(verify_button, plus_api_key)
+        )
 
         account_info_button = aqt.qt.QPushButton()
         account_info_button.setObjectName('plus_account_info')
         account_info_button.setText('Account Info / Plan')
         account_info_button.clicked.connect(lambda: self._on_plus_account_info(plus_api_key, self))
-        
+
         hor = aqt.qt.QHBoxLayout()
         hor.addWidget(plus_api_key)
         hor.addWidget(verify_button)
         hor.addWidget(account_info_button)
         ver.addLayout(hor)
 
-        help_label = Label("Please restart Anki after entering API key. If you'd like to use free services, or "+
-        "use your own service API keys, remove the above API key and restart Anki.")
+        help_label = Label(
+            "Please restart Anki after entering API key. If you'd like to use free services, or "
+            + "use your own service API keys, remove the above API key and restart Anki."
+        )
         help_label.setWordWrap(True)
         ver.addWidget(help_label)
 
         group = aqt.qt.QGroupBox("AwesomeTTS Plus")
         group.setLayout(ver)
-        return group        
+        return group
 
     # Factories ##############################################################
 
@@ -610,10 +677,10 @@ class Configurator(Dialog):
         def clear_fn():
             sequence_edit = self.findChild(aqt.qt.QKeySequenceEdit, sequence_edit_object_name)
             sequence_edit.clear()
+
         button = aqt.qt.QPushButton('Clear')
         button.pressed.connect(clear_fn)
         return button
-                
 
     # Events #################################################################
 
@@ -621,9 +688,9 @@ class Configurator(Dialog):
         """Restores state on inputs; rough opposite of the accept()."""
 
         for widget, value in [
-                (widget, self._addon.config[widget.objectName()])
-                for widget in self.findChildren(self._PROPERTY_WIDGETS)
-                if widget.objectName() in self._PROPERTY_KEYS
+            (widget, self._addon.config[widget.objectName()])
+            for widget in self.findChildren(self._PROPERTY_WIDGETS)
+            if widget.objectName() in self._PROPERTY_KEYS
         ]:
             if isinstance(widget, Checkbox):
                 widget.setChecked(value)
@@ -645,12 +712,12 @@ class Configurator(Dialog):
         widget = self.findChild(aqt.qt.QPushButton, 'on_cache')
         widget.atts_list = (
             [filename for filename in os.listdir(self._addon.paths.cache)]
-            if os.path.isdir(self._addon.paths.cache) else []
+            if os.path.isdir(self._addon.paths.cache)
+            else []
         )
         if widget.atts_list:
             widget.setEnabled(True)
-            widget.setText("Delete Files (%s)" %
-                           locale("%d", len(widget.atts_list), grouping=True))
+            widget.setText("Delete Files (%s)" % locale("%d", len(widget.atts_list), grouping=True))
         else:
             widget.setEnabled(False)
             widget.setText("Delete Files")
@@ -659,8 +726,7 @@ class Configurator(Dialog):
         fail_count = self._addon.router.get_failure_count()
         if fail_count:
             widget.setEnabled(True)
-            widget.setText("Forget Failures (%s)" %
-                           locale("%d", fail_count, grouping=True))
+            widget.setText("Forget Failures (%s)" % locale("%d", fail_count, grouping=True))
         else:
             widget.setEnabled(False)
             widget.setText("Forget Failures")
@@ -676,25 +742,44 @@ class Configurator(Dialog):
 
         config_update_dict = {
             widget.objectName(): (
-                widget.isChecked() if isinstance(widget, Checkbox)
-                else widget.atts_value if isinstance(widget, aqt.qt.QPushButton)
-                else widget.value() if isinstance(widget, aqt.qt.QSpinBox)
-                # for keyboard shortcuts, get the keysequence, and convert to string
-                else widget.keySequence().toString() if isinstance(widget, aqt.qt.QKeySequenceEdit)
-                else widget.itemData(widget.currentIndex()) if isinstance(
-                    widget, aqt.qt.QComboBox)
-                else [
-                    i for i in widget.model().raw_data
-                    if i['compiled'] and 'bad_replace' not in i
-                ] if isinstance(widget, aqt.qt.QListView)
-                else widget.text()
+                widget.isChecked()
+                if isinstance(widget, Checkbox)
+                else (
+                    widget.atts_value
+                    if isinstance(widget, aqt.qt.QPushButton)
+                    else (
+                        widget.value()
+                        if isinstance(widget, aqt.qt.QSpinBox)
+                        # for keyboard shortcuts, get the keysequence, and convert to string
+                        else (
+                            widget.keySequence().toString()
+                            if isinstance(widget, aqt.qt.QKeySequenceEdit)
+                            else (
+                                widget.itemData(widget.currentIndex())
+                                if isinstance(widget, aqt.qt.QComboBox)
+                                else (
+                                    [
+                                        i
+                                        for i in widget.model().raw_data
+                                        if i['compiled'] and 'bad_replace' not in i
+                                    ]
+                                    if isinstance(widget, aqt.qt.QListView)
+                                    else widget.text()
+                                )
+                            )
+                        )
+                    )
+                )
             )
             for widget in self.findChildren(self._PROPERTY_WIDGETS)
             if widget.objectName() in self._PROPERTY_KEYS
         }
 
         # don't overwrite api_key
-        if config_update_dict['plus_api_key'] == '' and self._addon.languagetools.trial_instant_signed_up:
+        if (
+            config_update_dict['plus_api_key'] == ''
+            and self._addon.languagetools.trial_instant_signed_up
+        ):
             # we just signed up for the instant trial, don't set the api key to empty string now
             del config_update_dict['plus_api_key']
 
@@ -708,10 +793,9 @@ class Configurator(Dialog):
         """Opens the presets editor."""
 
         if not self._preset_editor:
-            self._preset_editor = Presets(addon=self._addon,
-                                          alerts=self._alerts,
-                                          ask=self._ask,
-                                          parent=self)
+            self._preset_editor = Presets(
+                addon=self._addon, alerts=self._alerts, ask=self._ask, parent=self
+            )
         self._preset_editor.show()
 
     def _on_groups(self):
@@ -721,13 +805,13 @@ class Configurator(Dialog):
         """
 
         if len(self._addon.config['presets']) < 2:
-            self._alerts("You must have at least two presets before you can "
-                         "create a group.", parent=self)
+            self._alerts(
+                "You must have at least two presets before you can " "create a group.", parent=self
+            )
             return
 
         if not self._group_editor:
-            self._group_editor = Groups(ask=self._ask, addon=self._addon,
-                                        parent=self)
+            self._group_editor = Groups(ask=self._ask, addon=self._addon, parent=self)
 
         self._group_editor.show()
 
@@ -747,8 +831,9 @@ class Configurator(Dialog):
 
         if count_error:
             if count_success:
-                button.setText("partially emptied (%s left)" %
-                               locale("%d", count_error, grouping=True))
+                button.setText(
+                    "partially emptied (%s left)" % locale("%d", count_error, grouping=True)
+                )
             else:
                 button.setText("unable to empty")
         else:
@@ -783,7 +868,11 @@ class Configurator(Dialog):
 
         api_key = lineedit.text()
         if len(api_key) == 0:
-            aqt.utils.showCritical('Please enter AwesomeTTS Plus API Key', parent=parent_dialog, title='AwesomeTTS Plus Account Info')
+            aqt.utils.showCritical(
+                'Please enter AwesomeTTS Plus API Key',
+                parent=parent_dialog,
+                title='AwesomeTTS Plus Account Info',
+            )
             return
         self._addon.languagetools.set_api_key(api_key)
         data = self._addon.languagetools.account_info()
@@ -796,5 +885,9 @@ class Configurator(Dialog):
                 html = f"""<br/><a href='{value}'>Cancel Plan</a>"""
             lines.append(html)
         account_info_str = '<br/>'.join(lines)
-        aqt.utils.showInfo(account_info_str, parent=parent_dialog, title='AwesomeTTS Plus Account Info', textFormat='rich')
-
+        aqt.utils.showInfo(
+            account_info_str,
+            parent=parent_dialog,
+            title='AwesomeTTS Plus Account Info',
+            textFormat='rich',
+        )

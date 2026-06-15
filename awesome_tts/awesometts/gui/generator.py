@@ -21,6 +21,7 @@ File generation dialogs
 """
 
 from re import compile as re
+
 import aqt.qt
 
 from .base import Dialog, ServiceDialog
@@ -43,7 +44,7 @@ class BrowserGenerator(ServiceDialog):
 
     __slots__ = [
         '_browser',  # reference to the current Anki browser window
-        '_notes',    # list of Note objects selected when window opened
+        '_notes',  # list of Note objects selected when window opened
         '_process',  # state during processing; see accept() method below
     ]
 
@@ -57,8 +58,7 @@ class BrowserGenerator(ServiceDialog):
         self._process = None  # set in accept()
 
         super(BrowserGenerator, self).__init__(
-            title="Add TTS Audio to Selected Notes",
-            *args, **kwargs
+            title="Add TTS Audio to Selected Notes", *args, **kwargs
         )
 
     # UI Construction ########################################################
@@ -121,15 +121,11 @@ class BrowserGenerator(ServiceDialog):
         Return the append/overwrite radio buttons and behavior checkbox.
         """
 
-        append = aqt.qt.QRadioButton(
-            "&Append [sound:xxx] Tag onto Destination Field"
-        )
+        append = aqt.qt.QRadioButton("&Append [sound:xxx] Tag onto Destination Field")
         append.setObjectName('append')
         append.toggled.connect(self._on_handling_toggled)
 
-        overwrite = aqt.qt.QRadioButton(
-            "Over&write the Destination Field w/ Media Filename"
-        )
+        overwrite = aqt.qt.QRadioButton("Over&write the Destination Field w/ Media Filename")
         overwrite.setObjectName('overwrite')
         overwrite.toggled.connect(self._on_handling_toggled)
 
@@ -172,20 +168,15 @@ class BrowserGenerator(ServiceDialog):
         """
 
         self._notes = [
-            self._browser.mw.col.getNote(note_id)
-            for note_id in self._browser.selectedNotes()
+            self._browser.mw.col.getNote(note_id) for note_id in self._browser.selectedNotes()
         ]
 
         self.findChild(Note, 'intro').setText(
-            '%d note%s selected. Click "Help" for usage hints.' %
-            (len(self._notes), "s" if len(self._notes) != 1 else "")
+            '%d note%s selected. Click "Help" for usage hints.'
+            % (len(self._notes), "s" if len(self._notes) != 1 else "")
         )
 
-        fields = sorted({
-            field
-            for note in self._notes
-            for field in note.keys()
-        })
+        fields = sorted({field for note in self._notes for field in note.keys()})
 
         config = self._addon.config
 
@@ -193,25 +184,20 @@ class BrowserGenerator(ServiceDialog):
         source.clear()
         for field in fields:
             source.addItem(field, field)
-        source.setCurrentIndex(
-            max(source.findData(config['last_mass_source']), 0)
-        )
+        source.setCurrentIndex(max(source.findData(config['last_mass_source']), 0))
 
         dest = self.findChild(aqt.qt.QComboBox, 'dest')
         dest.clear()
         for field in fields:
             dest.addItem(field, field)
-        dest.setCurrentIndex(
-            max(dest.findData(config['last_mass_dest']), 0)
-        )
+        dest.setCurrentIndex(max(dest.findData(config['last_mass_dest']), 0))
 
         self.findChild(
             aqt.qt.QRadioButton,
             'append' if config['last_mass_append'] else 'overwrite',
         ).setChecked(True)
 
-        self.findChild(Checkbox, 'behavior') \
-            .setChecked(config['last_mass_behavior'])
+        self.findChild(Checkbox, 'behavior').setChecked(config['last_mass_behavior'])
 
         super(BrowserGenerator, self).show(*args, **kwargs)
 
@@ -229,19 +215,16 @@ class BrowserGenerator(ServiceDialog):
         append = now['last_mass_append']
         behavior = now['last_mass_behavior']
 
-        eligible_notes = [
-            note
-            for note in self._notes
-            if source in note and dest in note
-        ]
+        eligible_notes = [note for note in self._notes if source in note and dest in note]
 
         if not eligible_notes:
             self._alerts(
-                f"Of the {len(self._notes)} notes selected in the browser, "
-                f"none have both '{source}' and '{dest}' fields."
-                if len(self._notes) > 1
-                else f"The selected note does not have both "
-                     f"'{source}' and '{dest}' fields.",
+                (
+                    f"Of the {len(self._notes)} notes selected in the browser, "
+                    f"none have both '{source}' and '{dest}' fields."
+                    if len(self._notes) > 1
+                    else f"The selected note does not have both " f"'{source}' and '{dest}' fields."
+                ),
                 self,
             )
             return
@@ -249,8 +232,7 @@ class BrowserGenerator(ServiceDialog):
         self._disable_inputs()
 
         svc_id = now['last_service']
-        options = (None if svc_id.startswith('group:') else
-                   now['last_options'][now['last_service']])
+        options = None if svc_id.startswith('group:') else now['last_options'][now['last_service']]
 
         self._process = {
             'all': now,
@@ -318,8 +300,7 @@ class BrowserGenerator(ServiceDialog):
             self._accept_done()
             return
 
-        if throttling['calls'] and \
-           max(throttling['calls'].values()) >= throttling['threshold']:
+        if throttling['calls'] and max(throttling['calls'].values()) >= throttling['threshold']:
             # at least one service needs a break
 
             timer = aqt.qt.QTimer()
@@ -374,8 +355,10 @@ class BrowserGenerator(ServiceDialog):
                 throttling['calls'][svc_id] = count
 
         callbacks = dict(
-            done=done, okay=okay, fail=fail, miss=miss,
-
+            done=done,
+            okay=okay,
+            fail=fail,
+            miss=miss,
             # The call to _accept_next() is done via a single-shot QTimer for
             # a few reasons: keep the UI responsive, avoid a "maximum
             # recursion depth exceeded" exception if we hit a string of cached
@@ -384,24 +367,31 @@ class BrowserGenerator(ServiceDialog):
         )
 
         svc_id = proc['service']['id']
-        want_human = (self._addon.config['filenames_human'] or '{{text}}' if
-                      self._addon.config['filenames'] == 'human' else False)
+        want_human = (
+            self._addon.config['filenames_human'] or '{{text}}'
+            if self._addon.config['filenames'] == 'human'
+            else False
+        )
 
         if svc_id.startswith('group:'):
             config = self._addon.config
-            self._addon.router.group(text=phrase,
-                                     group=config['groups'][svc_id[6:]],
-                                     presets=config['presets'],
-                                     callbacks=callbacks,
-                                     want_human=want_human,
-                                     note=note)
+            self._addon.router.group(
+                text=phrase,
+                group=config['groups'][svc_id[6:]],
+                presets=config['presets'],
+                callbacks=callbacks,
+                want_human=want_human,
+                note=note,
+            )
         else:
-            self._addon.router(svc_id=svc_id,
-                               text=phrase,
-                               options=proc['service']['options'],
-                               callbacks=callbacks,
-                               want_human=want_human,
-                               note=note)
+            self._addon.router(
+                svc_id=svc_id,
+                text=phrase,
+                options=proc['service']['options'],
+                callbacks=callbacks,
+                want_human=want_human,
+                note=note,
+            )
 
     def _accept_next_output(self, old_value, filename):
         """
@@ -413,8 +403,7 @@ class BrowserGenerator(ServiceDialog):
 
         if proc['handling']['append']:
             if proc['handling']['behavior']:
-                return self._addon.strip.sounds.univ(old_value).strip() + \
-                    ' [sound:%s]' % filename
+                return self._addon.strip.sounds.univ(old_value).strip() + ' [sound:%s]' % filename
             elif filename in old_value:
                 return old_value
             else:
@@ -457,31 +446,25 @@ class BrowserGenerator(ServiceDialog):
 
         proc['progress'].update(
             label="finished %d of %d%s\n"
-                  "%d successful, %d failed\n"
-                  "\n"
-                  "%s" % (
-                      proc['counts']['done'],
-                      proc['counts']['elig'],
-
-                      " (%d skipped)" % proc['counts']['skip']
-                      if proc['counts']['skip']
-                      else "",
-
-                      proc['counts']['okay'],
-                      proc['counts']['fail'],
-
-                      "sleeping for %d second%s" % (
-                          proc['throttling']['countdown'],
-                          "s"
-                          if proc['throttling']['countdown'] != 1
-                          else ""
-                      )
-                      if (
-                          proc['throttling'] and
-                          'countdown' in proc['throttling']
-                      )
-                      else " "
-                  ),
+            "%d successful, %d failed\n"
+            "\n"
+            "%s"
+            % (
+                proc['counts']['done'],
+                proc['counts']['elig'],
+                " (%d skipped)" % proc['counts']['skip'] if proc['counts']['skip'] else "",
+                proc['counts']['okay'],
+                proc['counts']['fail'],
+                (
+                    "sleeping for %d second%s"
+                    % (
+                        proc['throttling']['countdown'],
+                        "s" if proc['throttling']['countdown'] != 1 else "",
+                    )
+                    if (proc['throttling'] and 'countdown' in proc['throttling'])
+                    else " "
+                ),
+            ),
             value=proc['counts']['done'],
             detail=detail,
         )
@@ -489,40 +472,44 @@ class BrowserGenerator(ServiceDialog):
     def _build_messages(self, proc):
         """Helper method to construct the summary message."""
         messages = [
-            "The %d note%s you selected %s been processed. " % (
-                proc['counts']['total'],
-                "s" if proc['counts']['total'] != 1 else "",
-                "have" if proc['counts']['total'] != 1 else "has",
-            )
-            if proc['counts']['done'] == proc['counts']['total']
-            else "%d of the %d note%s you selected %s processed. " % (
-                proc['counts']['done'],
-                proc['counts']['total'],
-                "s" if proc['counts']['total'] != 1 else "",
-                "were" if proc['counts']['done'] != 1 else "was",
+            (
+                "The %d note%s you selected %s been processed. "
+                % (
+                    proc['counts']['total'],
+                    "s" if proc['counts']['total'] != 1 else "",
+                    "have" if proc['counts']['total'] != 1 else "has",
+                )
+                if proc['counts']['done'] == proc['counts']['total']
+                else "%d of the %d note%s you selected %s processed. "
+                % (
+                    proc['counts']['done'],
+                    proc['counts']['total'],
+                    "s" if proc['counts']['total'] != 1 else "",
+                    "were" if proc['counts']['done'] != 1 else "was",
+                )
             ),
-
-            "%d note%s skipped for not having both the source and "
-            "destination fields. Of those remaining, " % (
-                proc['counts']['skip'],
-                "s were" if proc['counts']['skip'] != 1
-                else " was",
-            )
-            if proc['counts']['skip']
-            else "During processing, "
+            (
+                "%d note%s skipped for not having both the source and "
+                "destination fields. Of those remaining, "
+                % (
+                    proc['counts']['skip'],
+                    "s were" if proc['counts']['skip'] != 1 else " was",
+                )
+                if proc['counts']['skip']
+                else "During processing, "
+            ),
         ]
 
         if proc['counts']['fail']:
             if proc['counts']['okay']:
                 messages.append(
                     "%d note%s successfully updated, but "
-                    "%d note%s failed while processing." % (
+                    "%d note%s failed while processing."
+                    % (
                         proc['counts']['okay'],
-                        "s were" if proc['counts']['okay'] != 1
-                        else " was",
+                        "s were" if proc['counts']['okay'] != 1 else " was",
                         proc['counts']['fail'],
-                        "s" if proc['counts']['fail'] != 1
-                        else "",
+                        "s" if proc['counts']['fail'] != 1 else "",
                     )
                 )
             else:
@@ -533,18 +520,14 @@ class BrowserGenerator(ServiceDialog):
             if len(proc['exceptions']) == 1:
                 messages.append("The following problem was encountered:")
                 messages += [
-                    "\n%s (%d time%s)" %
-                    (message, count, "s" if count != 1 else "")
-                    for message, count
-                    in proc['exceptions'].items()
+                    "\n%s (%d time%s)" % (message, count, "s" if count != 1 else "")
+                    for message, count in proc['exceptions'].items()
                 ]
             else:
                 messages.append("The following problems were encountered:")
                 messages += [
-                    "\n- %s (%d time%s)" %
-                    (message, count, "s" if count != 1 else "")
-                    for message, count
-                    in proc['exceptions'].items()
+                    "\n- %s (%d time%s)" % (message, count, "s" if count != 1 else "")
+                    for message, count in proc['exceptions'].items()
                 ]
             messages.append("\n\nThe following note(s) have failed:\n")
             messages.append("".join(f"'{note}', " for note in proc['failednotes']))
@@ -624,7 +607,8 @@ class BrowserGenerator(ServiceDialog):
         append = self.findChild(aqt.qt.QRadioButton, 'append')
         behavior = self.findChild(Checkbox, 'behavior')
         behavior.setText(
-            "Remove Existing [sound:xxx] Tag(s)" if append.isChecked()
+            "Remove Existing [sound:xxx] Tag(s)"
+            if append.isChecked()
             else "Wrap the Filename in [sound:xxx] Tag"
         )
         behavior.setChecked(True)
@@ -669,10 +653,8 @@ class EditorGenerator(ServiceDialog):
         """
 
         self._editor = editor
-        super(EditorGenerator, self).__init__(
-            title="Add TTS Audio to Note",
-            *args, **kwargs
-        )
+        super(EditorGenerator, self).__init__(title="Add TTS Audio to Note", *args, **kwargs)
+
     # UI Construction ########################################################
 
     def _ui_control(self):
@@ -689,12 +671,14 @@ class EditorGenerator(ServiceDialog):
         text.setAcceptRichText(False)
         text.setObjectName('text')
         text.setTabChangesFocus(True)
-        text.keyPressEvent = lambda key_event: \
-            self.accept() if (
-                key_event.modifiers() & aqt.qt.Qt.KeyboardModifier.ControlModifier and
-                key_event.key() in [aqt.qt.Qt.Key.Key_Return, aqt.qt.Qt.Key.Key_Enter]
-            ) \
+        text.keyPressEvent = lambda key_event: (
+            self.accept()
+            if (
+                key_event.modifiers() & aqt.qt.Qt.KeyboardModifier.ControlModifier
+                and key_event.key() in [aqt.qt.Qt.Key.Key_Return, aqt.qt.Qt.Key.Key_Enter]
+            )
             else aqt.qt.QTextEdit.keyPressEvent(text, key_event)
+        )
 
         button = aqt.qt.QPushButton("&Preview")
         button.setObjectName('preview')
@@ -702,8 +686,9 @@ class EditorGenerator(ServiceDialog):
 
         layout = aqt.qt.QVBoxLayout()
         layout.addWidget(header)
-        layout.addWidget(Note("This will be inserted as a [sound] tag and "
-                              "synchronized with your collection."))
+        layout.addWidget(
+            Note("This will be inserted as a [sound] tag and " "synchronized with your collection.")
+        )
         layout.addWidget(text)
         layout.addWidget(button)
         layout.addWidget(self._ui_buttons())
@@ -755,16 +740,15 @@ class EditorGenerator(ServiceDialog):
                     return field_value
             return False
 
-
         for origin in [
-                # first, check if user has selected any text
-                lambda: from_note(web.selectedText()),
-                # then, try extracting from the field
-                lambda: from_note(get_current_field_text()),
-                # then, try the HTML clipboard
-                lambda: try_clipboard('html'),
-                # then, try the text clipboard
-                lambda: try_clipboard('text'),
+            # first, check if user has selected any text
+            lambda: from_note(web.selectedText()),
+            # then, try extracting from the field
+            lambda: from_note(get_current_field_text()),
+            # then, try the HTML clipboard
+            lambda: try_clipboard('html'),
+            # then, try the text clipboard
+            lambda: try_clipboard('text'),
         ]:
             try:
                 prefill = origin()
@@ -794,9 +778,9 @@ class EditorGenerator(ServiceDialog):
             if current_field_index is not None:
                 # there is currently a selected field
                 if self._editor.note is not None:
-                    # add to end of field                    
+                    # add to end of field
                     field_value = self._editor.note.fields[current_field_index]
-                    audio_tag = self._editor._addMedia(path)                    
+                    audio_tag = self._editor._addMedia(path)
                     updated_field_value = f'{field_value} {audio_tag}'
                     self._editor.note.fields[current_field_index] = updated_field_value
                     self._editor.set_note(self._editor.note)
@@ -805,39 +789,46 @@ class EditorGenerator(ServiceDialog):
             # if we didn't return at this point, use fallback method
             self._editor.addMedia(path)
 
-
         svc_id = now['last_service']
         text_value = self._addon.strip.from_user(text_value)
         callbacks = dict(
             done=lambda: self._disable_inputs(False),
             okay=add_audio_tag_to_current_field,
             fail=lambda exception, text_value: (
-                self._alerts("Cannot record the input phrase with these "
-                             "settings.\n\n%s" % exception, self),
+                self._alerts(
+                    "Cannot record the input phrase with these " "settings.\n\n%s" % exception, self
+                ),
                 text_input.setFocus(),
             ),
         )
 
-        want_human = (self._addon.config['filenames_human'] or '{{text}}' if
-                      self._addon.config['filenames'] == 'human' else False)
+        want_human = (
+            self._addon.config['filenames_human'] or '{{text}}'
+            if self._addon.config['filenames'] == 'human'
+            else False
+        )
 
         self._disable_inputs()
         if svc_id.startswith('group:'):
             config = self._addon.config
-            self._addon.router.group(text=text_value,
-                                     group=config['groups'][svc_id[6:]],
-                                     presets=config['presets'],
-                                     callbacks=callbacks,
-                                     want_human=want_human,
-                                     note=self._editor.note)
+            self._addon.router.group(
+                text=text_value,
+                group=config['groups'][svc_id[6:]],
+                presets=config['presets'],
+                callbacks=callbacks,
+                want_human=want_human,
+                note=self._editor.note,
+            )
         else:
             options = now['last_options'][now['last_service']]
-            self._addon.router(svc_id=svc_id,
-                               text=text_value,
-                               options=options,
-                               callbacks=callbacks,
-                               want_human=want_human,
-                               note=self._editor.note)
+            self._addon.router(
+                svc_id=svc_id,
+                text=text_value,
+                options=options,
+                callbacks=callbacks,
+                want_human=want_human,
+                note=self._editor.note,
+            )
 
 
 class _Progress(Dialog):
@@ -846,7 +837,7 @@ class _Progress(Dialog):
     """
 
     __slots__ = [
-        '_maximum'    # the value we are counting up to
+        '_maximum'  # the value we are counting up to
         '_on_cancel'  # callable to invoke if the user hits cancel
     ]
 

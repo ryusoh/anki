@@ -32,7 +32,7 @@ class Pico2Wave(Service):
     """
 
     __slots__ = [
-        '_binary',      # path to the pico2wave binary
+        '_binary',  # path to the pico2wave binary
         '_voice_list',  # list of installed voices as a list of tuples
     ]
 
@@ -56,20 +56,25 @@ class Pico2Wave(Service):
         super(Pico2Wave, self).__init__(*args, **kwargs)
 
         import re
+
         re_voice = re.compile(r'^[a-z]{2}-[A-Z]{2}$')
 
         for binary in ['pico2wave', 'lt-pico2wave']:
             try:
-                self._voice_list = sorted({
-                    (line, line)
-                    for line in self.cli_output_error(
-                        binary,
-                        '--lang', 'x',
-                        '--wave', 'x',
-                        'x',
-                    )
-                    if re_voice.match(line)
-                })
+                self._voice_list = sorted(
+                    {
+                        (line, line)
+                        for line in self.cli_output_error(
+                            binary,
+                            '--lang',
+                            'x',
+                            '--wave',
+                            'x',
+                            'x',
+                        )
+                        if re_voice.match(line)
+                    }
+                )
 
                 if self._voice_list:
                     self._binary = binary
@@ -77,7 +82,10 @@ class Pico2Wave(Service):
 
             except Exception as e:
                 import logging
-                logging.getLogger(__name__).debug(f"Failed to initialize pico2wave with binary {binary}: {e}")
+
+                logging.getLogger(__name__).debug(
+                    f"Failed to initialize pico2wave with binary {binary}: {e}"
+                )
                 continue
 
         else:
@@ -96,23 +104,25 @@ class Pico2Wave(Service):
         Provides access to voice only.
         """
 
-        voice_lookup = dict([
-            # two-letter language codes (for countries with multiple variants,
-            # last one alphabetically wins, e.g. en maps to en-US, not en-GB)
-            (self.normalize(voice[0][0:2]), voice[0])
-            for voice in self._voice_list
-        ] + [
-            # official language codes
-            (self.normalize(voice[0]), voice[0])
-            for voice in self._voice_list
-        ])
+        voice_lookup = dict(
+            [
+                # two-letter language codes (for countries with multiple variants,
+                # last one alphabetically wins, e.g. en maps to en-US, not en-GB)
+                (self.normalize(voice[0][0:2]), voice[0])
+                for voice in self._voice_list
+            ]
+            + [
+                # official language codes
+                (self.normalize(voice[0]), voice[0])
+                for voice in self._voice_list
+            ]
+        )
 
         def transform_voice(value):
             """Normalize and attempt to convert to official voice."""
 
             normalized = self.normalize(value)
-            return voice_lookup[normalized] if normalized in voice_lookup \
-                else value
+            return voice_lookup[normalized] if normalized in voice_lookup else value
 
         return [
             dict(
@@ -137,9 +147,12 @@ class Pico2Wave(Service):
         try:
             self.cli_call(
                 self._binary,
-                '--lang', options['voice'],
-                '--wave', output_wav,
-                '--', text,
+                '--lang',
+                options['voice'],
+                '--wave',
+                output_wav,
+                '--',
+                text,
             )
 
             self.cli_transcode(

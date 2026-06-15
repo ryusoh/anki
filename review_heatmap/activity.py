@@ -47,8 +47,8 @@ from typing import (
     Tuple,
 )
 
-from anki.utils import ids2str
 from anki.errors import NotFoundError
+from anki.utils import ids2str
 
 if TYPE_CHECKING:
     from anki.collection import Collection
@@ -145,9 +145,7 @@ class ActivityReporter:
 
             activity_report = self._get_activity(history=history, forecast=forecast)
         else:
-            raise NotImplementedError(
-                "activity type {} not implemented".format(activity_type)
-            )
+            raise NotImplementedError("activity type {} not implemented".format(activity_type))
 
         return activity_report
 
@@ -299,9 +297,7 @@ class ActivityReporter:
         if limhist is not None:
             history_start = self._days_from_today(-limhist)
         else:
-            history_start = self._get_conf_history_limit(
-                conf["limhist"], conf["limdate"]
-            )
+            history_start = self._get_conf_history_limit(conf["limhist"], conf["limdate"])
 
         if limfcst is not None:
             forecast_stop = self._days_from_today(limfcst)
@@ -543,9 +539,7 @@ GROUP BY day ORDER BY day""".format(
                 time.localtime(day_cutoff),
             )
         )
-        logger.debug(
-            time.strftime("local now: %Y-%m-%d %H:%M", time.localtime(time.time()))
-        )
+        logger.debug(time.strftime("local now: %Y-%m-%d %H:%M", time.localtime(time.time())))
         col_days = self._col.sched.today
         logger.debug("Col days: %s", col_days)
         if col_days is not None:

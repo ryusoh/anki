@@ -20,19 +20,19 @@
 Service classes for AwesomeTTS
 """
 
-from .common import Trait
-
 from .amazon import Amazon
 from .azure import Azure
 from .baidu import Baidu
 from .cambridge import Cambridge
 from .cereproc import CereProc
 from .collins import Collins
+from .common import Trait
 from .duden import Duden
 from .ekho import Ekho
 from .elevenlabs import ElevenLabs
 from .espeak import ESpeak
 from .festival import Festival
+from .forvo import Forvo
 from .fptai import FptAi
 from .freedictionary import FreeDictionary
 from .google import Google
@@ -49,16 +49,14 @@ from .sapi5com import SAPI5COM
 from .sapi5js import SAPI5JS
 from .say import Say
 from .spanishdict import SpanishDict
-from .yandex import Yandex
-from .youdao import Youdao
-from .forvo import Forvo
 from .vocalware import VocalWare
 from .watson import Watson
+from .yandex import Yandex
+from .youdao import Youdao
 
 __all__ = [
     # common
     'Trait',
-
     # services
     'Amazon',
     'Azure',
@@ -89,5 +87,5 @@ __all__ = [
     'Youdao',
     'Forvo',
     'VocalWare',
-    'Watson'
+    'Watson',
 ]

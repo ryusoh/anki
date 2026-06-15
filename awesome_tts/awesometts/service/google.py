@@ -47,7 +47,6 @@ class Google(Service):
         # aliases defined in the voice_lookup list below for the most
         # common alternate codes, including an alias from the base
         # language to the variant with the most native speakers.
-
         'af': "Afrikaans",
         'am': "Amharic",
         'ar': "Arabic",
@@ -199,56 +198,69 @@ class Google(Service):
         Returns a short, static description.
         """
 
-        return "Google Translate text-to-speech web API (%d voices); " \
-            "service is heavily rate-limited and not recommended for mass " \
+        return (
+            "Google Translate text-to-speech web API (%d voices); "
+            "service is heavily rate-limited and not recommended for mass "
             "generation" % len(self._VOICE_CODES)
+        )
 
     def options(self):
         """
         Provides access to voice only.
         """
 
-        voice_lookup = dict([
-            # aliases for Chinese, Mandarin (PRC) (most speakers)
-            (self.normalize(alias), 'zh-CN')
-            for alias in ['Mandarin', 'Chinese', 'zh', 'zh-CMN', 'CMN']
-        ] + [
-            # aliases for Spanish, European (fewer speakers)
-            (self.normalize(alias), 'es-ES')
-            for alias in ['es-EU']
-        ] + [
-            # aliases for Spanish, Americas (most speakers)
-            (self.normalize(alias), 'es-419')
-            for alias in ['Spanish', 'es', 'es-LA', 'es-MX', 'es-US']
-        ] + [
-            # aliases for English, Australian (fewer speakers)
-            (self.normalize(alias), 'en-AU')
-            for alias in ['en-NZ']
-        ] + [
-            # aliases for English, British (moderate number)
-            (self.normalize(alias), 'en-GB')
-            for alias in ['en-EU', 'en-UK']
-        ] + [
-            # aliases for English, American (most speakers)
-            (self.normalize(alias), 'en-US')
-            for alias in ['English', 'en']
-        ] + [
-            # aliases for Portuguese, European (fewer speakers)
-            (self.normalize(alias), 'pt-PT')
-            for alias in ['pt-EU']
-        ] + [
-            # aliases for Portuguese, Brazilian (most speakers)
-            (self.normalize(alias), 'pt-BR')
-            for alias in ['Portuguese', 'pt']
-        ] + [
-            # then add/override for full names (e.g. Spanish, Americas)
-            (self.normalize(name), code)
-            for code, name in self._VOICE_CODES.items()
-        ] + [
-            # then add/override for official voices (e.g. es-419)
-            (self.normalize(code), code)
-            for code in self._VOICE_CODES.keys()
-        ])
+        voice_lookup = dict(
+            [
+                # aliases for Chinese, Mandarin (PRC) (most speakers)
+                (self.normalize(alias), 'zh-CN')
+                for alias in ['Mandarin', 'Chinese', 'zh', 'zh-CMN', 'CMN']
+            ]
+            + [
+                # aliases for Spanish, European (fewer speakers)
+                (self.normalize(alias), 'es-ES')
+                for alias in ['es-EU']
+            ]
+            + [
+                # aliases for Spanish, Americas (most speakers)
+                (self.normalize(alias), 'es-419')
+                for alias in ['Spanish', 'es', 'es-LA', 'es-MX', 'es-US']
+            ]
+            + [
+                # aliases for English, Australian (fewer speakers)
+                (self.normalize(alias), 'en-AU')
+                for alias in ['en-NZ']
+            ]
+            + [
+                # aliases for English, British (moderate number)
+                (self.normalize(alias), 'en-GB')
+                for alias in ['en-EU', 'en-UK']
+            ]
+            + [
+                # aliases for English, American (most speakers)
+                (self.normalize(alias), 'en-US')
+                for alias in ['English', 'en']
+            ]
+            + [
+                # aliases for Portuguese, European (fewer speakers)
+                (self.normalize(alias), 'pt-PT')
+                for alias in ['pt-EU']
+            ]
+            + [
+                # aliases for Portuguese, Brazilian (most speakers)
+                (self.normalize(alias), 'pt-BR')
+                for alias in ['Portuguese', 'pt']
+            ]
+            + [
+                # then add/override for full names (e.g. Spanish, Americas)
+                (self.normalize(name), code)
+                for code, name in self._VOICE_CODES.items()
+            ]
+            + [
+                # then add/override for official voices (e.g. es-419)
+                (self.normalize(code), code)
+                for code in self._VOICE_CODES.keys()
+            ]
+        )
 
         def transform_voice(value):
             """Normalize and attempt to convert to official code."""
@@ -271,14 +283,18 @@ class Google(Service):
             dict(
                 key='voice',
                 label="Voice",
-                values=[(code, "%s (%s)" % (name, code))
-                        for code, name in sorted(self._VOICE_CODES.items())],
+                values=[
+                    (code, "%s (%s)" % (name, code))
+                    for code, name in sorted(self._VOICE_CODES.items())
+                ],
                 transform=transform_voice,
             ),
             dict(
                 key='speed',
                 label="Speed",
-                values=[(item, f"{item}") for item in (0.1, 0.3, 0.6, DEFAULT_SPEED, 1.3, 1.6, 2.0)],
+                values=[
+                    (item, f"{item}") for item in (0.1, 0.3, 0.6, DEFAULT_SPEED, 1.3, 1.6, 2.0)
+                ],
                 transform=float,
                 default=DEFAULT_SPEED,
             ),
@@ -295,9 +311,9 @@ class Google(Service):
         with self._lock:
             if not self._cookies:
                 headers = self.net_headers('https://www.google.com')
-                self._cookies = ';'.join(cookie.split(';')[0]
-                                         for cookie
-                                         in headers['Set-Cookie'].split(','))
+                self._cookies = ';'.join(
+                    cookie.split(';')[0] for cookie in headers['Set-Cookie'].split(',')
+                )
                 self._logger.debug("Google cookies are %s", self._cookies)
 
         subtexts = self.util_split(text, 100)
@@ -307,16 +323,19 @@ class Google(Service):
             self.net_download(
                 path,
                 [
-                    ('https://translate.google.com/translate_tts', dict(
-                        ie='UTF-8',
-                        q=subtext,
-                        tl=options['voice'],
-                        total=len(subtexts),
-                        idx=idx,
-                        ttsspeed=options.get('speed', 1.0),
-                        textlen=len(subtext),
-                        client='tw-ob',
-                    ))
+                    (
+                        'https://translate.google.com/translate_tts',
+                        dict(
+                            ie='UTF-8',
+                            q=subtext,
+                            tl=options['voice'],
+                            total=len(subtexts),
+                            idx=idx,
+                            ttsspeed=options.get('speed', 1.0),
+                            textlen=len(subtext),
+                            client='tw-ob',
+                        ),
+                    )
                     for idx, subtext in enumerate(subtexts)
                 ],
                 require=dict(mime='audio/mpeg', size=1024),
@@ -324,13 +343,18 @@ class Google(Service):
             )
 
         except IOError as io_error:
-            raise IOError(
-                "Google Translate returned an HTTP 503 (Service Unavailable) "
-                "error. Unless Google Translate is down, this might indicate "
-                "that too many TTS requests have recently come from your IP "
-                "address. If so, try again after 24 hours.\n"
-                "\n"
-                "Depending on your specific situation, you might be able to "
-                "switch to a different service offering " +
-                self._VOICE_CODES[options['voice']].split(',').pop(0) + "."
-            ) if getattr(io_error, 'code', None) == 503 else io_error
+            raise (
+                IOError(
+                    "Google Translate returned an HTTP 503 (Service Unavailable) "
+                    "error. Unless Google Translate is down, this might indicate "
+                    "that too many TTS requests have recently come from your IP "
+                    "address. If so, try again after 24 hours.\n"
+                    "\n"
+                    "Depending on your specific situation, you might be able to "
+                    "switch to a different service offering "
+                    + self._VOICE_CODES[options['voice']].split(',').pop(0)
+                    + "."
+                )
+                if getattr(io_error, 'code', None) == 503
+                else io_error
+            )

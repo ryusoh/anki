@@ -23,16 +23,26 @@ Basic manipulation and sanitization of input text
 import re
 from io import StringIO
 
-from bs4 import BeautifulSoup
-import html
 import anki
+from bs4 import BeautifulSoup
 
 clozeReg = r"(?si)\{\{(?P<tag>c)%s::(?P<content>.*?)(::(?P<hint>.*?))?\}\}"
 
-__all__ = ['RE_CLOZE_BRACED', 'RE_CLOZE_RENDERED', 'RE_ELLIPSES',
-           'RE_ELLIPSES_LEADING', 'RE_ELLIPSES_TRAILING', 'RE_FILENAMES',
-           'RE_HINT_LINK', 'RE_LINEBREAK_HTML', 'RE_NEWLINEISH', 'RE_SOUNDS',
-           'RE_WHITESPACE', 'STRIP_HTML', 'Sanitizer']
+__all__ = [
+    'RE_CLOZE_BRACED',
+    'RE_CLOZE_RENDERED',
+    'RE_ELLIPSES',
+    'RE_ELLIPSES_LEADING',
+    'RE_ELLIPSES_TRAILING',
+    'RE_FILENAMES',
+    'RE_HINT_LINK',
+    'RE_LINEBREAK_HTML',
+    'RE_NEWLINEISH',
+    'RE_SOUNDS',
+    'RE_WHITESPACE',
+    'STRIP_HTML',
+    'Sanitizer',
+]
 
 
 RE_CLOZE_BRACED = re.compile(clozeReg % r'\d+')
@@ -45,13 +55,10 @@ RE_CLOZE_RENDERED = re.compile(
 RE_ELLIPSES = re.compile(r'\s*(\.\s*){3,}')
 RE_ELLIPSES_LEADING = re.compile(r'^\s*(\.\s*){3,}')
 RE_ELLIPSES_TRAILING = re.compile(r'\s*(\.\s*){3,}$')
-RE_FILENAMES = re.compile(r'([a-z\d]+(-[a-f\d]{8}){5}|ATTS .+)'
-                          r'( \(\d+\))?\.mp3')
+RE_FILENAMES = re.compile(r'([a-z\d]+(-[a-f\d]{8}){5}|ATTS .+)' r'( \(\d+\))?\.mp3')
 RE_HINT_LINK = re.compile(r'<a[^>]+class=.?hint.?[^>]*>[^<]+</a>')
-RE_LINEBREAK_HTML = re.compile(r'<\s*/?\s*(br|div|p)(\s+[^>]*)?\s*/?\s*>',
-                               re.IGNORECASE)
-RE_NEWLINEISH = re.compile(r'(\r|\n|<\s*/?\s*(br|div|p)(\s+[^>]*)?\s*/?\s*>)+',
-                           re.IGNORECASE)
+RE_LINEBREAK_HTML = re.compile(r'<\s*/?\s*(br|div|p)(\s+[^>]*)?\s*/?\s*>', re.IGNORECASE)
+RE_NEWLINEISH = re.compile(r'(\r|\n|<\s*/?\s*(br|div|p)(\s+[^>]*)?\s*/?\s*>)+', re.IGNORECASE)
 RE_SOUNDS = re.compile(r'\[sound:(.*?)\]')  # see also anki.sound._soundReg
 RE_WHITESPACE = re.compile(r'[\0\s]+', re.UNICODE)
 
@@ -66,7 +73,7 @@ class Sanitizer(object):  # call only, pylint:disable=too-few-public-methods
     __slots__ = [
         '_config',  # dict-like interface for looking up config conditionals
         '_logger',  # logger-like interface for debugging the Sanitizer
-        '_rules',   # list of rules that this instance's callable will process
+        '_rules',  # list of rules that this instance's callable will process
     ]
 
     def __init__(self, rules, config=None, logger=None):
@@ -102,9 +109,11 @@ class Sanitizer(object):  # call only, pylint:disable=too-few-public-methods
 
                 # if the "key" is actually a list, then we will return True
                 # for `value` if ANY key in the list yields a truthy config
-                value = (next((True for k in key if self._config[k]),
-                              False) if isinstance(key, list)
-                         else self._config[key])
+                value = (
+                    next((True for k in key if self._config[k]), False)
+                    if isinstance(key, list)
+                    else self._config[key]
+                )
 
                 if value is True:  # basic on/off config flag
                     if addl:
@@ -120,8 +129,7 @@ class Sanitizer(object):  # call only, pylint:disable=too-few-public-methods
                     if addl:
                         addl = self._config[addl]
                         applied.append((rule, value, addl))
-                        text = getattr(self, '_rule_' + rule)(text, value,
-                                                              addl)
+                        text = getattr(self, '_rule_' + rule)(text, value, addl)
 
                     else:
                         applied.append((rule, value))
@@ -137,16 +145,14 @@ class Sanitizer(object):  # call only, pylint:disable=too-few-public-methods
         """If we have a logger, send debug line for transformation."""
 
         if self._logger:
-            self._logger.debug("Transformation using %s: %s", method,
-                               "(empty string)" if result == '' else result)
+            self._logger.debug(
+                "Transformation using %s: %s", method, "(empty string)" if result == '' else result
+            )
 
     def _rule_char_ellipsize(self, text, chars):
         """Ellipsizes given chars from the text."""
 
-        return ''.join(
-            ('...' if char in chars else char)
-            for char in text
-        )
+        return ''.join(('...' if char in chars else char) for char in text)
 
     def _rule_char_remove(self, text, chars):
         """Removes given chars from the text."""
@@ -160,30 +166,35 @@ class Sanitizer(object):  # call only, pylint:disable=too-few-public-methods
         """
 
         return RE_CLOZE_BRACED.sub(
-            '...' if mode == 'ellipsize'
-            else '' if mode == 'remove'
-            else self._rule_clozes_braced.wrapper if mode == 'wrap'
-            else self._rule_clozes_braced.deleter if mode == 'deleted'
-            else self._rule_clozes_braced.ankier,  # mode == 'anki'
-
+            (
+                '...'
+                if mode == 'ellipsize'
+                else (
+                    ''
+                    if mode == 'remove'
+                    else (
+                        self._rule_clozes_braced.wrapper
+                        if mode == 'wrap'
+                        else (
+                            self._rule_clozes_braced.deleter
+                            if mode == 'deleted'
+                            else self._rule_clozes_braced.ankier
+                        )
+                    )
+                )
+            ),  # mode == 'anki'
             text,
         )
 
     _rule_clozes_braced.wrapper = lambda match: (
-        '... %s ...' % match.group(4).strip('.') if (match.group(4) and
-                                                     match.group(4).strip('.'))
+        '... %s ...' % match.group(4).strip('.')
+        if (match.group(4) and match.group(4).strip('.'))
         else '...'
     )
 
-    _rule_clozes_braced.deleter = lambda match: (
-        match.group(2) if match.group(2)
-        else '...'
-    )
+    _rule_clozes_braced.deleter = lambda match: (match.group(2) if match.group(2) else '...')
 
-    _rule_clozes_braced.ankier = lambda match: (
-        match.group(4) if match.group(4)
-        else '...'
-    )
+    _rule_clozes_braced.ankier = lambda match: (match.group(4) if match.group(4) else '...')
 
     def _rule_clozes_rendered(self, text, mode):
         """
@@ -192,18 +203,24 @@ class Sanitizer(object):  # call only, pylint:disable=too-few-public-methods
         """
 
         return RE_CLOZE_RENDERED.sub(
-            '...' if mode == 'ellipsize'
-            else '' if mode == 'remove'
-            else self._rule_clozes_rendered.wrapper if mode == 'wrap'
-            else self._rule_clozes_rendered.ankier,  # mode == 'anki'
-
+            (
+                '...'
+                if mode == 'ellipsize'
+                else (
+                    ''
+                    if mode == 'remove'
+                    else (
+                        self._rule_clozes_rendered.wrapper
+                        if mode == 'wrap'
+                        else self._rule_clozes_rendered.ankier
+                    )
+                )
+            ),  # mode == 'anki'
             text,
         )
 
     _rule_clozes_rendered.wrapper = lambda match: (
-        '... %s ...' % match.group(1).strip('.')
-        if match.group(1).strip('.')
-        else match.group(1)
+        '... %s ...' % match.group(1).strip('.') if match.group(1).strip('.') else match.group(1)
     )
 
     _rule_clozes_rendered.ankier = lambda match: match.group(1)
@@ -214,15 +231,15 @@ class Sanitizer(object):  # call only, pylint:disable=too-few-public-methods
         contents of that span.
         """
 
-        revealed_tags = BeautifulSoup(text, features="html.parser")('span', attrs={'class': 'cloze'})
+        revealed_tags = BeautifulSoup(text, features="html.parser")(
+            'span', attrs={'class': 'cloze'}
+        )
 
-        return ' ... '.join(
-            ''.join(
-                str(content)
-                for content in tag.contents
-            )
-            for tag in revealed_tags
-        ) if revealed_tags else text
+        return (
+            ' ... '.join(''.join(str(content) for content in tag.contents) for tag in revealed_tags)
+            if revealed_tags
+            else text
+        )
 
     def _rule_counter(self, text, characters, wrap):
         """
@@ -232,15 +249,11 @@ class Sanitizer(object):  # call only, pylint:disable=too-few-public-methods
 
         return re.sub(
             r'[' + re.escape(characters) + ']{2,}',
-
-            self._rule_counter.wrapper if wrap
-            else self._rule_counter.spacer,
-
+            self._rule_counter.wrapper if wrap else self._rule_counter.spacer,
             text,
         )
 
-    _rule_counter.wrapper = lambda match: (' ... ' + str(len(match.group(0))) +
-                                           ' ... ')
+    _rule_counter.wrapper = lambda match: (' ... ' + str(len(match.group(0))) + ' ... ')
 
     _rule_counter.spacer = lambda match: (' ' + str(len(match.group(0))) + ' ')
 
@@ -251,7 +264,7 @@ class Sanitizer(object):  # call only, pylint:disable=too-few-public-methods
         before each one.
         """
 
-        self._logger.debug(f'running _rule_custom_sub')
+        self._logger.debug('running _rule_custom_sub')
 
         for rule in rules:
             self._logger.debug(f'evaluating {rule}')
@@ -327,10 +340,7 @@ class Sanitizer(object):  # call only, pylint:disable=too-few-public-methods
         """
 
         return RE_SOUNDS.sub(
-            lambda match: (
-                '' if RE_FILENAMES.match(match.group(1))
-                else match.group(0)
-            ),
+            lambda match: ('' if RE_FILENAMES.match(match.group(1)) else match.group(0)),
             text,
         )
 
@@ -340,10 +350,7 @@ class Sanitizer(object):  # call only, pylint:disable=too-few-public-methods
         """
 
         return RE_SOUNDS.sub(
-            lambda match: (
-                match.group(0) if RE_FILENAMES.match(match.group(1))
-                else ''
-            ),
+            lambda match: (match.group(0) if RE_FILENAMES.match(match.group(1)) else ''),
             text,
         )
 
@@ -375,9 +382,9 @@ class Sanitizer(object):  # call only, pylint:disable=too-few-public-methods
         return _aux_within(text, '(', ')')
 
     def _rule_ruby_tags(self, text):
-        self._logger.debug(f'looking for ruby tags')
+        self._logger.debug('looking for ruby tags')
         if 'ruby' in text:
-            self._logger.debug(f'found ruby tags, processing')
+            self._logger.debug('found ruby tags, processing')
             soup = BeautifulSoup(text, features="html.parser")
             rt_tags = soup.find_all('rt')
             for rt_tag in rt_tags:
@@ -388,14 +395,14 @@ class Sanitizer(object):  # call only, pylint:disable=too-few-public-methods
 
     def _rule_xml_entities(self, text):
         # not all html entities should be replaced, so we can maintain a map here
-        SSML_CONVERSION_MAP ={
+        SSML_CONVERSION_MAP = {
             '&': '&amp;',
             '<': '&lt;',
             '>': '&gt;',
-            '，': ',', # chinese comma
+            '，': ',',  # chinese comma
         }
         for pattern, replace in SSML_CONVERSION_MAP.items():
-            text = text.replace(pattern, replace)        
+            text = text.replace(pattern, replace)
         return text
 
 

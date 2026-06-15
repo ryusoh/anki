@@ -1,28 +1,23 @@
-
-
 """
 Service implementation for the IBM Watson Text-To-Speech service
 https://cloud.ibm.com/docs/text-to-speech?topic=text-to-speech-gettingStarted
 """
 
-import time
-import datetime
-import requests
 import json
+from typing import List
+
+import requests
+
 from .base import Service
 from .languages import StandardVoice
 from .voicelist import VOICE_LIST
-from typing import List
 
 __all__ = ['Watson']
 
 
 class Watson(Service):
 
-    __slots__ = [
-        'access_token',
-        'access_token_timestamp'
-    ]
+    __slots__ = ['access_token', 'access_token_timestamp']
 
     NAME = "IBM Watson"
 
@@ -36,9 +31,10 @@ class Watson(Service):
     def extras(self):
         if self.languagetools.use_plus_mode():
             # plus mode, no need for an API key
-            return []        
-        return [dict(key='key', label="API Key", required=True),
-            dict(key='url', label="API URL", required=True)
+            return []
+        return [
+            dict(key='key', label="API Key", required=True),
+            dict(key='url', label="API URL", required=True),
         ]
 
     def get_voices(self) -> List[StandardVoice]:
@@ -51,9 +47,8 @@ class Watson(Service):
 
     def get_voice_for_key(self, key) -> StandardVoice:
         voice = [voice for voice in self.get_voices() if voice.get_key() == key]
-        assert(len(voice) == 1)
+        assert len(voice) == 1
         return voice[0]
-
 
     def get_voice_list(self):
         voice_list = self.get_voices()
@@ -67,10 +62,12 @@ class Watson(Service):
         self.access_token = None
 
         return [
-            dict(key='voice',
-                 label="Voice",
-                 values=self.get_voice_list(),
-                 transform=lambda value: value),
+            dict(
+                key='voice',
+                label="Voice",
+                values=self.get_voice_list(),
+                transform=lambda value: value,
+            ),
         ]
 
     def run(self, text, options, path):
@@ -81,12 +78,14 @@ class Watson(Service):
 
         if self.languagetools.use_plus_mode():
 
-            self._logger.info(f'using language tools API')
+            self._logger.info('using language tools API')
             service = 'Watson'
             voice_key = voice.get_voice_key()
             language = voice.get_language_code()
             options = {}
-            self.languagetools.generate_audio_v2(text, service, 'batch', language, 'n/a', voice_key, options, path)
+            self.languagetools.generate_audio_v2(
+                text, service, 'batch', language, 'n/a', voice_key, options, path
+            )
 
         else:
 
@@ -95,24 +94,23 @@ class Watson(Service):
             api_key = options['key']
             api_url = options['url']
 
-
-
             base_url = api_url
             url_path = '/v1/synthesize'
             constructed_url = base_url + url_path + f'?voice={voice_name}'
             self._logger.info(f'url: {constructed_url}')
-            headers = {
-                'Content-Type': 'application/json',
-                'Accept': 'audio/mp3'
-            }
+            headers = {'Content-Type': 'application/json', 'Accept': 'audio/mp3'}
 
-            data = {
-                'text': text
-            }
+            data = {'text': text}
 
             self._logger.info(f'data: {data}')
             try:
-                response = requests.post(constructed_url, data=json.dumps(data), auth=('apikey', api_key), headers=headers, timeout=10)
+                response = requests.post(
+                    constructed_url,
+                    data=json.dumps(data),
+                    auth=('apikey', api_key),
+                    headers=headers,
+                    timeout=10,
+                )
             except requests.exceptions.RequestException as e:
                 self._logger.error(f"Network error: {e}")
                 raise ValueError(f"Network error: {e}")
@@ -124,6 +122,3 @@ class Watson(Service):
                 self._logger.error(response.content)
                 error_message = f"Status code: {response.status_code} reason: {response.reason} voice: [{voice_name}] api key: [{api_key}]]"
                 raise ValueError(error_message)
-
-
-

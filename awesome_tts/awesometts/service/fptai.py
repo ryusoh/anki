@@ -21,16 +21,17 @@ Service implementation for the FPT.AI Vietnamese Text To Speech
 https://fpt.ai/tts
 """
 
-from .base import Service
-import requests
 import json
 import time
-from .languages import StandardVoice
-from .voicelist import VOICE_LIST
 from typing import List
 
-__all__ = ['FptAi']
+import requests
 
+from .base import Service
+from .languages import StandardVoice
+from .voicelist import VOICE_LIST
+
+__all__ = ['FptAi']
 
 
 class FptAi(Service):
@@ -38,8 +39,7 @@ class FptAi(Service):
     Provides a Service-compliant implementation for iSpeech.
     """
 
-    __slots__ = [
-    ]
+    __slots__ = []
 
     NAME = "FptAi Vietnamese"
 
@@ -55,10 +55,9 @@ class FptAi(Service):
 
         if self.languagetools.use_plus_mode():
             # plus mode, no need for an API key
-            return []        
+            return []
 
         return [dict(key='key', label="API Key", required=True)]
-
 
     def get_voices(self) -> List[StandardVoice]:
         naver_voices = [x for x in VOICE_LIST if x['service'] == 'FptAi']
@@ -66,52 +65,56 @@ class FptAi(Service):
         voice_list = []
         for voice_data in naver_voices:
             voice_list.append(StandardVoice(voice_data))
-        return voice_list        
+        return voice_list
 
     def get_voice_list(self):
-        voice_list = [(voice.get_voice_key(), voice.get_description()) for voice in self.get_voices()]
+        voice_list = [
+            (voice.get_voice_key(), voice.get_description()) for voice in self.get_voices()
+        ]
         voice_list.sort(key=lambda x: x[1])
         return voice_list
 
     def get_voice_for_key(self, key) -> StandardVoice:
         voice = [voice for voice in self.get_voices() if voice.get_voice_key() == key]
-        assert(len(voice) == 1)
+        assert len(voice) == 1
         return voice[0]
 
     def options(self):
         """Provides access to voice and speed."""
 
         return [
-            dict(key='voice',
-                 label="Voice",
-                 values=self.get_voice_list(),
-                 transform=lambda value: value),
-
-            dict(key='speed',
-                 label="Speed",
-                 values=(-3, +3),
-                 transform=lambda i: min(max(-3, int(round(float(i)))), +3),
-                 default=0),
-
+            dict(
+                key='voice',
+                label="Voice",
+                values=self.get_voice_list(),
+                transform=lambda value: value,
+            ),
+            dict(
+                key='speed',
+                label="Speed",
+                values=(-3, +3),
+                transform=lambda i: min(max(-3, int(round(float(i)))), +3),
+                default=0,
+            ),
         ]
 
     def run(self, text, options, path):
         """Downloads from FPT.AI Vietnamese API directly to an MP3."""
-        
+
         voice_key = options['voice']
         voice = self.get_voice_for_key(voice_key)
 
         speed = options['speed']
 
         if self.languagetools.use_plus_mode():
-            self._logger.info(f'using language tools API')
+            self._logger.info('using language tools API')
             service = 'FptAi'
             voice_key = voice.get_voice_key()
             language = voice.get_language_code()
-            options = {
-                'speed': speed
-            }
-            self.languagetools.generate_audio_v2(text, service, 'batch', language, 'n/a', voice_key, options, path)        
+            options = {'speed': speed}
+            self.languagetools.generate_audio_v2(
+                text, service, 'batch', language, 'n/a', voice_key, options, path
+            )
         else:
 
             # make request first, then we'll have a result URL
@@ -120,13 +123,15 @@ class FptAi(Service):
                 'voice': options['voice']['voice_id'],
                 'Cache-Control': 'no-cache',
                 'format': 'mp3',
-                'speed': str(options['speed'])
-            }            
+                'speed': str(options['speed']),
+            }
 
             api_url = "https://api.fpt.ai/hmi/tts/v5"
             body = text
             try:
-                response = requests.post(api_url, headers=headers, data=body.encode('utf-8'), timeout=10)
+                response = requests.post(
+                    api_url, headers=headers, data=body.encode('utf-8'), timeout=10
+                )
             except requests.exceptions.RequestException as e:
                 self._logger.error(f"Network error: {e}")
                 raise ValueError(f"Network error: {e}")
@@ -173,4 +178,3 @@ class FptAi(Service):
                 async_url,
                 require=dict(mime='audio/mpeg', size=256),
             )
-

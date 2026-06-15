@@ -20,7 +20,6 @@
 Service implementation for Cambridge Dictionary
 """
 
-import re
 from html.parser import HTMLParser
 from urllib.parse import quote
 
@@ -34,7 +33,9 @@ class CambridgeLister(HTMLParser):
     """Accumulate all found MP3s into `sounds` member."""
 
     def __init__(self, initial_class):
-        self.initial_class = initial_class # should be something like 'uk dpron-i' for UK, or 'us dpron-i' for US
+        self.initial_class = (
+            initial_class  # should be something like 'uk dpron-i' for UK, or 'us dpron-i' for US
+        )
         self.capture_sound = False
         self.sound_file = None
         super().__init__()
@@ -44,13 +45,14 @@ class CambridgeLister(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         if tag == 'span' and len(attrs) == 1 and attrs[0] == ('class', self.initial_class):
-            #print(f'*** found wanted initial class span, attrs: {attrs}')
+            # print(f'*** found wanted initial class span, attrs: {attrs}')
             self.capture_sound = True
         if tag == 'source' and self.capture_sound and attrs[0] == ('type', 'audio/mpeg'):
-            #print(f'found tag source: attrs: {attrs}')
+            # print(f'found tag source: attrs: {attrs}')
             (tag_key, sound_file) = attrs[1]
             self.sound_file = sound_file
             self.capture_sound = False
+
 
 class Cambridge(Service):
     """
@@ -75,17 +77,29 @@ class Cambridge(Service):
         Provides access to voice.
         """
 
-        voice_lookup = dict([
-            # aliases for English, American
-            (self.normalize(alias), 'en-US')
-            for alias in ['American', 'American English', 'English, American',
-                          'US']
-        ] + [
-            # aliases for English, British ("default" for the OED)
-            (self.normalize(alias), 'en-GB')
-            for alias in ['British', 'British English', 'English, British',
-                          'English', 'en', 'en-EU', 'en-UK', 'EU', 'GB', 'UK']
-        ])
+        voice_lookup = dict(
+            [
+                # aliases for English, American
+                (self.normalize(alias), 'en-US')
+                for alias in ['American', 'American English', 'English, American', 'US']
+            ]
+            + [
+                # aliases for English, British ("default" for the OED)
+                (self.normalize(alias), 'en-GB')
+                for alias in [
+                    'British',
+                    'British English',
+                    'English, British',
+                    'English',
+                    'en',
+                    'en-EU',
+                    'en-UK',
+                    'EU',
+                    'GB',
+                    'UK',
+                ]
+            ]
+        )
 
         def transform_voice(value):
             """Normalize and attempt to convert to official code."""
@@ -99,8 +113,10 @@ class Cambridge(Service):
             dict(
                 key='voice',
                 label="Voice",
-                values=[('en-US', "English, American (en-US)"),
-                        ('en-GB', "English, British (en-GB)")],
+                values=[
+                    ('en-US', "English, American (en-US)"),
+                    ('en-GB', "English, British (en-GB)"),
+                ],
                 default='en-GB',
                 transform=transform_voice,
             ),
@@ -127,7 +143,7 @@ class Cambridge(Service):
 
         if parser.sound_file != None:
             sound_url = 'https://dictionary.cambridge.org' + parser.sound_file
-            #print(f'sound_url: {sound_url}')
+            # print(f'sound_url: {sound_url}')
 
             self.net_download(
                 path,
@@ -137,4 +153,6 @@ class Cambridge(Service):
             )
             parser.reset()
         else:
-            raise IOError(f"Could not extract audio for voice {options['voice']} from Cambridge dictionary on page {dict_url}. You can try the en-US voice.")
+            raise IOError(
+                f"Could not extract audio for voice {options['voice']} from Cambridge dictionary on page {dict_url}. You can try the en-US voice."
+            )

@@ -24,8 +24,10 @@ substitution rules.
 """
 
 import re
+
 import aqt.qt
-from .common import Checkbox, HTML
+
+from .common import HTML, Checkbox
 
 __all__ = ['GroupListView', 'SubListView']
 
@@ -118,8 +120,7 @@ class SubListView(_ListView):
     def setModel(self, model, *args, **kwargs):  # pylint:disable=C0103
         """Configures model."""
 
-        super(SubListView, self).setModel(_SubListModel(model),
-                                          *args, **kwargs)
+        super(SubListView, self).setModel(_SubListModel(model), *args, **kwargs)
 
 
 class GroupListView(_ListView):
@@ -136,17 +137,15 @@ class GroupListView(_ListView):
     def setModel(self, model, *args, **kwargs):  # pylint:disable=C0103
         """Configures model."""
 
-        super(GroupListView, self).setModel(
-            _GroupListModel(self._presets, model),
-            *args, **kwargs
-        )
+        super(GroupListView, self).setModel(_GroupListModel(self._presets, model), *args, **kwargs)
 
 
 class _Delegate(aqt.qt.QItemDelegate):
     """Abstract delegate view for use throughout AwesomeTTS."""
 
-    def sizeHint(self,            # pylint:disable=invalid-name
-                 option, index):  # pylint:disable=unused-argument
+    def sizeHint(
+        self, option, index  # pylint:disable=invalid-name
+    ):  # pylint:disable=unused-argument
         """Always return the same size."""
         return self.sizeHint.SIZE
 
@@ -162,8 +161,7 @@ class _SubRuleDelegate(_Delegate):
         super(_SubRuleDelegate, self).__init__(*args, **kwargs)
         self._sul_compiler = sul_compiler
 
-    def createEditor(self, parent,    # pylint:disable=C0103
-                     option, index):  # pylint:disable=W0613
+    def createEditor(self, parent, option, index):  # pylint:disable=C0103  # pylint:disable=W0613
         """Return a panel to change rule values."""
 
         edits = aqt.qt.QHBoxLayout()
@@ -230,8 +228,7 @@ class _SubRuleDelegate(_Delegate):
                 elif input_ends('/g'):
                     obj['input'] = obj['input'][1:-2]
                     obj['regex'] = True
-                elif input_len > 4 and (input_ends('/ig') or
-                                        input_ends('/gi')):
+                elif input_len > 4 and (input_ends('/ig') or input_ends('/gi')):
                     obj['input'] = obj['input'][1:-3]
                     obj['regex'] = True
                     obj['ignore_case'] = True
@@ -241,10 +238,14 @@ class _SubRuleDelegate(_Delegate):
 
         edits = editor.findChildren(aqt.qt.QLineEdit)
         checkboxes = editor.findChildren(Checkbox)
-        obj = {'input': edits[0].text(), 'compiled': None,
-               'replace': edits[1].text(), 'regex': checkboxes[0].isChecked(),
-               'ignore_case': checkboxes[1].isChecked(),
-               'unicode': checkboxes[2].isChecked()}
+        obj = {
+            'input': edits[0].text(),
+            'compiled': None,
+            'replace': edits[1].text(),
+            'regex': checkboxes[0].isChecked(),
+            'ignore_case': checkboxes[1].isChecked(),
+            'unicode': checkboxes[2].isChecked(),
+        }
 
         self._parse_regex_input(obj)
 
@@ -252,6 +253,7 @@ class _SubRuleDelegate(_Delegate):
             obj['compiled'] = self._sul_compiler(obj)
         except Exception as e:  # sre_constants.error, pylint:disable=W0703
             import logging
+
             logging.getLogger('AwesomeTTS').debug("Failed to compile substitution rule: %s", e)
 
         if obj['compiled'] and obj['regex']:
@@ -276,8 +278,7 @@ class _GroupPresetDelegate(_Delegate):
         super(_GroupPresetDelegate, self).__init__(*args, **kwargs)
         self._presets = presets
 
-    def createEditor(self, parent,    # pylint:disable=C0103
-                     option, index):  # pylint:disable=W0613
+    def createEditor(self, parent, option, index):  # pylint:disable=C0103  # pylint:disable=W0613
         """Return a panel to change selected preset."""
 
         dropdown = aqt.qt.QComboBox()
@@ -307,10 +308,7 @@ class _GroupPresetDelegate(_Delegate):
         """Update the underlying model after edit."""
 
         dropdown = editor.findChild(aqt.qt.QComboBox)
-        model.setData(
-            index,
-            dropdown.currentText() if dropdown.currentIndex() > 0 else ""
-        )
+        model.setData(index, dropdown.currentText() if dropdown.currentIndex() > 0 else "")
 
 
 class _ListModel(aqt.qt.QAbstractListModel):  # pylint:disable=R0904
@@ -322,11 +320,15 @@ class _ListModel(aqt.qt.QAbstractListModel):  # pylint:disable=R0904
         """Always return same item flags."""
         return self.flags.LIST_ITEM
 
-    flags.LIST_ITEM = (aqt.qt.Qt.ItemFlag.ItemIsSelectable | aqt.qt.Qt.ItemFlag.ItemIsEditable |
-                       aqt.qt.Qt.ItemFlag.ItemIsEnabled)
+    flags.LIST_ITEM = (
+        aqt.qt.Qt.ItemFlag.ItemIsSelectable
+        | aqt.qt.Qt.ItemFlag.ItemIsEditable
+        | aqt.qt.Qt.ItemFlag.ItemIsEnabled
+    )
 
-    def rowCount(self,          # pylint:disable=invalid-name
-                 parent=None):  # pylint:disable=unused-argument
+    def rowCount(
+        self, parent=None  # pylint:disable=invalid-name
+    ):  # pylint:disable=unused-argument
         """Return row count based on my raw data."""
         return len(self.raw_data)
 
@@ -338,12 +340,13 @@ class _ListModel(aqt.qt.QAbstractListModel):  # pylint:disable=R0904
         """Moves the given count of records at the given row down."""
 
         parent = aqt.qt.QModelIndex()
-        self.beginMoveRows(parent, row, row + count - 1,
-                           parent, row + count + 1)
-        self.raw_data = (self.raw_data[0:row] +
-                         self.raw_data[row + count:row + count + 1] +
-                         self.raw_data[row:row + count] +
-                         self.raw_data[row + count + 1:])
+        self.beginMoveRows(parent, row, row + count - 1, parent, row + count + 1)
+        self.raw_data = (
+            self.raw_data[0:row]
+            + self.raw_data[row + count : row + count + 1]
+            + self.raw_data[row : row + count]
+            + self.raw_data[row + count + 1 :]
+        )
         self.endMoveRows()
         return True
 
@@ -352,24 +355,26 @@ class _ListModel(aqt.qt.QAbstractListModel):  # pylint:disable=R0904
 
         parent = aqt.qt.QModelIndex()
         self.beginMoveRows(parent, row, row + count - 1, parent, row - 1)
-        self.raw_data = (self.raw_data[0:row - 1] +
-                         self.raw_data[row:row + count] +
-                         self.raw_data[row - 1:row] +
-                         self.raw_data[row + count:])
+        self.raw_data = (
+            self.raw_data[0 : row - 1]
+            + self.raw_data[row : row + count]
+            + self.raw_data[row - 1 : row]
+            + self.raw_data[row + count :]
+        )
         self.endMoveRows()
         return True
 
     def removeRows(self, row, count=1, parent=None):  # pylint:disable=C0103
         """Removes the given count of records at the given row."""
 
-        self.beginRemoveRows(parent or aqt.qt.QModelIndex(),
-                             row, row + count - 1)
-        self.raw_data = self.raw_data[0:row] + self.raw_data[row + count:]
+        self.beginRemoveRows(parent or aqt.qt.QModelIndex(), row, row + count - 1)
+        self.raw_data = self.raw_data[0:row] + self.raw_data[row + count :]
         self.endRemoveRows()
         return True
 
-    def setData(self, index, value,        # pylint:disable=C0103
-                role=aqt.qt.Qt.ItemDataRole.EditRole):  # pylint:disable=W0613
+    def setData(
+        self, index, value, role=aqt.qt.Qt.ItemDataRole.EditRole  # pylint:disable=C0103
+    ):  # pylint:disable=W0613
         """Update the new value into the raw list."""
 
         self.raw_data[index.row()] = value
@@ -392,16 +397,19 @@ class _SubListModel(_ListModel):  # pylint:disable=R0904
         elif 'bad_replace' in rule:
             return "bad replacement string: " + rule['replace']
 
-        text = '/%s/%s' % (rule['input'],
-                           'i' if rule['ignore_case'] else '') \
-               if rule['regex'] else '"%s"' % rule['input']
-        action = ('replace it with "%s"' % rule['replace']
-                  if rule['replace'] else "remove it")
-        attr = ", ".join([
-            "regex pattern" if rule['regex'] else "plain text",
-            "case-insensitive" if rule['ignore_case'] else "case matters",
-            "unicode enabled" if rule['unicode'] else "unicode disabled",
-        ])
+        text = (
+            '/%s/%s' % (rule['input'], 'i' if rule['ignore_case'] else '')
+            if rule['regex']
+            else '"%s"' % rule['input']
+        )
+        action = 'replace it with "%s"' % rule['replace'] if rule['replace'] else "remove it"
+        attr = ", ".join(
+            [
+                "regex pattern" if rule['regex'] else "plain text",
+                "case-insensitive" if rule['ignore_case'] else "case matters",
+                "unicode enabled" if rule['unicode'] else "unicode disabled",
+            ]
+        )
         return "match " + text + " and " + action + "\n(" + attr + ")"
 
     def data(self, index, role=aqt.qt.Qt.ItemDataRole.DisplayRole):
@@ -421,9 +429,17 @@ class _SubListModel(_ListModel):  # pylint:disable=R0904
             row = len(self.raw_data)  # defaults to end
 
         self.beginInsertRows(parent or aqt.qt.QModelIndex(), row, row)
-        self.raw_data.insert(row, {'input': '', 'compiled': None,
-                                   'replace': '', 'regex': False,
-                                   'ignore_case': True, 'unicode': True})
+        self.raw_data.insert(
+            row,
+            {
+                'input': '',
+                'compiled': None,
+                'replace': '',
+                'regex': False,
+                'ignore_case': True,
+                'unicode': True,
+            },
+        )
         self.endInsertRows()
         return True
 
@@ -442,9 +458,11 @@ class _GroupListModel(_ListModel):  # pylint:disable=R0904
 
         preset = self.raw_data[index.row()]
         if role == aqt.qt.Qt.ItemDataRole.DisplayRole:
-            return ("(not selected)" if not preset
-                    else preset if preset in self._presets
-                    else preset + " [deleted]")
+            return (
+                "(not selected)"
+                if not preset
+                else preset if preset in self._presets else preset + " [deleted]"
+            )
         elif role == aqt.qt.Qt.ItemDataRole.EditRole:
             return preset
 

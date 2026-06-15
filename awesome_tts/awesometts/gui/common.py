@@ -29,8 +29,7 @@ import aqt.qt
 
 from ..paths import ICONS
 
-__all__ = ['ICON', 'Action', 'Button',
-           'Checkbox', 'Filter', 'HTML', 'Label', 'Note']
+__all__ = ['ICON', 'Action', 'Button', 'Checkbox', 'Filter', 'HTML', 'Label', 'Note']
 
 
 ICON_FILE = f'{ICONS}/speaker.png'
@@ -60,10 +59,7 @@ class _Connector:  # used like a mixin, pylint:disable=R0903
         """
 
         if not self._instance:
-            self._instance = self._target.constructor(
-                *self._target.args,
-                **self._target.kwargs
-            )
+            self._instance = self._target.constructor(*self._target.args, **self._target.kwargs)
 
         self._instance.show()
 
@@ -72,6 +68,7 @@ class _QtConnector(_Connector):
     """
     Connector for aqt.qt.Qt.Widgets.
     """
+
     def __init__(self, target, signal_name, **kwargs):
         """
         Wire up the passed signal.
@@ -194,12 +191,12 @@ class Filter(aqt.qt.QObject):
 
     def eventFilter(self, _, event):  # pylint: disable=invalid-name
         """
-       aqt.qt.Qt.eventFilter method. Returns True if the event has been
-        handled and should be filtered out.
+        aqt.qt.Qt.eventFilter method. Returns True if the event has been
+         handled and should be filtered out.
 
-        The result of and'ing the return values from the `when` and
-        `relay` callable is forced to a boolean if it is not already (as
-       aqt.qt.Qt.blows up quite spectacularly if it is not).
+         The result of and'ing the return values from the `when` and
+         `relay` callable is forced to a boolean if it is not already (as
+        aqt.qt.Qt.blows up quite spectacularly if it is not).
         """
 
         return bool(self._when(event) and self._relay(event))
@@ -232,15 +229,16 @@ class Note(Label):
 class Slate(aqt.qt.QHBoxLayout):  # pylint:disable=too-few-public-methods
     """Horizontal panel for dealing with lists of things."""
 
-    def __init__(self, thing, ListViewClass, list_view_args, list_name,
-                 *args, **kwargs):
+    def __init__(self, thing, ListViewClass, list_view_args, list_name, *args, **kwargs):
         super(Slate, self).__init__(*args, **kwargs)
 
         buttons = []
-        for tooltip, icon in [("Add New " + thing, 'list-add'),
-                              ("Move Selected Up", 'arrow-up'),
-                              ("Move Selected Down", 'arrow-down'),
-                              ("Remove Selected", 'editdelete')]:
+        for tooltip, icon in [
+            ("Add New " + thing, 'list-add'),
+            ("Move Selected Up", 'arrow-up'),
+            ("Move Selected Down", 'arrow-down'),
+            ("Remove Selected", 'editdelete'),
+        ]:
             btn = aqt.qt.QPushButton(aqt.qt.QIcon(f'{ICONS}/{icon}.png'), "")
             btn.setIconSize(aqt.qt.QSize(16, 16))
             btn.setFlat(True)
@@ -250,8 +248,9 @@ class Slate(aqt.qt.QHBoxLayout):  # pylint:disable=too-few-public-methods
         list_view_args.append(buttons)
         list_view = ListViewClass(*list_view_args)
         list_view.setObjectName(list_name)
-        list_view.setSizePolicy(aqt.qt.QSizePolicy.Policy.MinimumExpanding,
-                                aqt.qt.QSizePolicy.Policy.Ignored)
+        list_view.setSizePolicy(
+            aqt.qt.QSizePolicy.Policy.MinimumExpanding, aqt.qt.QSizePolicy.Policy.Ignored
+        )
 
         vert = aqt.qt.QVBoxLayout()
         for btn in buttons:

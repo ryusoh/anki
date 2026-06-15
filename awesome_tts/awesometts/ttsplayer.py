@@ -1,26 +1,22 @@
 """
 Register AwesomeTTS voices with the Anki {{tts}} tag.
-code modeled after 
-https://ankiweb.net/shared/info/391644525 
+code modeled after
+https://ankiweb.net/shared/info/391644525
 https://github.com/ankitects/anki-addons/blob/master/code/gtts_player/__init__.py
 """
 
-import os
-import sys
-from concurrent.futures import Future
-from dataclasses import dataclass
-from typing import List, cast
 import threading
+from concurrent.futures import Future
+from typing import List
 
 import anki.sound
-from anki.lang import compatMap
+import anki.utils
+import aqt.utils
 from anki.sound import AVTag, TTSTag
 from aqt import mw
-from aqt.taskman import TaskManager
 from aqt.sound import OnDoneCallback, av_player
+from aqt.taskman import TaskManager
 from aqt.tts import TTSProcessPlayer, TTSVoice
-import aqt.utils
-import anki.utils
 
 
 class AwesomeTTSPlayer(TTSProcessPlayer):
@@ -33,11 +29,11 @@ class AwesomeTTSPlayer(TTSProcessPlayer):
 
         # register a voice for every possible language AwesomeTTS supports. This avoids forcing the user to do a restart when
         # they configure a new TTS tag
-        
+
         voices = []
         for language in self._addon.language:
             language_name = language.name
-            if anki.utils.point_version() == 58: # this regression only concerns anki 2.1.58
+            if anki.utils.point_version() == 58:  # this regression only concerns anki 2.1.58
                 voices.append(TTSVoice(name="AwesomeTTS", lang=language_name, available=True))
             else:
                 voices.append(TTSVoice(name="AwesomeTTS", lang=language_name))
@@ -56,8 +52,10 @@ class AwesomeTTSPlayer(TTSProcessPlayer):
         voice = match.voice
         language = voice.lang
         language_human = self._addon.language[language].lang_name
-        
-        self._addon.logger.debug(f"playing back for language {language}, tag: {tag} text: {tag.field_text}")
+
+        self._addon.logger.debug(
+            f"playing back for language {language}, tag: {tag} text: {tag.field_text}"
+        )
 
         # is the field blank?
         if not tag.field_text.strip():
@@ -74,7 +72,7 @@ class AwesomeTTSPlayer(TTSProcessPlayer):
             self.playback_error_message = f"Language {language} ({language_human}) not configured for on-the-fly TTS, please add TTS tag in Card template editor to register this language."
             return
 
-        #print(f"* playing back: {self._addon.config['tts_voices'][language]}")
+        # print(f"* playing back: {self._addon.config['tts_voices'][language]}")
 
         # this allows us to block until the asynchronous callback is done
         self.done_event = threading.Event()
@@ -88,7 +86,9 @@ class AwesomeTTSPlayer(TTSProcessPlayer):
             # playback with preset
 
             awesometts_preset_name = self._addon.config['tts_voices'][language]['preset']
-            self._addon.logger.info(f"playing back text with preset: {awesometts_preset_name}, text: {text}.")
+            self._addon.logger.info(
+                f"playing back text with preset: {awesometts_preset_name}, text: {text}."
+            )
 
             self.awesometts_preset = awesometts_preset_name
             preset = self._addon.config['presets'][awesometts_preset_name]
@@ -100,7 +100,7 @@ class AwesomeTTSPlayer(TTSProcessPlayer):
                 callbacks=dict(
                     okay=self.audio_file_ready,
                     fail=self.failure,
-                )
+                ),
             )
 
         else:
@@ -116,7 +116,7 @@ class AwesomeTTSPlayer(TTSProcessPlayer):
                 self.failure(f"group {group_name} not found")
                 return
 
-            #print(f"** playing back group {self._addon.config['tts_voices'][language]}")
+            # print(f"** playing back group {self._addon.config['tts_voices'][language]}")
 
             self._addon.router.group(
                 text=text,
@@ -126,8 +126,7 @@ class AwesomeTTSPlayer(TTSProcessPlayer):
                     okay=self.audio_file_ready,
                     fail=self.failure,
                 ),
-            )    
-
+            )
 
         # need to wait until we get either a successful callback, or
         self.done_event.wait(timeout=60)

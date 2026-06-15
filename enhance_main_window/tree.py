@@ -13,24 +13,28 @@ def computeValues():
     debug("Compute values")
     cutoff = int_time() + mw.col.get_config('collapseTime')
     today = mw.col.sched.today
-    tomorrow = today+1
-    yesterdayLimit = (mw.col.sched.day_cutoff-86400)*1000
+    tomorrow = today + 1
+    yesterdayLimit = (mw.col.sched.day_cutoff - 86400) * 1000
     debug(f"Yesterday limit is {yesterdayLimit}")
-    queriesCardCount = ([(f"flag {i}", f"(flags & 7) == {i}", "", "") for i in range(5)] +
-                        [
+    queriesCardCount = [(f"flag {i}", f"(flags & 7) == {i}", "", "") for i in range(5)] + [
         ("due tomorrow", f"queue in ({QUEUE_REV},{QUEUE_DAY_LRN}) and due = {tomorrow}", "", ""),
         ("learning now from today", f"queue = {QUEUE_LRN} and due <= {cutoff}", "", ""),
         ("learning today from past", f"queue = {QUEUE_DAY_LRN} and due <= {today}", "", ""),
         ("learning later today", f"queue = {QUEUE_LRN} and due > {cutoff}", "", ""),
         ("learning future", f"queue = {QUEUE_DAY_LRN} and due > {today}", "", ""),
-        ("learning today repetition from today", f"queue = {QUEUE_LRN}", f"left/1000", ""),
-        ("learning today repetition from past", f"queue = {QUEUE_DAY_LRN}", f"left/1000", ""),
-        ("learning repetition from today", f"queue = {QUEUE_LRN}", f"mod%1000", ""),
-        ("learning repetition from past", f"queue = {QUEUE_DAY_LRN}", f"mod%1000", ""),
+        ("learning today repetition from today", f"queue = {QUEUE_LRN}", "left/1000", ""),
+        ("learning today repetition from past", f"queue = {QUEUE_DAY_LRN}", "left/1000", ""),
+        ("learning repetition from today", f"queue = {QUEUE_LRN}", "mod%1000", ""),
+        ("learning repetition from past", f"queue = {QUEUE_DAY_LRN}", "mod%1000", ""),
         ("review due", f"queue = {QUEUE_REV} and due <= {today}", "", ""),
         ("reviewed today", f"queue = {QUEUE_REV} and due>0 and due-ivl = {today}", "", ""),
-        ("repeated today", f"revlog.id>{yesterdayLimit}", "", "revlog inner join cards on revlog.cid = cards.id"),
-        ("repeated", "", "", f"revlog inner join cards on revlog.cid = cards.id"),
+        (
+            "repeated today",
+            f"revlog.id>{yesterdayLimit}",
+            "",
+            "revlog inner join cards on revlog.cid = cards.id",
+        ),
+        ("repeated", "", "", "revlog inner join cards on revlog.cid = cards.id"),
         ("unseen", f"queue = {QUEUE_NEW_CRAM}", "", ""),
         ("buried", f"queue = {QUEUE_USER_BURIED}  or queue = {QUEUE_SCHED_BURIED}", "", ""),
         ("suspended", f"queue = {QUEUE_SUSPENDED}", "", ""),
@@ -38,7 +42,7 @@ def computeValues():
         ("undue", f"queue = {QUEUE_REV} and due >  {today}", "", ""),
         ("mature", f"queue = {QUEUE_REV} and ivl >= 21", "", ""),
         ("young", f"queue = {QUEUE_REV} and 0<ivl and ivl <21", "", ""),
-    ])
+    ]
 
     # Group queries by table
     queries_by_table = {}
@@ -77,5 +81,7 @@ times = dict()
 
 def computeTime():
     times.clear()
-    for did, time in mw.col.db.all(f"select did,min(case when queue = {QUEUE_LRN} then due else null end) from cards group by did"):
+    for did, time in mw.col.db.all(
+        f"select did,min(case when queue = {QUEUE_LRN} then due else null end) from cards group by did"
+    ):
         times[did] = time

@@ -1,18 +1,15 @@
-
 """
 Service implementation for the Amazon/AWS Polly service, routed through the Language Tools backend
 """
 
-import time
-import datetime
-import requests
-from xml.etree import ElementTree
+from typing import List
+
 from .base import Service
 from .languages import StandardVoice
 from .voicelist import VOICE_LIST
-from typing import List
 
 __all__ = ['Amazon']
+
 
 class AmazonVoice(StandardVoice):
     def __init__(self, voice_data):
@@ -20,6 +17,7 @@ class AmazonVoice(StandardVoice):
 
     def get_key(self) -> str:
         return self.voice_key
+
 
 class Amazon(Service):
 
@@ -44,12 +42,10 @@ class Amazon(Service):
             voice_list.append(AmazonVoice(voice_data))
         return voice_list
 
-
     def get_voice_for_key(self, key) -> AmazonVoice:
         voice = [voice for voice in self.get_voices() if voice.get_key() == key]
-        assert(len(voice) == 1)
+        assert len(voice) == 1
         return voice[0]
-
 
     def get_voice_list(self):
         voice_list = [(voice.get_key(), voice.get_description()) for voice in self.get_voices()]
@@ -63,30 +59,22 @@ class Amazon(Service):
         self.access_token = None
 
         result = [
-            dict(key='voice',
-                 label="Voice",
-                 values=self.get_voice_list(),
-                 transform=lambda value: value),
-            dict(key='rate',
-                label='Speed',
-                values=(20, 200),
-                default=100,
-                transform=float),
-            dict(key='pitch',
-                label='Pitch',
-                values=(-50, 50),
-                default=0,
-                transform=int),
-            
+            dict(
+                key='voice',
+                label="Voice",
+                values=self.get_voice_list(),
+                transform=lambda value: value,
+            ),
+            dict(key='rate', label='Speed', values=(20, 200), default=100, transform=float),
+            dict(key='pitch', label='Pitch', values=(-50, 50), default=0, transform=int),
         ]
-            
+
         return result
 
-    
     def run(self, text, options, path):
 
         if not self.languagetools.use_plus_mode():
-            raise ValueError(f'Amazon is only available on AwesomeTTS Plus')
+            raise ValueError('Amazon is only available on AwesomeTTS Plus')
 
         voice_key = options['voice']
         voice = self.get_voice_for_key(voice_key)
@@ -94,15 +82,11 @@ class Amazon(Service):
         rate = options['rate']
         pitch = options['pitch']
 
-        self._logger.info(f'using language tools API')
+        self._logger.info('using language tools API')
         service = 'Amazon'
         voice_key = voice.get_voice_key()
         language = voice.get_language_code()
-        options = {
-            'pitch': pitch,
-            'rate': rate
-        }
-        self.languagetools.generate_audio_v2(text, service, 'batch', language, 'n/a', voice_key, options, path)
-
-
-
+        options = {'pitch': pitch, 'rate': rate}
+        self.languagetools.generate_audio_v2(
+            text, service, 'batch', language, 'n/a', voice_key, options, path
+        )

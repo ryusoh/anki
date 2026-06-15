@@ -30,6 +30,7 @@ CONFIG_ADDON_NAME = 'anki-awesome-tts'
 if ANKIWEB_ADDON_ID in __file__:
     CONFIG_ADDON_NAME = ANKIWEB_ADDON_ID
 
+
 class Config(object):
     """
     Exposes a class whose instances have a dict-like interface for
@@ -69,11 +70,11 @@ class Config(object):
                 return sqlite3.Cursor.execute(self, sql)
 
     __slots__ = [
-        '_db',           # path to database, table name, normalize callable
-        '_cols',         # map of official lookup names to column definitions
-        '_cache',        # in-memory lookup of preferences
-        '_logger',       # where to send logging messages
-        '_events',       # map of lookup names to the callable(s) they trigger
+        '_db',  # path to database, table name, normalize callable
+        '_cols',  # map of official lookup names to column definitions
+        '_cache',  # in-memory lookup of preferences
+        '_logger',  # where to send logging messages
+        '_events',  # map of lookup names to the callable(s) they trigger
     ]
 
     def __init__(self, db, cols, logger, events=None):
@@ -107,10 +108,7 @@ class Config(object):
 
         self._db = db
 
-        self._cols = {
-            self._db.normalize(col[0]): col
-            for col in cols
-        }
+        self._cols = {self._db.normalize(col[0]): col for col in cols}
         self._logger = logger
 
         self._events = {}
@@ -159,22 +157,22 @@ class Config(object):
         cursor.set_logger(self._logger)
 
         # check for existence of the configuration table
-        if len(cursor.execute('SELECT name FROM sqlite_master '
-                              'WHERE type=? AND name=?',
-                              ('table', self._db.table)).fetchall()):
+        if len(
+            cursor.execute(
+                'SELECT name FROM sqlite_master ' 'WHERE type=? AND name=?',
+                ('table', self._db.table),
+            ).fetchall()
+        ):
             # detect existing columns
             table_name_pragma = self._db.table.replace('"', '""')
             existing_cols = [
                 meta['name'].lower()
-                for meta
-                in cursor.execute('PRAGMA table_info("%s")' % table_name_pragma)
+                for meta in cursor.execute('PRAGMA table_info("%s")' % table_name_pragma)
             ]
 
             # detect any new columns not present in database
             missing_cols = [
-                col
-                for col in self._cols.values()
-                if col[0].lower() not in existing_cols
+                col for col in self._cols.values() if col[0].lower() not in existing_cols
             ]
 
             if missing_cols:
@@ -189,17 +187,23 @@ class Config(object):
                     table_name = self._db.table.replace('"', '""')
                     col_name = col[0].replace('"', '""')
                     col_type = col[1].replace('"', '""')
-                    cursor.execute('ALTER TABLE "%s" ADD COLUMN "%s" %s' % (
-                        table_name,
-                        col_name,
-                        col_type,
-                    ))
+                    cursor.execute(
+                        'ALTER TABLE "%s" ADD COLUMN "%s" %s'
+                        % (
+                            table_name,
+                            col_name,
+                            col_type,
+                        )
+                    )
 
                 # set default values for newly-inserted columns
                 table_name = self._db.table.replace('"', '""')
-                update_cols = ', '.join(['"%s"=?' % col[0].replace('"', '""') for col in missing_cols])
+                update_cols = ', '.join(
+                    ['"%s"=?' % col[0].replace('"', '""') for col in missing_cols]
+                )
                 cursor.execute(
-                    'UPDATE "%s" SET %s' % (
+                    'UPDATE "%s" SET %s'
+                    % (
                         table_name,
                         update_cols,
                     ),
@@ -208,8 +212,7 @@ class Config(object):
 
             # populate in-memory store of the values from database
             table_name = self._db.table.replace('"', '""')
-            row = cursor.execute('SELECT * FROM "%s"' % table_name) \
-                .fetchone()
+            row = cursor.execute('SELECT * FROM "%s"' % table_name).fetchone()
             for name, col in self._cols.items():
                 # attempt to retrieve value; if it fails, use the default
                 try:
@@ -224,17 +227,23 @@ class Config(object):
 
             # create the table
             table_name = self._db.table.replace('"', '""')
-            cursor.execute('CREATE TABLE "%s" (%s)' % (
-                table_name,
-                ', '.join([
-                    '"%s" %s' % (col[0].replace('"', '""'), col[1].replace('"', '""'))
-                    for col in all_cols
-                ]),
-            ))
+            cursor.execute(
+                'CREATE TABLE "%s" (%s)'
+                % (
+                    table_name,
+                    ', '.join(
+                        [
+                            '"%s" %s' % (col[0].replace('"', '""'), col[1].replace('"', '""'))
+                            for col in all_cols
+                        ]
+                    ),
+                )
+            )
 
             # set the default values
             cursor.execute(
-                'INSERT INTO "%s" VALUES(%s)' % (
+                'INSERT INTO "%s" VALUES(%s)'
+                % (
                     table_name,
                     ', '.join(['?' for col in all_cols]),
                 ),
@@ -292,9 +301,8 @@ class Config(object):
         Raises KeyError if any key is not a supported name.
         """
 
-        assert (
-            bool(len(kw_updates)) !=  # xor
-            bool(len(updates_dict) == 1 and isinstance(updates_dict[0], dict))
+        assert bool(len(kw_updates)) != bool(  # xor
+            len(updates_dict) == 1 and isinstance(updates_dict[0], dict)
         ), "Must call update() with a dict or kwargs-style arguments"
 
         updates = kw_updates or updates_dict[0]
@@ -302,11 +310,9 @@ class Config(object):
         # remap dict into a list of (name, col, new value)-tuples
         updates = [
             (name, self._cols[name], value)
-            for name, value
-            in [
+            for name, value in [
                 (self._db.normalize(unnormalized_name), value)
-                for unnormalized_name, value
-                in updates.items()
+                for unnormalized_name, value in updates.items()
             ]
             if value != self._cache[name]  # filter out unchanged values
         ]
@@ -331,19 +337,16 @@ class Config(object):
 
         # persist to SQLite3 database
         table_name = self._db.table.replace('"', '""')
-        update_cols = ', '.join([
-            '"%s"=?' % col[0].replace('"', '""')
-            for name, col, value in updates
-        ])
+        update_cols = ', '.join(
+            ['"%s"=?' % col[0].replace('"', '""') for name, col, value in updates]
+        )
         cursor.execute(
-            'UPDATE "%s" SET %s' % (
+            'UPDATE "%s" SET %s'
+            % (
                 table_name,
                 update_cols,
             ),
-            tuple(
-                col[4](value)
-                for name, col, value in updates
-            ),
+            tuple(col[4](value) for name, col, value in updates),
         )
 
         # close database connection

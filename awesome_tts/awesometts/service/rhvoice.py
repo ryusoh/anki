@@ -26,8 +26,7 @@ from .common import Trait
 __all__ = ['RHVoice']
 
 
-VOICES_DIRS = (prefix + '/share/RHVoice/voices'
-               for prefix in ['~', '~/usr', '/usr/local', '/usr'])
+VOICES_DIRS = (prefix + '/share/RHVoice/voices' for prefix in ['~', '~/usr', '/usr/local', '/usr'])
 INFO_FILE = 'voice.info'
 
 NAME_KEY = 'name'
@@ -46,7 +45,7 @@ class RHVoice(Service):
     """Provides a Service-compliant implementation for RHVoice."""
 
     __slots__ = [
-        '_voice_list',    # sorted list of (voice value, human label) tuples
+        '_voice_list',  # sorted list of (voice value, human label) tuples
         '_backgrounded',  # True if AwesomeTTS needed to start the service
     ]
 
@@ -61,8 +60,9 @@ class RHVoice(Service):
         """
 
         if not self.IS_LINUX:
-            raise EnvironmentError("AwesomeTTS only knows how to work w/ the "
-                                   "Linux version of RHVoice at this time.")
+            raise EnvironmentError(
+                "AwesomeTTS only knows how to work w/ the " "Linux version of RHVoice at this time."
+            )
 
         super(RHVoice, self).__init__(*args, **kwargs)
 
@@ -78,14 +78,17 @@ class RHVoice(Service):
                 return lookup
             except Exception as e:
                 import logging
-                logging.getLogger(__name__).debug(f"Failed to read RHVoice info from {voice_file}: {e}")
+
+                logging.getLogger(__name__).debug(
+                    f"Failed to read RHVoice info from {voice_file}: {e}"
+                )
                 return {}
 
         def get_voices_from(path):
             """Return a list of voices at the given path, if any."""
 
             from os import listdir
-            from os.path import expanduser, join, isdir, isfile
+            from os.path import expanduser, isdir, isfile, join
 
             path = expanduser(path)
             self._logger.debug("Searching %s for voices", path)
@@ -93,7 +96,8 @@ class RHVoice(Service):
             result = [
                 (
                     voice_name,
-                    "%s (%s, %s)" % (
+                    "%s (%s, %s)"
+                    % (
                         voice_info.get(NAME_KEY, voice_name),
                         voice_info.get(LANGUAGE_KEY, "no language"),
                         voice_info.get(GENDER_KEY, "no gender"),
@@ -104,11 +108,9 @@ class RHVoice(Service):
                         (voice_name, get_voice_info(voice_file))
                         for (voice_name, voice_file) in (
                             (voice_name, voice_file)
-                            for (voice_name, voice_file)
-                            in (
+                            for (voice_name, voice_file) in (
                                 (voice_name, join(voice_dir, INFO_FILE))
-                                for (voice_name, voice_dir)
-                                in (
+                                for (voice_name, voice_dir) in (
                                     (voice_name, join(path, voice_name))
                                     for voice_name in listdir(path)
                                 )
@@ -120,7 +122,7 @@ class RHVoice(Service):
                     key=lambda voice_name_voice_info: (
                         voice_name_voice_info[1].get(LANGUAGE_KEY),
                         voice_name_voice_info[1].get(NAME_KEY, voice_name_voice_info[0]),
-                    )
+                    ),
                 )
             ]
 
@@ -135,13 +137,13 @@ class RHVoice(Service):
                 break
             except Exception as e:
                 import logging
+
                 logging.getLogger(__name__).debug(f"Failed to get RHVoice voices from {path}: {e}")
                 continue
         else:
             raise EnvironmentError("No usable voices could be found")
 
-        dbus_check = ''.join(self.cli_output_error('RHVoice-client',
-                                                   '-s', '__awesometts_check'))
+        dbus_check = ''.join(self.cli_output_error('RHVoice-client', '-s', '__awesometts_check'))
         if 'ServiceUnknown' in dbus_check and 'RHVoice' in dbus_check:
             self.cli_background('RHVoice-service')
             self._backgrounded = True
@@ -153,35 +155,46 @@ class RHVoice(Service):
 
         return "RHVoice synthesizer (%d voices), %s" % (
             len(self._voice_list),
-            "service started by AwesomeTTS" if self._backgrounded
-            else "provided by host system"
+            "service started by AwesomeTTS" if self._backgrounded else "provided by host system",
         )
 
     def options(self):
         """Provides access to voice, speed, pitch, and volume."""
 
-        voice_lookup = {self.normalize(voice[0]): voice[0]
-                        for voice in self._voice_list}
+        voice_lookup = {self.normalize(voice[0]): voice[0] for voice in self._voice_list}
 
         def transform_voice(value):
             """Normalize and attempt to convert to official voice."""
             normalized = self.normalize(value)
-            return (voice_lookup[normalized] if normalized in voice_lookup
-                    else value)
+            return voice_lookup[normalized] if normalized in voice_lookup else value
 
         def transform_percent(user_input):
             """Given some user input, return a integer within [-100, 100]."""
             return min(max(-100, int(round(float(user_input)))), +100)
 
         return [
-            dict(key='voice', label="Voice", values=self._voice_list,
-                 transform=transform_voice),
-            dict(key='speed', label="Speed", values=PERCENT_VALUES,
-                 transform=transform_percent, default=0),
-            dict(key='pitch', label="Pitch", values=PERCENT_VALUES,
-                 transform=transform_percent, default=0),
-            dict(key='volume', label="Volume", values=PERCENT_VALUES,
-                 transform=transform_percent, default=0),
+            dict(key='voice', label="Voice", values=self._voice_list, transform=transform_voice),
+            dict(
+                key='speed',
+                label="Speed",
+                values=PERCENT_VALUES,
+                transform=transform_percent,
+                default=0,
+            ),
+            dict(
+                key='pitch',
+                label="Pitch",
+                values=PERCENT_VALUES,
+                transform=transform_percent,
+                default=0,
+            ),
+            dict(
+                key='volume',
+                label="Volume",
+                values=PERCENT_VALUES,
+                transform=transform_percent,
+                default=0,
+            ),
         ]
 
     def run(self, text, options, path):
@@ -197,18 +210,22 @@ class RHVoice(Service):
             output_wav = self.path_temp('wav')
 
             self.cli_pipe(
-                ['RHVoice-client',
-                 '-s', options['voice'],
-                 '-r', decimalize(options['speed']),
-                 '-p', decimalize(options['pitch']),
-                 '-v', decimalize(options['volume'])],
+                [
+                    'RHVoice-client',
+                    '-s',
+                    options['voice'],
+                    '-r',
+                    decimalize(options['speed']),
+                    '-p',
+                    decimalize(options['pitch']),
+                    '-v',
+                    decimalize(options['volume']),
+                ],
                 input_path=input_txt,
                 output_path=output_wav,
             )
 
-            self.cli_transcode(output_wav,
-                               path,
-                               require=dict(size_in=4096))
+            self.cli_transcode(output_wav, path, require=dict(size_in=4096))
 
         finally:
             self.path_unlink(input_txt, output_wav)

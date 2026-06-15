@@ -30,13 +30,15 @@ import aqt.utils
 
 try:
     import PyQt6
+
     QComboBoxType = PyQt6.QtWidgets.QComboBox
 except ImportError:
     import PyQt5
+
     QComboBoxType = PyQt5.QtWidgets.QComboBox
 
 from ..paths import ICONS
-from .common import Label, Note, ICON
+from .common import ICON, Label, Note
 
 __all__ = ['Dialog', 'ServiceDialog']
 
@@ -78,7 +80,8 @@ class Dialog(aqt.qt.QDialog):
         self._addon = addon
         self._addon.logger.debug(
             "Constructing %s (%s) dialog",
-            title, self.__class__.__name__,
+            title,
+            self.__class__.__name__,
         )
         self._title = title
 
@@ -88,10 +91,7 @@ class Dialog(aqt.qt.QDialog):
         self.setLayout(self._ui())
         aqt.utils.disable_help_button(self)
         self.setWindowIcon(ICON)
-        self.setWindowTitle(
-            title if "AwesomeTTS" in title
-            else "AwesomeTTS: " + title
-        )
+        self.setWindowTitle(title if "AwesomeTTS" in title else "AwesomeTTS: " + title)
 
     # UI Construction ########################################################
 
@@ -120,8 +120,6 @@ class Dialog(aqt.qt.QDialog):
 
         title = Label(self._title)
         title.setFont(self._FONT_TITLE)
-
-
 
         self.version_label = Label("AwesomeTTS\nv" + self._addon.version)
         self.version_label.setFont(self._FONT_INFO)
@@ -162,9 +160,9 @@ class Dialog(aqt.qt.QDialog):
         buttons.helpRequested.connect(self.open_tutorials)
 
         buttons.setStandardButtons(
-            aqt.qt.QDialogButtonBox.StandardButton.Help |
-            aqt.qt.QDialogButtonBox.StandardButton.Cancel |
-            aqt.qt.QDialogButtonBox.StandardButton.Ok
+            aqt.qt.QDialogButtonBox.StandardButton.Help
+            | aqt.qt.QDialogButtonBox.StandardButton.Cancel
+            | aqt.qt.QDialogButtonBox.StandardButton.Ok
         )
 
         for btn in buttons.buttons():
@@ -172,7 +170,6 @@ class Dialog(aqt.qt.QDialog):
                 btn.setObjectName('okay')
             elif buttons.buttonRole(btn) == aqt.qt.QDialogButtonBox.ButtonRole.RejectRole:
                 btn.setObjectName('cancel')
-
 
         return buttons
 
@@ -190,15 +187,18 @@ class Dialog(aqt.qt.QDialog):
 
     def show_plus_mode(self):
         # when the user has signed up for the plus mode trial
-        version_str = f'AwesomeTTS <span style="color:#FF0000; font-weight: bold;">Plus</span>' +\
-            f'<br/>v{self._addon.version}'
+        version_str = (
+            'AwesomeTTS <span style="color:#FF0000; font-weight: bold;">Plus</span>'
+            + f'<br/>v{self._addon.version}'
+        )
         self.version_label.setText(version_str)
-        self.version_label.setTextFormat(aqt.qt.Qt.TextFormat.RichText)        
+        self.version_label.setTextFormat(aqt.qt.Qt.TextFormat.RichText)
 
     def open_tutorials(self):
         url = 'https://www.vocab.ai/tutorials?utm_campaign=atts_help&utm_source=awesometts&utm_medium=addon'
         self._addon.logger.debug("Launching %s", url)
         aqt.qt.QDesktopServices.openUrl(aqt.qt.QUrl(url))
+
 
 class ServiceDialog(Dialog):
     """
@@ -208,16 +208,15 @@ class ServiceDialog(Dialog):
 
     _OPTIONS_WIDGETS = (QComboBoxType, aqt.qt.QDoubleSpinBox, aqt.qt.QSpinBox)
 
-    _INPUT_WIDGETS = _OPTIONS_WIDGETS + (aqt.qt.QAbstractButton,
-                                         aqt.qt.QLineEdit, aqt.qt.QTextEdit)
+    _INPUT_WIDGETS = _OPTIONS_WIDGETS + (aqt.qt.QAbstractButton, aqt.qt.QLineEdit, aqt.qt.QTextEdit)
 
     __slots__ = [
-        '_alerts',       # API to display error messages
-        '_ask',          # API to ask for text input
+        '_alerts',  # API to display error messages
+        '_ask',  # API to ask for text input
         '_panel_built',  # dict, svc_id to True if panel has been constructed
-        '_panel_set',    # dict, svc_id to True if panel values have been set
-        '_svc_id',       # active service ID
-        '_svc_count',    # how many services this dialog has access to
+        '_panel_set',  # dict, svc_id to True if panel values have been set
+        '_svc_id',  # active service ID
+        '_svc_count',  # how many services this dialog has access to
     ]
 
     def __init__(self, alerts, ask, *args, **kwargs):
@@ -270,8 +269,7 @@ class ServiceDialog(Dialog):
             dropdown.addItem(text, svc_id)
 
             svc_layout = aqt.qt.QGridLayout()
-            svc_layout.addWidget(Label("Pass the following to %s:" % text),
-                                 0, 0, 1, 2)
+            svc_layout.addWidget(Label("Pass the following to %s:" % text), 0, 0, 1, 2)
 
             svc_widget = aqt.qt.QWidget()
             svc_widget.setLayout(svc_layout)
@@ -296,47 +294,50 @@ class ServiceDialog(Dialog):
         if night_mode:
             signup_button_stylesheet = 'background-color: #69F0AE; color: #000000;'
         font_large = aqt.qt.QFont()
-        font_large.setBold(True)            
+        font_large.setBold(True)
 
         # first layer: plus mode not activated
         horizontal_layout = aqt.qt.QHBoxLayout()
         plus_mode_url = 'https://www.vocab.ai/awesometts-plus?utm_campaign=atts_services&utm_source=awesometts&utm_medium=addon'
         plus_mode_label = 'Get All Voices'
-        plus_mode_button = aqt.qt.QPushButton(plus_mode_label) 
+        plus_mode_button = aqt.qt.QPushButton(plus_mode_label)
         plus_mode_button.setStyleSheet(signup_button_stylesheet)
         plus_mode_button.setFont(font_large)
+
         def activate_plus_mode_lambda():
             def activate_plus():
                 # Create a dialog to ask for email and password
                 dialog = aqt.qt.QDialog(self)
                 dialog.setWindowTitle("Sign Up for AwesomeTTS Plus")
-                
+
                 layout = aqt.qt.QVBoxLayout()
-                
+
                 # Email field
                 email_label = aqt.qt.QLabel("Email:")
                 email_input = aqt.qt.QLineEdit()
                 email_input.setPlaceholderText("Enter your email")
-                
+
                 # Password field
                 password_label = aqt.qt.QLabel("Password:")
                 password_input = aqt.qt.QLineEdit()
                 password_input.setPlaceholderText("Create a password")
                 password_input.setEchoMode(aqt.qt.QLineEdit.EchoMode.Password)
-                
+
                 # Description
-                description = aqt.qt.QLabel("<i>Sign up to get access to 1200+ high quality TTS voices</i>")
+                description = aqt.qt.QLabel(
+                    "<i>Sign up to get access to 1200+ high quality TTS voices</i>"
+                )
                 description.setWordWrap(True)
-                
+
                 # Buttons
                 button_box = aqt.qt.QDialogButtonBox(
-                    aqt.qt.QDialogButtonBox.StandardButton.Ok | 
-                    aqt.qt.QDialogButtonBox.StandardButton.Cancel
+                    aqt.qt.QDialogButtonBox.StandardButton.Ok
+                    | aqt.qt.QDialogButtonBox.StandardButton.Cancel
                 )
                 ok_button = button_box.button(aqt.qt.QDialogButtonBox.StandardButton.Ok)
                 ok_button.setText("Sign Up")
                 ok_button.setStyleSheet(signup_button_stylesheet)
-                
+
                 # Add widgets to layout
                 layout.addWidget(description)
                 layout.addWidget(email_label)
@@ -344,21 +345,23 @@ class ServiceDialog(Dialog):
                 layout.addWidget(password_label)
                 layout.addWidget(password_input)
                 layout.addWidget(button_box)
-                
+
                 dialog.setLayout(layout)
-                
+
                 # Connect buttons
                 button_box.accepted.connect(dialog.accept)
                 button_box.rejected.connect(dialog.reject)
-                
+
                 # Show dialog
                 if dialog.exec() == aqt.qt.QDialog.DialogCode.Accepted:
                     email = email_input.text().strip()
                     password = password_input.text()
-                    
+
                     # Try to request a trial key
-                    trial_signup_result = self._addon.languagetools.request_trial_key(email, password)
-                    
+                    trial_signup_result = self._addon.languagetools.request_trial_key(
+                        email, password
+                    )
+
                     if trial_signup_result.success:
                         api_key = trial_signup_result.api_key
                         # Save in the config
@@ -373,20 +376,25 @@ class ServiceDialog(Dialog):
                         idx = dropdown.currentIndex()
                         self._on_service_activated(idx, force_options_reload=True)
                         # show signed up message
-                        self.plus_mode_stack.setCurrentIndex(3)                        
+                        self.plus_mode_stack.setCurrentIndex(3)
                         # Show success message
-                        trial_confirmation_message = """<b>IMPORTANT</b>: You must confirm your email address before you can use the service. """\
-"""The email subject should be <b>Please Confirm Your Email Address</b> and sender: <b>Vocab.Ai</b>."""
+                        trial_confirmation_message = (
+                            """<b>IMPORTANT</b>: You must confirm your email address before you can use the service. """
+                            """The email subject should be <b>Please Confirm Your Email Address</b> and sender: <b>Vocab.Ai</b>."""
+                        )
                         aqt.utils.showInfo(trial_confirmation_message, parent=self)
                     else:
                         # Show error message when success is False
-                        error_message = getattr(trial_signup_result, 'error', "Signup failed. Please try again.")
+                        error_message = getattr(
+                            trial_signup_result, 'error', "Signup failed. Please try again."
+                        )
                         aqt.utils.showWarning(error_message, parent=self)
-                
+
             return activate_plus
+
         plus_mode_button.pressed.connect(activate_plus_mode_lambda())
 
-        plus_mode_description=aqt.qt.QLabel()
+        plus_mode_description = aqt.qt.QLabel()
         font_small = aqt.qt.QFont()
         font_small.setPointSize(8)
         description_text = '<i>1200+ High quality TTS voices<br/> Signup for trial in one second, just enter your email.</i>'
@@ -395,9 +403,9 @@ class ServiceDialog(Dialog):
         horizontal_layout.addWidget(plus_mode_button)
         horizontal_layout.addWidget(plus_mode_description)
         stack_widget = aqt.qt.QWidget()
-        stack_widget.setLayout(horizontal_layout) 
+        stack_widget.setLayout(horizontal_layout)
         self.plus_mode_stack.addWidget(stack_widget)
-        
+
         # second layer: user signining up
         horizontal_layout = aqt.qt.QHBoxLayout()
         email_text_input = aqt.qt.QLineEdit()
@@ -411,14 +419,14 @@ class ServiceDialog(Dialog):
         signup_status_label.setFont(font_small)
         horizontal_layout.addWidget(signup_status_label)
         stack_widget = aqt.qt.QWidget()
-        stack_widget.setLayout(horizontal_layout) 
+        stack_widget.setLayout(horizontal_layout)
         self.plus_mode_stack.addWidget(stack_widget)
 
         # third layer: empty (plus mode activated)
         horizontal_layout = aqt.qt.QHBoxLayout()
         stack_widget = aqt.qt.QWidget()
-        stack_widget.setLayout(horizontal_layout) 
-        self.plus_mode_stack.addWidget(stack_widget)       
+        stack_widget.setLayout(horizontal_layout)
+        self.plus_mode_stack.addWidget(stack_widget)
 
         # fourth layer: show that you are now signed up to plus mode
         horizontal_layout = aqt.qt.QHBoxLayout()
@@ -428,14 +436,13 @@ class ServiceDialog(Dialog):
         signed_up_label.setFont(font_small)
         horizontal_layout.addWidget(signed_up_label)
         stack_widget = aqt.qt.QWidget()
-        stack_widget.setLayout(horizontal_layout) 
-        self.plus_mode_stack.addWidget(stack_widget)         
+        stack_widget.setLayout(horizontal_layout)
+        self.plus_mode_stack.addWidget(stack_widget)
 
         if not self._addon.languagetools.use_plus_mode():
             self.plus_mode_stack.setCurrentIndex(0)
         else:
             self.plus_mode_stack.setCurrentIndex(2)
-
 
         hor = aqt.qt.QHBoxLayout()
         hor.addWidget(Label("Generate using"))
@@ -463,8 +470,9 @@ class ServiceDialog(Dialog):
 
         dropdown = aqt.qt.QComboBox()
         dropdown.setObjectName('presets_dropdown')
-        dropdown.setSizePolicy(aqt.qt.QSizePolicy.Policy.MinimumExpanding,
-                               aqt.qt.QSizePolicy.Policy.Preferred)
+        dropdown.setSizePolicy(
+            aqt.qt.QSizePolicy.Policy.MinimumExpanding, aqt.qt.QSizePolicy.Policy.Preferred
+        )
         dropdown.activated.connect(self._on_preset_activated)
 
         delete = aqt.qt.QPushButton(aqt.qt.QIcon(f'{ICONS}/editdelete.png'), "")
@@ -472,15 +480,18 @@ class ServiceDialog(Dialog):
         delete.setIconSize(aqt.qt.QSize(16, 16))
         delete.setFixedSize(18, 18)
         delete.setFlat(True)
-        delete.setToolTip("Remove this service configuration from\n"
-                          "the list of remembered services.")
+        delete.setToolTip(
+            "Remove this service configuration from\n" "the list of remembered services."
+        )
         delete.clicked.connect(self._on_preset_delete)
 
         save = aqt.qt.QPushButton("Save")
         save.setObjectName('presets_save')
         # save.setFixedWidth(save.fontMetrics().width(save.text()) + 20)
-        save.setToolTip("Remember the selected service and its input\n"
-                        "settings so that you can quickly access it later.")
+        save.setToolTip(
+            "Remember the selected service and its input\n"
+            "settings so that you can quickly access it later."
+        )
         save.clicked.connect(self._on_preset_save)
 
         layout = aqt.qt.QHBoxLayout()
@@ -577,13 +588,11 @@ class ServiceDialog(Dialog):
             widget_layout = widget.layout()
 
             # print(f'*** clean_built_services num children: {widget_layout.count()}')
-            for i in reversed(range(1, widget_layout.count())): 
+            for i in reversed(range(1, widget_layout.count())):
                 # print(f'processing child {i}')
                 widget = widget_layout.itemAt(i).widget()
                 if widget != None:
                     widget.setParent(None)
-
-
 
     def _handle_group_activation(self, svc_id, stack, save):
         svc_id = svc_id[6:]
@@ -592,15 +601,26 @@ class ServiceDialog(Dialog):
 
         stack.setCurrentIndex(stack.count() - 1)
         stack.widget(stack.count() - 1).findChild(aqt.qt.QLabel).setText(
-            svc_id +
-            (" has no presets yet." if len(presets) == 0
-             else " uses " + presets[0] + "." if len(presets) == 1
-             else ((" randomly selects" if group['mode'] == 'random'
-                    else " tries in-order") + " from:\n -" +
-                   "\n -".join(presets[0:5]) +
-                   ("\n    (... and %d more)" % (len(presets) - 5)
-                    if len(presets) > 5 else ""))) +
-            "\n\n"
+            svc_id
+            + (
+                " has no presets yet."
+                if len(presets) == 0
+                else (
+                    " uses " + presets[0] + "."
+                    if len(presets) == 1
+                    else (
+                        (" randomly selects" if group['mode'] == 'random' else " tries in-order")
+                        + " from:\n -"
+                        + "\n -".join(presets[0:5])
+                        + (
+                            "\n    (... and %d more)" % (len(presets) - 5)
+                            if len(presets) > 5
+                            else ""
+                        )
+                    )
+                )
+            )
+            + "\n\n"
             "Go to AwesomeTTS config for group setup.\n"
             "Access preset options in dropdown below."
         )
@@ -612,7 +632,9 @@ class ServiceDialog(Dialog):
 
         if panel_unbuilt or panel_unset or use_options:
             widget = stack.widget(idx)
-            options = self._addon.router.get_options(svc_id, force_options_reload=force_options_reload)
+            options = self._addon.router.get_options(
+                svc_id, force_options_reload=force_options_reload
+            )
 
             if panel_unbuilt:
                 self._panel_built[svc_id] = True
@@ -620,11 +642,12 @@ class ServiceDialog(Dialog):
 
             if panel_unset or use_options:
                 self._panel_set[svc_id] = True
-                self._on_service_activated_set(svc_id, widget, options,
-                                               use_options)
+                self._on_service_activated_set(svc_id, widget, options, use_options)
         return panel_unbuilt
 
-    def _on_service_activated(self, idx, initial=False, use_options=None, force_options_reload=False):
+    def _on_service_activated(
+        self, idx, initial=False, use_options=None, force_options_reload=False
+    ):
         """
         Construct the target widget if it has not already been built,
         recall the last-used values for the options, and then switch the
@@ -641,7 +664,9 @@ class ServiceDialog(Dialog):
             return
 
         save.setEnabled(True)
-        panel_unbuilt = self._setup_service_panel(svc_id, stack, idx, force_options_reload, use_options)
+        panel_unbuilt = self._setup_service_panel(
+            svc_id, stack, idx, force_options_reload, use_options
+        )
 
         stack.setCurrentIndex(idx)
 
@@ -708,14 +733,13 @@ class ServiceDialog(Dialog):
                 def on_text_edited(val):
                     """Updates `extras` dict when user input changes."""
                     config['extras'] = dict(
-                        list(config['extras'].items()) +
-                        [(
-                            svc_id,
-                            dict(
-                                list(config['extras'].get(svc_id, {}).items()) +
-                                [(key, val)]
-                            ),
-                        )]
+                        list(config['extras'].items())
+                        + [
+                            (
+                                svc_id,
+                                dict(list(config['extras'].get(svc_id, {}).items()) + [(key, val)]),
+                            )
+                        ]
                     )
 
                 edit.textEdited.connect(on_text_edited)
@@ -744,8 +768,7 @@ class ServiceDialog(Dialog):
         panel.addWidget(note, row, 0, 1, 3, aqt.qt.Qt.AlignmentFlag.AlignTop)
         panel.setRowStretch(row, 1)
 
-    def _on_service_activated_set(self, svc_id, widget, options,
-                                  use_options=None):
+    def _on_service_activated_set(self, svc_id, widget, options, use_options=None):
         """
         Based on the list of options and the user's last known options,
         restore the values of all input controls.
@@ -753,8 +776,7 @@ class ServiceDialog(Dialog):
 
         self._addon.logger.debug("Restoring options for %s", svc_id)
 
-        last_options = (use_options or
-                        self._addon.config['last_options'].get(svc_id, {}))
+        last_options = use_options or self._addon.config['last_options'].get(svc_id, {})
         vinputs = widget.findChildren(self._OPTIONS_WIDGETS)
 
         if len(vinputs) != len(options):
@@ -818,8 +840,7 @@ class ServiceDialog(Dialog):
         if presets:
             label.hide()
             dropdown.show()
-            dropdown.addItems(sorted(presets.keys(),
-                                     key=lambda key: key.lower()))
+            dropdown.addItems(sorted(presets.keys(), key=lambda key: key.lower()))
             if select:
                 if select is True:
                     # if one of the presets exactly match the svc_id and
@@ -827,18 +848,26 @@ class ServiceDialog(Dialog):
                     # select that one in the dropdown (this makes getting the
                     # same "preset" in the template helper dialog easier)
                     svc_id, options = self._get_service_values()
-                    select = next(
-                        (
-                            name for name, preset in list(presets.items())
-                            if svc_id == preset.get('service')
-                            and not next(
-                                (True for key, value in list(options.items())
-                                 if preset.get(key) != options.get(key)),
-                                False,
-                            )
-                        ),
-                        None,
-                    ) if options else None
+                    select = (
+                        next(
+                            (
+                                name
+                                for name, preset in list(presets.items())
+                                if svc_id == preset.get('service')
+                                and not next(
+                                    (
+                                        True
+                                        for key, value in list(options.items())
+                                        if preset.get(key) != options.get(key)
+                                    ),
+                                    False,
+                                )
+                            ),
+                            None,
+                        )
+                        if options
+                        else None
+                    )
 
                 if select:
                     idx = dropdown.findText(select)
@@ -854,10 +883,7 @@ class ServiceDialog(Dialog):
     def _on_preset_reset(self):
         """Sets preset dropdown back and disables delete button."""
 
-        if next((True
-                 for frame in inspect.stack()
-                 if frame[3] == '_on_preset_activated'),
-                False):
+        if next((True for frame in inspect.stack() if frame[3] == '_on_preset_activated'), False):
             return  # ignore value change events triggered by preset loads
 
         self.findChild(aqt.qt.QPushButton, 'presets_delete').setDisabled(True)
@@ -867,42 +893,41 @@ class ServiceDialog(Dialog):
         """Saves the current service state back as a preset."""
 
         svc_id, options = self._get_service_values()
-        assert "bad get_service_values() value", \
-               not svc_id.startswith('group:') and options
+        assert "bad get_service_values() value", not svc_id.startswith('group:') and options
         svc_name = self.findChild(aqt.qt.QComboBox, 'service').currentText()
 
         name, okay = self._ask(
             title="Save a Preset Service Configuration",
             prompt=(
                 "Please enter a name for <strong>%s</strong> with "
-                "<strong>%s</strong> set to <kbd>%s</kbd>." %
-                ((svc_name,) + list(options.items())[0])
-
-                if len(options) == 1 else
-
-                "Please enter a name for <strong>%s</strong> with the "
-                "following:<br>%s" % (
-                    svc_name,
-                    "<br>".join(
-                        "- <strong>%s:</strong> <kbd>%s</kbd>" % item
-                        for item in sorted(options.items())
+                "<strong>%s</strong> set to <kbd>%s</kbd>."
+                % ((svc_name,) + list(options.items())[0])
+                if len(options) == 1
+                else (
+                    "Please enter a name for <strong>%s</strong> with the "
+                    "following:<br>%s"
+                    % (
+                        svc_name,
+                        "<br>".join(
+                            "- <strong>%s:</strong> <kbd>%s</kbd>" % item
+                            for item in sorted(options.items())
+                        ),
                     )
+                    if len(options) > 1
+                    else f"Please enter a name for <strong>{svc_name}</strong>."
                 )
-
-                if len(options) > 1 else
-
-                f"Please enter a name for <strong>{svc_name}</strong>."
             ),
-            default=(svc_name if not options.get('voice')
-                     else "%s (%s)" % (svc_name, options['voice'])),
+            default=(
+                svc_name if not options.get('voice') else "%s (%s)" % (svc_name, options['voice'])
+            ),
             parent=self,
         )
 
         name = okay and name.strip()
         if name:
             self._addon.config['presets'] = dict(
-                list(self._addon.config['presets'].items()) +
-                [(name, dict([('service', svc_id)] + list(options.items())))]
+                list(self._addon.config['presets'].items())
+                + [(name, dict([('service', svc_id)] + list(options.items())))]
             )
             self._on_preset_refresh(select=name)
 
@@ -913,8 +938,7 @@ class ServiceDialog(Dialog):
 
         if idx > 0:
             delete.setEnabled(True)
-            name = self.findChild(aqt.qt.QComboBox,
-                                  'presets_dropdown').currentText()
+            name = self.findChild(aqt.qt.QComboBox, 'presets_dropdown').currentText()
             try:
                 preset = self._addon.config['presets'][name]
                 svc_id = preset['service']
@@ -925,8 +949,7 @@ class ServiceDialog(Dialog):
             dropdown = self.findChild(aqt.qt.QComboBox, 'service')
             idx = dropdown.findData(svc_id)
             if idx < 0:
-                self._alerts(self._addon.router.get_unavailable_msg(svc_id),
-                             self)
+                self._alerts(self._addon.router.get_unavailable_msg(svc_id), self)
                 return
 
             dropdown.setCurrentIndex(idx)
@@ -939,8 +962,7 @@ class ServiceDialog(Dialog):
 
         presets = dict(self._addon.config['presets'])
         try:
-            del presets[self.findChild(aqt.qt.QComboBox,
-                                       'presets_dropdown').currentText()]
+            del presets[self.findChild(aqt.qt.QComboBox, 'presets_dropdown').currentText()]
         except KeyError:
             self._addon.logger.debug("KeyError accessing config. Proceeding with defaults.")
         else:
@@ -962,8 +984,7 @@ class ServiceDialog(Dialog):
             done=lambda: self._disable_inputs(False),
             okay=self._addon.player.preview,
             fail=lambda exception, text_value: self._alerts(
-                "Cannot preview the input phrase with these settings.\n\n%s" %
-                str(exception),
+                "Cannot preview the input phrase with these settings.\n\n%s" % str(exception),
                 self,
             ),
             then=text_input.setFocus,
@@ -971,13 +992,14 @@ class ServiceDialog(Dialog):
 
         if svc_id.startswith('group:'):
             config = self._addon.config
-            self._addon.router.group(text=text_value,
-                                     group=config['groups'][svc_id[6:]],
-                                     presets=config['presets'],
-                                     callbacks=callbacks)
+            self._addon.router.group(
+                text=text_value,
+                group=config['groups'][svc_id[6:]],
+                presets=config['presets'],
+                callbacks=callbacks,
+            )
         else:
-            self._addon.router(svc_id=svc_id, text=text_value,
-                               options=values, callbacks=callbacks)
+            self._addon.router(svc_id=svc_id, text=text_value, options=values, callbacks=callbacks)
 
     # Auxiliary ##############################################################
 
@@ -988,22 +1010,19 @@ class ServiceDialog(Dialog):
         """
 
         for widget in (
-                widget
-                for widget in self.findChildren(self._INPUT_WIDGETS)
-                if widget.objectName() != 'cancel'
-                and (not isinstance(widget, aqt.qt.QComboBox) or
-                     len(widget) > 1)
+            widget
+            for widget in self.findChildren(self._INPUT_WIDGETS)
+            if widget.objectName() != 'cancel'
+            and (not isinstance(widget, aqt.qt.QComboBox) or len(widget) > 1)
         ):
             widget.setDisabled(flag)
 
         if not flag:
             self.findChild(aqt.qt.QPushButton, 'presets_delete').setEnabled(
-                self.findChild(aqt.qt.QComboBox,
-                               'presets_dropdown').currentIndex() > 0
+                self.findChild(aqt.qt.QComboBox, 'presets_dropdown').currentIndex() > 0
             )
             self.findChild(aqt.qt.QPushButton, 'presets_save').setEnabled(
-                self.findChild(aqt.qt.QComboBox,
-                               'service').currentIndex() < self._svc_count
+                self.findChild(aqt.qt.QComboBox, 'service').currentIndex() < self._svc_count
             )
 
     def _get_service_values(self):
@@ -1017,17 +1036,22 @@ class ServiceDialog(Dialog):
         if svc_id.startswith('group:'):
             return svc_id, None
 
-        vinputs = self.findChild(aqt.qt.QStackedWidget, 'panels') \
-            .widget(idx).findChildren(self._OPTIONS_WIDGETS)
+        vinputs = (
+            self.findChild(aqt.qt.QStackedWidget, 'panels')
+            .widget(idx)
+            .findChildren(self._OPTIONS_WIDGETS)
+        )
         options = self._addon.router.get_options(svc_id)
 
         assert len(options) == len(vinputs)
 
         return svc_id, {
-            options[i]['key']:
+            options[i]['key']: (
                 vinputs[i].value()
-                if isinstance(vinputs[i], aqt.qt.QDoubleSpinBox) or isinstance(vinputs[i], aqt.qt.QSpinBox)  # aqt.qt.QDoubleSpinBox, aqt.qt.QSpinBox
+                if isinstance(vinputs[i], aqt.qt.QDoubleSpinBox)
+                or isinstance(vinputs[i], aqt.qt.QSpinBox)  # aqt.qt.QDoubleSpinBox, aqt.qt.QSpinBox
                 else vinputs[i].itemData(vinputs[i].currentIndex())
+            )
             for i in range(len(options))
         }
 
@@ -1051,10 +1075,11 @@ class ServiceDialog(Dialog):
         """
 
         svc_id, values = self._get_service_values()
-        return {
-            'last_service': svc_id,
-            'last_options': {
-                **self._addon.config['last_options'],
-                **{svc_id: values}
-            },
-        } if values else dict(last_service=svc_id)
+        return (
+            {
+                'last_service': svc_id,
+                'last_options': {**self._addon.config['last_options'], **{svc_id: values}},
+            }
+            if values
+            else dict(last_service=svc_id)
+        )
