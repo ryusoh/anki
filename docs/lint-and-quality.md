@@ -1,17 +1,19 @@
 # Lint & quality gate
 
-This repo enforces formatting, linting, type, and security checks on **first-party
-code only**. Third-party Anki addons installed from AnkiWeb (`awesome_tts`,
-`review_heatmap`, `enhance_main_window`, `custom_background`, and the tiny
-single-file addons) are **excluded in every tool config** — we do not enforce our
-style on code we did not author.
+This repo enforces formatting, linting, type, and security checks across **all addon
+source we maintain** — including addons originally installed from AnkiWeb
+(`awesome_tts`, `review_heatmap`, `enhance_main_window`, `custom_background`, …) that
+we modify here. The only code kept out of the gates is **genuinely vendored**:
+`review_heatmap/libaddon/` (a vendored framework and its `_vendor/` package trees)
+and minified bundles (`**/*.min.{js,css}`). Those exclusions live in the tool
+configs, not in the `Makefile` scope.
 
 ## Toolchain
 
 | Layer                        | Tool             | Config                                  | Scope                             |
 | ---------------------------- | ---------------- | --------------------------------------- | --------------------------------- |
-| JS lint                      | ESLint (flat)    | `eslint.config.cjs`                     | first-party `*.js` (ignores list) |
-| CSS lint                     | Stylelint        | `.stylelintrc.cjs` + `.stylelintignore` | first-party `*.css`               |
+| JS lint                      | ESLint (flat)    | `eslint.config.cjs`                     | addon `*.js` (vendored excluded)  |
+| CSS lint                     | Stylelint        | `.stylelintrc.cjs` + `.stylelintignore` | addon `*.css` (vendored excluded) |
 | Markdown lint                | markdownlint-cli | `.markdownlint.json`                    | tracked `*.md`                    |
 | Format (JS/CSS/MD/JSON/HTML) | Prettier         | _defaults_ (no `.prettierrc`)           | `make fmt` glob                   |
 | Python lint                  | Ruff             | `[tool.ruff]` in `pyproject.toml`       | `PY_ALL`                          |
@@ -19,7 +21,8 @@ style on code we did not author.
 | Python types                 | mypy             | `mypy.ini`                              | `PY_SRC`                          |
 | Python security              | Bandit           | `.bandit` (INI, via `--ini`)            | `PY_SRC`                          |
 
-`PY_SRC` / `PY_ALL` are defined in the `Makefile` and mirror `PY_TEST_SUITES`.
+`PY_SRC` / `PY_ALL` are defined in the `Makefile`: the addon source we maintain
+(broader than `PY_TEST_SUITES`), with vendored code excluded via the tool configs.
 
 ## Running it
 

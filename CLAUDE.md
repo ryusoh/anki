@@ -19,9 +19,9 @@ addon or tool with its own `tests/`.
   CI runs `make precommit SKIP=1` on push/PR (`.github/workflows/ci.yml`).
 - **Lint/format/type/security:** `make lint` (ESLint + Stylelint + markdownlint) and
   `make quality-py` (ruff / black / mypy / bandit). Auto-fix with `make lint-fix` and
-  `make fmt-py`. Tooling is pinned in `requirements-dev.txt` and scoped to code we
-  own — third-party addons (`awesome_tts`, `review_heatmap`, `enhance_main_window`,
-  `custom_background`, …) are excluded in every config. See `docs/lint-and-quality.md`.
+  `make fmt-py`. Tooling is pinned in `requirements-dev.txt` and covers all addon
+  source we maintain; only vendored code (`review_heatmap/libaddon`, `_vendor/` trees)
+  and minified bundles are excluded. See `docs/lint-and-quality.md`.
 
 ## Gotchas
 
