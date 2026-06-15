@@ -289,4 +289,24 @@ async function runTests() {
   }
 }
 
+async function runRobustTests() {
+  const { parseRange } = await import("../js/utils/timeRange.js");
+  const assert = require("assert");
+  console.log("\n📋 Test: Robust TimeRange Parsing");
+  try {
+    assert.strictEqual(parseRange("0y0m1d"), undefined);
+    assert.strictEqual(parseRange("0y10m0d"), undefined);
+    assert.strictEqual(parseRange("1y0m0d"), 365);
+    assert.strictEqual(parseRange("1.5y"), undefined);
+    assert.strictEqual(parseRange("1y0.5m"), undefined);
+    assert.strictEqual(parseRange("1y!"), undefined);
+    assert.strictEqual(parseRange("1y😊"), undefined);
+    console.log("   ✓ Robust bounds working");
+  } catch(e) {
+    console.error("   ✗ Robust bounds failed: " + e.message);
+    process.exitCode = 1;
+  }
+}
+runRobustTests().catch(console.error);
+
 runTests().catch(console.error);

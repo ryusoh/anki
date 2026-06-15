@@ -533,4 +533,28 @@ async function runTests() {
 }
 
 // Run tests
+async function runRobustTrieTests() {
+  const { createCommandTrie } = await import("../js/utils/trie.js");
+  const assert = require("assert");
+  console.log("\n📋 Test: Robust Trie Validations");
+  const trie = createCommandTrie();
+  try {
+    const resEmoji = trie.validate("plot due 😊");
+    assert.strictEqual(resEmoji.valid, false);
+    const resLong = trie.validate("A".repeat(1000));
+    assert.strictEqual(resLong.valid, false);
+    const resSql = trie.validate("plot due' OR '1'='1");
+    assert.strictEqual(resSql.valid, false);
+    const autoEmoji = trie.autocomplete("😊");
+    assert.strictEqual(autoEmoji.length, 0);
+    const autoLong = trie.autocomplete("A".repeat(1000));
+    assert.strictEqual(autoLong.length, 0);
+    console.log("   ✓ Robust trie bounds working");
+  } catch(e) {
+    console.error("   ✗ Robust trie bounds failed: " + e.message);
+    process.exitCode = 1;
+  }
+}
+runRobustTrieTests().catch(console.error);
+
 runTests();

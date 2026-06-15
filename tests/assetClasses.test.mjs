@@ -29,3 +29,23 @@ test('isLikelyFundTicker correctly identifies funds and ETFs', () => {
   assert.strictEqual(isLikelyFundTicker('X'), false); // Too short
   assert.strictEqual(isLikelyFundTicker('ABCX'), false); // Length exactly 4, ends with X
 });
+
+test('isLikelyFundTicker boundary and type checks', () => {
+  // Complex types
+  assert.strictEqual(isLikelyFundTicker([]), false);
+  assert.strictEqual(isLikelyFundTicker({}), false);
+  assert.strictEqual(isLikelyFundTicker(true), false);
+  assert.strictEqual(isLikelyFundTicker(false), false);
+
+  // Floating point / number-like strings
+  assert.strictEqual(isLikelyFundTicker(12.34), false);
+  assert.strictEqual(isLikelyFundTicker('12.34'), false);
+
+  // Very long invalid string
+  const longStr = 'A'.repeat(100);
+  assert.strictEqual(isLikelyFundTicker(longStr), false);
+
+  // Very long valid string matching X condition
+  const longFundStr = 'A'.repeat(100) + 'X';
+  assert.strictEqual(isLikelyFundTicker(longFundStr), true);
+});
