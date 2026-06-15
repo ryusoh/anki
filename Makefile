@@ -298,7 +298,10 @@ fetch-prompt:
 		echo "   ⊘ Fetch skipped"; \
 	fi
 
-precommit-fix: install $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt-fix) fmt lint-fix check $(if $(filter 1,$(SKIP)),,graph-local-prompt)
+# Fix-then-verify: auto-fix everything (fmt, lint-fix, fmt-py) and THEN run the same
+# gates as `precommit` (lint, quality-py, check) so a green precommit-fix means CI is
+# green too. Prereqs run left-to-right, so all fixers complete before the gates.
+precommit-fix: install $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt-fix) fmt lint-fix fmt-py lint quality-py check $(if $(filter 1,$(SKIP)),,graph-local-prompt)
 	@echo ""
 	@echo "🔒 Running EXTREMELY RIGOROUS security check..."
 	@echo "   Scanning ALL files for private Anki data..."
