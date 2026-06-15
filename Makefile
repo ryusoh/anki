@@ -395,7 +395,7 @@ lint: lint-js lint-css lint-md
 
 lint-js:
 	@if command -v npx >/dev/null 2>&1; then \
-		if ls eslint.config.* .eslintrc* >/dev/null 2>&1; then \
+		if ls eslint.config.* .eslintrc* 2>/dev/null | grep -q .; then \
 			echo "Linting JavaScript (ESLint, first-party only)..."; \
 			npx eslint .; \
 		else \
@@ -405,7 +405,7 @@ lint-js:
 
 lint-css:
 	@if command -v npx >/dev/null 2>&1; then \
-		if ls .stylelintrc* stylelint.config.* >/dev/null 2>&1; then \
+		if ls .stylelintrc* stylelint.config.* 2>/dev/null | grep -q .; then \
 			echo "Linting CSS (Stylelint, first-party only)..."; \
 			npx stylelint "**/*.css"; \
 		else \
@@ -415,11 +415,11 @@ lint-css:
 
 lint-fix:
 	@if command -v npx >/dev/null 2>&1; then \
-		if ls eslint.config.* .eslintrc* >/dev/null 2>&1; then \
+		if ls eslint.config.* .eslintrc* 2>/dev/null | grep -q .; then \
 			echo "Fixing JS lint issues (ESLint)..."; \
 			npx eslint . --fix || true; \
 		fi; \
-		if ls .stylelintrc* stylelint.config.* >/dev/null 2>&1; then \
+		if ls .stylelintrc* stylelint.config.* 2>/dev/null | grep -q .; then \
 			echo "Fixing CSS lint issues (Stylelint)..."; \
 			npx stylelint "**/*.css" --fix || true; \
 		fi; \

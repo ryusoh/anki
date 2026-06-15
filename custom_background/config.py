@@ -1,6 +1,5 @@
 import os
-
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 
 from aqt import mw
 
@@ -27,9 +26,7 @@ def _getUserOption(refresh: bool) -> None:
         userOption = mw.addonManager.getConfig(__name__)
 
 
-def getUserOption(
-    key: Optional[str] = None, default: Any = None, refresh: bool = False
-) -> Any:
+def getUserOption(key: Optional[str] = None, default: Any = None, refresh: bool = False) -> Any:
     _getUserOption(refresh)
     if userOption is None:
         return default if key is not None else {}
