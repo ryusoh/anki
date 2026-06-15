@@ -22,6 +22,7 @@ help:
 	@echo "  pagerank       PageRank report for latest reviewed day"
 	@echo "  pagerank-all   PageRank reports for all reviewed days"
 	@echo "  check          Run all tests"
+	@echo "  test-py        Fast scoped Python test (SUITE=auto_wiktionary/tests)"
 	@echo "  precommit      Run all pre-commit checks (no fixes)"
 	@echo "  precommit-fix  Auto-fix issues and run pre-commit checks"
 	@echo "                 YOLO=1 to auto-yes all prompts (background mode)"
@@ -166,6 +167,16 @@ check-node:
 	STATUS=$$?; \
 	rm -rf "$$COVDIR"; \
 	exit $$STATUS
+
+# Fast, scoped Python test for the tight edit→verify loop (no coverage).
+# Always runs from the repo root (root conftest.py mocks aqt/anki).
+#   make test-py SUITE=auto_wiktionary/tests
+test-py:
+	@if [ -z "$(SUITE)" ]; then \
+		echo "Usage: make test-py SUITE=<dir>   e.g. SUITE=auto_wiktionary/tests"; \
+	else \
+		$(PYTHON) -m pytest -q "$(SUITE)"; \
+	fi
 
 check-handler-regression:
 	@node tests/handler_regression.test.mjs
