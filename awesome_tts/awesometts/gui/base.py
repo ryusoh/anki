@@ -298,7 +298,6 @@ class ServiceDialog(Dialog):
 
         # first layer: plus mode not activated
         horizontal_layout = aqt.qt.QHBoxLayout()
-        plus_mode_url = 'https://www.vocab.ai/awesometts-plus?utm_campaign=atts_services&utm_source=awesometts&utm_medium=addon'
         plus_mode_label = 'Get All Voices'
         plus_mode_button = aqt.qt.QPushButton(plus_mode_label)
         plus_mode_button.setStyleSheet(signup_button_stylesheet)
@@ -591,7 +590,7 @@ class ServiceDialog(Dialog):
             for i in reversed(range(1, widget_layout.count())):
                 # print(f'processing child {i}')
                 widget = widget_layout.itemAt(i).widget()
-                if widget != None:
+                if widget is not None:
                     widget.setParent(None)
 
     def _handle_group_activation(self, svc_id, stack, save):

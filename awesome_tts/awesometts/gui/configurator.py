@@ -105,7 +105,7 @@ class Configurator(Dialog):
         self._group_editor = None
         self._sul_compiler = sul_compiler
 
-        super(Configurator, self).__init__(title="Configuration", *args, **kwargs)
+        super(Configurator, self).__init__(*args, title="Configuration", **kwargs)
 
     # UI Construction ########################################################
 
@@ -853,7 +853,7 @@ class Configurator(Dialog):
         button.setText('Verifying..')
         api_key = lineedit.text()
         result = self._addon.languagetools.verify_api_key(api_key)
-        if result['key_valid'] == True:
+        if result['key_valid']:
             button.setText('Key Valid')
             # store api key in configuration
             self._addon.config['plus_api_key'] = api_key

@@ -657,7 +657,7 @@ class Service(object, metaclass=abc.ABCMeta):
                     ENOENT,
                     "Unable to find mplayer to dump audio stream. "
                     "It might not have been installed.",
-                )
+                ) from os_error
             else:
                 raise
 

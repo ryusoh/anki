@@ -164,7 +164,7 @@ class Azure(Service):
         self._logger.debug('requested access_token')
 
     def token_refresh_required(self):
-        if self.access_token == None:
+        if self.access_token is None:
             self._logger.debug('no token, must request')
             return True
         time_diff = datetime.datetime.now() - self.access_token_timestamp

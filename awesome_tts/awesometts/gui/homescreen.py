@@ -46,7 +46,7 @@ def makeLinkHandler(addon):
 def makeDeckBrowserRenderContent(addon):
 
     def on_deckbrowser_will_render_content(deck_browser, content):
-        if addon.config['homescreen_show'] == False:
+        if not addon.config['homescreen_show']:
             # user doesn't want to see the homescreen
             return
 

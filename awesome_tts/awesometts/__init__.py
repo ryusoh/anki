@@ -138,7 +138,7 @@ else:
 
 addon_config = aqt.mw.addonManager.getConfig(CONFIG_ADDON_NAME)
 user_uuid = addon_config.get('user_uuid', None)
-if user_uuid == None:
+if user_uuid is None:
     user_uuid = uuid.uuid4().hex
     addon_config['user_uuid'] = user_uuid
     aqt.mw.addonManager.writeConfig(CONFIG_ADDON_NAME, addon_config)

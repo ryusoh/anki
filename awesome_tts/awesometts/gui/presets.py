@@ -36,7 +36,7 @@ class Presets(ServiceDialog):
     __slots__ = []
 
     def __init__(self, *args, **kwargs):
-        super(Presets, self).__init__(title="Manage Service Presets", *args, **kwargs)
+        super(Presets, self).__init__(*args, title="Manage Service Presets", **kwargs)
 
     # UI Construction ########################################################
 

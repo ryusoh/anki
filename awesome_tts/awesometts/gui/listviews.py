@@ -187,9 +187,9 @@ class _SubRuleDelegate(_Delegate):
         panel.setFocusPolicy(aqt.qt.Qt.FocusPolicy.StrongFocus)
         panel.setLayout(layout)
 
-        for layout in [edits, checkboxes, layout]:
-            layout.setContentsMargins(0, 0, 0, 0)
-            layout.setSpacing(0)
+        for sub_layout in [edits, checkboxes, layout]:
+            sub_layout.setContentsMargins(0, 0, 0, 0)
+            sub_layout.setSpacing(0)
 
         for widget in [panel] + panel.findChildren(aqt.qt.QWidget):
             widget.setContentsMargins(0, 0, 0, 0)

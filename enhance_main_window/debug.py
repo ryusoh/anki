@@ -81,7 +81,7 @@ def assertEqual(left, right):
             elif isinstance(pair, None):
                 print("Strangely, firstDifference find no difference")
             else:
-                assert False
+                raise AssertionError()
         else:
             print("Only the first is a Gen")
     elif hasattr(right, "firstDifference"):

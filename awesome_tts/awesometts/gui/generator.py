@@ -58,7 +58,7 @@ class BrowserGenerator(ServiceDialog):
         self._process = None  # set in accept()
 
         super(BrowserGenerator, self).__init__(
-            title="Add TTS Audio to Selected Notes", *args, **kwargs
+            *args, title="Add TTS Audio to Selected Notes", **kwargs
         )
 
     # UI Construction ########################################################
@@ -653,7 +653,7 @@ class EditorGenerator(ServiceDialog):
         """
 
         self._editor = editor
-        super(EditorGenerator, self).__init__(title="Add TTS Audio to Note", *args, **kwargs)
+        super(EditorGenerator, self).__init__(*args, title="Add TTS Audio to Note", **kwargs)
 
     # UI Construction ########################################################
 

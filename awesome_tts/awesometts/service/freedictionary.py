@@ -76,12 +76,12 @@ class FreeDictionary(Service):
                 data = json.loads(response.read().decode('utf-8'))
         except HTTPError as e:
             if e.code == 404:
-                raise ValueError(f"Word '{word}' not found in Free Dictionary API.")
-            raise IOError(f"Free Dictionary API returned HTTP {e.code}")
+                raise ValueError(f"Word '{word}' not found in Free Dictionary API.") from e
+            raise IOError(f"Free Dictionary API returned HTTP {e.code}") from e
         except URLError as e:
-            raise IOError(f"Network error when connecting to Free Dictionary API: {e}")
+            raise IOError(f"Network error when connecting to Free Dictionary API: {e}") from e
         except Exception as e:
-            raise IOError(f"Error communicating with Free Dictionary API: {e}")
+            raise IOError(f"Error communicating with Free Dictionary API: {e}") from e
 
         # Extract the audio URLs
         audio_urls = []

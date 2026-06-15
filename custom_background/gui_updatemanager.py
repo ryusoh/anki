@@ -222,7 +222,7 @@ class SettingsDialog(QDialog):
             f = path.split("user_files/background/")[-1]
             lineEditor.setText(f)
 
-        f = getFile(
+        getFile(
             mw, "Wallpaper", cb=setWallpaper, filter=ext, dir=f"{addon_path}/user_files/background"
         )
 
@@ -231,9 +231,7 @@ class SettingsDialog(QDialog):
             f = path.split("user_files/gear/")[-1]
             lineEditor.setText(f)
 
-        f = getFile(
-            mw, "Gear icon", cb=setWallpaper, filter=ext, dir=f"{addon_path}/user_files/gear"
-        )
+        getFile(mw, "Gear icon", cb=setWallpaper, filter=ext, dir=f"{addon_path}/user_files/gear")
 
     def _updateCheckbox(self, cb, key):
         n = -1 if cb == 2 else 1

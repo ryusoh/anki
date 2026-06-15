@@ -38,7 +38,7 @@ class Groups(Dialog):
     ]
 
     def __init__(self, ask, *args, **kwargs):
-        super(Groups, self).__init__(title="Manage Preset Groups", *args, **kwargs)
+        super(Groups, self).__init__(*args, title="Manage Preset Groups", **kwargs)
         self._ask = ask
         self._current_group = None
         self._groups = None  # set in show()

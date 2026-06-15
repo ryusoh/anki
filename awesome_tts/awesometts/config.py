@@ -283,7 +283,7 @@ class Config(object):
         try:
             return self[name]
         except KeyError:
-            raise AttributeError("'%s' is not a supported name" % name)
+            raise AttributeError("'%s' is not a supported name" % name) from None
 
     def __getitem__(self, name):
         """
@@ -323,7 +323,7 @@ class Config(object):
 
         # update in-memory store of the values and notify callback handlers
         unique_callbacks = set()
-        for name, col, value in updates:
+        for name, _col, value in updates:
             self._cache[name] = value
             if name in self._events:
                 unique_callbacks.update(self._events[name])

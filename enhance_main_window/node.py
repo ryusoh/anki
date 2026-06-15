@@ -806,7 +806,7 @@ def renderDeckTree(self, nodes, depth=0):
         buf += self._deckRow(node, depth, len(nodes))
     if depth == 0:
         buf += self._topLevelDragRow()
-        end = time.time()
+        time.time()
     return buf
 
 

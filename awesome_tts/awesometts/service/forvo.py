@@ -822,13 +822,13 @@ class Forvo(Service):
                 response = requests.get(url, headers=headers, timeout=10)
                 self._logger.debug(f'response.content: {response.content}')
             except requests.exceptions.SSLError as e:
-                message = f"SSL Certificate verification failed when contacting Forvo API. This is usually due to Forvo's servers having an invalid or expired certificate. Details: {e}"
+                message = f"SSL Certificate verification failed when contacting Forvo API. This is usually due to Forvo's servers having an outdated certificate or your computer missing the necessary root certificates. Details: {e}"
                 self._logger.error(message)
-                raise IOError(message)
+                raise IOError(message) from e
             except requests.exceptions.RequestException as e:
                 message = f"A network error occurred while communicating with the Forvo API: {e}"
                 self._logger.error(message)
-                raise IOError(message)
+                raise IOError(message) from e
 
             if response.status_code == 200:
                 # success
@@ -853,11 +853,11 @@ class Forvo(Service):
                 except requests.exceptions.SSLError as e:
                     message = f"SSL Certificate verification failed when downloading audio from Forvo. Details: {e}"
                     self._logger.error(message)
-                    raise IOError(message)
+                    raise IOError(message) from e
                 except requests.exceptions.RequestException as e:
                     message = f"A network error occurred while downloading audio from Forvo: {e}"
                     self._logger.error(message)
-                    raise IOError(message)
+                    raise IOError(message) from e
 
                 # codeql[py/clear-text-storage-sensitive-data] Writing downloaded audio file, not sensitive credentials
                 with open(path, 'wb') as audio:

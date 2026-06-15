@@ -51,3 +51,14 @@ ignore = [
 "**/tests/**" = ["E402", "F401", "F811"]
 "conftest.py" = ["E402"]
 "**/__init__.py" = ["F401"]
+
+# Legacy third-party addons with inherent linting issues
+"awesome_tts/**" = ["F403", "F405", "F821", "E402"]
+"review_heatmap/**" = ["F403", "F405", "F821", "E402"]
+"enhance_main_window/**" = ["F403", "F405", "F821", "E402"]
+"custom_background/**" = ["F403", "F405", "F821", "E402"]
+"animated_glass_background/**" = ["F403", "F405", "F821", "E402"]
+"mac_transparent_titlebar/**" = ["F403", "F405", "F821", "E402"]
+"hide_window_title/**" = ["F403", "F405", "F821", "E402"]
+"hide_deck_collapse/**" = ["F403", "F405", "F821", "E402"]
+"toggle_bottom_pane/**" = ["F403", "F405", "F821", "E402"]

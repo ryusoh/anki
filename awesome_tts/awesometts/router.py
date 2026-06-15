@@ -470,7 +470,7 @@ class Router(object):
                         if extra['required']:
                             raise KeyError(
                                 "%s required to access %s" % (extra['label'].rstrip(':'), svc_id)
-                            )
+                            ) from None
                         else:
                             options[key] = None
 
@@ -773,7 +773,7 @@ class Router(object):
 
         svc_id, service = self._fetch_service(svc_id)
 
-        if 'options' not in service or force_options_reload == True:
+        if 'options' not in service or force_options_reload:
             self._logger.debug(
                 "Building the options list for %s",
                 service['name'],
@@ -822,7 +822,7 @@ class Router(object):
                 service['options'].append(option)
 
         if (
-            'extras' not in service or force_options_reload == True
+            'extras' not in service or force_options_reload
         ):  # extras are like options, but universal
             service['extras'] = []
 
@@ -867,7 +867,7 @@ class Router(object):
                 self._services.dead[svc_id]
                 if svc_id in self._services.dead
                 else "There is no '%s' service" % svc_id
-            )
+            ) from None
 
         self._load_service(service)
 

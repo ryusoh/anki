@@ -50,7 +50,7 @@ class BrowserStripper(Dialog):
         self._notes = None  # set in show()
 
         super(BrowserStripper, self).__init__(
-            title="Remove Audio from Selected Notes", *args, **kwargs
+            *args, title="Remove Audio from Selected Notes", **kwargs
         )
 
     # UI Construction ########################################################

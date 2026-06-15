@@ -76,7 +76,7 @@ class CereProc(Service):
         try:
             response = requests.get(auth_url, headers=headers, timeout=10)
         except requests.exceptions.RequestException as e:
-            raise ValueError(f"Network error: {e}")
+            raise ValueError(f"Network error: {e}") from e
 
         access_token = response.json()['access_token']
         return access_token
@@ -124,7 +124,7 @@ class CereProc(Service):
                 )
             except requests.exceptions.RequestException as e:
                 self._logger.error(f"Network error: {e}")
-                raise ValueError(f"Network error: {e}")
+                raise ValueError(f"Network error: {e}") from e
 
             if response.status_code == 200:
                 with open(path, 'wb') as audio:

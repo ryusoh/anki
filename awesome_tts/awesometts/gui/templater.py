@@ -60,7 +60,7 @@ class Templater(ServiceDialog):
         self._card_layout = card_layout
         self._is_cloze = card_layout.model['type'] == MODEL_CLOZE
 
-        super(Templater, self).__init__(title="Add On-the-Fly TTS Tag to Template", *args, **kwargs)
+        super(Templater, self).__init__(*args, title="Add On-the-Fly TTS Tag to Template", **kwargs)
 
     # UI Construction ########################################################
 
@@ -194,7 +194,7 @@ class Templater(ServiceDialog):
         self.set_button_label()
 
         # if the user selected styling, exit as it doesn't make sense to insert a TTS tag there
-        if self.front_template_selected == False and self.back_template_selected == False:
+        if not self.front_template_selected and not self.back_template_selected:
             aqt.utils.showCritical(
                 "Please Select Front Template or Back Template", title="AwesomeTTS"
             )
@@ -219,7 +219,7 @@ class Templater(ServiceDialog):
 
         # print(settings)
 
-        if not is_group and preset_name == None:
+        if not is_group and preset_name is None:
             aqt.utils.showCritical("You must select a service preset", self)
             return
 

@@ -1,4 +1,3 @@
-
 from aqt import mw
 
 userOption = None

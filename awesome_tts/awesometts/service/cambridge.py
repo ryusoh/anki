@@ -141,7 +141,7 @@ class Cambridge(Service):
         parser.feed(html_payload.decode('utf-8'))
         parser.close()
 
-        if parser.sound_file != None:
+        if parser.sound_file is not None:
             sound_url = 'https://dictionary.cambridge.org' + parser.sound_file
             # print(f'sound_url: {sound_url}')
 

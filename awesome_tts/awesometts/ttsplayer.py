@@ -149,7 +149,7 @@ class AwesomeTTSPlayer(TTSProcessPlayer):
         ret.result()
 
         # inject file into the top of the audio queue
-        if self.audio_file_path != None:
+        if self.audio_file_path is not None:
             av_player.insert_file(self.audio_file_path)
 
         if self.playback_error:

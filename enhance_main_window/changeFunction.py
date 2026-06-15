@@ -1,4 +1,3 @@
-
 try:
     from anki.sched import Scheduler
 except ModuleNotFoundError:

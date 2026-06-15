@@ -85,9 +85,9 @@ class LanguageTools:
         return {'key_valid': False, 'msg': 'api key not valid'}
 
     def ensure_key_verified(self):
-        if self.api_key == None:
+        if self.api_key is None:
             raise ValueError('API Key not set')
-        if self.api_key_verified == False:
+        if not self.api_key_verified:
             self.verify_api_key(self.api_key)
 
     def account_info(self):
@@ -108,7 +108,7 @@ class LanguageTools:
             return data
         except requests.exceptions.RequestException as e:
             self.logger.error(f"Network error in account_info: {e}")
-            raise ValueError(f"Network error: {e}")
+            raise ValueError(f"Network error: {e}") from e
 
     # def request_trial_key(self, email):
     #     self.logger.info(f'requesting trial key for email {email}')
@@ -169,7 +169,7 @@ class LanguageTools:
                 raise ValueError(error_message)
         except requests.exceptions.RequestException as e:
             self.logger.error(f"Network error in generate_audio_v2: {e}")
-            raise ValueError(f"Network error: {e}")
+            raise ValueError(f"Network error: {e}") from e
 
     def compute_hmac_signature(self, email, client_uuid, machine_id):
         secret_key = os.environ.get('ANKI_LANGUAGE_TOOLS_TRIAL_SECRET_KEY', 'kXpZuHms9Rv0Y4wqlcze')

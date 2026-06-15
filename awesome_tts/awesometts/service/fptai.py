@@ -134,7 +134,7 @@ class FptAi(Service):
                 )
             except requests.exceptions.RequestException as e:
                 self._logger.error(f"Network error: {e}")
-                raise ValueError(f"Network error: {e}")
+                raise ValueError(f"Network error: {e}") from e
 
             self._logger.debug(f'executing POST on {api_url} with headers {headers}, text: {text}')
 
@@ -159,7 +159,7 @@ class FptAi(Service):
             audio_available = False
             max_tries = 7
             wait_time = 0.2
-            while audio_available == False and max_tries > 0:
+            while not audio_available and max_tries > 0:
                 time.sleep(wait_time)
                 try:
                     r = requests.get(async_url, allow_redirects=True, timeout=10)
