@@ -327,8 +327,12 @@ fmt-check:
 
 lint:
 	@if command -v npx >/dev/null 2>&1 && [ -n "$(strip $(JS_FILES))" ]; then \
-		echo "Linting JavaScript files..."; \
-		npx eslint $(JS_FILES) 2>/dev/null || echo "ESLint not configured or no issues"; \
+		if ls eslint.config.* .eslintrc* >/dev/null 2>&1; then \
+			echo "Linting JavaScript files..."; \
+			npx eslint $(JS_FILES); \
+		else \
+			echo "⊘ No ESLint config found — skipping JS lint"; \
+		fi; \
 	fi
 	@$(MAKE) lint-md
 
@@ -342,7 +346,7 @@ lint-fix:
 lint-md:
 	@if command -v npx >/dev/null 2>&1 && [ -n "$(strip $(MD_FILES))" ]; then \
 		echo "Linting Markdown files..."; \
-		npx markdownlint-cli $(MD_FILES) || echo "Markdownlint found issues"; \
+		npx markdownlint-cli $(MD_FILES); \
 	else \
 		echo "No markdownlint or no MD files to lint"; \
 	fi
