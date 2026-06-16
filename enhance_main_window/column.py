@@ -14,7 +14,7 @@ lastHandler = DeckBrowser._linkHandler
 
 def _linkHandler(self, url):
     if ":" in url:
-        (cmd, arg) = url.split(":")
+        cmd, arg = url.split(":")
         if cmd == "dragColumn":
             return columnHandler(self, arg)
         elif cmd == "optsColumn":

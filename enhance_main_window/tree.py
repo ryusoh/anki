@@ -8,7 +8,7 @@ from .debug import debug
 
 # Associate [column name][deck id name] to some value corresponding to
 # the number of card of this deck in this column
-values = dict()
+values: dict[str, dict] = dict()
 
 
 def computeValues():

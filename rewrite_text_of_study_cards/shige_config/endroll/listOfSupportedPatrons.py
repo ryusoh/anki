@@ -16,19 +16,13 @@ credits = """
 <br><br><br>
 <b>[ CREDIT ]</b>
 <br><br><br>
-""".replace(
-    '\n', '<br>'
-)
+""".replace('\n', '<br>')
 
 patreon = """
 Special Thanks
 <b>[ PATRONS ]</b>
 {patrons_list}
-""".format(
-    patrons_list=patrons_list
-).replace(
-    '\n', '<br>'
-)
+""".format(patrons_list=patrons_list).replace('\n', '<br>')
 
 sound = (
     "<b>[ SOUNDS & BGM ]</b><br>"
@@ -107,9 +101,7 @@ Speed Focus Mode
 Hitmarkers
 HUMBLE PIE
 
-""".replace(
-    '\n', '<br>'
-)
+""".replace('\n', '<br>')
 
 budle = (
     "<b>[ BUNDLE SOURCE CODE ]</b><br>"
@@ -121,8 +113,7 @@ budle = (
 thankYou = (
     """
 <br><br><br>
-<h3>%s</h3><br>"""
-    % ADDON_NAME
+<h3>%s</h3><br>""" % ADDON_NAME
     + clink(f"{CREATE_OR_FIXED}", "Shigeyuki", "https://www.patreon.com/Shigeyuki")
     + """
 <br>

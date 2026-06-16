@@ -43,7 +43,7 @@ idToOldNode: dict[int, Any] = {}
 def idFromOldNode(node):
     # Look at aqt/deckbrowser.py for a description of node
     try:
-        (_, did, _, _, _, _) = node
+        _, did, _, _, _, _ = node
         return did
     except Exception as e:
         # Fallback for Anki versions where node is an object, not a tuple
@@ -56,7 +56,7 @@ def idFromOldNode(node):
 
 
 # The list of column in configuration which does not exists, and such that the user was already warned about it.
-warned = set()
+warned: set[str] = set()
 
 
 class DeckNode:

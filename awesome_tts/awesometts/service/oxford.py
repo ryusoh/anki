@@ -59,7 +59,7 @@ class OxfordLister(HTMLParser):
         if tag == "div" and len(attrs) > 0 and attrs[0] == ('class', self.wanted_tag_class):
             # data-src-mp3
             if len(attrs) > 1:
-                (attr_name, attr_value) = attrs[1]
+                attr_name, attr_value = attrs[1]
                 if attr_name == 'data-src-mp3':
                     self.sounds.append(attr_value)
                     self._logger.debug(f'found mp3 link: {attr_value}')

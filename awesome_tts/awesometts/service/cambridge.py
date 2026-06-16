@@ -49,7 +49,7 @@ class CambridgeLister(HTMLParser):
             self.capture_sound = True
         if tag == 'source' and self.capture_sound and attrs[0] == ('type', 'audio/mpeg'):
             # print(f'found tag source: attrs: {attrs}')
-            (tag_key, sound_file) = attrs[1]
+            tag_key, sound_file = attrs[1]
             self.sound_file = sound_file
             self.capture_sound = False
 

@@ -673,21 +673,21 @@ class Forvo(Service):
     def normalize_sex(self, input):
         self._logger.debug(f'normalize_sex called with {input}')
         if isinstance(input, tuple):
-            (sex_code, description) = input
+            sex_code, description = input
             return sex_code
         else:
             return input
 
     def normalize_country(self, input):
         if isinstance(input, tuple):
-            (country_code, description) = input
+            country_code, description = input
             return country_code
         else:
             return input
 
     def normalize_apiurl(self, input):
         if isinstance(input, tuple):
-            (code, description) = input
+            code, description = input
             return code
         else:
             return input

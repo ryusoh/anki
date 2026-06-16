@@ -11,7 +11,7 @@ ADDON_DIR = os.path.dirname(__file__)
 ICON_PATH = os.path.join(ADDON_DIR, "icon.png")
 
 # Cache: query -> {"urls": [...], "index": int}
-_image_cache = {}
+_image_cache: dict[str, dict] = {}
 
 _AUTO_IMAGE_PATTERN = re.compile(r'<div class="auto-image">.*?</div>')
 

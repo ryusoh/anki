@@ -20,7 +20,6 @@
 Playback interface, providing user-configured delays
 """
 
-
 __all__ = ['Player']
 
 
