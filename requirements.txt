@@ -12,6 +12,7 @@ boto3>=1.28
 pytest>=8.0
 pytest-cov>=4.0
 pytest-mock>=3.0
+beautifulsoup4>=4.0
 
 # Optional: Better progress bars
 # tqdm>=4.65
