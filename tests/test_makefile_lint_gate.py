@@ -46,14 +46,12 @@ def test_detection_succeeds_with_flat_config_only(tmp_path):
     (tmp_path / ".stylelintrc.cjs").write_text("module.exports = {};\n")
     for cond in _detection_conditions():
         result = subprocess.run(["sh", "-c", cond], cwd=tmp_path)
-        assert result.returncode == 0, (
-            f"lint detection skipped a present config (silent no-op gate): {cond!r}"
-        )
+        assert (
+            result.returncode == 0
+        ), f"lint detection skipped a present config (silent no-op gate): {cond!r}"
 
 
 def test_detection_reports_absent_when_no_config(tmp_path):
     for cond in _detection_conditions():
         result = subprocess.run(["sh", "-c", cond], cwd=tmp_path)
-        assert result.returncode != 0, (
-            f"lint detection found a config in an empty dir: {cond!r}"
-        )
+        assert result.returncode != 0, f"lint detection found a config in an empty dir: {cond!r}"

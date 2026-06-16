@@ -200,6 +200,20 @@ test-py:
 		$(PYTHON) -m pytest -q "$(SUITE)"; \
 	fi
 
+test-addon:
+	@if [ -z "$(ADDON)" ]; then \
+		echo "Usage: make test-addon ADDON=<addon_dir>"; \
+	else \
+		$(PYTHON) -m pytest -q "$(ADDON)/tests"; \
+	fi
+
+typecheck-addon:
+	@if [ -z "$(ADDON)" ]; then \
+		echo "Usage: make typecheck-addon ADDON=<addon_dir>"; \
+	else \
+		mypy "$(ADDON)"; \
+	fi
+
 check-handler-regression:
 	@node tests/handler_regression.test.mjs
 
