@@ -2,7 +2,8 @@
 
 Monorepo of Anki addons (Python) plus a JS/graph data pipeline. Each top-level
 directory (`auto_wiktionary/`, `graph/`, `data/anki/`, …) is a self-contained
-addon or tool with its own `tests/`.
+addon or tool with its own `tests/`. New addon? See `docs/creating-an-addon.md`
+(layout, hook/test patterns).
 
 ## Running tests & checks
 
