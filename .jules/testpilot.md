@@ -152,3 +152,8 @@
 
 **Learning:** Adding robust type-checking, NaN-checking, and bounds tests (e.g. float limits in time parsing or emoji insertions in trie parsing) guarantees that modules with currently 100% coverage will remain crash-resistant in unexpected real-world edge cases.
 **Action:** When adding missing coverage, push the boundaries with special characters, explicit NaN/null injections, and extreme magnitudes to ensure existing coverage metrics actually represent stable logic rather than just traversing lines.
+
+## 2024-06-16 - Add Tests for add-on monkeypatches and hooks
+
+**Learning:** When testing Anki add-ons that access `aqt` modules (e.g. `mw`, `AnkiQt`, `DeckBrowser`) directly upon import or through monkeypatching on import, you must temporarily inject mock objects into `sys.modules['aqt']` and its submodules _before_ importing the module. Use a pytest fixture that records `sys.modules.copy()` and restores it, explicitly deleting the tested module from `sys.modules`, to prevent state leakage and side effects between tests.
+**Action:** Always use a `clean_sys_modules` fixture to encapsulate module-level patching and restore `sys.modules` correctly after each test to ensure deterministic tests for module initialization logic.

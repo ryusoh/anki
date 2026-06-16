@@ -2,65 +2,120 @@ import importlib
 import sys
 from unittest.mock import MagicMock
 
+import pytest
 
-def test_hide_window_title_initialization():
-    # Set up mocks
+
+@pytest.fixture
+def clean_sys_modules():
+    # Keep track of originally imported modules to restore them later
+    original_modules = sys.modules.copy()
+    yield
+    # Restore original modules
+    sys.modules.clear()
+    sys.modules.update(original_modules)
+    if 'hide_window_title' in sys.modules:
+        del sys.modules['hide_window_title']
+
+
+def test_hide_window_title_monkeypatch(clean_sys_modules):
+    # Mock aqt and AnkiQt
     mock_aqt = MagicMock()
-    mock_aqt.mw = MagicMock()
+    mock_mw = MagicMock()
+    mock_aqt.mw = mock_mw
+
+    class MockAnkiQt:
+        @staticmethod
+        def setWindowTitle(self, title):
+            pass
+
+    mock_aqt.main.AnkiQt = MockAnkiQt
+
     sys.modules['aqt'] = mock_aqt
+    sys.modules['aqt.main'] = mock_aqt.main
 
-    mock_aqt_main = MagicMock()
-    mock_AnkiQt = MagicMock()
-    # Ensure it doesn't have the attribute initially
-    del mock_AnkiQt._hide_window_title_patched
-
-    # We will mock setWindowTitle to track calls
-    original_set_window_title = MagicMock()
-    mock_AnkiQt.setWindowTitle = original_set_window_title
-
-    mock_aqt_main.AnkiQt = mock_AnkiQt
-    sys.modules['aqt.main'] = mock_aqt_main
-
-    # Import module
+    if 'hide_window_title' in sys.modules:
+        del sys.modules['hide_window_title']
     import hide_window_title
 
-    # Reload to ensure we test the main execution path if it was already imported
-    importlib.reload(hide_window_title)
+    assert hasattr(MockAnkiQt, "_hide_window_title_patched")
+    assert MockAnkiQt._hide_window_title_patched is True
 
-    # Assertions
-    assert mock_AnkiQt._hide_window_title_patched is True
-    assert mock_AnkiQt.setWindowTitle != original_set_window_title
-
-    # Call the patched method
-    mock_self = MagicMock()
-    mock_AnkiQt.setWindowTitle(mock_self, "Test Title")
-
-    # Ensure original method was called with empty string
-    original_set_window_title.assert_called_with(mock_self, "")
-
-    # Ensure mw.setWindowTitle was called
-    mock_aqt.mw.setWindowTitle.assert_called_with("")
+    pass
 
 
-def test_hide_window_title_already_patched():
-    # Set up mocks
+def test_hide_window_title_monkeypatch_logic(clean_sys_modules):
     mock_aqt = MagicMock()
-    mock_aqt.mw = None  # Test case where mw is None
+    mock_mw = MagicMock()
+    mock_aqt.mw = mock_mw
+
+    class MockAnkiQt:
+        pass
+
+    mock_set_window_title = MagicMock()
+    MockAnkiQt.setWindowTitle = mock_set_window_title
+
+    mock_aqt.main.AnkiQt = MockAnkiQt
     sys.modules['aqt'] = mock_aqt
-
-    mock_aqt_main = MagicMock()
-    mock_AnkiQt = MagicMock()
-    mock_AnkiQt._hide_window_title_patched = True
-
-    original_set_window_title = MagicMock()
-    mock_AnkiQt.setWindowTitle = original_set_window_title
-
-    mock_aqt_main.AnkiQt = mock_AnkiQt
-    sys.modules['aqt.main'] = mock_aqt_main
+    sys.modules['aqt.main'] = mock_aqt.main
 
     import hide_window_title
 
-    importlib.reload(hide_window_title)
+    # Verify the monkeypatch replaces the method
+    assert MockAnkiQt.setWindowTitle != mock_set_window_title
 
-    # Method should not be patched again
-    assert mock_AnkiQt.setWindowTitle == original_set_window_title
+    # Call the new method
+    instance = MagicMock()
+    MockAnkiQt.setWindowTitle(instance, "New Title")
+
+    # Check that original was called with empty string
+    mock_set_window_title.assert_called_once_with(instance, "")
+
+    # Check that mw title was cleared on import
+    mock_mw.setWindowTitle.assert_called_once_with("")
+
+
+def test_hide_window_title_already_patched(clean_sys_modules):
+    mock_aqt = MagicMock()
+    mock_mw = MagicMock()
+    mock_aqt.mw = mock_mw
+
+    class MockAnkiQt:
+        _hide_window_title_patched = True
+
+    mock_set_window_title = MagicMock()
+    MockAnkiQt.setWindowTitle = mock_set_window_title
+
+    mock_aqt.main.AnkiQt = MockAnkiQt
+    sys.modules['aqt'] = mock_aqt
+    sys.modules['aqt.main'] = mock_aqt.main
+
+    if 'hide_window_title' in sys.modules:
+        del sys.modules['hide_window_title']
+    import hide_window_title
+
+    # Should not re-patch
+    assert MockAnkiQt.setWindowTitle == mock_set_window_title
+    # But should still clear mw title
+    mock_mw.setWindowTitle.assert_called_once_with("")
+
+
+def test_hide_window_title_no_mw(clean_sys_modules):
+    mock_aqt = MagicMock()
+    mock_aqt.mw = None
+
+    class MockAnkiQt:
+        pass
+
+    mock_set_window_title = MagicMock()
+    MockAnkiQt.setWindowTitle = mock_set_window_title
+
+    mock_aqt.main.AnkiQt = MockAnkiQt
+
+    sys.modules['aqt'] = mock_aqt
+    sys.modules['aqt.main'] = mock_aqt.main
+
+    if 'hide_window_title' in sys.modules:
+        del sys.modules['hide_window_title']
+
+    # Should not crash
+    import hide_window_title
