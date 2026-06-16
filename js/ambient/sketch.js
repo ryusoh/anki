@@ -219,7 +219,7 @@
         context._offsetY = bounds.top + (win.scrollY || win.pageYOffset);
       }
     }
-    function align(t, tgt) {
+    function align(t, _tgt) {
       // Bolt: Read from cached offset properties to ensure O(1) continuous execution overhead.
       t.x = t.pageX - (context._offsetX || 0);
       t.y = t.pageY - (context._offsetY || 0);

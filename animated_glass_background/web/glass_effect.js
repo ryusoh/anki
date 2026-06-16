@@ -263,7 +263,7 @@
       this.animationFrame = requestAnimationFrame(loop);
     }
 
-    update(time) {
+    update(_time) {
       const globalTime = Date.now();
       if (!this.state.lastTime) this.state.lastTime = globalTime;
       const delta = (globalTime - this.state.lastTime) / 1000;
@@ -289,7 +289,7 @@
       this.drawReflection(radius, layout);
     }
 
-    drawPath(ctx, radius) {
+    drawPath(ctx, _radius) {
       ctx.beginPath();
       ctx.rect(0, 0, this.width, this.height);
       ctx.closePath();

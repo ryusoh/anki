@@ -5,7 +5,6 @@
 
 import { bindLegendToggle, isLabelHidden } from "#js/commands/legendToggle.js";
 import { parseRange, DEFAULT_RANGE } from "#js/utils/timeRange.js";
-import { escapeHtml } from "#js/transactions/utils.js";
 
 const Chart = window.Chart;
 

@@ -7,11 +7,9 @@ import {
   handleCommand,
   showHelp,
   listCharts,
-  getCurrentChart,
   getAutocomplete,
   getAllCommands,
 } from "./commands/handler.js";
-import { destroyCharts } from "./commands/reviews.js";
 
 const PROMPT = "lz@anki:~$";
 let statsReady = false;
@@ -277,7 +275,7 @@ function initTerminal() {
   attachCommandTriggers(historyState);
 
   Promise.all([bootstrapCustomStats(), bootstrapReviewStats()]).then(
-    ([customReady, reviewReady]) => {
+    ([customReady, _reviewReady]) => {
       if (!customReady) {
         const empty = document.getElementById("runningAmountEmpty");
         if (empty) {

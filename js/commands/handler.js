@@ -5,14 +5,9 @@
  */
 
 import { createCommandTrie } from "../utils/trie.js";
-import {
-  parseRange,
-  isValidRange,
-  formatRange,
-  DEFAULT_RANGE,
-} from "../utils/timeRange.js";
-import { showDue, getDueHelp, destroyChart as destroyDueChart } from "./due.js";
-import { showReviews, getReviewsHelp, destroyCharts } from "./reviews.js";
+import { parseRange, isValidRange, DEFAULT_RANGE } from "../utils/timeRange.js";
+import { showDue, destroyChart as destroyDueChart } from "./due.js";
+import { showReviews, destroyCharts } from "./reviews.js";
 import { showRetention, destroyRetentionChart } from "./retention.js";
 import { toggleZoom, getZoomState } from "./zoom.js";
 

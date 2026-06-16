@@ -5,7 +5,6 @@
 
 import { bindLegendToggle, isLabelHidden } from "#js/commands/legendToggle.js";
 import { parseRange, DEFAULT_RANGE } from "#js/utils/timeRange.js";
-import { escapeHtml } from "#js/transactions/utils.js";
 
 const Chart = window.Chart;
 
@@ -95,12 +94,6 @@ export function getReviewStatsData(rangeKey = DEFAULT_RANGE, byDeck = false) {
         }
       }
       processedByDeck[deckName] = paddedEntries;
-    }
-
-    // compute global pre-slice global
-    let globalPreTime = 0;
-    for (let i = 0; i < sliceIndex; i++) {
-      globalPreTime += globalData[i].time || 0;
     }
 
     return {
@@ -363,7 +356,6 @@ export function renderReviewsChart(
       const deckEntries = data.byDeck[deckName];
       if (!deckEntries) continue;
 
-      let deckData;
       let preSum = 0;
       const deckPreSums =
         data.preSliceSumsByDeck && data.preSliceSumsByDeck[deckName]
@@ -371,7 +363,7 @@ export function renderReviewsChart(
           : { count: 0, time: 0 };
 
       // Bolt: Use pre-allocated array and single loop instead of chained maps
-      deckData = new Array(deckEntries.length);
+      const deckData = new Array(deckEntries.length);
       if (showTime) {
         preSum = isCumulative
           ? Number((deckPreSums.time / 3600).toFixed(1))

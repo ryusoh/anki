@@ -14,6 +14,10 @@ module.exports = [
             // Vendored libraries bundled inside owned addons
             'review_heatmap/libaddon/**',
             '**/_vendor/**',
+            // Legacy/vendored/injected bundles and script files
+            'review_heatmap/web/anki-review-heatmap.js',
+            'stats_page_customizer/injected.js',
+            'awesome_tts/awesometts/service/sapi5js.js',
         ],
     },
     {
@@ -66,11 +70,23 @@ module.exports = [
                 d3: 'readonly',
                 Chart: 'readonly',
                 gsap: 'readonly',
+                $: 'readonly',
+                define: 'readonly',
+                module: 'readonly',
+                XMLSerializer: 'readonly',
             },
         },
         rules: {
             'no-undef': 'error',
-            'no-unused-vars': ['warn', { args: 'after-used', ignoreRestSiblings: true }],
+            'no-unused-vars': [
+                'warn',
+                {
+                    args: 'after-used',
+                    ignoreRestSiblings: true,
+                    argsIgnorePattern: '^_',
+                    varsIgnorePattern: '^_',
+                },
+            ],
             'no-unreachable': 'error',
             'no-constant-binary-expression': 'error',
             'no-var': 'warn',
@@ -99,6 +115,9 @@ module.exports = [
                 afterEach: 'readonly',
             },
             sourceType: 'module',
+        },
+        rules: {
+            'no-unused-vars': 'off',
         },
     },
 ];
