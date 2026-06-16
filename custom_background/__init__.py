@@ -160,13 +160,16 @@ def inject_css_into_ts_page(web):
     if page != "congrats.html":
         return
     css = adjust_congrats_css()
-    web.eval("""
+    web.eval(
+        """
 (() => {
     const style = document.createElement("style");
     style.textContent= %s;
     document.head.appendChild(style);
 })();
-""" % json.dumps(css))
+"""
+        % json.dumps(css)
+    )
 
 
 gui_hooks.webview_will_set_content.append(inject_css)

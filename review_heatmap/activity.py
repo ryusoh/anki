@@ -439,7 +439,9 @@ AS day, -COUNT(), due -- negative to support heatmap legend
 FROM cards
 WHERE did IN {} AND queue IN (2,3)
 {}
-GROUP BY day ORDER BY day""".format(self._offset, self._did_limit(current_deck_only), lim)
+GROUP BY day ORDER BY day""".format(
+            self._offset, self._did_limit(current_deck_only), lim
+        )
 
         res: List[Sequence[int]] = self._db.all(cmd, self._col.sched.today)
 
@@ -503,7 +505,9 @@ SELECT CAST(STRFTIME('%s', revlog.id / 1000 - {}, 'unixepoch',
                      'localtime', 'start of day') AS int)
 AS day, COUNT()
 FROM revlog {} {}
-GROUP BY day ORDER BY day""".format(offset, join_cards, lim)
+GROUP BY day ORDER BY day""".format(
+            offset, join_cards, lim
+        )
 
         res = self._db.all(cmd)
 
