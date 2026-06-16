@@ -77,6 +77,11 @@ or ruff can change formatting and turn the build red, so bump deliberately.
   YAML, so the INI config must be passed with `--ini`.
 - **Prettier** uses defaults on purpose — adopting a custom style would reformat the
   entire repo (incl. third-party) for no lint benefit.
+- **Config detection in `lint-js`/`lint-css`** pipes `ls` to `grep -q .`, never
+  `ls glob >/dev/null 2>&1`. `ls a* b*` exits non-zero when *either* glob is
+  unmatched, so the exit-code form silently skipped the linter whenever a flat
+  `eslint.config.cjs` existed but legacy `.eslintrc*` didn't. `tests/test_makefile_lint_gate.py`
+  pins this — a silently-skipping lint gate fails the test suite.
 
 ## CI
 
