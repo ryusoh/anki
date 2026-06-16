@@ -14,6 +14,11 @@
 - **Pattern:** `conf = getUserOption() or getDefaultConfig()` or `conf = getUserOption() or {}`.
 - **Type Hints:** Use `Dict[str, Any]` for config objects to avoid "None type is not subscriptable" errors.
 
+### Python Version & Dependency Consistency
+
+- **Python Version Consistency:** The CI workflow in `.github/workflows/ci.yml` is pinned to Python `3.13` to match the local development virtual environment and prevent issues with newer/pre-release Python versions (such as Bandit crashing on Python 3.14 due to AST deprecations).
+- **External Dependencies:** Any third-party packages (e.g., `beautifulsoup4`) used in addon code or tests that are not part of Python's standard library must be explicitly listed in `requirements.txt`. While Anki bundles packages like `beautifulsoup4` and `requests` at runtime, they are not available during local testing/CI execution outside of Anki unless declared.
+
 ## Verification Workflow
 
 ### Python Quality Gate
