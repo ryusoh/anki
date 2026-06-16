@@ -34,3 +34,19 @@ Run checks from the repo root.
 - `make check-py`: Run all Python tests with coverage.
 - `make fmt-py`: Auto-format Python code (Black + Ruff).
 - `make precommit`: Full gate (fmt + lint + quality + tests).
+
+## Sibling Repositories
+
+This project is part of a cluster of repositories. Note the primary branch names and verification commands.
+
+| Repository        | Path                  | Primary Branch | Verification     |
+| ----------------- | --------------------- | -------------- | ---------------- |
+| **Anki Addons**   | `.`                   | `main`         | `make precommit` |
+| **Fund**          | `../fund`             | `main`         | `make precommit` |
+| **Networking**    | `../networking`       | `main`         | `make precommit` |
+| **Personal Site** | `../ryusoh.github.io` | **`master`**   | `make check`     |
+
+### Multi-repo Workflow
+
+- **Automation:** Use the `/ship <branch>` command in any repo to fix quality failures, merge to the primary branch, and cleanup.
+- **Git Hooks:** All repos use pre-commit hooks (e.g., `prettier`). If a push fails, run the repo's fix command (e.g., `make fmt-py`, `make fmt`, or `make precommit-fix`) before retrying.
