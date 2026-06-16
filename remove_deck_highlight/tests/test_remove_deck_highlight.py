@@ -1,60 +1,61 @@
-import importlib
 import sys
 from unittest.mock import MagicMock
 
+import pytest
 
-def test_remove_deck_highlight():
+
+@pytest.fixture
+def setup_module():
     mock_aqt = MagicMock()
-    # We need to mock aqt.gui_hooks as an object that has an appendable list
     mock_gui_hooks = MagicMock()
-    mock_gui_hooks.webview_will_set_content = []
     mock_aqt.gui_hooks = mock_gui_hooks
 
-    mock_mw = MagicMock()
-
-    # Let's create a specific class for the deck browser so type() works
-    class MockDeckBrowser:
+    class DeckBrowser:
         pass
 
-    mock_deckBrowser = MockDeckBrowser()
-    mock_mw.deckBrowser = mock_deckBrowser
-    mock_aqt.mw = mock_mw
+    mock_aqt.mw = MagicMock()
+    mock_aqt.mw.deckBrowser = DeckBrowser()
 
     sys.modules['aqt'] = mock_aqt
 
+    if 'remove_deck_highlight' in sys.modules:
+        del sys.modules['remove_deck_highlight']
+
     import remove_deck_highlight
 
-    importlib.reload(remove_deck_highlight)
+    yield remove_deck_highlight
 
-    # Check that hook was appended
-    assert len(remove_deck_highlight.gui_hooks.webview_will_set_content) == 1
+    if 'remove_deck_highlight' in sys.modules:
+        del sys.modules['remove_deck_highlight']
 
-    handler = remove_deck_highlight.gui_hooks.webview_will_set_content[0]
 
-    # Test with correct context
+def test_on_webview_will_set_content_deckbrowser(setup_module):
+    module = setup_module
     web_content = MagicMock()
-    web_content.head = ""
-    web_content.body = ""
+    web_content.head = "<html><head></head>"
+    web_content.body = "<body>"
 
-    # Correct context is an instance of the same type as mw.deckBrowser
-    context = MockDeckBrowser()
+    context = sys.modules['aqt'].mw.deckBrowser
 
-    handler(web_content, context)
+    module.on_webview_will_set_content(web_content, context)
 
+    assert "tr.deck.current" in web_content.head
     assert "background-color: transparent !important;" in web_content.head
-    assert "stripCurrent();" in web_content.body
+    assert "const stripCurrent" in web_content.body
 
-    # Test with wrong context
-    web_content_wrong = MagicMock()
-    web_content_wrong.head = ""
-    web_content_wrong.body = ""
 
-    class WrongContext:
+def test_on_webview_will_set_content_other(setup_module):
+    module = setup_module
+    web_content = MagicMock()
+    web_content.head = "<html><head></head>"
+    web_content.body = "<body>"
+
+    class OtherBrowser:
         pass
 
-    context_wrong = WrongContext()  # not the same type
+    context = OtherBrowser()
 
-    handler(web_content_wrong, context_wrong)
+    module.on_webview_will_set_content(web_content, context)
 
-    assert web_content_wrong.head == ""
-    assert web_content_wrong.body == ""
+    assert "tr.deck.current" not in web_content.head
+    assert "const stripCurrent" not in web_content.body
