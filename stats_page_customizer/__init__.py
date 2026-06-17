@@ -15,7 +15,8 @@ try:
     from aqt.stats import DeckStats, NewDeckStats
     from aqt.utils import qconnect, showInfo
     from aqt.webview import AnkiWebView
-except Exception:  # pragma: no cover - only when run outside Anki
+except Exception as e:  # pragma: no cover - only when run outside Anki
+    print(f"Running outside Anki: {e}")
     gui_hooks = None  # type: ignore
     DeckStats = None  # type: ignore[misc,assignment]
     NewDeckStats = None  # type: ignore[misc,assignment]

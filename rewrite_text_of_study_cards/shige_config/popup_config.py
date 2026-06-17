@@ -66,7 +66,7 @@ POPUP_PNG = r"popup_shige.png"
 
 
 NEW_FEATURE = """
-[1] 
+[1]
 """
 
 
@@ -161,16 +161,16 @@ def change_log_popup(*args, **kwargs):
             dialog.show()
             config[CHANGE_LOG] = CHANGE_LOG_DAY
             mw.addonManager.writeConfig(__name__, config)
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Failed to show change log popup: {e}")
 
 
 def change_log_popup_B(*args, **kwargs):
     try:
         dialog = CustomDialog(mw, CHANGE_LOG_TEXT_B, True)
         dialog.show()
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Failed to show change log popup B: {e}")
 
 
 # ----- add-onのconfigをｸﾘｯｸしたら設定ｳｨﾝﾄﾞｳを開く -----

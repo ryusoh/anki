@@ -774,75 +774,75 @@ class Router(object):
         svc_id, service = self._fetch_service(svc_id)
 
         if 'options' not in service or force_options_reload:
-            self._logger.debug(
-                "Building the options list for %s",
-                service['name'],
-            )
+            self._build_options(svc_id, service)
 
-            service['options'] = []
-
-            for option in service['instance'].options():
-                assert 'key' in option, "missing option key for %s" % svc_id
-                assert self._services.normalize(option['key']) == option['key'], "bad %s key %s" % (
-                    svc_id,
-                    option['key'],
-                )
-                assert option['key'] not in ['group', 'preset', 'service', 'style'], (
-                    option['key'] + " is reserved for use in TTS tags"
-                )
-                assert 'label' in option, "missing %s label for %s" % (option['key'], svc_id)
-                assert 'values' in option, "missing %s values for %s" % (option['key'], svc_id)
-                assert (
-                    isinstance(option['values'], list)
-                    or isinstance(option['values'], tuple)
-                    and len(option['values']) in range(2, 4)
-                ), "%s values for %s should be list or 2-3-tuple" % (option['key'], svc_id)
-                assert 'transform' in option, "missing %s transform for %s" % (
-                    option['key'],
-                    svc_id,
-                )
-
-                if not option['label'].endswith(":"):
-                    option['label'] += ":"
-
-                if (
-                    'default' in option
-                    and isinstance(option['values'], list)
-                    and len(option['values']) > 1
-                ):
-                    option['values'] = [
-                        (
-                            item
-                            if item[0] != option['default'] or item[1] == 'Default'
-                            else (item[0], item[1] + " [default]")
-                        )
-                        for item in option['values']
-                    ]
-
-                service['options'].append(option)
-
-        if (
-            'extras' not in service or force_options_reload
-        ):  # extras are like options, but universal
-            service['extras'] = []
-
-            if hasattr(service['instance'], 'extras'):
-                self._logger.debug("Building the extras list for %s", service['name'])
-                for extra in service['instance'].extras():
-                    assert 'key' in extra, "missing extra key for %s" % svc_id
-                    assert (
-                        self._services.normalize(extra['key']) == extra['key']
-                    ), "bad %s key %s" % (svc_id, extra['key'])
-                    assert 'label' in extra, "missing %s label for %s" % (extra['key'], svc_id)
-
-                    if 'required' not in extra:
-                        extra['required'] = False
-                    if not extra['label'].endswith(":"):
-                        extra['label'] += ":"
-
-                    service['extras'].append(extra)
+        if 'extras' not in service or force_options_reload:
+            self._build_extras(svc_id, service)
 
         return svc_id, service
+
+    def _build_options(self, svc_id, service):
+        self._logger.debug(
+            "Building the options list for %s",
+            service['name'],
+        )
+        service['options'] = []
+        for option in service['instance'].options():
+            self._validate_and_format_option(svc_id, option)
+            service['options'].append(option)
+
+    def _validate_and_format_option(self, svc_id, option):
+        assert 'key' in option, "missing option key for %s" % svc_id
+        assert self._services.normalize(option['key']) == option['key'], "bad %s key %s" % (
+            svc_id,
+            option['key'],
+        )
+        assert option['key'] not in ['group', 'preset', 'service', 'style'], (
+            option['key'] + " is reserved for use in TTS tags"
+        )
+        assert 'label' in option, "missing %s label for %s" % (option['key'], svc_id)
+        assert 'values' in option, "missing %s values for %s" % (option['key'], svc_id)
+        assert (
+            isinstance(option['values'], list)
+            or isinstance(option['values'], tuple)
+            and len(option['values']) in range(2, 4)
+        ), "%s values for %s should be list or 2-3-tuple" % (option['key'], svc_id)
+        assert 'transform' in option, "missing %s transform for %s" % (
+            option['key'],
+            svc_id,
+        )
+
+        if not option['label'].endswith(":"):
+            option['label'] += ":"
+
+        if 'default' in option and isinstance(option['values'], list) and len(option['values']) > 1:
+            option['values'] = [
+                (
+                    item
+                    if item[0] != option['default'] or item[1] == 'Default'
+                    else (item[0], item[1] + " [default]")
+                )
+                for item in option['values']
+            ]
+
+    def _build_extras(self, svc_id, service):
+        service['extras'] = []
+        if hasattr(service['instance'], 'extras'):
+            self._logger.debug("Building the extras list for %s", service['name'])
+            for extra in service['instance'].extras():
+                assert 'key' in extra, "missing extra key for %s" % svc_id
+                assert self._services.normalize(extra['key']) == extra['key'], "bad %s key %s" % (
+                    svc_id,
+                    extra['key'],
+                )
+                assert 'label' in extra, "missing %s label for %s" % (extra['key'], svc_id)
+
+                if 'required' not in extra:
+                    extra['required'] = False
+                if not extra['label'].endswith(":"):
+                    extra['label'] += ":"
+
+                service['extras'].append(extra)
 
     def _fetch_service(self, svc_id):
         """

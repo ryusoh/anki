@@ -88,3 +88,11 @@
 
 - **Structural Health:** Reduced cyclomatic complexity in `awesome_tts/awesometts/gui/listviews.py` (`setModelData`, `data`) and `awesome_tts/awesometts/gui/generator.py` (`_accept_done`) by extracting string building and parsing logic into helper methods (`_parse_regex_input`, `_format_display_role`, `_build_messages`).
 - **Resilience:** Replaced empty `except ImportError` in `awesome_tts/awesometts/__init__.py` and `except AttributeError` in `awesome_tts/awesometts/service/base.py` with `logger.debug` and `logging.getLogger` statements for proper context-aware logging, preventing silent failures.
+
+## $(date +%Y-%m-%d) - Structural Health, Resiliency & Clean up
+
+**Learning:** When executing Code Health & Cleanup tasks ('Architect' / 'Janitor' roles), focus on reducing cyclomatic complexity (e.g., verified via `radon`), replacing empty `catch`/`except` blocks with context-aware logging, and pruning dead code/TODOs.
+
+- **Structural Health:** Refactored `awesome_tts/awesometts/router.py` to extract large `_fetch_options_and_extras` function into smaller sub-methods `_build_options`, `_validate_and_format_option`, and `_build_extras`, which reduced cyclomatic complexity. Similarly, refactored `awesome_tts/awesometts/gui/configurator.py` by extracting parts of `accept` and `show` functions.
+- **Silent Failures:** Replaced empty `except Exception:` blocks with context-aware logging in `awesome_tts/awesometts/gui/configurator.py`, `tools/test_security_audit.py`, `stats_page_customizer/__init__.py`, `rewrite_text_of_study_cards/shige_config/popup_config.py`, and `data/anki/tests/`.
+- **Cleanup Logic:** Cleaned up tests avoiding unnecessary exceptions in tests context instead of suppressing.

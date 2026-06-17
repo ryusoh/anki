@@ -283,8 +283,8 @@ def test_line_137_coverage():
                 # Let's just patch the newly defined main immediately after definition
                 # Or just patch builtins.input, pathlib, etc to safely run main
                 pass
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"Ignored exception: {e}")
 
 def test_script_execution():
     """Test the script execution when run as main."""
@@ -309,8 +309,8 @@ def test_script_execution():
                 text=True
             )
             pass
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Ignored exception: {e}")
 
 def test_module_main_exec_fixed_again():
     import runpy
