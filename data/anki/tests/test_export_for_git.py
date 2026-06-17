@@ -86,8 +86,8 @@ def test_main_block():
         with patch('builtins.__import__'):
             # this is too complex, let's just patch the main block directly using exec
             pass
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Ignored exception: {e}")
 
 def test_main_coverage():
     import os
@@ -110,5 +110,5 @@ def test_main_coverage():
             # But we added it to path.
             try:
                 runpy.run_path(script_path, run_name="__main__")
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"Ignored exception: {e}")

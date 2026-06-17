@@ -684,31 +684,25 @@ class Configurator(Dialog):
 
     # Events #################################################################
 
-    def show(self, *args, **kwargs):
-        """Restores state on inputs; rough opposite of the accept()."""
+    def _set_widget_value(self, widget, value):
+        if isinstance(widget, Checkbox):
+            widget.setChecked(value)
+            widget.stateChanged.emit(value)
+        elif isinstance(widget, aqt.qt.QKeySequenceEdit):
+            self._logger.debug(f'found keyboard shortcut: {value}')
+            widget.setKeySequence(aqt.qt.QKeySequence(value))
+        elif isinstance(widget, aqt.qt.QLineEdit):
+            widget.setText(value)
+        elif isinstance(widget, aqt.qt.QComboBox):
+            widget.setCurrentIndex(max(widget.findData(value), 0))
+        elif isinstance(widget, aqt.qt.QSpinBox):
+            widget.setValue(value)
+        elif isinstance(widget, aqt.qt.QListView):
+            widget.setModel(value)
+        else:
+            raise Exception(f'*** unsupported object type: {type(widget)}')
 
-        for widget, value in [
-            (widget, self._addon.config[widget.objectName()])
-            for widget in self.findChildren(self._PROPERTY_WIDGETS)
-            if widget.objectName() in self._PROPERTY_KEYS
-        ]:
-            if isinstance(widget, Checkbox):
-                widget.setChecked(value)
-                widget.stateChanged.emit(value)
-            elif isinstance(widget, aqt.qt.QKeySequenceEdit):
-                self._logger.debug(f'found keyboard shortcut: {value}')
-                widget.setKeySequence(aqt.qt.QKeySequence(value))
-            elif isinstance(widget, aqt.qt.QLineEdit):
-                widget.setText(value)
-            elif isinstance(widget, aqt.qt.QComboBox):
-                widget.setCurrentIndex(max(widget.findData(value), 0))
-            elif isinstance(widget, aqt.qt.QSpinBox):
-                widget.setValue(value)
-            elif isinstance(widget, aqt.qt.QListView):
-                widget.setModel(value)
-            else:
-                raise Exception(f'*** unsupported object type: {type(widget)}')
-
+    def _update_cache_button(self):
         widget = self.findChild(aqt.qt.QPushButton, 'on_cache')
         widget.atts_list = (
             [filename for filename in os.listdir(self._addon.paths.cache)]
@@ -722,6 +716,7 @@ class Configurator(Dialog):
             widget.setEnabled(False)
             widget.setText("Delete Files")
 
+    def _update_forget_button(self):
         widget = self.findChild(aqt.qt.QPushButton, 'on_forget')
         fail_count = self._addon.router.get_failure_count()
         if fail_count:
@@ -731,46 +726,40 @@ class Configurator(Dialog):
             widget.setEnabled(False)
             widget.setText("Forget Failures")
 
+    def show(self, *args, **kwargs):
+        """Restores state on inputs; rough opposite of the accept()."""
+        for widget in self.findChildren(self._PROPERTY_WIDGETS):
+            if widget.objectName() in self._PROPERTY_KEYS:
+                self._set_widget_value(widget, self._addon.config[widget.objectName()])
+
+        self._update_cache_button()
+        self._update_forget_button()
+
         super(Configurator, self).show(*args, **kwargs)
+
+    def _get_widget_value(self, widget):
+        if isinstance(widget, Checkbox):
+            return widget.isChecked()
+        if isinstance(widget, aqt.qt.QPushButton):
+            return widget.atts_value
+        if isinstance(widget, aqt.qt.QSpinBox):
+            return widget.value()
+        if isinstance(widget, aqt.qt.QKeySequenceEdit):
+            return widget.keySequence().toString()
+        if isinstance(widget, aqt.qt.QComboBox):
+            return widget.itemData(widget.currentIndex())
+        if isinstance(widget, aqt.qt.QListView):
+            return [i for i in widget.model().raw_data if i['compiled'] and 'bad_replace' not in i]
+        return widget.text()
 
     def accept(self):
         """Saves state on inputs; rough opposite of show()."""
-
         for list_view in self.findChildren(aqt.qt.QListView):
             for editor in list_view.findChildren(aqt.qt.QWidget, 'editor'):
                 list_view.commitData(editor)  # if an editor is open, save it
 
         config_update_dict = {
-            widget.objectName(): (
-                widget.isChecked()
-                if isinstance(widget, Checkbox)
-                else (
-                    widget.atts_value
-                    if isinstance(widget, aqt.qt.QPushButton)
-                    else (
-                        widget.value()
-                        if isinstance(widget, aqt.qt.QSpinBox)
-                        # for keyboard shortcuts, get the keysequence, and convert to string
-                        else (
-                            widget.keySequence().toString()
-                            if isinstance(widget, aqt.qt.QKeySequenceEdit)
-                            else (
-                                widget.itemData(widget.currentIndex())
-                                if isinstance(widget, aqt.qt.QComboBox)
-                                else (
-                                    [
-                                        i
-                                        for i in widget.model().raw_data
-                                        if i['compiled'] and 'bad_replace' not in i
-                                    ]
-                                    if isinstance(widget, aqt.qt.QListView)
-                                    else widget.text()
-                                )
-                            )
-                        )
-                    )
-                )
-            )
+            widget.objectName(): self._get_widget_value(widget)
             for widget in self.findChildren(self._PROPERTY_WIDGETS)
             if widget.objectName() in self._PROPERTY_KEYS
         }
@@ -784,9 +773,7 @@ class Configurator(Dialog):
             del config_update_dict['plus_api_key']
 
         self._logger.debug(f'updating config with: {pprint.pformat(config_update_dict, indent=4)}')
-
         self._addon.config.update(config_update_dict)
-
         super(Configurator, self).accept()
 
     def _on_presets(self):

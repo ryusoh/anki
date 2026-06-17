@@ -335,8 +335,8 @@ def test_run_all_tests_fail_exit():
     with patch("data.anki.tests.test_incremental_upload.test_compute_file_hash", side_effect=AssertionError("Fail")), patch("sys.exit"):
          try:
              run_all_tests()
-         except Exception:
-             pass
+         except Exception as e:
+             print(f"Ignored exception during test_incremental_upload: {e}")
 
 def test_run_all_tests_error_exit():
     import sys
@@ -347,8 +347,8 @@ def test_run_all_tests_error_exit():
     with patch("data.anki.tests.test_incremental_upload.test_compute_file_hash", side_effect=Exception("Error")), patch("sys.exit"):
          try:
              run_all_tests()
-         except Exception:
-             pass
+         except Exception as e:
+             print(f"Ignored exception during test_incremental_upload: {e}")
 
 def test_incremental_collection_staging_extra():
     import tempfile

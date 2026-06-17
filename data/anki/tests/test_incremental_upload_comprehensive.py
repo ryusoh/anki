@@ -800,8 +800,8 @@ def test_missing_coverage_comprehensive():
 
     try:
         verify_staged_files("staging_dir", [], [], [], [], [], missing_refs=True)
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Ignored exception during staging verification: {e}")
 
     with patch("sys.exit"):
          with patch("data.anki.tests.test_incremental_upload_comprehensive.test_note_hash_computation", side_effect=AssertionError("Fail")):
