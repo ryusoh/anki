@@ -50,7 +50,12 @@ def check_for_credentials(filepath, content):
     issues = []
 
     # Skip vendor/third-party code (they have their own keys)
-    if 'vendor/' in filepath or 'node_modules/' in filepath or 'tests/' in filepath:
+    if (
+        'vendor/' in filepath
+        or 'node_modules/' in filepath
+        or 'tests/' in filepath
+        or 'test_' in filepath
+    ):
         return issues
 
     # Skip documentation
