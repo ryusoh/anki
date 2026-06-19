@@ -829,7 +829,7 @@ document.head.appendChild(__vite_style__);
             selection.on("mouseover", function (d2) {
               const domainNode = this.parentNode.parentNode;
               self.tooltip
-                .html(self.getSubDomainTitle(d2))
+                .text(self.getSubDomainTitle(d2))
                 .attr("style", "display: block;");
               let tooltipPositionX =
                 self.positionSubDomainX(d2.t) -
@@ -867,7 +867,7 @@ document.head.appendChild(__vite_style__);
               );
             });
             selection.on("mouseout", function () {
-              self.tooltip.attr("style", "display:none").html("");
+              self.tooltip.attr("style", "display:none").text("");
             });
           }
         });

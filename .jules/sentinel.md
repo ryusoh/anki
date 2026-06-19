@@ -206,3 +206,9 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Vulnerability:** Empty exception blocks were discovered that swallow errors across various files, making them hard to debug and potentially masking underlying logic failures.
 **Learning:** Using `except Exception:` without logging or variable binding (`as e`) acts as an implicit `pass`, which silently ignores errors.
 **Prevention:** Always bind exceptions (`except Exception as e:`) or log them properly to retain debugging context while maintaining fallback control flow.
+
+## 2024-05-18 - Prevent DOM-based XSS by removing .html() in Review Heatmap Tooltips
+
+**Vulnerability:** In `review_heatmap/web/anki-review-heatmap.js`, the tooltips were injecting dynamic text (which could include arbitrary user input from deck names, tags, etc.) using D3's `.html()` method.
+**Learning:** Passing dynamically built strings or even seemingly safe formatted strings directly into `.html()` instead of `.text()` creates an immediate DOM-based Cross-Site Scripting (XSS) vulnerability. If a user maliciously names their deck or tag, it could execute arbitrary code when hovered in the heatmap.
+**Prevention:** Always use safe native properties like `.textContent` or D3's `.text()` when inserting data into elements to ensure the browser properly escapes HTML entities and prevents script injection.
