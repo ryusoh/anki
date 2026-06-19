@@ -157,3 +157,8 @@
 
 **Learning:** When testing Anki add-ons that access `aqt` modules (e.g. `mw`, `AnkiQt`, `DeckBrowser`) directly upon import or through monkeypatching on import, you must temporarily inject mock objects into `sys.modules['aqt']` and its submodules _before_ importing the module. Use a pytest fixture that records `sys.modules.copy()` and restores it, explicitly deleting the tested module from `sys.modules`, to prevent state leakage and side effects between tests.
 **Action:** Always use a `clean_sys_modules` fixture to encapsulate module-level patching and restore `sys.modules` correctly after each test to ensure deterministic tests for module initialization logic.
+
+## 2025-06-25 - Python tests on hide_deck_collapse, remove_deck_highlight, unify_review_count_colors, and prioritize_front_field_search
+
+**Learning:** These small add-ons are entirely devoid of test coverage and often just append hooks or have one primary module entry point. Mocking `aqt` completely with a clean MagicMock enables standard tests to be performed on small one-off function hooks, specifically making sure they don't crash when `aqt` is absent, and the HTML/CSS edits output properly.
+**Action:** Created isolated minimal tests mocking `aqt` contexts (`DeckBrowser`, `OtherContext`) and setting `head="<html>"` to assert if CSS injections properly function, and verifying hook binding processes directly with simple data.
