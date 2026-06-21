@@ -650,3 +650,67 @@ def test_analyze_all_decks(capsys):
         assert mock_print_isolated.call_count == 2
         assert mock_print_hub.call_count == 2
         assert mock_export.call_count == 2
+
+
+@patch('graph.analyze.Path')
+@patch('graph.analyze.load_notes_from_file')
+@patch('graph.analyze.build_deck_map_from_cards')
+def test_load_notes_with_decks_r2(mock_build, mock_load, mock_path):
+    mock_r2_staged = (
+        mock_path.return_value.parent.parent.__truediv__.return_value.__truediv__.return_value.__truediv__.return_value.__truediv__.return_value
+    )
+    mock_r2_staged.exists.return_value = True
+    mock_load.return_value = [{'id': 1}]
+
+    from graph.analyze import load_notes_with_decks
+
+    notes = load_notes_with_decks()
+    assert notes == [{'id': 1}]
+
+
+@patch('graph.analyze.Path')
+@patch('graph.analyze.load_notes_from_file')
+@patch('graph.analyze.build_deck_map_from_cards')
+def test_load_notes_with_decks_github(mock_build, mock_load, mock_path):
+    # Mock R2 staging path does not exist
+    mock_r2_staged = (
+        mock_path.return_value.parent.parent.__truediv__.return_value.__truediv__.return_value.__truediv__.return_value.__truediv__.return_value
+    )
+    mock_r2_staged.exists.return_value = False
+
+    # Mock GitHub fallback path exists
+    mock_github_data = (
+        mock_path.return_value.parent.parent.__truediv__.return_value.__truediv__.return_value.__truediv__.return_value
+    )
+    mock_github_data.exists.return_value = True
+
+    mock_load.return_value = [{'id': 1}]
+    mock_build.return_value = {1: {'deck_name': 'Test Deck', 'did': 123}}
+
+    from graph.analyze import load_notes_with_decks
+
+    notes = load_notes_with_decks()
+    assert len(notes) == 1
+    assert notes[0]['id'] == 1
+    assert notes[0]['deck'] == 'Test Deck'
+    assert notes[0]['deck_id'] == 123
+
+
+@patch('graph.analyze.Path')
+def test_load_notes_with_decks_none(mock_path, capsys):
+    mock_r2_staged = (
+        mock_path.return_value.parent.parent.__truediv__.return_value.__truediv__.return_value.__truediv__.return_value.__truediv__.return_value
+    )
+    mock_r2_staged.exists.return_value = False
+    mock_github_data = (
+        mock_path.return_value.parent.parent.__truediv__.return_value.__truediv__.return_value.__truediv__.return_value
+    )
+    mock_github_data.exists.return_value = False
+
+    from graph.analyze import load_notes_with_decks
+
+    notes = load_notes_with_decks()
+    assert notes == []
+
+    captured = capsys.readouterr()
+    assert "No notes found" in captured.err

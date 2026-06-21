@@ -162,3 +162,8 @@
 
 **Learning:** These small add-ons are entirely devoid of test coverage and often just append hooks or have one primary module entry point. Mocking `aqt` completely with a clean MagicMock enables standard tests to be performed on small one-off function hooks, specifically making sure they don't crash when `aqt` is absent, and the HTML/CSS edits output properly.
 **Action:** Created isolated minimal tests mocking `aqt` contexts (`DeckBrowser`, `OtherContext`) and setting `head="<html>"` to assert if CSS injections properly function, and verifying hook binding processes directly with simple data.
+
+## 2025-02-27 - Test coverage updates
+
+**Learning:** Pytest mocking of `Path` from `pathlib` involves mocking standard directory structures such as multiple `__truediv__` calls (`parent / "dir"` operations) correctly. When a single test function accesses `Path`, using `new_callable=MagicMock` or direct `@patch` works well to mock existence without attempting to evaluate attributes like `.exists` as read-only.
+**Learning:** For class method patching with decorators (like modifying `__init__`), mocking external attributes or deleting properties directly can cause errors. Testing fallbacks should emulate alternative structures such as explicitly testing for missing attributes using standard instances where expected variables are naturally absent.
