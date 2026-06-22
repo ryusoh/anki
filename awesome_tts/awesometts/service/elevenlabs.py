@@ -116,8 +116,14 @@ class ElevenLabs(Service):
                 },
             }
 
-            response = requests.post(url, json=data, headers=headers, timeout=10)
-            response.raise_for_status()
+            try:
+                response = requests.post(url, json=data, headers=headers, timeout=10)
+                response.raise_for_status()
+            except requests.exceptions.RequestException as e:
+                self._logger.error(f"Network error in ElevenLabs API request: {e}")
+                raise ValueError(
+                    "A network error occurred while communicating with the ElevenLabs API."
+                ) from e
 
             with open(path, 'wb') as audio:
                 audio.write(response.content)
