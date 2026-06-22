@@ -152,6 +152,9 @@ function initGravitationalDistortion(widget, charGroups) {
     }
   });
 
+  // Pre-allocate array for container bounds to prevent object allocations inside ticker
+  const containerBounds = new Array(charGroups.length);
+
   window.gsap.ticker.add(() => {
     if (!widgetVisible) {
       return;
@@ -162,18 +165,19 @@ function initGravitationalDistortion(widget, charGroups) {
     const wcx = wAbsoluteCx - window.scrollX;
     const wcy = wAbsoluteCy - window.scrollY;
 
-    for (const {
-      spans,
-      direction,
-      cachedRelativePositions,
-      container,
-    } of charGroups) {
-      // We only query the parent container's moving bounds once per frame
-      const containerRect = container.getBoundingClientRect();
-      const cLeft = containerRect.left;
-      const cTop = containerRect.top;
+    // Bolt: Phase 1 (READ) - Query all parent container bounds before writing any styles.
+    // Separating DOM reads from writes prevents O(N) layout thrashing across multiple groups.
+    for (let g = 0; g < charGroups.length; g++) {
+      const rect = charGroups[g].container.getBoundingClientRect();
+      containerBounds[g] = { left: rect.left, top: rect.top };
+    }
 
-      // Batch write transforms based on dynamically computed absolute positions
+    // Bolt: Phase 2 (WRITE) - Batch write transforms based on dynamically computed absolute positions.
+    for (let g = 0; g < charGroups.length; g++) {
+      const { spans, direction, cachedRelativePositions } = charGroups[g];
+      const cLeft = containerBounds[g].left;
+      const cTop = containerBounds[g].top;
+
       for (let i = 0; i < spans.length; i += 1) {
         const absX = cLeft + cachedRelativePositions[i].xOffset;
         const absY = cTop + cachedRelativePositions[i].yOffset;
