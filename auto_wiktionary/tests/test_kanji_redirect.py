@@ -625,6 +625,72 @@ AMAKUDARI_REAL_HTML = """
 """
 
 
+# ---- 物語 (ものがたり) "X"参照 redirect test fixtures ----
+
+# Real HTML from ja.wiktionary for 物語.
+# Two new wrinkles vs. the other redirects:
+#   1. The redirect list is a <ul>, not an <ol>.
+#   2. The pattern is '"ものがたり"参照' — the reading is wrapped in ASCII
+#      double quotes and 参照 follows directly (no whitespace / を separator).
+MONOGATARI_REDIRECT_HTML = """
+<html>
+    <body>
+        <section>
+            <h2>日本語</h2>
+            <section>
+                <h3>和語の漢字表記</h3>
+                <p><b><a href="./物#日本語" title="物">物</a><a href="./語#日本語" title="語">語</a></b></p>
+                <ul><li>"<a href="./ものがたり" title="ものがたり">ものがたり</a>"参照</li></ul>
+            </section>
+        </section>
+    </body>
+</html>
+"""
+
+# Real HTML from ja.wiktionary for ものがたり (the redirect target).
+MONOGATARI_REAL_HTML = """
+<html>
+    <body>
+        <section>
+            <h2>日本語</h2>
+            <section>
+                <h3>名詞</h3>
+                <p><strong class="Jpan headword" lang="ja">ものがたり</strong><span class="headword-kanji">【<b class="Jpan" lang="ja"><a href="./物語#日本語" title="物語">物語</a></b>】</span></p>
+                <ol>
+                    <li>あるまとまった内容の話。</li>
+                    <li>文学形態の一。</li>
+                </ol>
+            </section>
+        </section>
+    </body>
+</html>
+"""
+
+
+def test_detect_kanji_redirect_monogatari_ul_quoted_sanshou():
+    """物語 redirects to ものがたり via a <ul> list using the '"ものがたり"参照'
+    pattern (ASCII-quote-wrapped reading, no separator before 参照)."""
+    result = detect_kanji_redirect(MONOGATARI_REDIRECT_HTML)
+    assert result is not None, "detect_kanji_redirect should detect <ul> '\"…\"参照' redirects"
+    reading, all_readings = result
+    assert reading == "ものがたり"
+    assert all_readings == ["ものがたり"]
+
+
+def test_full_redirect_flow_monogatari():
+    """Full flow: 物語 (<ul> '"…"参照' redirect) → fetch ものがたり → real definition."""
+    result = detect_kanji_redirect(MONOGATARI_REDIRECT_HTML)
+    assert result is not None
+    reading, all_readings = result
+    assert reading == "ものがたり"
+
+    parsed = parse_wiktionary_html(MONOGATARI_REAL_HTML, lang="ja")
+    parsed = inject_redirect_pronunciation(parsed, all_readings)
+    assert "参照" not in parsed
+    assert "文学形態" in parsed
+    assert "ものがたり" in parsed
+
+
 def test_detect_kanji_redirect_amakudari_wo_sanshou():
     """天下り redirects to あまくだり via the '「あまくだり」を参照。' pattern.
     The reading must be extracted (corner brackets stripped) so the follow-up

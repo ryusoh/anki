@@ -87,14 +87,16 @@ def detect_kanji_redirect(html_text):
 
     soup = BeautifulSoup(html_text, 'html.parser')
 
-    ols = soup.find_all('ol')
-    if not ols:
+    # Redirect notices live in either an <ol> or a <ul>. The 和語の漢字表記
+    # ("native-word kanji notation") pages, e.g. 物語 → ものがたり, use a <ul>.
+    lists = soup.find_all(['ol', 'ul'])
+    if not lists:
         return None
 
-    # Collect all <li> items across all <ol>s
+    # Collect all top-level <li> items across all redirect lists
     all_lis = []
-    for ol in ols:
-        all_lis.extend(ol.find_all('li', recursive=False))
+    for lst in lists:
+        all_lis.extend(lst.find_all('li', recursive=False))
 
     # A redirect page has all <li> items matching "Xの漢字表記。"
     if not all_lis:
@@ -107,15 +109,17 @@ def detect_kanji_redirect(html_text):
         #   "Xの漢字表記。"        (e.g. 血眼 → ちまなこ)
         #   "X　参照"              (whitespace-joined, e.g. 落ちる → おちる)
         #   "「X」を参照。"         (を-joined with trailing 。, e.g. 天下り → あまくだり)
-        match = re.match(r'^(.+?)(?:の漢字表記。|(?:[\s　]+|を)参照。?)$', li_text)
+        #   '"X"参照'              (quote-wrapped, no separator, e.g. 物語 → ものがたり)
+        # The separator before 参照 may be whitespace, を, or a closing
+        # quote/bracket that wraps the reading.
+        match = re.match(r'^(.+?)(?:の漢字表記。|(?:[\s　]+|を|["”」』])参照。?)$', li_text)
         if not match:
             return None
         reading = match.group(1)
-        # Some pages wrap the reading in 「」 corner brackets
-        # (e.g. 関脇 → 「せきわけ」の漢字表記。). Strip them so the
-        # follow-up fetch uses the bare reading.
-        if reading.startswith('「') and reading.endswith('」'):
-            reading = reading[1:-1]
+        # Some pages wrap the reading in quotes/corner brackets
+        # (e.g. 関脇 → 「せきわけ」の漢字表記。, 物語 → "ものがたり"参照).
+        # Strip them so the follow-up fetch uses the bare reading.
+        reading = reading.strip('「」『』"“”\'')
         readings.append(reading)
 
     return (readings[0], readings)
