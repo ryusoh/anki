@@ -13,6 +13,6 @@
   "devDependencies": {
     "c8": "^11.0.0",
     "eslint": "^9.18.0",
-    "stylelint": "^16.14.1"
+    "stylelint": "^17.13.0"
   }
 }
