@@ -167,3 +167,9 @@
 
 **Learning:** Pytest mocking of `Path` from `pathlib` involves mocking standard directory structures such as multiple `__truediv__` calls (`parent / "dir"` operations) correctly. When a single test function accesses `Path`, using `new_callable=MagicMock` or direct `@patch` works well to mock existence without attempting to evaluate attributes like `.exists` as read-only.
 **Learning:** For class method patching with decorators (like modifying `__init__`), mocking external attributes or deleting properties directly can cause errors. Testing fallbacks should emulate alternative structures such as explicitly testing for missing attributes using standard instances where expected variables are naturally absent.
+
+## 2025-02-21 - Add missing coverage for auto_image, auto_mathjax, auto_wiktionary
+
+**Target:** `auto_image/__init__.py`, `auto_mathjax/__init__.py`, `auto_wiktionary/__init__.py`
+**Testing Strategy:** Added mock-based unit tests to cover previously untested exception handling (e.g. `flush` and `loadNoteKeepingFocus` failure blocks), early returns on `None` objects, and condition-specific edge cases (e.g., kanji redirects, whitespace-only content).
+**Learning:** Exception handling for Qt/Anki editor operations can be tricky to hit via standard unit tests, but `unittest.mock.patch` combined with `.side_effect = Exception(...)` on the mock objects effectively exercises these branches without altering the core logic.
