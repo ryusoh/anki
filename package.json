@@ -1,4 +1,5 @@
 {
+  "name": "anki",
   "type": "module",
   "imports": {
     "#js/*": "./js/*",
