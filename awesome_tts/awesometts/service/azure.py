@@ -158,10 +158,17 @@ class Azure(Service):
 
         fetch_token_url = f"https://{region}.api.cognitive.microsoft.com/sts/v1.0/issueToken"
         headers = {'Ocp-Apim-Subscription-Key': subscription_key}
-        response = requests.post(fetch_token_url, headers=headers, timeout=10)
-        self.access_token = str(response.text)
-        self.access_token_timestamp = datetime.datetime.now()
-        self._logger.debug('requested access_token')
+        try:
+            response = requests.post(fetch_token_url, headers=headers, timeout=10)
+            response.raise_for_status()
+            self.access_token = str(response.text)
+            self.access_token_timestamp = datetime.datetime.now()
+            self._logger.debug('requested access_token')
+        except requests.exceptions.RequestException as e:
+            self._logger.error(f"Network error while fetching Azure access token: {e}")
+            raise ValueError(
+                "A network error occurred while fetching the Azure access token."
+            ) from e
 
     def token_refresh_required(self):
         if self.access_token is None:
@@ -221,7 +228,13 @@ class Azure(Service):
 
             body = ssml_str.encode(encoding='utf-8')
 
-            response = requests.post(constructed_url, headers=headers, data=body, timeout=10)
+            try:
+                response = requests.post(constructed_url, headers=headers, data=body, timeout=10)
+            except requests.exceptions.RequestException as e:
+                self._logger.error(f"Network error while communicating with Azure TTS API: {e}")
+                raise ValueError(
+                    "A network error occurred while communicating with the Azure TTS API."
+                ) from e
             if response.status_code == 200:
                 with open(path, 'wb') as audio:
                     audio.write(response.content)

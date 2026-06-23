@@ -212,3 +212,9 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Vulnerability:** In `review_heatmap/web/anki-review-heatmap.js`, the tooltips were injecting dynamic text (which could include arbitrary user input from deck names, tags, etc.) using D3's `.html()` method.
 **Learning:** Passing dynamically built strings or even seemingly safe formatted strings directly into `.html()` instead of `.text()` creates an immediate DOM-based Cross-Site Scripting (XSS) vulnerability. If a user maliciously names their deck or tag, it could execute arbitrary code when hovered in the heatmap.
 **Prevention:** Always use safe native properties like `.textContent` or D3's `.text()` when inserting data into elements to ensure the browser properly escapes HTML entities and prevents script injection.
+
+## 2024-05-25 - Fix unhandled network exceptions in TTS APIs
+
+**Vulnerability:** External HTTP requests in `elevenlabs.py` and `azure.py` lacked exception handling for `requests.exceptions.RequestException`, potentially exposing internal states and stack traces upon network failures.
+**Learning:** Relying solely on `raise_for_status()` or status checks without catching `requests.exceptions.RequestException` can lead to unhandled exceptions that leak internal stack traces when a network-level issue (like DNS failure or connection drop) occurs.
+**Prevention:** Always wrap external API calls made with `requests` in a `try...except requests.exceptions.RequestException` block, log the error internally, and raise a sanitized `ValueError` for the user.
