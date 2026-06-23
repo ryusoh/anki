@@ -5,6 +5,7 @@ import urllib.request
 from urllib.error import HTTPError, URLError
 
 from bs4 import BeautifulSoup
+from bs4.element import NavigableString, Tag
 
 
 def clean_html_text(html_text):
@@ -96,7 +97,7 @@ def detect_kanji_redirect(html_text):
     # Collect all top-level <li> items across all redirect lists
     all_lis = []
     for lst in lists:
-        all_lis.extend(lst.find_all('li', recursive=False))
+        all_lis.extend(lst.find_all('li', recursive=False))  # type: ignore[attr-defined]
 
     # A redirect page has all <li> items matching "Xの漢字表記。"
     if not all_lis:
@@ -300,10 +301,10 @@ def _extract_inline_reading(ol):
         if isinstance(child, str) and not child.strip() and not reading_parts:
             continue
 
-        if getattr(child, 'name', None) == 'b':
+        if isinstance(child, Tag) and child.name == 'b':
             reading_parts.append(child.get_text())
             nodes_to_remove.append(child)
-        elif isinstance(child, str):
+        elif isinstance(child, NavigableString):
             text = child.strip()
             if text.startswith('又は') and reading_parts:
                 nodes_to_remove.append(child)
@@ -312,7 +313,7 @@ def _extract_inline_reading(ol):
                 # Found the separator — remove the 。 and stop
                 remaining = str(child).replace('。', '', 1)
                 if remaining.strip():
-                    child.replace_with(remaining)
+                    child.replace_with(NavigableString(remaining))
                 else:
                     child.extract()
                 break
