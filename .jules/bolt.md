@@ -257,3 +257,8 @@
 
 **Learning:** Calling DOM query methods like `querySelector()` and `querySelectorAll()` inside a function that executes frequently, such as a `ResizeObserver` callback (`resize()`), introduces unnecessary O(N) DOM traversal overhead on the main thread and can degrade performance during window resizing or layout changes.
 **Action:** Always pre-calculate and cache the DOM elements lazily on the instance class (e.g., `this._thead = this._thead || this.container.querySelector("thead")`) so that the expensive lookup is only performed once and reused on subsequent high-frequency calls.
+
+## 2024-05-30 - Prevent layout thrashing inside high-frequency GSAP animation loops
+
+**Learning:** Calling `getBoundingClientRect()` on multiple parent elements inside a high-frequency animation loop (e.g., `gsap.ticker`) while modifying their children causes O(N) layout thrashing. Iterating through groups and alternating between reading parent bounds and writing child styles forces synchronous layout recalculations.
+**Action:** When updating multiple groups inside an animation loop, separate DOM reads and writes into two distinct phases. Pre-allocate an array, read all parent bounds in the first loop, and batch apply styles in the second loop to maintain 60fps performance.
