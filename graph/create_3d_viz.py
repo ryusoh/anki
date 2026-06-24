@@ -197,14 +197,18 @@ graphData.nodes.forEach((n,i)=>{{
   scene.add(mesh);
 }});
 
+// Bolt: Pre-calculate node indices to replace O(N) findIndex lookups inside loops with O(1) hash map lookups.
+const nodeIdToIndex = new Map();
+graphData.nodes.forEach((n, i) => nodeIdToIndex.set(n.id, i));
+
 // Create edges with glow
 const edgeMaterial=new THREE.LineBasicMaterial({{color:0x00a8ff,transparent:true,opacity:0.3}});
 const edges_geometry=new THREE.BufferGeometry();
 const edgePositions=[];
 
 graphData.links.forEach(link=>{{
-  const sourceIndex=graphData.nodes.findIndex(n=>n.id===link.source);
-  const targetIndex=graphData.nodes.findIndex(n=>n.id===link.target);
+  const sourceIndex=nodeIdToIndex.has(link.source) ? nodeIdToIndex.get(link.source) : -1;
+  const targetIndex=nodeIdToIndex.has(link.target) ? nodeIdToIndex.get(link.target) : -1;
   if(sourceIndex>=0&&targetIndex>=0){{
     edgePositions.push(0,0,0,0,0,0); // Will be updated
   }}
@@ -246,8 +250,8 @@ for(let iter=0;iter<200;iter++){{
   
   // Attraction along edges
   graphData.links.forEach(link=>{{
-    const si=graphData.nodes.findIndex(n=>n.id===link.source);
-    const ti=graphData.nodes.findIndex(n=>n.id===link.target);
+    const si=nodeIdToIndex.has(link.source) ? nodeIdToIndex.get(link.source) : -1;
+    const ti=nodeIdToIndex.has(link.target) ? nodeIdToIndex.get(link.target) : -1;
     if(si>=0&&ti>=0){{
       const dx=positions[si].x-positions[ti].x;
       const dy=positions[si].y-positions[ti].y;
@@ -274,8 +278,8 @@ positions.forEach((pos,i)=>{{
 const edgePosAttr=edges_geometry.attributes.position;
 let edgeIdx=0;
 graphData.links.forEach(link=>{{
-  const si=graphData.nodes.findIndex(n=>n.id===link.source);
-  const ti=graphData.nodes.findIndex(n=>n.id===link.target);
+  const si=nodeIdToIndex.has(link.source) ? nodeIdToIndex.get(link.source) : -1;
+  const ti=nodeIdToIndex.has(link.target) ? nodeIdToIndex.get(link.target) : -1;
   if(si>=0&&ti>=0){{
     edgePosAttr.setXYZ(edgeIdx++,nodes_meshes[si].position.x,nodes_meshes[si].position.y,nodes_meshes[si].position.z);
     edgePosAttr.setXYZ(edgeIdx++,nodes_meshes[ti].position.x,nodes_meshes[ti].position.y,nodes_meshes[ti].position.z);

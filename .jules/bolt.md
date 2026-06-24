@@ -262,3 +262,8 @@
 
 **Learning:** Calling `getBoundingClientRect()` on multiple parent elements inside a high-frequency animation loop (e.g., `gsap.ticker`) while modifying their children causes O(N) layout thrashing. Iterating through groups and alternating between reading parent bounds and writing child styles forces synchronous layout recalculations.
 **Action:** When updating multiple groups inside an animation loop, separate DOM reads and writes into two distinct phases. Pre-allocate an array, read all parent bounds in the first loop, and batch apply styles in the second loop to maintain 60fps performance.
+
+## 2026-06-11 - [Optimize findIndex in force simulation loop]
+
+**Learning:** Using `Array.findIndex()` repeatedly inside tight, high-frequency animation or physics simulation loops (like force-directed graphs) forces O(N) linear searches on every iteration, leading to significant CPU overhead and dropped frames.
+**Action:** Pre-calculate a `Map` linking identifiers (like `node.id`) to their array index during initialization. Inside the loop, replace O(N) `findIndex` calls with O(1) `Map.get()` lookups to drastically improve loop performance and maintain smooth framerates.
