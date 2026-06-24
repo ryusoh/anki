@@ -140,6 +140,10 @@ for(let i=0;i<graphData.nodes.length;i++){{
   velocities.push({{x:0,y:0,z:0}});
 }}
 
+// Bolt: Pre-calculate node indices to replace O(N) findIndex lookups inside loops with O(1) hash map lookups.
+const nodeIdToIndex = new Map();
+graphData.nodes.forEach((n, i) => nodeIdToIndex.set(n.id, i));
+
 // Force-directed layout with bounds
 for(let iter=0;iter<150;iter++){{
   for(let i=0;i<positions.length;i++){{
@@ -159,8 +163,8 @@ for(let iter=0;iter<150;iter++){{
     }}
   }}
   graphData.links.forEach(link=>{{
-    const si=graphData.nodes.findIndex(n=>n.id===link.source);
-    const ti=graphData.nodes.findIndex(n=>n.id===link.target);
+    const si=nodeIdToIndex.has(link.source) ? nodeIdToIndex.get(link.source) : -1;
+    const ti=nodeIdToIndex.has(link.target) ? nodeIdToIndex.get(link.target) : -1;
     if(si>=0&&ti>=0){{
       const dx=positions[si].x-positions[ti].x,dy=positions[si].y-positions[ti].y,dz=positions[si].z-positions[ti].z;
       velocities[si].x-=dx*0.003;velocities[si].y-=dy*0.003;velocities[si].z-=dz*0.003;
@@ -187,8 +191,8 @@ const edgeMat=new THREE.LineBasicMaterial({{color:0x00a8ff,transparent:true,opac
 const edgeGeo=new THREE.BufferGeometry();
 const edgePos=[];
 graphData.links.forEach(link=>{{
-  const si=graphData.nodes.findIndex(n=>n.id===link.source);
-  const ti=graphData.nodes.findIndex(n=>n.id===link.target);
+  const si=nodeIdToIndex.has(link.source) ? nodeIdToIndex.get(link.source) : -1;
+  const ti=nodeIdToIndex.has(link.target) ? nodeIdToIndex.get(link.target) : -1;
   if(si>=0&&ti>=0){{
     edgePos.push(meshes[si].position.x,meshes[si].position.y,meshes[si].position.z);
     edgePos.push(meshes[ti].position.x,meshes[ti].position.y,meshes[ti].position.z);
