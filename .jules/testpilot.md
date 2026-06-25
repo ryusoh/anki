@@ -173,3 +173,8 @@
 **Target:** `auto_image/__init__.py`, `auto_mathjax/__init__.py`, `auto_wiktionary/__init__.py`
 **Testing Strategy:** Added mock-based unit tests to cover previously untested exception handling (e.g. `flush` and `loadNoteKeepingFocus` failure blocks), early returns on `None` objects, and condition-specific edge cases (e.g., kanji redirects, whitespace-only content).
 **Learning:** Exception handling for Qt/Anki editor operations can be tricky to hit via standard unit tests, but `unittest.mock.patch` combined with `.side_effect = Exception(...)` on the mock objects effectively exercises these branches without altering the core logic.
+
+## 2024-05-20 - Exception Handling and Mock Injection
+
+**Learning:** Pytest's `unittest.mock.patch` combined with specific error constructors (like `urllib.error.HTTPError`) is essential to achieve full branch coverage in exception handling blocks, preventing silent unhandled failure paths.
+**Action:** When auditing coverage reports for utility modules (`utils.py`, `__init__.py`), actively mock side-effects and inject specific exceptions to simulate API timeouts or environment permission errors that normally evade "happy path" testing.

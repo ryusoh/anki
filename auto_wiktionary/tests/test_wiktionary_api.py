@@ -249,3 +249,13 @@ def test_parse_wiktionary_html_kanji_char_multi_reading():
     assert "あま" in p_content
     # Definitions must still be present
     assert "空から降る水" in parsed
+
+
+def test_fetch_wiktionary_html_error():
+    from unittest.mock import patch
+    from urllib.error import HTTPError
+
+    with patch("urllib.request.urlopen") as mock_urlopen:
+        mock_urlopen.side_effect = HTTPError("url", 500, "Internal Server Error", {}, None)
+        res = fetch_wiktionary_html("error_word", "en")
+        assert res == "Error: 500"

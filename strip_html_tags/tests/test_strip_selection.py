@@ -204,3 +204,16 @@ def test_strip_field_edge_cases():
 
     mock_editor.currentField = 5
     _strip_field(mock_editor)
+
+
+def test_find_mismatches_none():
+    import sys
+    from io import StringIO
+    from unittest.mock import patch
+
+    from strip_html_tags import _find_mismatches
+
+    with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
+        res = _find_mismatches("abc", "def")
+        assert res is None
+        assert "====== STRIP_HTML_DEBUG: Mismatch ======" in mock_stderr.getvalue()
