@@ -206,3 +206,80 @@ def test_patch_stats_class_wrap_init_log_attrs(mock_attach):
     TestClass()
 
     mock_attach.assert_not_called()
+
+
+def test_log_error(capsys):
+    from unittest.mock import patch
+
+    from stats_page_customizer import _log
+
+    with patch("stats_page_customizer.Path.mkdir", side_effect=Exception("mocked error")):
+        _log("test message")
+        captured = capsys.readouterr()
+        assert "Error writing to log file: mocked error" in captured.out
+
+
+def test_patch_stats_class_none():
+    from unittest.mock import patch
+
+    from stats_page_customizer import _patch_stats_class
+
+    with patch("stats_page_customizer._log") as mock_log:
+        _patch_stats_class(None)
+        mock_log.assert_called_with("Stats class missing; cannot patch.")
+
+
+def test_patch_stats_class_no_init():
+    from unittest.mock import patch
+
+    from stats_page_customizer import _patch_stats_class
+
+    class DummyClass:
+        pass
+
+    with patch("stats_page_customizer._log") as mock_log:
+        _patch_stats_class(DummyClass)
+        mock_log.assert_any_call(f"{DummyClass} lacks __init__ or refresh; cannot patch.")
+
+
+def test_patch_stats_class_dummy_with_web():
+    from unittest.mock import patch
+
+    from stats_page_customizer import _patch_stats_class
+
+    class DummyClassWithInit:
+        def __init__(self):
+            pass
+
+        def refresh(self):
+            pass
+
+    # Assign some dummy attributes to bypass initial checks and allow patching
+    # DummyClassWithInit._stats_customizer_patched is False by default
+
+    with (
+        patch("stats_page_customizer._log") as mock_log,
+        patch("stats_page_customizer._schedule_js_eval") as mock_schedule,
+    ):
+
+        _patch_stats_class(DummyClassWithInit)
+
+        # Test the wrapped __init__ sets up web properly
+        from unittest.mock import MagicMock
+
+        class FakeWeb:
+            def __init__(self):
+                self.loadFinished = MagicMock()
+                self._stats_customizer_connected = False
+
+        instance = DummyClassWithInit()
+        instance.web = FakeWeb()
+        # Since it calls original init, no problem, but to trigger the log in the wrapped init
+        # we have to re-invoke __init__ now that we've set `web` (or we can just mock the self.web to exist after original init).
+        # We can just call __init__ again to hit `if web:` block.
+        instance.__init__()
+        mock_log.assert_any_call("DummyClassWithInit.__init__ attaching webview via self.web.")
+
+        # Test the wrapped refresh schedules js
+        instance.refresh()
+        mock_schedule.assert_called_with(instance.web)
