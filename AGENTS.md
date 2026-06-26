@@ -136,6 +136,7 @@ is false. Confirm both pytest **and** the JS runner execute.
 | Refactoring | cyclomatic-complexity refactors (behaviour-preserving)     | error-handling/security, tests, features  |
 | Sentinel    | security + error-handling (XSS, injection, silent catches) | complexity refactors, features            |
 | Palette     | accessibility (ARIA, keyboard, focus) in `js/` + CSS       | security, perf, complexity                |
+| Janitor     | dead code, stale deps, real TODOs only                     | complexity, error-handling, tests         |
 | Bolt        | measurable performance/efficiency on a real hot path       | anything another lane owns in the same PR |
 
 If your finding belongs to another lane, **skip it** — that lane will get it. If a
