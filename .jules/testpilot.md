@@ -24,14 +24,16 @@ terminal, seeing only the bottom rows, and re-testing files already at 100% whil
 the worst files are ignored every run. Do **not** eyeball the printed table.
 Instead:
 
-1. Generate per-addon coverage from the repo ROOT (the root `conftest.py` mocks
-   `aqt`/`anki`; a subdir run fails to import them). Use `python3`, never `python`:
-   `python3 -m coverage run -m pytest <addon>/tests/ && python3 -m coverage report`
-   — invoke coverage as `python3 -m coverage`; a bare `coverage` is shadowed by the
-   `coverage/` directory at the repo root.
-2. For JS, `make check-node` runs the c8-instrumented suite.
-3. Rank files ascending and take the lowest, minus any already covered by an open
-   PR. Never touch a file already at 100%.
+1. Run `make coverage-rank` (optionally `LIMIT=10`). It regenerates fresh Python +
+   JS coverage from the repo ROOT and prints every file below 100% ascending by
+   coverage, with statement counts — files already at 100% are filtered out. This is
+   the source of truth for target selection; do not eyeball the raw table.
+2. Take the lowest-coverage files as targets, minus any already claimed by an open
+   PR. Prefer files with more uncovered statements (real surface) over a one-line
+   gap. Never touch a file already at 100%.
+3. For the tight edit→verify loop on a chosen addon, scope with
+   `make test-py SUITE=<addon>/tests` (the root `conftest.py` mocks `aqt`/`anki`; a
+   subdir run fails to import them). Use `python3`, never `python`.
 
 ## Write real tests (no coverage theater)
 
