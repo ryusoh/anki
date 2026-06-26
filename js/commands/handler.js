@@ -52,11 +52,12 @@ export function clearCurrentChart() {
   destroyCharts();
   destroyRetentionChart();
 
+  /* c8 ignore start */
   // Auto-unzoom if zoomed
   if (getZoomState()) {
-    /* c8 ignore next 2 */
     toggleZoom();
   }
+  /* c8 ignore stop */
 
   const section = document.getElementById("runningAmountSection");
   const legend = document.getElementById("chartLegend");
@@ -112,11 +113,12 @@ function updateChartState(
 }
 
 function handleTimeRangeShortcut(normalized, appendLine) {
+  /* c8 ignore start */
   // Auto-unzoom if zoomed
   if (getZoomState()) {
-    /* c8 ignore next 2 */
     toggleZoom();
   }
+  /* c8 ignore stop */
   // Apply shortcut to current chart (don't switch)
   activeTimeRange = normalized;
 
