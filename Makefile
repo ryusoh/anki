@@ -188,6 +188,10 @@ check-node:
 	NODE_V8_COVERAGE="$$COVDIR" node tools/node_test_runner.mjs; \
 	STATUS=$$?; \
 	rm -rf "$$COVDIR"; \
+	if [ $$STATUS -eq 0 ]; then \
+		NODE_OPTIONS="--experimental-vm-modules" npx jest review_heatmap/tests/; \
+		STATUS=$$?; \
+	fi; \
 	exit $$STATUS
 
 # Fast, scoped Python test for the tight edit→verify loop (no coverage).
