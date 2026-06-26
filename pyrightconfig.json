@@ -1,20 +1,30 @@
 {
-    "typeCheckingMode": "basic",
-    "reportMissingImports": "warning",
-    "extraPaths": [
-        "."
-    ],
-    "executionEnvironments": [
-        { "root": "auto_image", "extraPaths": ["auto_image", "."] },
-        { "root": "auto_mathjax", "extraPaths": ["auto_mathjax", "."] },
-        { "root": "auto_wiktionary", "extraPaths": ["auto_wiktionary", "."] },
-        { "root": "graph", "extraPaths": ["graph", "."] },
-        { "root": "highlight_search_matches", "extraPaths": ["highlight_search_matches", "."] },
-        { "root": "prioritize_front_field_search", "extraPaths": ["prioritize_front_field_search", "."] },
-        { "root": "rewrite_text_of_study_cards", "extraPaths": ["rewrite_text_of_study_cards", "."] },
-        { "root": "stats_page_customizer", "extraPaths": ["stats_page_customizer", "."] },
-        { "root": "strip_html_tags", "extraPaths": ["strip_html_tags", "."] },
-        { "root": "tabbed_stats", "extraPaths": ["tabbed_stats", "."] },
-        { "root": ".", "extraPaths": ["."] }
-    ]
+  "typeCheckingMode": "basic",
+  "reportMissingImports": "warning",
+  "extraPaths": ["."],
+  "executionEnvironments": [
+    { "root": "auto_image", "extraPaths": ["auto_image", "."] },
+    { "root": "auto_mathjax", "extraPaths": ["auto_mathjax", "."] },
+    { "root": "auto_wiktionary", "extraPaths": ["auto_wiktionary", "."] },
+    { "root": "graph", "extraPaths": ["graph", "."] },
+    {
+      "root": "highlight_search_matches",
+      "extraPaths": ["highlight_search_matches", "."]
+    },
+    {
+      "root": "prioritize_front_field_search",
+      "extraPaths": ["prioritize_front_field_search", "."]
+    },
+    {
+      "root": "rewrite_text_of_study_cards",
+      "extraPaths": ["rewrite_text_of_study_cards", "."]
+    },
+    {
+      "root": "stats_page_customizer",
+      "extraPaths": ["stats_page_customizer", "."]
+    },
+    { "root": "strip_html_tags", "extraPaths": ["strip_html_tags", "."] },
+    { "root": "tabbed_stats", "extraPaths": ["tabbed_stats", "."] },
+    { "root": ".", "extraPaths": ["."] }
+  ]
 }
