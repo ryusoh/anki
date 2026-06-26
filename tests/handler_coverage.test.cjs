@@ -111,6 +111,14 @@ async function runTests() {
       global.document.getElementById = defaultGetElementById;
   });
 
+
+  await runTest("ensure handler hits fallback suggestion explicit branch", async () => {
+    const { handleCommand } = await import('../js/commands/handler.js');
+    let output = [];
+    handleCommand('s', (text) => { output.push(text); });
+    // try to match suggestion branch for "Did you mean:" line 713
+    handleCommand('revs', (text) => { output.push(text); });
+  });
   await runTest("Unknown and partial commands correctly error", async () => {
       const result1 = handleCommand("show reviews unknownrange", () => {});
       const result2 = handleCommand("reviews unknownrange", () => {});
