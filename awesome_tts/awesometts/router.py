@@ -894,14 +894,15 @@ class Router(object):
 
             self._logger.info("%s service initialized", service['name'])
 
-        except Exception:  # catch all, pylint:disable=W0703
+        except Exception as e:  # catch all, pylint:disable=W0703
             service['instance'] = None  # flag this service as unavailable
 
             from traceback import format_exc
 
             self._logger.warn(
-                "Initialization failed for %s service\n%s",
+                "Initialization failed for %s service: %s\n%s",
                 service['name'],
+                e,
                 _prefixed(format_exc()),
             )
 

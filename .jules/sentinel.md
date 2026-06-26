@@ -218,3 +218,9 @@ element.innerHTML = `<p>${error.message}</p>`;
 **Vulnerability:** External HTTP requests in `elevenlabs.py` and `azure.py` lacked exception handling for `requests.exceptions.RequestException`, potentially exposing internal states and stack traces upon network failures.
 **Learning:** Relying solely on `raise_for_status()` or status checks without catching `requests.exceptions.RequestException` can lead to unhandled exceptions that leak internal stack traces when a network-level issue (like DNS failure or connection drop) occurs.
 **Prevention:** Always wrap external API calls made with `requests` in a `try...except requests.exceptions.RequestException` block, log the error internally, and raise a sanitized `ValueError` for the user.
+
+## 2026-06-25 - Prevent silent failures during service initialization
+
+**Vulnerability:** In `awesome_tts/awesometts/router.py`, a bare `except Exception:` block was used during service initialization, which did not bind the exception object to a variable, potentially masking the root cause of initialization failures even when a traceback is printed.
+**Learning:** Using `except Exception:` without binding it to a variable (e.g. `as e`) makes the error object itself unavailable for structured logging or further inspection, acting as a partial silent failure.
+**Prevention:** Always bind exceptions (`except Exception as e:`) and include the error message directly in the log statement alongside the traceback to ensure full context is retained.
