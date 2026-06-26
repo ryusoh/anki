@@ -178,3 +178,8 @@
 
 **Learning:** Pytest's `unittest.mock.patch` combined with specific error constructors (like `urllib.error.HTTPError`) is essential to achieve full branch coverage in exception handling blocks, preventing silent unhandled failure paths.
 **Action:** When auditing coverage reports for utility modules (`utils.py`, `__init__.py`), actively mock side-effects and inject specific exceptions to simulate API timeouts or environment permission errors that normally evade "happy path" testing.
+
+## 2025-02-28 - Test coverage improvements
+
+**Learning:** For Python code, handling GUI hooks that mutate global dictionaries (`sys.modules`) without reloading the module often requires using `importlib.reload` or simply mocking out the global structures cleanly with `monkeypatch` to force code execution through error or alternative path logic.
+**Action:** Used `MagicMock` over global state and targeted exception throwing using generator `throw()` mechanics to simulate complex deep system failures cleanly without affecting concurrent test states.

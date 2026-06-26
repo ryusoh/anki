@@ -283,3 +283,47 @@ def test_patch_stats_class_dummy_with_web():
         # Test the wrapped refresh schedules js
         instance.refresh()
         mock_schedule.assert_called_with(instance.web)
+
+
+def test_missing_gui_hooks():
+    # To test branches 384->387, etc. we need to simulate gui_hooks missing or missing attribute
+    import stats_page_customizer
+
+    old_gui = stats_page_customizer.gui_hooks
+
+    # We can't really re-evaluate the module level code without reloading,
+    # but we can just use importlib.reload with a patched sys.modules
+    import importlib
+    import sys
+
+    # Set gui_hooks to None
+    sys.modules["aqt.gui_hooks"] = None
+    importlib.reload(stats_page_customizer)
+
+    # Restore
+    sys.modules["aqt.gui_hooks"] = old_gui
+    importlib.reload(stats_page_customizer)
+
+
+@patch("stats_page_customizer._schedule_js_eval")
+def test_on_load_finished(mock_schedule):
+    from stats_page_customizer import _attach_on_load
+
+    class WebMock:
+        def __init__(self):
+            self.loadFinished = MagicMock()
+
+    web = WebMock()
+    _attach_on_load(web)
+
+    # Get the callback
+    callback = web.loadFinished.connect.call_args[0][0]
+
+    # Call with False
+    callback(False)
+    mock_schedule.reset_mock()
+    mock_schedule.assert_not_called()
+
+    # Call with True
+    callback(True)
+    mock_schedule.assert_called_with(web)
