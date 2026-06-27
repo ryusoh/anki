@@ -81,6 +81,76 @@ def __reg__(key_name: str, value_name: str) -> Optional[str]:
     return None
 
 
+def _get_id_darwin() -> Optional[str]:
+    out = __exec__(["ioreg", "-d2", "-c", "IOPlatformExpertDevice"])
+    if out:
+        for line in out.splitlines():
+            if "IOPlatformUUID" in line:
+                parts = line.split('"')
+                if len(parts) >= 2:
+                    return parts[-2]
+    return None
+
+
+def _get_id_win32(winregistry: bool) -> Optional[str]:
+    id = None
+    if winregistry:
+        id = __reg__(r'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Cryptography', 'MachineGuid')
+    else:
+        id = __exec__(
+            [
+                "powershell.exe",
+                "-ExecutionPolicy",
+                "bypass",
+                "-command",
+                "(Get-CimInstance -Class Win32_ComputerSystemProduct).UUID",
+            ]
+        )
+    if not id:
+        out = __exec__(["wmic", "csproduct", "get", "uuid"])
+        if out:
+            id = out.split('\n')[2].strip()
+    return id
+
+
+def _get_id_linux() -> Optional[str]:
+    id = __read__('/var/lib/dbus/machine-id')
+    if not id:
+        id = __read__('/etc/machine-id')
+    if not id:
+        cgroup = __read__('/proc/self/cgroup')
+        if cgroup and 'docker' in cgroup:
+            lines = cgroup.splitlines()
+            if lines:
+                parts = lines[0].split('/')
+                if len(parts) >= 3:
+                    id = parts[2]
+    if not id:
+        mountinfo = __read__('/proc/self/mountinfo')
+        if mountinfo and 'docker' in mountinfo:
+            match = re.search(r'docker/containers/([a-f0-9]+)/hostname', mountinfo)
+            if match:
+                id = match.group(1)
+    if not id and 'microsoft' in uname().release:  # wsl
+        id = __exec__(
+            [
+                "powershell.exe",
+                "-ExecutionPolicy",
+                "bypass",
+                "-command",
+                "(Get-CimInstance -Class Win32_ComputerSystemProduct).UUID",
+            ]
+        )
+    return id
+
+
+def _get_id_bsd() -> Optional[str]:
+    id = __read__('/etc/hostid')
+    if not id:
+        id = __exec__(["kenv", "-q", "smbios.system.uuid"])
+    return id
+
+
 def id(winregistry: bool = True) -> str:
     """
     id returns the platform specific device GUID of the current host OS.
@@ -88,63 +158,13 @@ def id(winregistry: bool = True) -> str:
 
     id = None
     if platform == 'darwin':
-        out = __exec__(["ioreg", "-d2", "-c", "IOPlatformExpertDevice"])
-        if out:
-            for line in out.splitlines():
-                if "IOPlatformUUID" in line:
-                    parts = line.split('"')
-                    if len(parts) >= 2:
-                        id = parts[-2]
-                        break
+        id = _get_id_darwin()
     elif platform in ('win32', 'cygwin', 'msys'):
-        if winregistry:
-            id = __reg__(r'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Cryptography', 'MachineGuid')
-        else:
-            id = __exec__(
-                [
-                    "powershell.exe",
-                    "-ExecutionPolicy",
-                    "bypass",
-                    "-command",
-                    "(Get-CimInstance -Class Win32_ComputerSystemProduct).UUID",
-                ]
-            )
-        if not id:
-            out = __exec__(["wmic", "csproduct", "get", "uuid"])
-            if out:
-                id = out.split('\n')[2].strip()
+        id = _get_id_win32(winregistry)
     elif platform.startswith('linux'):
-        id = __read__('/var/lib/dbus/machine-id')
-        if not id:
-            id = __read__('/etc/machine-id')
-        if not id:
-            cgroup = __read__('/proc/self/cgroup')
-            if cgroup and 'docker' in cgroup:
-                lines = cgroup.splitlines()
-                if lines:
-                    parts = lines[0].split('/')
-                    if len(parts) >= 3:
-                        id = parts[2]
-        if not id:
-            mountinfo = __read__('/proc/self/mountinfo')
-            if mountinfo and 'docker' in mountinfo:
-                match = re.search(r'docker/containers/([a-f0-9]+)/hostname', mountinfo)
-                if match:
-                    id = match.group(1)
-        if not id and 'microsoft' in uname().release:  # wsl
-            id = __exec__(
-                [
-                    "powershell.exe",
-                    "-ExecutionPolicy",
-                    "bypass",
-                    "-command",
-                    "(Get-CimInstance -Class Win32_ComputerSystemProduct).UUID",
-                ]
-            )
+        id = _get_id_linux()
     elif platform.startswith(('openbsd', 'freebsd')):
-        id = __read__('/etc/hostid')
-        if not id:
-            id = __exec__(["kenv", "-q", "smbios.system.uuid"])
+        id = _get_id_bsd()
 
     if not id:
         raise MachineIdNotFound('failed to obtain id on platform {}'.format(platform))

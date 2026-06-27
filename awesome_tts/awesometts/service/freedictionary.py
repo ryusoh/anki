@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import json
-import urllib.parse
-import urllib.request
-from urllib.error import HTTPError, URLError
 
 from .base import Service
 from .common import Trait
@@ -57,29 +53,47 @@ class FreeDictionary(Service):
         ]
 
     def run(self, text, options, path):
-        """
-        Downloads from Free Dictionary API directly to an MP3.
-        """
-        if not text or not text.strip():
-            raise ValueError("No text provided.")
-
-        # Free dictionary API usually expects a single word, but we'll try to urlencode whatever is passed.
-        # It doesn't support phrases well, but we pass it anyway.
-        word = text.strip()
-        encoded_word = urllib.parse.quote(word)
-        url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{encoded_word}"
-
-        req = urllib.request.Request(url, headers={"User-Agent": "AwesomeTTS-FreeDictionary/1.0"})
-
+        """Executes a speech request using Free Dictionary API"""
         try:
-            with urllib.request.urlopen(req, timeout=10) as response:
-                data = json.loads(response.read().decode('utf-8'))
-        except HTTPError as e:
-            if e.code == 404:
-                raise ValueError(f"Word '{word}' not found in Free Dictionary API.") from e
-            raise IOError(f"Free Dictionary API returned HTTP {e.code}") from e
-        except URLError as e:
-            raise IOError(f"Network error when connecting to Free Dictionary API: {e}") from e
+            import urllib.request
+            from json import loads
+            from urllib.parse import quote_plus
+
+            word = quote_plus(text.strip())
+            url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{word}"
+
+            request = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 AwesomeTTS'})
+            try:
+                with urllib.request.urlopen(request) as response:
+                    data = loads(response.read().decode('utf-8'))
+            except Exception as e:
+                raise IOError(f"Network error when connecting to Free Dictionary API: {e}") from e
+
+            if isinstance(data, dict) and data.get("title") == "No Definitions Found":
+                raise ValueError(f"Word not found in Free Dictionary: {text}")
+
+            audio_url = None
+            if isinstance(data, list) and len(data) > 0:
+                phonetics = data[0].get("phonetics", [])
+                for phonetic in phonetics:
+                    audio_candidate = phonetic.get("audio")
+                    if audio_candidate:
+                        audio_url = audio_candidate
+                        break
+
+            if not audio_url:
+                raise ValueError(f"No audio available for word: {text}")
+
+            audio_request = urllib.request.Request(
+                audio_url, headers={'User-Agent': 'Mozilla/5.0 AwesomeTTS'}
+            )
+            try:
+                with urllib.request.urlopen(audio_request) as audio_response:
+                    with open(path, 'wb') as f:
+                        f.write(audio_response.read())
+            except Exception as e:
+                raise IOError(f"Error downloading audio from {audio_url}: {e}") from e
+
         except Exception as e:
             raise IOError(f"Error communicating with Free Dictionary API: {e}") from e
 

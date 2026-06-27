@@ -11,36 +11,28 @@ REVIEWS_DIR = BASE / 'data/anki/reviews'
 OUTPUT_FILE = BASE / 'graph/history_data.json'
 
 
-def export_history():
-    print("🚀 Loading mapping data...")
-
-    # 1. Map guid -> nid
+def _load_guid_nid_mapping():
     guid_to_nid = {}
     with gzip.open(NOTES_FILE, 'rt') as f:
         notes = json.load(f)
         for n in notes:
             if 'guid' in n and 'id' in n:
                 guid_to_nid[n['guid']] = n['id']
+    return guid_to_nid
 
-    # 2. Map nid -> guid (reverse)
-    nid_to_guid = {nid: guid for guid, nid in guid_to_nid.items()}
 
-    # 3. Map cid -> nid
+def _load_cid_nid_mapping():
     cid_to_nid = {}
     with gzip.open(CARDS_FILE, 'rt') as f:
         cards = json.load(f)
         for c in cards:
             if 'id' in c and 'nid' in c:
                 cid_to_nid[c['id']] = c['nid']
+    return cid_to_nid
 
-    print(f"   Mapped {len(nid_to_guid)} notes and {len(cid_to_nid)} cards.")
 
-    # 4. Process reviews
-    history = {}  # date_str -> set of guids
-
-    review_files = sorted(list(REVIEWS_DIR.glob("*.json.gz")))
-    print(f"   Processing {len(review_files)} review partitions...")
-
+def _process_reviews(review_files, cid_to_nid, nid_to_guid):
+    history = {}
     for rf in review_files:
         with gzip.open(rf, 'rt') as f:
             reviews = json.load(f)
@@ -49,7 +41,6 @@ def export_history():
                 ts = rev['id'] / 1000
                 dt = datetime.fromtimestamp(ts)
                 date_str = dt.strftime('%Y-%m-%d')
-
                 nid = cid_to_nid.get(cid)
                 if nid:
                     guid = nid_to_guid.get(nid)
@@ -59,10 +50,23 @@ def export_history():
                         history[date_str].add(guid)
         print(f"\r     Completed {rf.name}", end="")
     print("\n   Processing complete.")
+    return history
 
-    # 5. Format for export
+
+def export_history():
+    print("🚀 Loading mapping data...")
+    guid_to_nid = _load_guid_nid_mapping()
+    nid_to_guid = {nid: guid for guid, nid in guid_to_nid.items()}
+    cid_to_nid = _load_cid_nid_mapping()
+
+    print(f"   Mapped {len(nid_to_guid)} notes and {len(cid_to_nid)} cards.")
+
+    review_files = sorted(list(REVIEWS_DIR.glob("*.json.gz")))
+    print(f"   Processing {len(review_files)} review partitions...")
+
+    history = _process_reviews(review_files, cid_to_nid, nid_to_guid)
+
     sorted_dates = sorted(history.keys())
-    # Convert sets to lists for JSON
     export_data = {"dates": sorted_dates, "history": {d: list(history[d]) for d in sorted_dates}}
 
     import sys

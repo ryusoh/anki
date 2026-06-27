@@ -82,6 +82,36 @@ def build_cid_to_deck(cards, decks_map=None):
     return cid_to_deck
 
 
+def _populate_buckets(cards_data, cid_to_deck, anki_today, max_days):
+    day_buckets = {}
+    deck_day_buckets = {}
+    for card in cards_data:
+        queue = card.get("queue", 0)
+        if queue != 2:
+            continue
+        due = card.get("due", 0)
+        days_from_now = due - anki_today
+        if days_from_now < 0 or days_from_now >= max_days:
+            continue
+        cid = card.get("id")
+        deck_name = cid_to_deck.get(cid, "Unknown") if cid else "Unknown"
+
+        if days_from_now not in day_buckets:
+            day_buckets[days_from_now] = {"mature": 0, "young": 0}
+        if deck_name not in deck_day_buckets:
+            deck_day_buckets[deck_name] = {}
+        if days_from_now not in deck_day_buckets[deck_name]:
+            deck_day_buckets[deck_name][days_from_now] = {"mature": 0, "young": 0}
+
+        is_mature = card.get("ivl", 0) >= 21
+        if is_mature:
+            day_buckets[days_from_now]["mature"] += 1
+            deck_day_buckets[deck_name][days_from_now]["mature"] += 1
+        else:
+            day_buckets[days_from_now]["young"] += 1
+            deck_day_buckets[deck_name][days_from_now]["young"] += 1
+    return day_buckets, deck_day_buckets
+
 def calculate_future_due(cards_data, cid_to_deck=None, max_days=None, anki_today=None):
     """
     Calculate future due cards.
@@ -100,67 +130,18 @@ def calculate_future_due(cards_data, cid_to_deck=None, max_days=None, anki_today
     """
     if anki_today is None:
         anki_today = get_anki_today()
-    
     if cid_to_deck is None:
         cid_to_deck = {}
 
     if max_days is None:
-        # Find the maximum due date to determine range
         review_cards_due = [c.get("due", 0) for c in cards_data if c.get("queue") == 2]
         if not review_cards_due:
             max_days = 0
         else:
-            max_due = max(review_cards_due)
-            max_days = max(0, max_due - anki_today + 1)  # Include today
+            max_days = max(0, max(review_cards_due) - anki_today + 1)
     
-    # Use day buckets
-    day_buckets = {}
-    deck_day_buckets = {}
+    day_buckets, deck_day_buckets = _populate_buckets(cards_data, cid_to_deck, anki_today, max_days)
     
-    for card in cards_data:
-        due = card.get("due", 0)
-        ivl = card.get("ivl", 0)
-        queue = card.get("queue", 0)
-        cid = card.get("id")
-        
-        # Only count review cards (queue=2)
-        if queue != 2:
-            continue
-        
-        # Calculate days from now
-        days_from_now = due - anki_today
-        
-        # Skip overdue cards (negative days)
-        if days_from_now < 0:
-            continue
-        
-        # Skip if beyond max_days
-        if days_from_now >= max_days:
-            continue
-
-        deck_name = cid_to_deck.get(cid, "Unknown") if cid else "Unknown"
-
-        # Initialize bucket if needed
-        if days_from_now not in day_buckets:
-            day_buckets[days_from_now] = {"mature": 0, "young": 0}
-
-        if deck_name not in deck_day_buckets:
-            deck_day_buckets[deck_name] = {}
-        if days_from_now not in deck_day_buckets[deck_name]:
-            deck_day_buckets[deck_name][days_from_now] = {"mature": 0, "young": 0}
-        
-        # Determine if mature or young
-        is_mature = ivl >= 21
-        
-        if is_mature:
-            day_buckets[days_from_now]["mature"] += 1
-            deck_day_buckets[deck_name][days_from_now]["mature"] += 1
-        else:
-            day_buckets[days_from_now]["young"] += 1
-            deck_day_buckets[deck_name][days_from_now]["young"] += 1
-    
-    # Convert to list format
-    # Global
     result_global = []
     for day in range(max_days):
         if day in day_buckets:
@@ -176,9 +157,6 @@ def calculate_future_due(cards_data, cid_to_deck=None, max_days=None, anki_today
                 "young": 0
             })
 
-    # By Deck (we don't need zero-fill for days a deck has no reviews, to save space, 
-    # but the frontend chart logic natively handles missing days if we just provide existing ones).
-    # To match frontend expectations, we can just output the existing days per deck.
     result_by_deck = {}
     for deck_name, dt_buckets in deck_day_buckets.items():
         deck_list = []
@@ -234,21 +212,7 @@ def _should_write(new_stats, old_path, label=""):
     return True
 
 
-def main():
-    if not CARDS_FILE.exists():
-        print(f"❌ Cards file not found: {CARDS_FILE}")
-        print("   Run 'make fetch' or 'python3 data/anki/fetch' first.")
-        return False
-
-    print("📊 Generating custom stats from Anki data...")
-
-    # Load cards
-    with gzip.open(CARDS_FILE, "rt", encoding="utf-8") as f:
-        cards_data = json.load(f)
-
-    print(f"   Loaded {len(cards_data):,} cards")
-
-    # Load deck ID -> current name mapping from decks.json
+def _load_decks_map():
     decks_map = {}
     if DECKS_FILE.exists():
         try:
@@ -257,17 +221,14 @@ def main():
             decks_map = {int(k): v for k, v in raw.items()}
         except Exception as e:
             print(f"Warning: Failed to load decks.json: {e}")
+    return decks_map
 
-    cid_to_deck = build_cid_to_deck(cards_data, decks_map)
-
-    # Generate stats for web terminal and stats_page_customizer add-on
+def _process_web_stats(cards_data, cid_to_deck):
     web_stats, web_by_deck = calculate_future_due(cards_data, cid_to_deck, max_days=None)
     web_output = {
         "futureDue": web_stats,
         "futureDueByDeck": web_by_deck
     }
-
-    # Fail-open: only overwrite if new data looks valid
     if _should_write(web_stats, OUTPUT_FILE, label=f"{OUTPUT_FILE.name}: "):
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             json.dump(web_output, f, indent=2)
@@ -277,23 +238,20 @@ def main():
     else:
         print(f"   ✗ {OUTPUT_FILE.name} skipped (fail-open: old data preserved)")
 
-    # Generate full forecast for analytics (all cards, compressed)
+def _process_full_forecast(cards_data, cid_to_deck):
     full_stats, full_by_deck = calculate_future_due(cards_data, cid_to_deck, max_days=None)
     full_output = {
         "futureDue": full_stats,
         "futureDueByDeck": full_by_deck
     }
     full_file = SCRIPT_DIR / "full_forecast.json.gz"
-
-    # Only write if content changed
     new_content = json.dumps(full_output)
     write_full = True
     if full_file.exists():
         try:
             with gzip.open(full_file, "rt", encoding="utf-8") as f:
-                existing_content = f.read()
-            if new_content == existing_content:
-                write_full = False
+                if new_content == f.read():
+                    write_full = False
         except Exception as e:
             print(f"Error opening CUSTOM_STATS_DATA: {e}")
 
@@ -306,9 +264,24 @@ def main():
     status = "updated" if write_full else "unchanged"
     print(f"   ✓ {full_file.name} ({max_day:,} days, {full_total:,} cards, {full_file.stat().st_size / 1024:.1f} KB) [{status}]")
 
+def main():
+    if not CARDS_FILE.exists():
+        print(f"❌ Cards file not found: {CARDS_FILE}")
+        print("   Run 'make fetch' or 'python3 data/anki/fetch' first.")
+        return False
+
+    print("📊 Generating custom stats from Anki data...")
+    with gzip.open(CARDS_FILE, "rt", encoding="utf-8") as f:
+        cards_data = json.load(f)
+    print(f"   Loaded {len(cards_data):,} cards")
+
+    decks_map = _load_decks_map()
+    cid_to_deck = build_cid_to_deck(cards_data, decks_map)
+
+    _process_web_stats(cards_data, cid_to_deck)
+    _process_full_forecast(cards_data, cid_to_deck)
+
     return True
-
-
 if __name__ == "__main__":
     success = main()
     exit(0 if success else 1)
