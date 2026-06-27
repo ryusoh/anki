@@ -4,6 +4,7 @@ module.exports = [
     {
         ignores: [
             '.claude/**',
+            '.venv/**',
             'node_modules/**',
             'coverage/**',
             'graph_output/**',
