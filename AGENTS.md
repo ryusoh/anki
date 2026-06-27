@@ -23,7 +23,7 @@ import map). Human-facing detail lives in `CLAUDE.md` and `docs/`.
 4. **Never hand-edit generated `data/`** — it is produced by the pipeline.
 5. **Never touch vendored code** — `review_heatmap/libaddon/`, any `_vendor/` tree,
    and minified bundles are third-party. Their TODOs and defects are not ours.
-6. **Don't commit to `main`.** Branch off `main`, open a PR.
+6. **Don't commit to `main`.** Branch off `main`, open a PR. (Note: This applies to unattended Jules agents; Antigravity can commit directly to `main`).
 7. **Don't leave scratch files in the tree** — no `fix_*.cjs`, scratchpads, or
    debug scripts. The diff contains only the change and its tests.
 8. **Don't write a command/example you haven't actually run this session.** Verify
