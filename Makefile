@@ -189,7 +189,7 @@ check-node:
 	STATUS=$$?; \
 	rm -rf "$$COVDIR"; \
 	if [ $$STATUS -eq 0 ]; then \
-		NODE_OPTIONS="--experimental-vm-modules" npx jest review_heatmap/tests/; \
+		NODE_OPTIONS="--experimental-vm-modules --no-warnings" npx jest review_heatmap/tests/; \
 		STATUS=$$?; \
 	fi; \
 	exit $$STATUS

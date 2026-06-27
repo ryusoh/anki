@@ -34,7 +34,7 @@ async function runTest(file) {
     
     // Command based on file type
     const cmd = isEsm ? 'node' : 'node';
-    const args = isEsm ? ['--experimental-vm-modules', file] : [file];
+    const args = isEsm ? ['--experimental-vm-modules', '--no-warnings', file] : [file];
 
     const proc = spawn(cmd, args, {
       cwd: rootDir,

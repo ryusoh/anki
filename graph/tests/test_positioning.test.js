@@ -1,6 +1,6 @@
 /**
  * TDD Tests for positionNodes function
- * Run with: node --experimental-vm-modules node_modules/.bin/jest test_positioning.test.js
+ * Run with: node --experimental-vm-modules --no-warnings node_modules/.bin/jest test_positioning.test.js
  */
 
 import { describe, it, expect } from "@jest/globals";

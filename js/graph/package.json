@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "test": "node --experimental-vm-modules node_modules/.bin/jest",
-    "test:watch": "node --experimental-vm-modules node_modules/.bin/jest --watch"
+    "test": "node --experimental-vm-modules --no-warnings node_modules/.bin/jest",
+    "test:watch": "node --experimental-vm-modules --no-warnings node_modules/.bin/jest --watch"
   },
   "dependencies": {
     "three": "^0.128.0"
