@@ -117,6 +117,12 @@ describe("Finished deck heatmap injection", () => {
     document = dom.window.document;
   });
 
+  afterEach(() => {
+    if (dom) {
+      dom.window.close();
+    }
+  });
+
   describe("regression: body-first ordering breaks script execution order", () => {
     it("body-first puts create script BEFORE external scripts", () => {
       const { scripts } = parseMarkupBodyFirst(

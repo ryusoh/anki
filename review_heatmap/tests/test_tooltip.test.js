@@ -50,6 +50,12 @@ describe("Heatmap hover tooltip HTML tags", () => {
     window.eval(rhCode);
   });
 
+  afterEach(() => {
+    if (dom) {
+      dom.window.close();
+    }
+  });
+
   it("should render formatted bold tags as HTML rather than raw text", () => {
     // 2023-01-15 12:00:00 UTC (1673784000 seconds)
     const today = new Date(Date.UTC(2023, 0, 15, 12, 0, 0));
