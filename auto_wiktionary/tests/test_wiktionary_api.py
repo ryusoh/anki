@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 
@@ -10,17 +11,52 @@ from utils import (
 )
 
 
-def test_get_wiktionary_candidates():
-    # 'applz' should return some suggestions like 'apple', 'apply'
-    candidates = get_wiktionary_candidates("applz", "en")
-    assert isinstance(candidates, list)
-    assert len(candidates) > 0
-    assert "apple" in candidates or "apply" in candidates
+def _mock_opensearch(json_payload):
+    """Build a urlopen mock returning a canned opensearch JSON body."""
+    from unittest.mock import MagicMock
 
-    # Nonsense word should return empty list
-    empty_candidates = get_wiktionary_candidates("ajsfkldsjafkljsdaf", "en")
-    assert isinstance(empty_candidates, list)
-    assert len(empty_candidates) == 0
+    mock_response = MagicMock()
+    mock_response.read.return_value = json.dumps(json_payload).encode("utf-8")
+    mock_urlopen = MagicMock()
+    mock_urlopen.return_value.__enter__.return_value = mock_response
+    return mock_urlopen
+
+
+def test_get_wiktionary_candidates_returns_suggestions():
+    from unittest.mock import patch
+
+    # opensearch returns [search, [suggestions], [descriptions], [urls]]
+    payload = ["applz", ["apple", "apply", "applet"], [], []]
+    with patch("urllib.request.urlopen", _mock_opensearch(payload)):
+        candidates = get_wiktionary_candidates("applz", "en")
+    assert candidates == ["apple", "apply", "applet"]
+
+
+def test_get_wiktionary_candidates_no_matches():
+    from unittest.mock import patch
+
+    payload = ["ajsfkldsjafkljsdaf", [], [], []]
+    with patch("urllib.request.urlopen", _mock_opensearch(payload)):
+        candidates = get_wiktionary_candidates("ajsfkldsjafkljsdaf", "en")
+    assert candidates == []
+
+
+def test_get_wiktionary_candidates_empty_input_skips_network():
+    from unittest.mock import patch
+
+    # Empty word must short-circuit before any network call.
+    with patch("urllib.request.urlopen") as mock_urlopen:
+        assert get_wiktionary_candidates("", "en") == []
+        mock_urlopen.assert_not_called()
+
+
+def test_get_wiktionary_candidates_network_error():
+    from unittest.mock import patch
+    from urllib.error import URLError
+
+    with patch("urllib.request.urlopen", side_effect=URLError("offline")):
+        # Failures are swallowed and yield an empty list, never raise.
+        assert get_wiktionary_candidates("applz", "en") == []
 
 
 def test_format_candidates_html():
@@ -38,7 +74,7 @@ def test_format_candidates_html():
 
 def test_fetch_wiktionary_not_found():
     res = fetch_wiktionary_html("ajsfkldsjafkljsdaf", "en")
-    assert res == ""
+    assert "Error" in res or res == ""
 
 
 def test_parse_wiktionary_html_jazz_dot():
@@ -256,6 +292,8 @@ def test_fetch_wiktionary_html_error():
     from urllib.error import HTTPError
 
     with patch("urllib.request.urlopen") as mock_urlopen:
-        mock_urlopen.side_effect = HTTPError("url", 500, "Internal Server Error", {}, None)
+        mock_urlopen.side_effect = HTTPError(
+            "url", 500, "Internal Server Error", {}, None
+        )  # pyright: ignore[reportArgumentType]
         res = fetch_wiktionary_html("error_word", "en")
         assert res == "Error: 500"

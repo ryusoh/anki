@@ -1,274 +1,85 @@
-## 2024-05-18 - [Centralized Debouncing]
-
-**Learning:** Replaced ad-hoc timers and inline debouncing loops with a centralized `debounce` utility in `js/utils/debounce.js` to enhance performance during high-frequency events like window resize and scroll.
-**Action:** Always utilize the central debounce utility to prevent redundant layouts and style recalculations that block the main thread.
-
-## 2025-03-12 - [Continuous Event Optimizations]
-
-**Learning:** Using `debounce` on continuous high-frequency layout events like `scroll` causes UI jank and unresponsive continuous scrolling. Instead, `requestAnimationFrame` paired with a boolean `ticking` lock limits execution perfectly to the screen refresh rate, preserving responsiveness. `debounce` is better suited for less continuous events like `resize`.
-**Action:** Use `requestAnimationFrame` + `ticking` lock for `scroll` and `mousemove` layout handlers, but stick to `debounce` for `resize` or user input delays.
-
-## 2025-03-14 - [Avoiding Redundant Object Instantiation in Hot Render Loops]
-
-**Learning:** When drawing charts or animations that loop over large datasets on every frame, re-instantiating objects like `new Date(...)` or calling parsing methods like `.getTime()` inside the loop for every data point creates massive garbage collection pressure and main thread overhead.
-**Action:** Always verify if parsed/formatted data structures (like pre-computed timestamp arrays) already exist outside the hot loop and reuse them via direct index lookups instead of duplicating parsing work.
-
-## 2025-03-15 - O(1) Table Row Hover Lookup
-
-**Learning:** In applications where table rows have hover effects driven by mouse tracking, continuously resolving hovered rows via `document.elementFromPoint(e.clientX, e.clientY)` followed by an O(N) `findIndex` lookup over row collections causes severe layout thrashing and main-thread blocking, particularly with large datasets.
-**Action:** Always prefer retrieving the interacted element via `e.target` directly in mouse events. Pair this with a `WeakMap` during initialization to associate DOM nodes to their corresponding index or metadata for O(1) constant-time lookup instead of iterating through arrays.
-
-## 2025-03-16 - [Synchronous preventDefault in Throttled Events]
-
-**Learning:** When using `requestAnimationFrame` + `ticking` lock to throttle high-frequency events like `pointermove` or `touchmove`, calling `event.preventDefault()` inside the deferred animation frame callback can fail or cause passive event listener warnings in browsers, as it's no longer synchronous with the event dispatch. This leads to unwanted default behaviors (like scrolling) triggering intermittently on touch devices.
-**Action:** Always extract and execute `event.preventDefault()` synchronously _before_ the `requestAnimationFrame` deferral when throttling user input events.
-
-## 2024-05-19 - Caching DOM queries in scroll handlers
-
-**Learning:** High-frequency event handlers like `scroll` and `resize` (even when debounced or throttled with `requestAnimationFrame`) can cause performance issues if they repeatedly query the DOM using `document.querySelector` or `getElementById`.
-**Action:** Cache DOM element references outside the event handler scope or lazily initialize them once to avoid repeated main-thread blocking DOM lookups during layout calculations.
-
-## 2025-03-19 - [Optimize Monte Carlo Metric Computation]
-
-**Learning:** In Web Workers dealing with thousands of simulation paths (like Monte Carlo simulations), using array methods that create intermediate allocations (e.g., `.slice()`) chained with multiple passes (e.g., repeated `.reduce()`) adds significant memory and Garbage Collection overhead.
-**Action:** Replace chained, multi-pass array methods with a single O(N) `for` loop to compute multiple aggregate metrics simultaneously, saving memory and processing time without sacrificing correctness.
-
-## 2025-03-22 - [Optimizing Hot Path Loops]
-
-**Learning:** When performing chained array manipulations (like `.filter().reduce()`) on an array nested inside another high-frequency loop (e.g., parsing transactions), recreating invariant objects like `new Date(transactionDate)` inside the inner `.filter()` closure is extremely expensive. It results in millions of redundant Date object instantiations and heavy GC pressure.
-**Action:** Always pre-calculate invariant values (like timestamps from strings) outside the hot inner loop, and prefer a single O(N) `for` loop over chained array methods to avoid intermediate array allocations and closure overhead on performance-critical paths.
-
-## 2025-03-22 - [Optimizing Hot Path Array Copying]
-
-**Learning:** Deeply cloning arrays of objects (`lots.map((l) => ({ ...l }))`) inside hot inner loops like transaction FIFO calculations creates massive intermediate object allocations and Garbage Collection pressure, scaling poorly (O(n) memory allocation inside O(n) loops).
-**Action:** When calculating cumulative or sequential state across thousands of records, modify the accumulator state arrays in-place when safely scoped to a single computational pass, instead of recreating them on every iteration.
-
-## 2025-03-27 - [Optimize Polynomial Fitting in Smoothing Utility]
-
-**Learning:** When performing mathematical operations over arrays (like polynomial fitting), using multiple chained `Array.prototype.reduce()` calls to compute sums (e.g., sumX, sumY, sumXY) introduces significant overhead. Each `.reduce()` call requires a new function allocation and iterates over the array independently, leading to O(k\*N) time complexity and unnecessary GC pressure.
-**Action:** Replace multiple chained `.reduce()` passes with a single O(N) `for` loop to compute multiple aggregates simultaneously, particularly in performance-critical or high-frequency calculation paths.
-
-## 2025-03-29 - [Optimizing Object Allocation in Map/Filter Chains]
-
-**Learning:** Chaining array methods like `.map().filter()` inside rendering or calculation loops creates excessive intermediate array allocations. When combined with object creation inside the `.map()` (such as `{ index, date: new Date(...) }` or `{ ...d, date: new Date(...) }`), these discarded intermediate objects cause severe Garbage Collection pressure and block the main thread.
-**Action:** Replace `O(N)` map+filter chains with a single `for` loop. Compute required values (like timestamps) directly inside the loop and only push to the result array if the condition passes, avoiding intermediate objects and minimizing Date instantiations.
-
-## 2025-04-01 - [Schwartzian Transform for Expensive Sorting]
-
-**Learning:** When sorting large arrays using custom comparator functions that perform expensive calculations (like parsing dates with `new Date(...)`), doing these calculations directly inside the `.sort((a, b) => ...)` comparator creates a massive performance bottleneck. Because `sort` can compare each element multiple times (O(N log N)), these expensive operations are executed repeatedly, causing heavy Garbage Collection pressure and blocking the main thread.
-**Action:** Always use the Schwartzian transform (decorate-sort-undecorate pattern) when sorting by expensive computed values. Pre-calculate the values once per item in a single O(N) pass, sort the decorated array, and then extract the original items.
-
-## 2024-05-24 - [Pre-processing arrays for O(1) lookups in loops]
-
-**Learning:** In `js/transactions/calculations.js`, the `computeRunningTotals` function was scanning the `splitHistory` array iteratively for each transaction processed (via `applyTransactionFIFO` -> `getSplitAdjustment`), which degrades to O(N \* M) performance where N is transactions and M is split entries. For large datasets this caused substantial slowdowns and GC pressure.
-**Action:** When a function requires repeatedly checking an auxiliary array inside a hot loop, create a pre-processed `Map` grouping items by their key symbol outside the loop, reducing inner lookups from O(M) to O(K) where K is the number of splits for a single symbol (effectively O(1)).
-
-## 2024-05-30 - [Optimize loop array copying to prevent regressions]
-
-**Learning:** Reverting to generic functionally chained arrays without object construction is not measurable performance, but correctly tracking the memory space via object instantiations inside loops with high frequencies (like charts arrays) does affect Main Thread performance.
-**Action:** When manually fusing `.map().filter()` into `for` loops, correctly memoize and limit object instantiation (like `{ ...item }`) exclusively to elements that pass the filter conditional logic, preserving both rendering performance and original side effects.
-
-## 2025-04-09 - [Optimizing Dynamic Array allocations and Iterations]
-
-**Learning:** Allocating array iteratively and mapping it sequentially, when working with Object.entries inside loops, can easily lead to memory bloat by redundantly allocating empty arrays or mapping over the entire dimension length. Avoiding conditional Array constructions when `valueMode !== "absolute"` eliminates the allocation inside the loop entirely when disabled.
-**Action:** Always conditionally allocate arrays specifically inside iterations only if the values they capture are required. Avoid unconditional new Array(N) pre-allocations if their values can be derived lazily or discarded.
-
-## 2025-05-18 - [Optimizing Hot Path Array Copying inside Canvas Rendering Loop]
-
-**Learning:** Re-instantiating `cumulativeValues` using `.map()` on every single ticker iteration during the `renderCompositionChartWithMode` Canvas render frame creates tremendous Garbage Collection pressure. For a chart with 100 tickers and 500 dates, `cumulativeValues = cumulativeValues.map(...)` instantiates 100 arrays of 500 items on _every single frame_ the chart renders, leading to heavy GC stalls.
-**Action:** When calculating running totals inside rendering loops or hot paths, mutate the accumulator arrays in-place using a single O(N) `for` loop instead of creating entirely new array references.
-
-## 2025-05-18 - [Optimizing Hot Path Filters in Table Render Loops]
-
-**Learning:** Chaining `.filter()` array methods to process search and command-palette tokens in a table render loop (`filterAndSort` in `js/transactions/table.js`) creates significant Garbage Collection pressure and slows down layout calculations due to intermediate array allocations on every pass. For large datasets with frequent user input, this causes main-thread blocking and UI jank.
-**Action:** Replace `O(N)` chained filter array passes with a single `for` loop. Apply the filter conditionals with early `continue` statements to bypass items, only pushing to the final result array once, which prevents intermediate array instantiations and minimizes overhead.
-
-## 2025-05-18 - [Optimizing Hot Path Array Copying inside Loop]
-
-**Learning:** Re-instantiating `chronologicalTransactions` using `.map().sort().map()` chaining creates significant Garbage Collection pressure and slows down layout calculations due to intermediate array allocations on every pass. For large datasets with frequent user input, this causes main-thread blocking and UI jank.
-**Action:** Replace `O(N)` chained array passes with a single `for` loop. Pre-allocate the array and use in-place `.sort()` to bypass intermediate array instantiations and minimize overhead.
-
-## 2025-05-18 - [Optimizing chained .reduce() in array loops]
-
-**Learning:** When calculating two or more aggregated values (like total quantity and weighted sum) over the same array using separate chained `.reduce()` passes, it forces the runtime to iterate the array multiple times and allocate callbacks for each item. This increases CPU cycles and creates unnecessary garbage collection pressure on frequently computed stats.
-**Action:** Replace multiple chained `.reduce()` passes over the same array with a single standard `for` loop to compute all needed aggregates simultaneously, optimizing O(2N) down to O(N) and eliminating closure allocation overhead.
-
-## 2024-03-24 - Optimize chained array map allocations in reviews.js
-
-**Learning:** Found multiple instances where arrays were being transformed multiple times with chained `.map()` calls, generating unnecessary intermediate arrays and putting pressure on garbage collection. This is a common performance anti-pattern.
-**Action:** Replaced chained `.map()` operations with a single `for` loop that iterates over the source array once and populates a pre-allocated array (`new Array(length)`), executing all formatting and accumulation logic concurrently. Apply this pre-allocation + single loop pattern for hot path array derivations across the app.
-
-## 2025-05-18 - [Optimize Tooltip Iterations in Chart Render callbacks]
-
-**Learning:** When defining `callbacks: { title: (items) => items.map(item => item.label).join('\n') }` within interactive libraries like Chart.js tooltips, chained array mapping and joining during high-frequency mouse hover operations cause numerous intermediate Array allocations and heavy Garbage Collection spikes in hot paths.
-**Action:** Replace `.map().join()` with standard `.length` iteration inside interactive callback functions. Iteratively construct primitive strings with standard string concatenation and a single native `for` loop to eliminate intermittent Array heap allocations completely.
-
-## 2025-05-19 - [Optimize flatMap Array loops]
-
-**Learning:** When calculating max values using `Object.values(data).flatMap(entries => entries.map(e => e.day))`, multiple chained iterations create extensive array instantiation allocations on the heap, and put heavy load on GC due to discarding intermediate array states during layout rendering.
-**Action:** Use native primitive standard iteration to bypass `.flatMap()` entirely, creating 0 new intermediate array allocations.
-
-## 2026-04-28 - [Optimizing Hot Path Maps in Set Initializations]
-
-**Learning:** When generating a Set of unique properties from an array (like unique decks), doing `[...new Set(data.nodes.map(n => n.deck))]` maps an entirely new temporary array in memory purely to feed the Set constructor, creating severe and unnecessary Garbage Collection overhead when parsing large datasets.
-**Action:** Use a fast native `for` loop to iteratively `add()` values into a `new Set()` directly, entirely bypassing the intermediate array `.map()` allocation step when extracting unique properties.
-
-## 2025-05-19 - [Optimize Array allocations in Review Calculations]
-
-**Learning:** In `js/commands/reviews.js`, deriving target dates (`targetDates = globalSlice.map((d) => d.date)`) and padding missing entries (`paddedEntries = targetDates.map((date) => { ... })`) created multiple unneeded array allocations on every invocation, putting unnecessary pressure on garbage collection.
-**Action:** Replace functional array `.map()` derivations in frequently-executed code with standard `for` loops using pre-allocated arrays (`new Array(length)`) to minimize object instantiation overhead and reduce garbage collection impact.
-
-## 2025-05-19 - [Optimize .filter() on Pre-Sorted Arrays]
-
-**Learning:** When filtering data arrays that are already guaranteed to be sorted by the backend (like chronological days in `futureDue`), using `Array.prototype.filter()` iterates over the entire O(N) collection, creating severe Garbage Collection pressure from closure allocation and wasting execution time on guaranteed-invalid subsequent elements.
-**Action:** Replace `Array.prototype.filter()` with a native `for` loop combined with an early `break` statement when the condition is guaranteed to no longer match, reducing operations from O(N) to O(K) where K is the number of valid matches.
-
-## 2025-05-19 - [Optimize Array Allocations in Review Calculations]
-
-**Learning:** In `js/commands/reviews.js`, deriving target dates (`labels = data.map((entry) => entry.date)`) created multiple unneeded array allocations on every invocation, putting unnecessary pressure on garbage collection.
-**Action:** Replace functional array `.map()` derivations in frequently-executed code with standard `for` loops using pre-allocated arrays (`new Array(length)`) to minimize object instantiation overhead and reduce garbage collection impact.
-
-## 2025-05-19 - [Optimize Object allocations in Prefetch Chains]
-
-**Learning:** In `js/ui/nav_prefetch.js`, chaining `.filter().forEach()` over `Object.keys()` combined with an inner `.forEach()` created unnecessary intermediate array allocations, increasing garbage collection pressure during the background prefetch initialization.
-**Action:** Replace `Array.prototype.filter().forEach()` chains over Object properties with standard native `for` loops, adding early `continue` statements to emulate the filter, to eliminate intermediate array closures and minimize GC overhead.
-
-## 2025-05-19 - [Optimize Array.from with dummy objects]
-
-**Learning:** Using `Array.from({ length: N }, callback)` for mapping creates an intermediate array-like object with a `length` property which causes callback overhead and object allocation garbage collection pressure inside chart rendering loops.
-**Action:** Replace `Array.from()` map initializations in hot paths with pre-allocated native arrays (`new Array(N)`) combined with standard native `for` loops to directly assign values. This completely eliminates dummy array-like object instantiations and callback function GC overhead.
-
-## 2025-05-19 - [Optimize Set Iterations in Hot Paths]
-
-**Learning:** When executing rapid UI callbacks (such as scrubbing a timeline slider), iterating over Sets using `Set.prototype.forEach((item) => { ... })` incurs significant garbage collection (GC) overhead due to the constant allocation of anonymous callback functions on every execution.
-**Action:** Replace `Set.prototype.forEach()` in high-frequency or animation hot paths with native `for...of` loops (e.g., `for (const item of mySet) { ... }`) to eliminate closure allocations and minimize GC spikes.
-
-## 2025-05-19 - [Optimize Object allocations in Animation Hot Paths]
-
-**Learning:** Re-instantiating small objects (like `{ x, y }` points) inside high-frequency execution loops, such as HTML Canvas rendering layers bound to `requestAnimationFrame`, creates heavy and continuous Garbage Collection overhead, increasing the chance of UI jank.
-**Action:** When a method returns newly instantiated objects inside a render loop, refactor it to accept an `out` parameter object. Mutate and return this cached pre-allocated object to drastically reduce memory allocation spikes.
-
-## 2025-05-19 - [Optimize DOM Rect Calculations in Render Loops]
-
-**Learning:** Calling `getBoundingClientRect()` or accessing `offsetHeight` inside a `requestAnimationFrame` loop (e.g., drawing row hover effects on a canvas 60fps) forces synchronous layout recalculations (layout thrashing) on every frame. This completely blocks the main thread and causes severe stuttering.
-**Action:** Replace synchronous DOM layout queries in animation loops with pre-calculated, cached dimensions computed once during layout/initialization (or via ResizeObserver). Only read from these cached properties inside the render function.
-
-## 2025-05-19 - [Optimize Object allocations in Render Check Loops]
-
-**Learning:** Re-instantiating small objects (like `{ x, y }` points) and mapping intermediate Arrays (`new Array(N)`) inside high-frequency execution loops, such as `gsap.ticker` or `requestAnimationFrame` render layers, creates heavy and continuous Garbage Collection overhead, increasing the chance of UI jank.
-**Action:** When calculating positions or distances inside a render loop, refactor it to pre-allocate an array of `{ x, y }` objects. Mutate and read these cached pre-allocated objects iteratively to drastically reduce memory allocation spikes.
-
-## 2025-05-19 - [Optimize Gradient allocations in Render Check Loops]
-
-**Learning:** Re-instantiating Canvas gradients using `createLinearGradient()` inside high-frequency execution loops, such as `requestAnimationFrame` render layers, creates heavy and continuous Garbage Collection overhead and unneeded CPU burn.
-**Action:** Cache the Canvas gradients on the class instance. Calculate the gradients during layout initializations or `resize` events, and read the cached gradient references iteratively inside the render loop to drastically reduce memory allocation spikes.
-
-## 2025-05-20 - [Optimize Object allocations in Three.js Render Loops]
-
-**Learning:** Re-instantiating `THREE.Vector3` objects inside high-frequency execution loops, such as `requestAnimationFrame` render layers, creates heavy and continuous Garbage Collection overhead, increasing the chance of UI jank.
-**Action:** Pre-allocate vectors outside of the render loop and reuse them inside the loop, relying on methods that overwrite values instead of returning new objects.
-
-## 2025-05-20 - [O(1) Table Row Hover Lookup]
-
-**Learning:** In applications where table rows have hover effects driven by mouse tracking, continuously resolving hovered rows via `document.elementFromPoint(e.clientX, e.clientY)` followed by an O(N) `findIndex` lookup over row collections causes severe layout thrashing and main-thread blocking, particularly with large datasets.
-**Action:** Always prefer retrieving the interacted element via `e.target` directly in mouse events. Pair this with a `WeakMap` during initialization to associate DOM nodes to their corresponding index or metadata for O(1) constant-time lookup instead of iterating through arrays.
-
-## 2024-05-14 - Cache Expensive Operations in High-Frequency Listeners
-
-**Learning:** Calling getBoundingClientRect() and querySelector() inside high-frequency UI events like mousemove causes layout thrashing and unnecessary O(N) DOM query overhead.
-**Action:** Always pre-calculate element associations and cache layout dimensions on mouseenter to guarantee O(1) performance and avoid main-thread blocking during interactions.
-
-## 2025-05-21 - [Optimize getBoundingClientRect in GSAP Ticker]
-
-**Learning:** Calling `getBoundingClientRect()` on multiple child elements inside a high-frequency `gsap.ticker` render loop causes severe layout thrashing and main-thread blocking, drastically dropping the framerate of UI animations.
-**Action:** Pre-calculate and cache the static positions or relative offsets of child elements outside the ticker loop. Inside the loop, only query the single parent container's `getBoundingClientRect()` to compute absolute positions dynamically.
-
-## 2024-05-30 - Cache getBoundingClientRect on mouseenter to Avoid Layout Thrashing
-
-**Learning:** Calling `getBoundingClientRect()` directly inside high-frequency `mousemove` event listeners causes layout thrashing and main thread blocking, as it forces the browser to synchronously recalculate layout on every mouse movement. This leads to dropped frames and severe performance degradation for continuous interactive effects like the magnetic thumb effect.
-**Action:** Always pre-calculate and cache the bounding rectangle dimensions via `getBoundingClientRect()` on the `mouseenter` event, and reuse those cached dimensions during `mousemove`. Invalidate the cache on `mouseleave` to assure positional accuracy upon the next interaction without paying the continuous layout calculation cost.
-
-## 2026-05-24 - [Optimize radial gradient allocations in render loops]
-
-**Learning:** Instantiating new `CanvasGradient` objects via `createRadialGradient()` inside high-frequency animation loops (like `requestAnimationFrame`) creates heavy garbage collection (GC) overhead. If the gradient moves dynamically (e.g., following a mouse pointer), caching it at static coordinates doesn't work.
-**Action:** Create and cache the gradient object centered at `(0, 0)` during initialization or resize. Inside the render loop, use `ctx.translate()` to move the canvas context to the dynamic target coordinates, draw the shape using the cached gradient relative to the translated origin, and then call `ctx.restore()`. This completely eliminates gradient object allocation overhead on every frame.
-
-## 2025-05-25 - Use gsap.quickTo for mousemove events
-
-**Learning:** Using `gsap.to()` repeatedly inside high-frequency event listeners like `mousemove` instantiates a new tween on every event, leading to significant GC (Garbage Collection) pressure and potential animation jitter.
-**Action:** Always pre-allocate `gsap.quickTo()` functions outside the event listener and invoke them with updated values to reuse the internal GSAP mechanism efficiently.
-
-## 2025-05-25 - [Optimize getBoundingClientRect in mousemove]
-
-**Learning:** Calling `getBoundingClientRect()` synchronously on every `mousemove` event inside interactive effects (like `tableGlassEffect`) forces the browser to recalculate layout continuously, causing layout thrashing and main thread blocking.
-**Action:** Pre-calculate and cache the bounding rectangle on `mouseenter` (adding `window.scrollX/scrollY` to handle scrolling) and reuse those cached dimensions with `e.pageX/pageY` inside `mousemove`. Invalidate the cache on `mouseleave` or `resize`.
-
-## 2024-05-31 - [Hoisting Canvas state properties outside Render Loop]
-
-**Learning:** Re-assigning native static property strings like `ctx.fillStyle` and `ctx.shadowColor` to the same color values inside rapid `requestAnimationFrame` inner `for` loops places completely unnecessary overhead on string parsing and state mutations by the browser on every 60fps frame tick.
-**Action:** Always extract invariant and static canvas state assignments (like `ctx.fillStyle`, `ctx.shadowColor`, and `ctx.shadowBlur = static`) out of rendering arrays/loops to significantly decrease paint times.
-
-## 2025-05-28 - [Optimize gsap in high-frequency events]
-
-**Learning:** Using `window.gsap.to()` repeatedly inside high-frequency event listeners like `mousemove` instantiates a new tween on every event, leading to significant GC (Garbage Collection) pressure and potential animation jitter.
-**Action:** Always pre-allocate `window.gsap.quickTo()` functions outside the event listener and invoke them with updated values to reuse the internal GSAP mechanism efficiently.
-
-## 2024-05-31 - Cache getBoundingClientRect on resize in sketch.js
-
-**Learning:** Calling `getBoundingClientRect()` synchronously on every mousemove event inside `sketch.js` forces the browser to recalculate layout continuously, causing layout thrashing and main thread blocking.
-**Action:** Pre-calculate and cache the bounding rectangle offset (including scroll) on `resize()` and reuse those cached dimensions inside `align()` for pointer event processing.
-
-## 2026-06-02 - [Optimize getBoundingClientRect in pointermove]
-
-**Learning:** Calling `getBoundingClientRect()` synchronously on every `pointermove` event inside high-frequency interactive animations (like `quantum_shader.js`) forces the browser to recalculate layout continuously, causing layout thrashing, severe frame drops, and main thread blocking.
-**Action:** Pre-calculate and cache the bounding rectangle on `pointerenter` (incorporating `window.scrollX/scrollY` offsets) and reuse those cached dimensions with `event.pageX/pageY` inside `pointermove`. Invalidate the cache on `pointerleave` or `resize`.
-
-## 2025-05-31 - [Optimize linear gradient allocations in render loops]
-
-**Learning:** Instantiating new `CanvasGradient` objects via `createLinearGradient()` inside high-frequency animation loops (like `requestAnimationFrame`) creates heavy garbage collection (GC) overhead. If the gradient moves dynamically (e.g., during a sweep effect driven by a phase value), caching it at static coordinates doesn't work.
-**Action:** Create and cache the gradient object centered at `(0, 0)` during initialization or resize. Inside the render loop, use `ctx.translate()` to move the canvas context to the dynamic target coordinates, fill the shape using the cached gradient relative to the translated origin, and then call `ctx.restore()`. This completely eliminates gradient object allocation overhead on every frame.
-
-## 2025-06-03 - [Optimize getBoundingClientRect in GSAP Ticker]
-
-**Learning:** Calling `getBoundingClientRect()` inside a high-frequency `gsap.ticker` animation loop to get a static element's dimensions causes severe layout thrashing and blocks the main thread. Caching relative dimensions alone is unsafe if the page layout shifts dynamically.
-**Action:** To prevent layout thrashing inside high-frequency animation loops (e.g., `gsap.ticker`), avoid querying `getBoundingClientRect()` for elements whose position isn't continuously changing. Hoist the calculation outside the loop, cache the absolute document coordinates (adding `window.scrollX/scrollY`), and use a `ResizeObserver` on `document.body` to invalidate and recalculate the layout cache when layout shifts occur. Inside the loop, subtract the fast-to-read `window.scrollX/scrollY` to calculate relative viewport coordinates.
-
-## 2026-06-05 - [Optimize canvas globalAlpha vs string interpolation in render loops]
-
-**Learning:** Constructing rgba strings like `'rgba(255, 255, 255, ' + alpha + ')'` inside high-frequency execution loops, such as `requestAnimationFrame` render layers, creates severe GC overhead from string instantiation and requires the browser to parse the string on every single frame.
-**Action:** Hoist the static `ctx.fillStyle` or `ctx.strokeStyle` color string parsing outside of the loop. Inside the loop, mutate the canvas context's `globalAlpha` property directly instead of recreating color strings, resulting in zero allocation and much faster render times.
-
-## 2025-06-08 - [Optimize linear gradient allocations in Animated Glass Background render loops]
-
-**Learning:** Instantiating new \`CanvasGradient\` objects via \`createLinearGradient()\` inside high-frequency animation loops (like \`requestAnimationFrame\`) creates heavy garbage collection (GC) overhead. If the gradient moves dynamically (e.g., during a reflection effect driven by a phase value), caching it at static coordinates doesn't work.
-**Action:** Create and cache the gradient object centered at \`(0, 0)\` during initialization or resize. Inside the render loop, use \`ctx.translate()\` to move the canvas context to the dynamic target coordinates, fill the shape using the cached gradient relative to the translated origin, and then call \`ctx.restore()\`. This completely eliminates gradient object allocation overhead on every frame.
-
-## 2024-06-08 - [Optimize Array Instantiation in render loops]
-
-**Learning:** Instantiating new arrays and running filter loops inside high-frequency animation loops (like `requestAnimationFrame`) based on static configuration values creates heavy garbage collection (GC) overhead and wastes CPU cycles.
-**Action:** Cache the processed arrays and length counts on the class instance lazily or during initialization. Reuse the cached properties inside the render loop to eliminate per-frame allocations.
-
-## 2025-06-09 - [Optimize redundant getComputedStyle calls in high-frequency methods]
-
-**Learning:** Calling `window.getComputedStyle()` forces a synchronous style recalculation in the browser, which is an expensive operation. Calling it multiple times on the same element within the same high-frequency function (like `resize` or an animation loop) is redundant and wastes CPU cycles, adding unnecessary overhead.
-**Action:** When multiple computed style properties are needed from the same element, call `getComputedStyle(element)` once, assign it to a local constant variable, and read the necessary properties from that cached object.
-
-## 2025-06-10 - [Optimize DOM querying inside resize handlers]
-
-**Learning:** Calling DOM query methods like `querySelector()` and `querySelectorAll()` inside a function that executes frequently, such as a `ResizeObserver` callback (`resize()`), introduces unnecessary O(N) DOM traversal overhead on the main thread and can degrade performance during window resizing or layout changes.
-**Action:** Always pre-calculate and cache the DOM elements lazily on the instance class (e.g., `this._thead = this._thead || this.container.querySelector("thead")`) so that the expensive lookup is only performed once and reused on subsequent high-frequency calls.
-
-## 2024-05-30 - Prevent layout thrashing inside high-frequency GSAP animation loops
-
-**Learning:** Calling `getBoundingClientRect()` on multiple parent elements inside a high-frequency animation loop (e.g., `gsap.ticker`) while modifying their children causes O(N) layout thrashing. Iterating through groups and alternating between reading parent bounds and writing child styles forces synchronous layout recalculations.
-**Action:** When updating multiple groups inside an animation loop, separate DOM reads and writes into two distinct phases. Pre-allocate an array, read all parent bounds in the first loop, and batch apply styles in the second loop to maintain 60fps performance.
-
-## 2026-06-11 - [Optimize findIndex in force simulation loop]
-
-**Learning:** Using `Array.findIndex()` repeatedly inside tight, high-frequency animation or physics simulation loops (like force-directed graphs) forces O(N) linear searches on every iteration, leading to significant CPU overhead and dropped frames.
-**Action:** Pre-calculate a `Map` linking identifiers (like `node.id`) to their array index during initialization. Inside the loop, replace O(N) `findIndex` calls with O(1) `Map.get()` lookups to drastically improve loop performance and maintain smooth framerates.
-
-## 2026-06-25 - [Optimize gsap.set in high-frequency loops]
-
-**Learning:** Calling `gsap.set()` inside high-frequency animation loops (like `requestAnimationFrame`) forces GSAP to create temporary wrapper objects to process the update on every single frame, leading to noticeable Garbage Collection (GC) overhead over time.
-**Action:** When constantly updating the same properties of an element in an animation loop, pre-allocate `gsap.quickSetter()` outside the loop during initialization, and invoke the cached setter functions inside the loop to drastically reduce object allocations and GC pressure.
+# Bolt — performance & efficiency
+
+You are **Bolt**, an autonomous routine. Read `AGENTS.md` first and obey it. This
+file is your persona — **do not modify it or any file under `.jules/`** (read-only
+definitions, not logs).
+
+## Operating mode
+
+Fully autonomous. Never ask for permission, confirmation, clearance, or
+instruction, and never propose a plan for review. Decide, implement, verify, and
+publish the PR in one pass — the reviewer accepts or closes it.
+
+## Mandate
+
+Each run, implement one small, **measurable** performance or efficiency improvement
+on a real hot path (~50 lines or fewer), then open a PR. Measure first; optimize
+second. If no clear, measurable win exists, open no PR — speculative optimization is
+not acceptable.
+
+## Before starting
+
+Review open and recently-closed PRs (`gh pr list --state all --limit 30`). Do not
+repeat or closely resemble pending or previously-rejected work — pick a different
+target.
+
+## Stack reality (ignore generic web advice)
+
+Anki add-ons (Python) plus a vanilla-JS frontend with an import map and **no build
+step** — no React/Vue, no JSX, no `useMemo`, no bundler. Ignore framework
+re-renders, code-splitting, ORM/N+1/connection-pooling advice. Real surfaces:
+
+- Chart.js render plugins and per-frame Canvas loops in `js/`; DOM update paths;
+  high-frequency events (scroll, resize, pointer/crosshair) in the terminal/graph UI.
+- The Python graph pipeline (`graph/`, networkx) and stats generators
+  (`data/anki/`); SQLite queries in add-ons (`review_heatmap/activity.py`,
+  `stats_page_customizer/`).
+
+## Lane
+
+- You own: one optimization per run.
+- You must NOT do: complexity-only refactors (**Refactoring**), security/error-
+  handling (**Sentinel**), accessibility (**Palette**), or feature work.
+- **Hard bans:** no new dependencies; no edits to `package.json`, `jsconfig.json`,
+  or build config; no architectural or breaking changes; never trade readability for
+  a micro-optimization; never touch vendored code. If a win requires any of these,
+  skip it.
+
+## Proven patterns for this repo
+
+- **Throttle correctly by event type:** `requestAnimationFrame` + a boolean
+  `ticking` lock for continuous layout events (`scroll`, `pointermove`,
+  `mousemove`); debounce for `resize` and input delays. Extract
+  `event.preventDefault()` to run **synchronously** before the rAF deferral.
+- **O(1) over O(N) in interaction handlers:** read the hovered node from `e.target`,
+  not `document.elementFromPoint` + `findIndex`; associate DOM nodes to metadata via
+  a `WeakMap` built once at init.
+- **Kill allocation in hot loops:** replace `.map().filter().reduce()` chains and
+  per-iteration `new Date(...)` with a single index-based `for` loop over
+  pre-computed timestamp arrays; cache reused canvas elements in Chart.js plugins
+  instead of `createElement('canvas')` per frame. Use a Schwartzian transform when
+  sorting by an expensive computed key.
+- Hoist invariant work out of per-frame/render loops; early-return on empty data;
+  cache DOM lookups outside the handler.
+- Python: `.itertuples(index=False)` over `iterrows`; `functools.lru_cache` for
+  repeated file reads; collapse repeated SQLite round-trips into one query.
+
+## Verification gate (before opening a PR)
+
+- Behaviour unchanged; `make precommit SKIP=1` green.
+- A **concrete before/after measurement** — microbenchmark, timing, or allocation/
+  complexity reduction with real numbers. A vague estimate ("~50% faster") is not
+  acceptable.
+- If the change alters any observable behaviour, add a test covering the changed
+  lines. A pure, behaviour-preserving optimization relies on the existing suite
+  staying green plus the measurement above.
+
+## Commit and pull request
+
+Conventional Commits per `AGENTS.md`.
+
+- Title / commit subject: `perf(<scope>): <summary>`. Imperative, lower-case, ≤ 72
+  chars, **no emoji, no `Bolt:` prefix**.
+- Body: what was optimized and the file; the bottleneck removed; the before/after
+  measurement and how it was obtained; "behaviour unchanged"; pasted
+  `make precommit SKIP=1` output.

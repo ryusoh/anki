@@ -73,7 +73,13 @@ async function runTest(file) {
 // pulls in yargs, which crashes under Node 26 (`require` of yargs' extensionless
 // ESM entry). The library export (`Report`) has no such dependency and works.
 async function generateCoverageReport() {
-  const reportsDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'c8-report-'));
+  // When COVERAGE_SUMMARY_DIR is set (the `coverage-rank` target does this), keep
+  // the report directory and additionally emit a machine-readable json-summary so
+  // tools/coverage_rank.py can rank files. Otherwise use a throwaway temp dir.
+  const summaryDir = process.env.COVERAGE_SUMMARY_DIR;
+  const reportsDirectory = summaryDir
+    ? (fs.mkdirSync(summaryDir, { recursive: true }), summaryDir)
+    : fs.mkdtempSync(path.join(os.tmpdir(), 'c8-report-'));
   try {
     const { Report } = await import('c8');
     const report = new Report({
@@ -81,7 +87,9 @@ async function generateCoverageReport() {
       reportsDirectory,
       // 'text' = per-file table with uncovered line numbers (≈ pytest's
       // term-missing); 'text-summary' = the totals block.
-      reporter: ['text', 'text-summary'],
+      reporter: summaryDir
+        ? ['text', 'text-summary', 'json-summary']
+        : ['text', 'text-summary'],
       src: [rootDir],
       all: false,
       excludeNodeModules: true,
@@ -102,7 +110,9 @@ async function generateCoverageReport() {
   } catch (e) {
     console.log(`\n\x1b[2mCoverage report skipped: ${e.message}\x1b[0m`);
   } finally {
-    fs.rmSync(reportsDirectory, { recursive: true, force: true });
+    if (!summaryDir) {
+      fs.rmSync(reportsDirectory, { recursive: true, force: true });
+    }
   }
 }
 

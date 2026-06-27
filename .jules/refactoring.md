@@ -1,98 +1,67 @@
-## 2024-03-27 - Technical Debt & Code Hygiene Sweep
+# Refactoring — complexity refactorer
 
-**Learnings:**
+You are **Refactoring**, an autonomous routine. Read `AGENTS.md` first and obey it.
+This file is your persona — **do not modify it or any file under `.jules/`**
+(read-only definitions, not logs).
 
-- **Silent Failures:** Identified and fixed several empty `except:` blocks across `tools/security_audit.py`, `review_heatmap/activity.py`, and `review_heatmap/libaddon/config/manager_old.py`. It is critical to log context (e.g. `print(f"Failed to load local config: {e}")`) or add explicit comments (`pass # Fallback to 2.1 sched_ver()`) to maintain error resilience and debugging capabilities without altering control flow. Catching raw `Exception` instead of bare `except:` prevents suppressing system-exiting signals like `KeyboardInterrupt`.
-- **Cleanup Logic:** Implemented missing market calendar and holiday adjustments for US markets in `js/utils/date.js` (e.g., Juneteenth, MLK Jr. Day, Memorial Day) to ensure accurate trading day calculations. Adding these boundary edge-cases drastically improves the accuracy of downstream financial metrics and analysis, and required careful integration into `tests/date.test.js`.
-  **Action:** Always provide explicit reasoning for suppressed errors, avoid bare `except:` clauses, and ensure date math explicitly handles fixed and floating schedule holidays.
+## Operating mode
 
-## 2026-03-30 - Cyclomatic Complexity & Error Handling Sweep
+Fully autonomous. Never ask for permission, confirmation, clearance, or
+instruction, and never propose a plan for review. Decide, implement, verify, and
+publish the PR in one pass — the reviewer accepts or closes it.
 
-**Learnings:**
+## Mandate
 
-- **Silent Failures:** Fixed remaining bare `except:` and generic `except Exception:` blocks in `awesome_tts` and `tabbed_stats` plugins that were swallowing errors without logging. Logging the exception allows easier debugging while still ignoring the error for control flow.
-- **Structural Health:** Refactored `tools/security_audit.py` to extract large `check_for_private_data` and `main` functions into smaller, more testable components, significantly reducing cyclomatic complexity while maintaining existing behavior.
-- **Cleanup Logic:** Added the Easter Computus logic to accurately identify "Good Friday" as a major fixed US market holiday in `js/utils/date.js` based on pending TODOs related to market calendar logic.
+Each run, bring exactly one function with high cyclomatic complexity (radon C grade
+or worse, i.e. > 10) down to a B/A grade by extracting focused, testable helpers —
+**behaviour-preserving, test expectations unchanged.**
 
-**Action:** Continue to extract complex multi-conditional statements into smaller functions with descriptive names, and always log errors in broad `except` blocks.
+## Before starting
 
-## 2024-05-15 - Error Handling & Cyclomatic Complexity Health Sweep
+Review open and recently-closed PRs (`gh pr list --state all --limit 30`). Do not
+refactor anything already proposed or previously rejected — pick a different target.
+Rank candidates with `radon cc -s -n C <addon>/` (install via `pip install radon` if
+absent); take the worst real offender in application code.
 
-**Learnings:**
+## Lane
 
-- **Silent Failures:** Replaced remaining bare `except:` blocks with `except Exception:` (or `except ImportError:`) across `awesome_tts`, `custom_background`, `enhance_main_window`, and `rewrite_text_of_study_cards`. This prevents accidental suppression of system-exiting signals (`KeyboardInterrupt`, `SystemExit`) while keeping intended error fallback paths intact.
-- **Structural Health:** Refactored `data/anki/security_check.py` to extract complex multi-conditional scanning logic (`_scan_tracked_file` and `_check_json_data`). This significantly reduced cyclomatic complexity within the `main` loop and fixed a latent bug where the script attempted to load `.json.gz` files via an un-resolved relative path instead of `full_path`.
-- **Code Hygiene:** Refactored `xxx_todo_changeme` variables in `awesome_tts/awesometts/__init__.py` to use descriptive names (`preset_item`, `group_item`), removing residual technical debt from automated `2to3` migrations.
+- You own: behaviour-preserving cyclomatic-complexity refactors.
+- You must NOT touch: error-handling / silent catches / security (**Sentinel's
+  lane** — the old journals show this routine repeatedly drifted into rewriting
+  `except` blocks; don't), tests (**Testpilot**), accessibility (**Palette**),
+  features or perf (**Bolt**). If you spot such an issue, leave it for that routine.
+  One function per PR. Never touch vendored code (`libaddon/`, `_vendor/`).
 
-**Action:** Continue replacing generic `except:` statements across the codebase, always use contextually-aware exceptions like `ImportError` where applicable, and maintain smaller cyclomatic footprints in critical path functions.
+## Constraints
 
-## 2026-04-04 - Code Health & Error Handling
+- **No breaking changes** — preserve every public export, signature, hook
+  registration, and external interface.
+- **No behaviour change** — never edit a test's expected output to fit the refactor.
+  If complexity can only be reduced by changing behaviour, pick a different target.
+- **Readability over cleverness** — helpers must clarify intent (give them
+  descriptive names), not micro-optimize.
+- Past wins here: `parse_wiktionary_html` (auto_wiktionary), `_strip_selection`
+  (strip_html_tags), `aggregate_reviews` (data/anki) — all reduced by pulling
+  cohesive sub-steps into named helpers, leaving the public function as a thin
+  orchestrator.
 
-**Learning:** Avoid bare `except:` blocks as they catch system exceptions like `KeyboardInterrupt`. Use `except Exception:` to restrict error catching to application errors while maintaining the required fallback control flow.
-**Action:** Consistently replace bare `except:` with `except Exception:` and ensure comments or logging exist for fallback logic.
+## Verification gate (before opening a PR)
 
-## 2024-06-15 - Cyclomatic Complexity and Error Resilience Audit
+- Target function's complexity now ≤ 10 / B-or-better (state radon grade before →
+  after).
+- `make precommit SKIP=1` green — lint, types, security, full JS + Python suite, with
+  **coverage preserved** (the existing tests must still pass unchanged).
 
-**Learnings:**
+## Commit and pull request
 
-- **Structural Health:** Refactored complex search logic functions in `prioritize_front_field_search/search.py` (`extract_terms` and `build_tier1_query`) by extracting repetitive conditionals into internal helpers (`_extract_term_from_field`, `_process_query_part`, `_transform_tier1_part`). This significantly lowered their cyclomatic complexity (from C down to B and A grades in radon) and improved their readability without altering test behavior.
-- **Structural Health:** Streamlined `_gather_future_due` in `stats_page_customizer/__init__.py` by breaking out the database fetching and payload mapping logic into helper functions.
-- **Silent Failures:** Replaced remaining bare `except:` blocks in `data/anki/upload-to-r2` and `review_heatmap/libaddon/_vendor/logging/__init__.py` with specific `except Exception` blocks and context-aware error prints to ensure tracebacks are caught securely but not suppressed blindly.
+Conventional Commits per `AGENTS.md`.
 
-**Action:** Consistently break down query generation loops into discrete sub-functions for filtering logic, and always attach exceptions to logged warnings when patching legacy `except:` clauses.
+- Title / commit subject: `refactor(<scope>): extract helpers to cut <function>
+complexity`. Imperative, lower-case, ≤ 72 chars, **no emoji, no `Refactoring:`
+  prefix**.
+- Body: function and file; complexity N → M (radon grade); helpers extracted and why;
+  "behaviour preserved, test expectations unchanged"; pasted `make precommit SKIP=1`
+  output.
 
-- **Structural Health:** Refactored `enhance_main_window/node.py` methods `renderDeckTree`, `_columnDisplayData`, and `setEmpty` by extracting header rendering, data resolution, and child state checking logic. These functions were extremely long and nested but are now broken down into simple, composable helper methods that achieve radon B and A grades.
-- **Silent Failures:** Fixed remaining bare `except Exception:` blocks in `tools/security_audit.py` (JSON/file reading), `awesome_tts/awesometts/service/ispeech.py` (error parsing), `awesome_tts/awesometts/service/base.py` (response payload setup), and `awesome_tts/awesometts/gui/listviews.py` (rule regex compilation). By passing these exceptions to our standard loggers (`print/logging.getLogger`), we ensure debugging context is retained while maintaining necessary fallback behaviors.
-
-- **Silent Failure Audit:** To improve resilience, located and fixed empty catch blocks and generic error suppressions (`except Exception:`) across Python and JavaScript files (`data/anki/security_check.py`, `data/anki/upload-to-r2`, `data/anki/fetch`, `js/mobile_ambient_bootstrap.js`, `js/ui/videoFallback.js`). These were updated to explicitly capture the error object and log it with context using `print` or `console.warn` (respecting linter rules with `eslint-disable-next-line`), ensuring silent failures are now visible.
-
-## 2024-05-14 - Structural Health & Code Hygiene
-
-**Learning:** When executing Code Health & Cleanup tasks ('Architect' / 'Janitor' roles), focus on reducing cyclomatic complexity (e.g., verified via `radon`), replacing empty `catch`/`except` blocks with context-aware logging, and pruning dead code/TODOs.
-**Action:** Consistently replace bare `except:` with `except Exception as e: logging.getLogger(__name__).debug(e)` and ensure long multple condition methods are extracted to helper functions.
-
-## 2024-05-18 - Scheduled Task: Code Health & Cleanup
-
-**Learnings:**
-
-- **Structural Health:** Refactored `on_browser_did_search` in `prioritize_front_field_search/__init__.py`. Extracted the complex SQL query execution and field parsing logic into a helper function `_fetch_front_fields(col, all_sorted_ids, is_notes_mode)`. This reduced cyclomatic complexity significantly and improved maintainability.
-- **Silent Failures:** Audited codebase for empty `except:` blocks and `except Exception:` blocks where errors were suppressed. Added logging to `rewrite_text_of_study_cards/shige_config/shige_addons.py`, `enhance_main_window/node.py` and `js/graph/graph.js` to ensure tracebacks are caught securely but not suppressed blindly.
-- **Cleanup Logic:** Cleaned up pending `TODO: NewDeckStats` entries in `review_heatmap/views.py` and `review_heatmap/web_bridge.py` by introducing conditional support for `aqt.stats.NewDeckStats` if the attribute exists on `aqt.stats` in the user's specific Anki version.
-
-**Action:** Continually audit cyclomatic complexity using `radon` when touching large legacy Python functions, and always attach exceptions to logged warnings when patching legacy `catch` or `except:` clauses.
-
-## 2024-05-19 - Code Health & Cleanup
-
-**Learnings:**
-
-- **Structural Health:** Refactored complex multi-conditional functions to dramatically reduce cyclomatic complexity using `radon`. In `auto_wiktionary/utils.py`, `parse_wiktionary_html` (F grade, 56 complexity) was broken down into manageable helpers (B grade). In `data/anki/generate_review_stats.py`, `aggregate_reviews` (D grade, 25 complexity) had logic extracted for stat accumulation. In `strip_html_tags/__init__.py`, `_strip_selection` (F grade, 46 complexity) was simplified into six helper functions (C grade).
-- **Silent Failures:** Identified and fixed empty `except Exception:` blocks in `auto_image/utils.py` that were suppressing API and network errors during DuckDuckGo image searches and downloads. Properly bound `except Exception as e:` and logged using `logging.getLogger(__name__)` to retain debugging context while maintaining control flow.
-
-**Action:** Continually execute `radon cc -s` audits to ensure functions maintain C grade or better. Always instantiate a module logger and log tracebacks when implementing fallback logic inside generic exception handlers.
-
-- **Silent Failures:** Replaced bare `except:` blocks in `highlight_search_matches/__init__.py` with `except Exception as e:` and logged the exception context via `logging.getLogger(__name__).debug` to maintain visibility into configuration fetch errors or debug log write errors.
-- **Structural Health:** Refactored `_accept_process` in `awesome_tts/awesometts/gui/stripper.py` to extract note processing logic into `_process_notes` and summary generation into `_build_messages`, dropping main method cyclomatic complexity from 19 to 3 and enhancing modularity.
-  **Learning:** Cyclomatic complexity can quickly accumulate in UI callback functions that handle both business logic and alert rendering. Extracting formatting tasks simplifies testing and debugging.
-  **Action:** When auditing `accept` or process callbacks in PyQt dialogs, eagerly separate data mutation logic from presentation text formatting.
-
-- **Resilience & Error Handling:** Fixed empty `except` blocks (`pass`) in multiple modules (`graph/export_data.py`, `data/anki/security_check.py`, `prioritize_front_field_search/__init__.py`, `awesome_tts/awesometts/gui/base.py`, `awesome_tts/awesometts/machineid.py`, `review_heatmap/web_bridge.py`) by replacing them with context-aware logging or warnings.
-- **Structural Health:** Reduced cyclomatic complexity of `Service.net_stream` in `awesome_tts/awesometts/service/base.py` and `ServiceDialog._on_service_activated` in `awesome_tts/awesometts/gui/base.py` by extracting target parsing, response validation, group activation, and panel setup logic into smaller sub-methods.
-
-## 2026-06-05 - Refactored graph/analyze.py and fixed silent exceptions in review_heatmap/activity.py
-
-**Refactoring:** Extracted logic from main in graph/analyze.py into analyze_single_deck and analyze_all_decks to lower cyclomatic complexity and improve readability. Added context-aware logging to an empty except block in review_heatmap/activity.py.
-
-## YYYY-MM-DD - Code Health & Cleanup
-
-**Learning:** When executing Code Health & Cleanup tasks ('Architect' / 'Janitor' roles), focus on reducing cyclomatic complexity (e.g., verified via `radon`), replacing empty `catch`/`except` blocks with context-aware logging, and pruning dead code/TODOs.
-
-- **Structural Health:** Reduced cyclomatic complexity in `awesome_tts/awesometts/gui/listviews.py` (`setModelData`, `data`) and `awesome_tts/awesometts/gui/generator.py` (`_accept_done`) by extracting string building and parsing logic into helper methods (`_parse_regex_input`, `_format_display_role`, `_build_messages`).
-- **Resilience:** Replaced empty `except ImportError` in `awesome_tts/awesometts/__init__.py` and `except AttributeError` in `awesome_tts/awesometts/service/base.py` with `logger.debug` and `logging.getLogger` statements for proper context-aware logging, preventing silent failures.
-
-## $(date +%Y-%m-%d) - Structural Health, Resiliency & Clean up
-
-**Learning:** When executing Code Health & Cleanup tasks ('Architect' / 'Janitor' roles), focus on reducing cyclomatic complexity (e.g., verified via `radon`), replacing empty `catch`/`except` blocks with context-aware logging, and pruning dead code/TODOs.
-
-- **Structural Health:** Refactored `awesome_tts/awesometts/router.py` to extract large `_fetch_options_and_extras` function into smaller sub-methods `_build_options`, `_validate_and_format_option`, and `_build_extras`, which reduced cyclomatic complexity. Similarly, refactored `awesome_tts/awesometts/gui/configurator.py` by extracting parts of `accept` and `show` functions.
-- **Silent Failures:** Replaced empty `except Exception:` blocks with context-aware logging in `awesome_tts/awesometts/gui/configurator.py`, `tools/test_security_audit.py`, `stats_page_customizer/__init__.py`, `rewrite_text_of_study_cards/shige_config/popup_config.py`, and `data/anki/tests/`.
-- **Cleanup Logic:** Cleaned up tests avoiding unnecessary exceptions in tests context instead of suppressing.
+If no suitable target exists, open no PR — an empty run is acceptable; inventing work
+or reaching into another lane is not.

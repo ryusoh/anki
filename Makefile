@@ -1,5 +1,5 @@
 .PHONY: help fetch fetch-r2 check precommit precommit-fix fmt fmt-check lint lint-js lint-css lint-fix hooks \
-	quality-py lint-py fmt-py fmt-py-check typecheck security-py install-dev
+	quality-py lint-py fmt-py fmt-py-check typecheck security-py install-dev coverage-rank
 
 PYTHON := python3
 NPM := npm
@@ -188,6 +188,10 @@ check-node:
 	NODE_V8_COVERAGE="$$COVDIR" node tools/node_test_runner.mjs; \
 	STATUS=$$?; \
 	rm -rf "$$COVDIR"; \
+	if [ $$STATUS -eq 0 ]; then \
+		NODE_OPTIONS="--experimental-vm-modules" npx jest review_heatmap/tests/; \
+		STATUS=$$?; \
+	fi; \
 	exit $$STATUS
 
 # Fast, scoped Python test for the tight edit→verify loop (no coverage).
@@ -258,6 +262,24 @@ check-py:
 	$(PYTHON) -m coverage report -m; \
 	if [ "$$FAIL" != "0" ]; then echo "❌ Python tests failed"; exit 1; fi; \
 	echo "✅ Python tests complete"
+
+# Rank source files by coverage, lowest first, so Testpilot targets the genuinely
+# least-covered files instead of eyeballing a truncated table. Regenerates fresh
+# Python + JS coverage artifacts under coverage/ (gitignored), then ranks them.
+#   make coverage-rank            # all files below 100%
+#   make coverage-rank LIMIT=5    # the 5 lowest
+coverage-rank:
+	@mkdir -p coverage/js
+	@$(PYTHON) -m coverage erase
+	@for suite in $(PY_TEST_SUITES); do \
+		pytest -q --cov --cov-append --cov-report= "$$suite" >/dev/null 2>&1 || true; \
+	done
+	@$(PYTHON) -m coverage json -o coverage/py.json >/dev/null 2>&1 || true
+	@COVDIR=$$(mktemp -d 2>/dev/null || mktemp -d -t c8cov); \
+		NODE_V8_COVERAGE="$$COVDIR" COVERAGE_SUMMARY_DIR="coverage/js" \
+		node tools/node_test_runner.mjs >/dev/null 2>&1 || true; \
+		rm -rf "$$COVDIR"
+	@$(PYTHON) tools/coverage_rank.py $(if $(LIMIT),--limit $(LIMIT),)
 
 # -----------------------------------------------------------------------------
 # Python Quality (ruff / black / mypy / bandit) — first-party code only.

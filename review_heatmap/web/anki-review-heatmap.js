@@ -829,7 +829,7 @@ document.head.appendChild(__vite_style__);
             selection.on("mouseover", function (d2) {
               const domainNode = this.parentNode.parentNode;
               self.tooltip
-                .text(self.getSubDomainTitle(d2))
+                .html(self.getSubDomainTitle(d2))
                 .attr("style", "display: block;");
               let tooltipPositionX =
                 self.positionSubDomainX(d2.t) -
