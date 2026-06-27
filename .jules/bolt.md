@@ -267,3 +267,8 @@
 
 **Learning:** Using `Array.findIndex()` repeatedly inside tight, high-frequency animation or physics simulation loops (like force-directed graphs) forces O(N) linear searches on every iteration, leading to significant CPU overhead and dropped frames.
 **Action:** Pre-calculate a `Map` linking identifiers (like `node.id`) to their array index during initialization. Inside the loop, replace O(N) `findIndex` calls with O(1) `Map.get()` lookups to drastically improve loop performance and maintain smooth framerates.
+
+## 2026-06-25 - [Optimize gsap.set in high-frequency loops]
+
+**Learning:** Calling `gsap.set()` inside high-frequency animation loops (like `requestAnimationFrame`) forces GSAP to create temporary wrapper objects to process the update on every single frame, leading to noticeable Garbage Collection (GC) overhead over time.
+**Action:** When constantly updating the same properties of an element in an animation loop, pre-allocate `gsap.quickSetter()` outside the loop during initialization, and invoke the cached setter functions inside the loop to drastically reduce object allocations and GC pressure.

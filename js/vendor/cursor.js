@@ -212,7 +212,13 @@ export class CustomCursor {
         window.addEventListener('mouseout', this.onMouseOut);
         this.attachHoverTargets();
 
+
+
+        this.setterElement = gsap ? gsap.quickSetter(this.element, "css") : null;
+        this.setterCore = gsap ? gsap.quickSetter(this.core, "css") : null;
         this.rafId = requestAnimationFrame(this.loop);
+
+
     }
 
     attachHoverTargets() {
@@ -263,15 +269,31 @@ export class CustomCursor {
         this.coords.x.value = lerp(this.coords.x.value, this.coords.x.current, this.followEase);
         this.coords.y.value = lerp(this.coords.y.value, this.coords.y.current, this.followEase);
 
-        gsap.set(this.element, {
-            opacity: this.coords.opacity.value,
-            x: this.coords.x.value,
-            y: this.coords.y.value,
-            zIndex: 100,
-        });
-        gsap.set(this.core, {
-            scale: this.coords.scale.value,
-        });
+
+
+        if (this.setterElement) {
+            this.setterElement({
+                opacity: this.coords.opacity.value,
+                x: this.coords.x.value,
+                y: this.coords.y.value,
+                zIndex: 100,
+            });
+            this.setterCore({
+                scale: this.coords.scale.value,
+            });
+        } else if (gsap) {
+            gsap.set(this.element, {
+                opacity: this.coords.opacity.value,
+                x: this.coords.x.value,
+                y: this.coords.y.value,
+                zIndex: 100,
+            });
+            gsap.set(this.core, {
+                scale: this.coords.scale.value,
+            });
+        }
+
+
 
         this.rafId = requestAnimationFrame(this.loop);
     }
