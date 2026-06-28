@@ -273,7 +273,7 @@ class TestExportDataUtils:
         with patch('builtins.open', m):
             save_cache(notes, 10, 5, output_file="out.json")
 
-        m.assert_called_once_with(mock_open.call_args_list[0].args[0], 'w')
+        m.assert_called_once_with(m.call_args_list[0].args[0], 'w')
 
         # Verify JSON data written
         written = ''.join(c[0][0] for c in m().write.call_args_list)
