@@ -1,22 +1,38 @@
 import builtins
 import sys
+import types
 from unittest.mock import MagicMock
 
-sys.modules['aqt'] = MagicMock()
-sys.modules['aqt.browser'] = MagicMock()
-sys.modules['aqt.qt'] = MagicMock()
-sys.modules['aqt.editor'] = MagicMock()
-sys.modules['aqt.webview'] = MagicMock()
-sys.modules['aqt.utils'] = MagicMock()
-sys.modules['aqt.gui_hooks'] = MagicMock()
-sys.modules['aqt.main'] = MagicMock()
-sys.modules['anki'] = MagicMock()
-sys.modules['anki.hooks'] = MagicMock()
+
+class MockModule(types.ModuleType):
+    def __getattr__(self, name):
+        if name == '__all__':
+            return []
+        return MagicMock()
 
 
-# Mocks for rewrite_text_of_study_cards
+for mod in [
+    'aqt',
+    'aqt.browser',
+    'aqt.qt',
+    'aqt.editor',
+    'aqt.webview',
+    'aqt.utils',
+    'aqt.gui_hooks',
+    'aqt.main',
+    'aqt.deckbrowser',
+    'anki',
+    'anki.hooks',
+    'anki.utils',
+    'anki.lang',
+    'anki.stats',
+]:
+    sys.modules[mod] = MockModule(mod)
+
+
 class MockDeckBrowser:
     _renderStats = MagicMock()
+    _linkHandler = MagicMock()
 
 
 class MockOverview:
@@ -25,10 +41,12 @@ class MockOverview:
 
 class MockDeckBrowserModule:
     DeckBrowser = MockDeckBrowser
+    __all__ = []
 
 
 class MockOverviewModule:
     Overview = MockOverview
+    __all__ = []
 
 
 sys.modules['aqt.deckbrowser'] = MockDeckBrowserModule()
