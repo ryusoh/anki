@@ -18,7 +18,11 @@ async function testFetchBlobResponse() {
     window.Response = class {
       constructor(body, init) { this.body = body; this.init = init || {}; this.status = this.init.status || 200; this.ok = true; }
       async arrayBuffer() { return this.body; }
-      async blob() { return new window.Blob([this.body]); }
+      async blob() {
+        const b = new window.Blob([this.body]);
+        b.arrayBuffer = () => Promise.resolve(this.body);
+        return b;
+      }
     };
     window.fetch = function() {
       // Field 7 (Future Due)
@@ -32,7 +36,10 @@ async function testFetchBlobResponse() {
     script.textContent = scriptContent;
     dom.window.document.body.appendChild(script);
     window.__scSixMonthMode = true;
-    const res = await window.fetch("graph", { method: "POST", body: new Uint8Array([0x0a, 0x00]) });
+    const req = new Uint8Array([0x0a, 0x00]);
+    const reqBlob = new window.Blob([req]);
+    reqBlob.arrayBuffer = () => Promise.resolve(reqBlob.buffer || req.buffer);
+    const res = await window.fetch("graph", { method: "POST", body: reqBlob });
     const blob = await res.blob();
     const buf = await blob.arrayBuffer();
     const arr = new Uint8Array(buf);

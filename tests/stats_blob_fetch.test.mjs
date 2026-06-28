@@ -24,6 +24,7 @@ async function testBlobFetch() {
     window.__scSixMonthMode = true;
     const req = new Uint8Array([0x0a, 0x04, 0x74, 0x65, 0x73, 0x74]); 
     const blob = new window.Blob([req]);
+    blob.arrayBuffer = () => Promise.resolve(blob.buffer || req.buffer);
     await window.fetch("graph", { method: "POST", body: blob });
     await new Promise(r => setTimeout(r, 100));
     if (fetchedBody && fetchedBody.constructor.name === 'Uint8Array') {

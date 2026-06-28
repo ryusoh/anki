@@ -632,6 +632,10 @@ export class TableGlassEffect {
     const trailWidth = electric.width || 0.1;
     const segments = 30; // More segments for smoother gradient
 
+    // Bolt: Precompute loop invariants to eliminate repeated division and Math.pow operations
+    const invSegments = 1.0 / segments;
+    const stepTrailWidth = invSegments * trailWidth;
+
     let paletteIdx = 0;
     for (let i = 0; i < activePalette.length; i++) {
       const color = activePalette[i];
@@ -651,16 +655,17 @@ export class TableGlassEffect {
 
       // Draw trail as segments
       for (let j = 0; j < segments; j++) {
-        const segmentProgress = j / segments; // 0 to 1
+        const segmentProgress = j * invSegments; // 0 to 1
         const p1 = headProgress - segmentProgress * trailWidth;
-        const p2 = headProgress - ((j + 1) / segments) * trailWidth;
+        const p2 = p1 - stepTrailWidth;
 
         const point1 = this.getPointAtProgress(p1, radius, this._p1);
         const point2 = this.getPointAtProgress(p2, radius, this._p2);
 
         // Smooth fade out
         // Use a power curve for more elegant falloff
-        const opacity = Math.pow(1 - segmentProgress, 2);
+        const op = 1 - segmentProgress;
+        const opacity = op * op;
 
         this.ctx.globalAlpha = opacity;
 
