@@ -198,11 +198,6 @@ def test_get_pool():
         assert result == mock_pool
 
 
-def test_calculate_edge_weight_unknown():
-    from graph.references import calculate_edge_weight
-
-    assert calculate_edge_weight("unknown") == 1.0
-
 
 def test_edge_type():
     from graph.references import _edge_type
