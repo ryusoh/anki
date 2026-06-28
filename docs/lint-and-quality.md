@@ -56,13 +56,18 @@ defined once in the `Makefile` so they cannot drift:
 To add a new check to the gate, edit `VERIFY_GATE` once — it applies to both paths
 and to CI.
 
-## Environment gotcha
+## Environment gotchas
 
 System `python3` is Homebrew and **externally-managed (PEP 668)** — a bare
 `pip3 install ruff` fails. Install dev tools into a venv (`make install-dev`, or
 `pip install -r requirements-dev.txt`). Versions are **pinned** in
 `requirements-dev.txt` so local and CI produce identical formatting; bumping black
 or ruff can change formatting and turn the build red, so bump deliberately.
+
+### Makefile Execution Gotchas
+
+- **Spaces in paths:** The repo path `$(CURDIR)` contains spaces (e.g., `/Application Support/`). Always quote commands that interpolate `$(CURDIR)`, and avoid using `$(wildcard)` with absolute paths since it splits on spaces. Use relative paths with `$(wildcard)` (e.g., `$(wildcard .venv/bin/python3)`).
+- **Python tool invocation:** Python CLIs (like `ruff`, `pytest`, `mypy`) installed in the virtual environment should always be invoked via `$(PYTHON) -m <tool>` in the `Makefile`. This ensures the exact local virtual environment is respected, preventing system PATH leaks and `ImportError`s (e.g., missing `networkx`).
 
 ## Conventions baked into the configs
 
