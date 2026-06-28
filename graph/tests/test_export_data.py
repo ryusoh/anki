@@ -373,3 +373,72 @@ def test_deck_progress_truncates(capsys):
         long_name = "A" * 60
         deck_progress(long_name, 1, 5, 100)
         assert any('A' * 30 in w and '…' in w for w in written)
+
+    def test_strip_html_edge_cases(self):
+        from graph.export_data import strip_html
+
+        assert strip_html("") == ""
+        assert strip_html("a &nbsp; b") == "a b"
+        assert strip_html("a &amp; b") == "a & b"
+        assert strip_html("a &lt; b &gt; c") == "a < b > c"
+        assert strip_html("a &quot; b &#39; c &apos; d") == "a \" b ' c ' d"
+        assert strip_html("a :: b\nc") == "a b c"
+        long_str = "a" * 100
+        assert len(strip_html(long_str)) == 60
+
+    def test_note_fingerprint_length(self):
+        from graph.export_data import note_fingerprint
+
+        note = {'guid': '123', 'mod': 456, 'deck': 'Default'}
+        fp = note_fingerprint(note)
+        assert isinstance(fp, str)
+        assert len(fp) == 12
+
+    def test_deck_progress(self):
+        from unittest.mock import MagicMock, patch
+
+        from graph.export_data import deck_progress
+
+        with patch('graph.export_data.progress_bar') as mock_progress_bar:
+            deck_progress("Short", 0, 10, 100)
+            mock_progress_bar.assert_called_with(1, 10, 'Refs: Short (100 notes)')
+
+            long_name = "A" * 50
+            deck_progress(long_name, 1, 10, 50)
+            mock_progress_bar.assert_called_with(2, 10, f'Refs: {"A"*30}… (50 notes)')
+
+    def test_compute_deck_layout_empty(self):
+        import networkx as nx
+
+        from graph.export_data import _compute_deck_layout
+
+        g_empty = nx.DiGraph()
+        assert _compute_deck_layout(g_empty, 10) == {}
+
+        g_one = nx.DiGraph()
+        g_one.add_node("A")
+        assert _compute_deck_layout(g_one, 10) == {"A": (0.0, 0.0)}
+
+    def test_compute_deck_layout_multiple(self):
+        from unittest.mock import MagicMock, patch
+
+        import networkx as nx
+
+        from graph.export_data import _compute_deck_layout
+
+        g_two = nx.DiGraph()
+        g_two.add_node("A")
+        g_two.add_node("B")
+        with patch('graph.export_data.ForceAtlas2') as mock_fa2:
+            mock_instance = MagicMock()
+            mock_instance.forceatlas2_networkx_layout.return_value = {
+                "A": (10.0, 10.0),
+                "B": (20.0, 20.0),
+            }
+            mock_fa2.return_value = mock_instance
+
+            layout = _compute_deck_layout(g_two, 10)
+
+            assert "A" in layout
+            assert layout["A"][0] < 0
+            assert layout["B"][0] > 0
