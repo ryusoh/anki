@@ -649,18 +649,22 @@ export class TableGlassEffect {
       this.ctx.shadowBlur = 5;
       this.ctx.strokeStyle = color;
 
+      const segmentStep = 1 / segments;
+      const trailStep = trailWidth / segments;
+
       // Draw trail as segments
       for (let j = 0; j < segments; j++) {
-        const segmentProgress = j / segments; // 0 to 1
-        const p1 = headProgress - segmentProgress * trailWidth;
-        const p2 = headProgress - ((j + 1) / segments) * trailWidth;
+        const segmentProgress = j * segmentStep; // 0 to 1
+        const p1 = headProgress - j * trailStep;
+        const p2 = headProgress - (j + 1) * trailStep;
 
         const point1 = this.getPointAtProgress(p1, radius, this._p1);
         const point2 = this.getPointAtProgress(p2, radius, this._p2);
 
         // Smooth fade out
         // Use a power curve for more elegant falloff
-        const opacity = Math.pow(1 - segmentProgress, 2);
+        const invProgress = 1 - segmentProgress;
+        const opacity = invProgress * invProgress;
 
         this.ctx.globalAlpha = opacity;
 
