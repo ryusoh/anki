@@ -609,16 +609,3 @@ def _scan_target(tgt, automaton, guid_by_pattern, deck_name, edges, seen_edges):
                         'deck': deck_name,
                     }
                 )
-
-
-def calculate_edge_weight(edge_type):
-    """
-    Calculate edge weight based on type.
-
-    Args:
-        edge_type: One of front_in_front, front_in_back, subphrase_in_front, subphrase_in_back
-
-    Returns:
-        float: Edge weight
-    """
-    return EDGE_WEIGHTS.get(edge_type, 1.0)
