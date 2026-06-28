@@ -1,10 +1,3 @@
-"""
-Tests for graph.export_data module.
-
-Tests fingerprint generation and incremental change detection,
-particularly around deck merges where notes move between decks.
-"""
-
 import pytest
 
 from graph.tests.fixtures import ALL_NOTES, BIOLOGY_NOTES, CALCULUS_NOTES, ENGLISH_NOTES
@@ -175,3 +168,208 @@ class TestBuildGraphDeckMerge:
         assert 'Biology 101' not in deck_values
         assert 'English Vocabulary' in deck_values
         assert 'Calculus' in deck_values
+
+
+def test_strip_html_none():
+    from graph.export_data import strip_html
+
+    assert strip_html(None) == ''
+
+
+def test_strip_html_tags():
+    from graph.export_data import strip_html
+
+    assert strip_html('<p>Hello <b>World</b></p>') == 'Hello World'
+
+
+def test_strip_html_entities():
+    from graph.export_data import strip_html
+
+    assert strip_html('Hello&nbsp;World&amp;Everyone') == 'Hello World&Everyone'
+    assert strip_html('&lt;&gt;&quot;&#39;&apos;') == '<>"\'\''
+
+
+def test_strip_html_separators():
+    from graph.export_data import strip_html
+
+    assert strip_html('Hello::World\nEveryone') == 'Hello World Everyone'
+
+
+def test_strip_html_truncate():
+    from graph.export_data import strip_html
+
+    long_text = 'a' * 100
+    assert len(strip_html(long_text)) == 60
+
+
+def test_progress_bar_complete(capsys):
+    import sys
+    from unittest.mock import patch
+
+    from graph.export_data import progress_bar
+
+    with patch('sys.stderr') as mock_stderr:
+        progress_bar(100, 100, prefix='Testing')
+        mock_stderr.write.assert_any_call(
+            '\r  Testing [████████████████████████████████████████] 100/100 (100%)'
+        )
+        mock_stderr.write.assert_any_call('\n')
+
+
+def test_progress_bar_zero_total():
+    from unittest.mock import patch
+
+    from graph.export_data import progress_bar
+
+    with patch('sys.stderr') as mock_stderr:
+        progress_bar(0, 0, prefix='Testing')
+        mock_stderr.write.assert_any_call(
+            '\r  Testing [████████████████████████████████████████] 0/0 (100%)'
+        )
+
+
+def test_load_cache_not_exists():
+    from unittest.mock import patch
+
+    from graph.export_data import load_cache
+
+    with patch('pathlib.Path.exists', return_value=False):
+        assert load_cache() is None
+
+
+def test_load_cache_success():
+    import json
+    from unittest.mock import MagicMock, patch
+
+    from graph.export_data import load_cache
+
+    mock_cache = {"version": 4}
+    with (
+        patch('pathlib.Path.exists', return_value=True),
+        patch(
+            'builtins.open',
+            MagicMock(
+                return_value=MagicMock(
+                    __enter__=MagicMock(
+                        return_value=MagicMock(read=MagicMock(return_value=json.dumps(mock_cache)))
+                    )
+                )
+            ),
+        ),
+    ):
+        with patch('json.load', return_value=mock_cache):
+            assert load_cache() == mock_cache
+
+
+def test_load_cache_json_error():
+    import json
+    from unittest.mock import MagicMock, patch
+
+    from graph.export_data import load_cache
+
+    with (
+        patch('pathlib.Path.exists', return_value=True),
+        patch(
+            'builtins.open',
+            MagicMock(return_value=MagicMock(__enter__=MagicMock(return_value=MagicMock()))),
+        ),
+    ):
+        with patch('json.load', side_effect=json.JSONDecodeError("msg", "doc", 0)):
+            assert load_cache() is None
+
+
+def test_load_cache_key_error():
+    from unittest.mock import MagicMock, patch
+
+    from graph.export_data import load_cache
+
+    with (
+        patch('pathlib.Path.exists', return_value=True),
+        patch(
+            'builtins.open',
+            MagicMock(return_value=MagicMock(__enter__=MagicMock(return_value=MagicMock()))),
+        ),
+    ):
+        with patch('json.load', side_effect=KeyError()):
+            assert load_cache() is None
+
+
+def test_save_cache():
+    import json
+    from unittest.mock import MagicMock, patch
+
+    from graph.export_data import save_cache
+
+    notes = [
+        {'guid': '1', 'mod': 123, 'flds': 'A::B', 'deck': 'Deck1'},
+        {'guid': '2', 'mod': 124, 'flds': 'C::D', 'deck': 'Deck1'},
+    ]
+    with patch('builtins.open') as mock_open, patch('json.dump') as mock_dump:
+        with patch('graph.export_data.CACHE_FILE', 'mock_cache_file.json'):
+            save_cache(notes, 2, 1, output_file='test.json')
+            mock_open.assert_called_with('mock_cache_file.json', 'w')
+            mock_dump.assert_called()
+
+            args = mock_dump.call_args[0][0]
+            assert args['version'] == 4
+            assert args['note_count'] == 2
+            assert args['node_count'] == 2
+            assert args['link_count'] == 1
+            assert args['output_file'] == 'test.json'
+            assert 'Deck1' in args['decks']
+            assert '1' in args['decks']['Deck1']
+            assert '2' in args['decks']['Deck1']
+
+
+def test_save_cache_no_deck():
+    from unittest.mock import MagicMock, patch
+
+    from graph.export_data import save_cache
+
+    notes = [{'guid': '1'}]
+    with patch('builtins.open'), patch('json.dump') as mock_dump:
+        save_cache(notes, 1, 0)
+        args = mock_dump.call_args[0][0]
+        assert 'Unknown' in args['decks']
+        assert '1' in args['decks']['Unknown']
+
+
+def test_deck_progress(capsys):
+    import sys
+    from unittest.mock import patch
+
+    from graph.export_data import deck_progress
+
+    written = []
+
+    class MockStderr:
+        def write(self, s):
+            written.append(s)
+
+        def flush(self):
+            pass
+
+    with patch('sys.stderr', MockStderr()):
+        deck_progress("MyDeck", 1, 5, 100)
+        assert any('MyDeck' in w for w in written)
+
+
+def test_deck_progress_truncates(capsys):
+    import sys
+    from unittest.mock import patch
+
+    from graph.export_data import deck_progress
+
+    written = []
+
+    class MockStderr:
+        def write(self, s):
+            written.append(s)
+
+        def flush(self):
+            pass
+
+    with patch('sys.stderr', MockStderr()):
+        long_name = "A" * 60
+        deck_progress(long_name, 1, 5, 100)
+        assert any('A' * 30 in w and '…' in w for w in written)

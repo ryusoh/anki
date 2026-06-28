@@ -179,3 +179,149 @@ class TestReferenceWeights:
         from graph.references import EDGE_WEIGHTS
 
         assert EDGE_WEIGHTS['front_in_front'] > EDGE_WEIGHTS['front_in_back']
+
+
+def test_get_pool():
+    from unittest.mock import MagicMock, patch
+
+    from graph.references import _get_pool
+
+    with patch('multiprocessing.get_context') as mock_get_context:
+        mock_ctx = MagicMock()
+        mock_get_context.return_value = mock_ctx
+        mock_pool = MagicMock()
+        mock_ctx.Pool.return_value = mock_pool
+
+        result = _get_pool(4)
+        mock_get_context.assert_called_with("fork")
+        mock_ctx.Pool.assert_called_with(4)
+        assert result == mock_pool
+
+
+def test_calculate_edge_weight_unknown():
+    from graph.references import calculate_edge_weight
+
+    assert calculate_edge_weight("unknown") == 1.0
+
+
+def test_edge_type():
+    from graph.references import _edge_type
+
+    assert _edge_type(True, False) == "front_in_front"
+    assert _edge_type(False, False) == "front_in_back"
+    assert _edge_type(True, True) == "subphrase_in_front"
+    assert _edge_type(False, True) == "subphrase_in_back"
+
+
+def test_normalize():
+    from graph.references import _normalize
+
+    assert _normalize("Test ") == "test"
+    assert _normalize("Test (abc)") == "test (abc)"
+    assert _normalize("Test [abc]") == "test [abc]"
+    assert _normalize("") == ""
+
+
+def test_build_automaton_empty():
+    import pytest
+
+    from graph.references import _build_automaton
+
+    try:
+        import ahocorasick
+    except ImportError:
+        pytest.skip("ahocorasick not available")
+
+    automaton, guids = _build_automaton([])
+    assert len(automaton) == 0
+    assert len(guids) == 0
+
+
+def test_build_automaton_with_data():
+    import pytest
+
+    from graph.references import _build_automaton
+
+    try:
+        import ahocorasick
+    except ImportError:
+        pytest.skip("ahocorasick not available")
+
+    notes = [{'guid': '1', 'front_norm': 'hello', 'subphrases': ['hi'], 'match_front': True}]
+    automaton, guids = _build_automaton(notes)
+    assert len(automaton) == 2
+    assert 'hello' in guids
+    assert 'hi' in guids
+
+
+def test_apply_df_filter_empty():
+    from graph.references import _apply_df_filter
+
+    notes = []
+    _apply_df_filter(notes, {})
+    assert notes == []
+
+
+def test_apply_df_filter_with_data():
+    from graph.references import _apply_df_filter
+
+    notes_large = [{'front': 'front', 'subphrases_raw': []} for _ in range(50)]
+    notes_large[0]['subphrases_raw'] = ['rare', 'common']
+
+    df = {'rare': 1, 'common': 50, 'front': 1}
+    _apply_df_filter(notes_large, df)
+    assert 'rare' in notes_large[0]['subphrases']
+    assert 'common' not in notes_large[0]['subphrases']
+    assert notes_large[0]['match_front'] is True
+
+
+def test_scan_chunk():
+    import pytest
+
+    from graph.references import _scan_chunk
+
+    try:
+        import ahocorasick
+    except ImportError:
+        pytest.skip("ahocorasick not available")
+
+    auto = ahocorasick.Automaton()
+    auto.add_word('hello', 'hello')
+    auto.make_automaton()
+
+    guid_by_pattern = {'hello': {'type': 'whole', 'guid': '1'}}
+    chunk = [{'guid': '2', 'front_norm': 'hello world', 'other_norm': ''}]
+
+    result = _scan_chunk((chunk, auto, guid_by_pattern, "deck"))
+    assert len(result) == 1
+    assert result[0] == ('1', '2', 'front_in_front')
+
+
+def test_find_refs_bruteforce():
+    from graph.references import _find_refs_bruteforce
+
+    notes = [
+        {
+            'guid': '1',
+            'front': 'hello',
+            'front_norm': 'hello',
+            'front_len': 5,
+            'subphrases': [],
+            'other': '',
+            'other_norm': '',
+            'match_front': True,
+        },
+        {
+            'guid': '2',
+            'front': 'world hello',
+            'front_norm': 'hello world',
+            'front_len': 11,
+            'subphrases': [],
+            'other': 'hello test',
+            'other_norm': '',
+            'match_front': True,
+        },
+    ]
+
+    edges = _find_refs_bruteforce(notes, "deck")
+    assert len(edges) >= 1
