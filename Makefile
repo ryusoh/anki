@@ -1,12 +1,12 @@
 .PHONY: help fetch fetch-r2 check precommit precommit-fix fmt fmt-check lint lint-js lint-css lint-fix hooks \
 	quality-py lint-py fmt-py fmt-py-check typecheck security-py install-dev coverage-rank
 
-PYTHON := python3
+PYTHON := $(if $(wildcard .venv/bin/python3),"$(CURDIR)/.venv/bin/python3",python3)
 NPM := npm
 
 # File patterns for formatters/linters (exclude vendor, data, and node_modules directories)
-JS_FILES := $(shell git ls-files --cached --others --exclude-standard '*.js' 2>/dev/null | grep -v '^js/vendor/' | grep -v '^assets/vendor/' | grep -v '^data/' | grep -v '^coverage/' | grep -v 'node_modules' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
-CSS_FILES := $(shell git ls-files --cached --others --exclude-standard '*.css' 2>/dev/null | grep -v '^assets/vendor/' | grep -v '^coverage/' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
+JS_FILES := $(shell git ls-files --cached --others --exclude-standard '*.js' 2>/dev/null | grep -v '^js/vendor/' | grep -v '^assets/vendor/' | grep -v '^data/' | grep -v '^coverage/' | grep -v 'node_modules' | grep -v '\.min\.js$$' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
+CSS_FILES := $(shell git ls-files --cached --others --exclude-standard '*.css' 2>/dev/null | grep -v '^assets/vendor/' | grep -v '^coverage/' | grep -v '\.min\.css$$' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
 MD_FILES := $(shell git ls-files --cached --others --exclude-standard '*.md' 2>/dev/null | grep -v '^coverage/' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
 HTML_FILES := $(shell git ls-files --cached --others --exclude-standard '*.html' 2>/dev/null | grep -v '^coverage/' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
 JSON_FILES := $(shell git ls-files --cached --others --exclude-standard '*.json' 2>/dev/null | grep -v '^data/' | grep -v '^graph/' | grep -v '^coverage/' | grep -v 'package-lock.json' | grep -v 'custom_stats_data.json' | grep -v 'review_stats_data.json' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
@@ -255,7 +255,7 @@ check-py:
 	@FAIL=0; \
 	for suite in $(PY_TEST_SUITES); do \
 		echo "  → $$suite"; \
-		pytest -q --cov --cov-append --cov-report= "$$suite" || FAIL=1; \
+		$(PYTHON) -m pytest -q --cov --cov-append --cov-report= "$$suite" || FAIL=1; \
 	done; \
 	echo ""; \
 	echo "📊 Combined Python coverage:"; \
@@ -272,7 +272,7 @@ coverage-rank:
 	@mkdir -p coverage/js
 	@$(PYTHON) -m coverage erase
 	@for suite in $(PY_TEST_SUITES); do \
-		pytest -q --cov --cov-append --cov-report= "$$suite" >/dev/null 2>&1 || true; \
+		$(PYTHON) -m pytest -q --cov --cov-append --cov-report= "$$suite" >/dev/null 2>&1 || true; \
 	done
 	@$(PYTHON) -m coverage json -o coverage/py.json >/dev/null 2>&1 || true
 	@COVDIR=$$(mktemp -d 2>/dev/null || mktemp -d -t c8cov); \
@@ -292,29 +292,29 @@ quality-py: lint-py fmt-py-check typecheck security-py
 	@echo "✅ Python quality checks complete"
 
 lint-py:
-	@command -v ruff >/dev/null 2>&1 || { echo "⊘ ruff not installed (pip install -r requirements-dev.txt)"; exit 1; }
+	@$(PYTHON) -m ruff --version >/dev/null 2>&1 || { echo "⊘ ruff not installed (pip install -r requirements-dev.txt)"; exit 1; }
 	@echo "🐍 Ruff (lint)..."
-	@ruff check $(PY_ALL)
+	@$(PYTHON) -m ruff check $(PY_ALL)
 
 fmt-py-check:
-	@command -v black >/dev/null 2>&1 || { echo "⊘ black not installed (pip install -r requirements-dev.txt)"; exit 1; }
+	@$(PYTHON) -m black --version >/dev/null 2>&1 || { echo "⊘ black not installed (pip install -r requirements-dev.txt)"; exit 1; }
 	@echo "🐍 Black (format check)..."
-	@black --check $(PY_ALL)
+	@$(PYTHON) -m black --check $(PY_ALL)
 
 fmt-py:
 	@echo "🐍 Black (format) + Ruff (autofix)..."
-	@black $(PY_ALL)
-	@ruff check --fix $(PY_ALL)
+	@$(PYTHON) -m black $(PY_ALL)
+	@$(PYTHON) -m ruff check --fix $(PY_ALL)
 
 typecheck:
-	@command -v mypy >/dev/null 2>&1 || { echo "⊘ mypy not installed (pip install -r requirements-dev.txt)"; exit 1; }
+	@$(PYTHON) -m mypy --version >/dev/null 2>&1 || { echo "⊘ mypy not installed (pip install -r requirements-dev.txt)"; exit 1; }
 	@echo "🐍 mypy (type check)..."
-	@mypy $(PY_SRC)
+	@$(PYTHON) -m mypy $(PY_SRC)
 
 security-py:
-	@command -v bandit >/dev/null 2>&1 || { echo "⊘ bandit not installed (pip install -r requirements-dev.txt)"; exit 1; }
+	@$(PYTHON) -m bandit --version >/dev/null 2>&1 || { echo "⊘ bandit not installed (pip install -r requirements-dev.txt)"; exit 1; }
 	@echo "🐍 Bandit (security, high severity)..."
-	@bandit -rq -lll --ini .bandit $(PY_SRC)
+	@$(PYTHON) -m bandit -rq -lll --ini .bandit $(PY_SRC)
 
 # -----------------------------------------------------------------------------
 # Pre-commit Checks

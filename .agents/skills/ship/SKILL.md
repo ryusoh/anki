@@ -11,6 +11,7 @@ Follow these steps precisely:
    - Fetch all branches: `git fetch origin`
    - Checkout the branch: `git checkout <branch_name>`
    - Ensure it's up to date: `git pull origin <branch_name>`
+   - **Verify Branch Contents:** Run `git diff main...<branch_name> --name-only` to ensure it only contains the expected source code edits. Reject or manually fix the branch if it contains accidental scratch files (e.g., `test_*.js`, `scratch.py`, etc.). Do NOT blindly merge.
 
 2. **Fix Quality and CI Failures:**
    - Run the Python quality gate: `make quality-py`.
