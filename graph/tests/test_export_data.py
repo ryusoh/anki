@@ -175,3 +175,172 @@ class TestBuildGraphDeckMerge:
         assert 'Biology 101' not in deck_values
         assert 'English Vocabulary' in deck_values
         assert 'Calculus' in deck_values
+
+
+from unittest.mock import patch
+
+
+class TestExportDataUtils:
+    def test_strip_html(self):
+        from graph.export_data import strip_html
+
+        # Base case None/empty
+        assert strip_html(None) == ''
+        assert strip_html('') == ''
+
+        # HTML tag stripping
+        assert strip_html('<b>bold</b>') == 'bold'
+        assert strip_html('<div class="x">text</div>') == 'text'
+
+        # Entities
+        assert strip_html('a&nbsp;b') == 'a b'
+        assert strip_html('a&amp;b') == 'a&b'
+        assert strip_html('a&lt;b') == 'a<b'
+        assert strip_html('a&gt;b') == 'a>b'
+        assert strip_html('a&quot;b') == 'a"b'
+        assert strip_html('a&#39;b') == "a'b"
+        assert strip_html('a&apos;b') == "a'b"
+
+        # Replacements
+        assert strip_html('a::b') == 'a b'
+        assert strip_html('a\nb') == 'a b'
+
+        # Truncation and extra spaces
+        long_str = 'a   b   c ' * 10
+        res = strip_html(long_str)
+        assert res == ('a b c ' * 10).strip()[:60]
+        assert len(res) <= 60
+
+    def test_progress_bar(self, capsys):
+        import sys
+
+        from graph.export_data import progress_bar
+
+        with patch.object(sys.stderr, 'write') as mock_write:
+            progress_bar(50, 100, prefix="Test")
+            mock_write.assert_called()
+
+            # Check 100% newline
+            progress_bar(100, 100, prefix="Test")
+            mock_write.assert_any_call('\n')
+
+        with patch.object(sys.stderr, 'write') as mock_write:
+            progress_bar(10, 0, prefix="DivZero")
+            # total=0 => pct=1 => bar filled
+            mock_write.assert_called()
+
+    def test_load_cache_no_file(self):
+        from graph.export_data import load_cache
+
+        with patch('pathlib.Path.exists', return_value=False):
+            assert load_cache() is None
+
+    def test_load_cache_success(self):
+        from unittest.mock import mock_open
+
+        from graph.export_data import load_cache
+
+        mock_data = '{"version": 4}'
+        with patch('pathlib.Path.exists', return_value=True):
+            with patch('builtins.open', mock_open(read_data=mock_data)):
+                assert load_cache() == {"version": 4}
+
+    def test_load_cache_error(self):
+        from unittest.mock import mock_open
+
+        from graph.export_data import load_cache
+
+        mock_data = '{invalid json}'
+        with patch('pathlib.Path.exists', return_value=True):
+            with patch('builtins.open', mock_open(read_data=mock_data)):
+                with patch('logging.Logger.warning') as mock_warn:
+                    assert load_cache() is None
+                    mock_warn.assert_called_once()
+
+    def test_save_cache(self):
+        import json
+        from unittest.mock import mock_open
+
+        from graph.export_data import save_cache
+
+        notes = [
+            {'guid': '123', 'mod': 1, 'flds': 'a', 'deck': 'D1'},
+            {'guid': '456', 'mod': 2, 'flds': 'b', 'deck': 'D2'},
+            {'guid': '789'},
+        ]
+
+        m = mock_open()
+        with patch('builtins.open', m):
+            save_cache(notes, 10, 5, output_file="out.json")
+
+        m.assert_called_once_with(mock_open.call_args_list[0].args[0], 'w')
+
+        # Verify JSON data written
+        written = ''.join(c[0][0] for c in m().write.call_args_list)
+        data = json.loads(written)
+        assert data['version'] == 4
+        assert data['note_count'] == 3
+        assert data['node_count'] == 10
+        assert data['link_count'] == 5
+        assert data['output_file'] == "out.json"
+        assert 'D1' in data['decks']
+        assert 'D2' in data['decks']
+        assert 'Unknown' in data['decks']
+
+    def test_deck_progress(self):
+        from graph.export_data import deck_progress
+
+        with patch('graph.export_data.progress_bar') as mock_pb:
+            deck_progress("Short Name", 0, 10, 100)
+            mock_pb.assert_called_once_with(1, 10, 'Refs: Short Name (100 notes)')
+
+            mock_pb.reset_mock()
+            deck_progress("A Very Long Deck Name That Exceeds Thirty Characters Max", 1, 10, 100)
+            mock_pb.assert_called_once()
+            args = mock_pb.call_args[0]
+            assert "A Very Long Deck Name That Exc…" in args[2]
+
+    def test_save_cache_no_output_file(self):
+        import json
+        from unittest.mock import mock_open
+
+        from graph.export_data import save_cache
+
+        notes = [{'guid': '123', 'mod': 1, 'flds': 'a', 'deck': 'D1'}]
+
+        m = mock_open()
+        with patch('builtins.open', m):
+            save_cache(notes, 10, 5)
+
+        written = ''.join(c[0][0] for c in m().write.call_args_list)
+        data = json.loads(written)
+        assert 'output_file' not in data
+
+    def test_deck_progress_short(self):
+        from graph.export_data import deck_progress
+
+        with patch('graph.export_data.progress_bar') as mock_pb:
+            deck_progress("A" * 30, 0, 10, 100)
+            mock_pb.assert_called_once()
+            args = mock_pb.call_args[0]
+            assert ("A" * 30) in args[2]
+            assert "…" not in args[2]
+
+    def test_save_cache_multiple_notes_same_deck(self):
+        import json
+        from unittest.mock import mock_open
+
+        from graph.export_data import save_cache
+
+        notes = [
+            {'guid': '123', 'mod': 1, 'flds': 'a', 'deck': 'D1'},
+            {'guid': '456', 'mod': 2, 'flds': 'b', 'deck': 'D1'},
+        ]
+
+        m = mock_open()
+        with patch('builtins.open', m):
+            save_cache(notes, 10, 5, output_file="out.json")
+
+        written = ''.join(c[0][0] for c in m().write.call_args_list)
+        data = json.loads(written)
+        assert len(data['decks']['D1']) == 2
