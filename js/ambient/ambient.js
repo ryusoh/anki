@@ -4,7 +4,9 @@
   try {
     const usp =
       typeof window.URLSearchParams !== "undefined"
-        ? new window.URLSearchParams(window.location.search || "")
+        ? (window.location.search || "").length > 2000
+          ? null
+          : new window.URLSearchParams(window.location.search || "")
         : null;
     const force = usp ? usp.get("ambient") : null; // 'on' | 'debug' | 'trace'
     const trace = force === "trace";
