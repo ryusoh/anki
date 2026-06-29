@@ -12,6 +12,12 @@
     );
 
     navLinks.forEach((link) => {
+      if (
+        !link.href ||
+        link.href.length > 2000 ||
+        window.location.origin.length > 2000
+      )
+        return;
       const resolvedUrl = new window.URL(link.href, window.location.origin);
       if (resolvedUrl.origin !== window.location.origin) {
         return;

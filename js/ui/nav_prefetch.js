@@ -49,10 +49,10 @@
     const manifestLink = document.querySelector('link[rel="manifest"]');
     if (manifestLink) {
       try {
-        const manifestUrl = new window.URL(
-          manifestLink.getAttribute("href"),
-          window.location.href,
-        );
+        const href = manifestLink.getAttribute("href");
+        if (!href || href.length > 2000 || window.location.href.length > 2000)
+          return;
+        const manifestUrl = new window.URL(href, window.location.href);
         const manifestPath = manifestUrl.pathname;
         const marker = "/assets/manifest.webmanifest";
         const markerIndex = manifestPath.lastIndexOf(marker);
@@ -103,7 +103,9 @@
 
     const sanitized = asset.url.replace(/^\//, "");
     const base = appBase.endsWith("/") ? appBase : `${appBase}/`;
-    return new window.URL(sanitized, `${window.location.origin}${base}`).href;
+    const originBase = `${window.location.origin}${base}`;
+    if (sanitized.length > 2000 || originBase.length > 2000) return undefined;
+    return new window.URL(sanitized, originBase).href;
   }
 
   function queueFetchTask(url, queue, seen) {
@@ -114,6 +116,7 @@
     queue.push(() => {
       let fetchUrl;
       try {
+        if (!url || url.length > 2000) return undefined;
         fetchUrl = new window.URL(url);
       } catch (error) {
         console.warn("Caught exception:", error);
@@ -258,6 +261,8 @@
       }
 
       try {
+        if (!rawUrl || rawUrl.length > 2000 || !cssUrl || cssUrl.length > 2000)
+          return;
         const resolved = new window.URL(rawUrl, cssUrl).href;
         urls.add(resolved);
       } catch (error) {
@@ -303,6 +308,7 @@
       }
       let resolved;
       try {
+        if (href.length > 2000 || window.location.href.length > 2000) return;
         resolved = new window.URL(href, window.location.href);
       } catch (error) {
         console.warn("Caught exception:", error);

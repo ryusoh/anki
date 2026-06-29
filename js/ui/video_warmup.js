@@ -47,6 +47,7 @@
         return;
       }
 
+      if (src.length > 2000 || window.location.href.length > 2000) return;
       const absoluteUrl = new globalScope.URL(src, window.location.href).href;
 
       if ("caches" in globalScope && globalScope.caches) {
