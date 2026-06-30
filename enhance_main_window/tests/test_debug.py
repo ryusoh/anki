@@ -70,9 +70,7 @@ class TestDebug(unittest.TestCase):
 
         class GenNone:
             def firstDifference(self, other):
-                return type(
-                    None
-                )()  # Returning None will cause an error on `elif isinstance(pair, None):` so we need to mock something that causes it. Wait, the code has a bug: `isinstance(pair, None)` is illegal. We can just catch the TypeError and it's fine. We don't want to fix the code, just cover it.
+                return None  # The code has a bug: isinstance(pair, None) -> TypeError
 
         class GenInvalid:
             def firstDifference(self, other):
@@ -85,7 +83,6 @@ class TestDebug(unittest.TestCase):
             )
 
         with patch('builtins.print') as mock_print:
-            # We just need to trigger the isinstance(pair, None) line and let it raise TypeError
             with self.assertRaises(TypeError):
                 debug_module.assertEqual(GenNone(), GenNone())
 
