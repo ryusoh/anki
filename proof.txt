@@ -1,6 +1,7 @@
 1. SCAN — searched for unreferenced symbols, commented-out blocks, unreachable branches, concrete TODOs, and unused dependencies.
-   - Identified `boto3` and `scipy` in `requirements.txt`.
-   - Verified that neither dependency is used via `import boto3`, `import scipy`, or `from scipy` anywhere in `js/` or addon directories.
+   - Identified `boto3` in `requirements.txt`.
+   - Verified that this dependency is not used via `import boto3` anywhere in `js/` or addon directories.
+   - (Note: `scipy` is used by `networkx` for `pagerank` calculation, so it was retained).
 
 2. VERIFICATION — `make precommit SKIP=1` outputs:
 ```

@@ -1,6 +1,7 @@
 # Graph Analysis
 # For knowledge graph building and PageRank analysis
 networkx>=3.0
+scipy>=1.10
 
 # Testing
 # For running TDD test suite
