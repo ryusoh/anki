@@ -1,11 +1,6 @@
 # Graph Analysis
 # For knowledge graph building and PageRank analysis
 networkx>=3.0
-scipy>=1.10
-
-# Cloudflare R2 Upload
-# For private content backup to R2
-boto3>=1.28
 
 # Testing
 # For running TDD test suite

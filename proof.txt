@@ -1,0 +1,16 @@
+1. SCAN — searched for unreferenced symbols, commented-out blocks, unreachable branches, concrete TODOs, and unused dependencies.
+   - Identified `boto3` and `scipy` in `requirements.txt`.
+   - Verified that neither dependency is used via `import boto3`, `import scipy`, or `from scipy` anywhere in `js/` or addon directories.
+
+2. VERIFICATION — `make precommit SKIP=1` outputs:
+```
+All checks passed!
+Success: no issues found in 162 source files
+✅ Python quality checks complete
+...
+All done! ✨ 🍰 ✨
+217 files would be left unchanged.
+...
+TOTAL                                             3477    561   1366    118    82%
+✅ Python tests complete
+```
