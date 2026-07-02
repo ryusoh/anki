@@ -229,26 +229,13 @@ check-handler-validation:
 # combined `pytest` run fails to collect. Coverage is accumulated across suites
 # with --cov-append and reported once (mirrors check-node's JS coverage report).
 # Requires pytest-cov (declared in requirements.txt) — run `make install` first.
-PY_TEST_SUITES := \
-	auto_image/tests \
-	auto_mathjax/tests \
-	auto_wiktionary/tests \
-	data/anki/tests \
-	enhance_main_window/tests \
-	graph/tests \
-	hide_deck_collapse/tests \
-	hide_window_title/tests \
-	highlight_search_matches/tests \
-	no_leech_suspend/tests \
-	prioritize_front_field_search/tests \
-	remove_deck_highlight/tests \
-	rewrite_text_of_study_cards/tests \
-	stats_page_customizer/tests \
-	strip_html_tags/tests \
-	tabbed_stats/tests \
-	unify_review_count_colors/tests \
-	tests \
-	tools
+#
+# Auto-discovered (like JS_FILES/MD_FILES above): every directory holding a
+# `test_*.py` becomes a suite, so a new addon's tests are gated the moment they
+# are committed — no manual registration to forget. To intentionally opt a
+# directory out, append it to PY_TEST_EXCLUDE with a reason.
+PY_TEST_EXCLUDE :=
+PY_TEST_SUITES := $(filter-out $(PY_TEST_EXCLUDE),$(shell git ls-files --cached --others --exclude-standard '*/test_*.py' 2>/dev/null | sed -E 's|/[^/]+$$||' | sort -u))
 
 check-py:
 	@echo "🐍 Running Python Test Suite (with coverage)..."
