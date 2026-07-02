@@ -37,3 +37,9 @@ addon or tool with its own `tests/`. New addon? See `docs/creating-an-addon.md`
 - TDD-style corner-case tests live next to each addon (e.g.
   `auto_wiktionary/tests/` pins Wiktionary redirect cases). Add a failing test
   there first, then fix.
+- **`make` runs the repo-local `.venv/bin/python3`, not your shell's `python3`** —
+  they can have different packages (e.g. `fa2_modified`), so a test green under a
+  bare `python3 -m pytest` can be red under `make check`; re-run with
+  `.venv/bin/python3` before debugging. And never spawn a real `ProcessPoolExecutor`
+  in a test (spawn children re-import the module and drop your mocks — patch it to
+  `ThreadPoolExecutor`). Both detailed in `docs/creating-an-addon.md`.
