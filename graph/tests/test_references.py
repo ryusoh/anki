@@ -244,7 +244,6 @@ def test_build_automaton_with_data():
     notes = [
         {
             'guid': '1',
-            'front_norm': 'hello',
             'front': 'hello',
             'front_len': 5,
             'subphrases': ['hi'],
@@ -255,6 +254,8 @@ def test_build_automaton_with_data():
     assert len(automaton) == 2
     assert 'hello' in guids
     assert 'hi' in guids
+    assert guids['hello'] == [('1', False)]
+    assert guids['hi'] == [('1', True)]
 
 
 def test_apply_df_filter_empty():
@@ -288,16 +289,23 @@ def test_scan_chunk():
     except ImportError:
         pytest.skip("ahocorasick not available")
 
-    auto = ahocorasick.Automaton()
-    auto.add_word('hello', 'hello')
-    auto.make_automaton()
+    all_note_fields = [
+        {
+            'guid': '1',
+            'front': 'hello',
+            'front_len': 5,
+            'subphrases': [],
+            'match_front': True,
+        }
+    ]
+    chunk = [{'guid': '2', 'front': 'hello world', 'other': ''}]
 
-    guid_by_pattern = {'hello': {'type': 'whole', 'guid': '1'}}
-    chunk = [{'guid': '2', 'front_norm': 'hello world', 'other_norm': ''}]
-
-    result = _scan_chunk((chunk, auto, guid_by_pattern, "deck"))
+    result = _scan_chunk((chunk, all_note_fields, 'deck'))
     assert len(result) == 1
-    assert result[0] == ('1', '2', 'front_in_front')
+    assert result[0]['source'] == '2'
+    assert result[0]['target'] == '1'
+    assert result[0]['type'] == 'front_in_front'
+    assert result[0]['deck'] == 'deck'
 
 
 def test_find_refs_bruteforce():
@@ -612,3 +620,49 @@ def test_scan_chunk():
 
     args_empty = (chunk, [], 'Deck')
     assert _scan_chunk(args_empty) == []
+
+
+def test_compute_df_empty():
+    from graph.references import _compute_df
+
+    assert _compute_df([]) == {}
+
+
+def test_compute_df_no_tokens():
+    from graph.references import _compute_df
+
+    notes = [{'front_len': 0, 'front': '', 'subphrases_raw': set()}]
+    assert _compute_df(notes) == {}
+
+
+def test_compute_df_with_ahocorasick():
+    from graph.references import HAS_AHO, _compute_df
+
+    # Force ahocorasick block execution if possible, fallback to regex block if not available
+    notes = [
+        {'front_len': 5, 'front': f'word{i}', 'subphrases_raw': set(), 'other': f'has word{i}'}
+        for i in range(25)
+    ]
+    if HAS_AHO:
+        df = _compute_df(notes)
+        assert len(df) == 25
+        assert df['word0'] == 1
+
+
+def test_find_references_empty():
+    from graph.references import find_references
+
+    assert find_references([]) == []
+
+
+def test_find_references_progress():
+    from unittest.mock import MagicMock, patch
+
+    from graph.references import find_references
+
+    notes = [{'guid': '1', 'deck': 'A', 'flds': 'front\x1fback'}]
+    progress_mock = MagicMock()
+    with patch('graph.references.find_references_for_deck_only', return_value=['edge']):
+        res = find_references(notes, progress_callback=progress_mock)
+        assert res == ['edge']
+        progress_mock.assert_called_once_with('A', 0, 1, 1)
