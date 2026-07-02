@@ -122,9 +122,17 @@ export class TableGlassEffect {
         height: r.height,
       };
     });
-    this.container.addEventListener("mousemove", (e) =>
-      this.handleMouseMove(e),
-    );
+    // Bolt: Throttle high-frequency mousemove events using requestAnimationFrame and a ticking lock
+    this._ticking = false;
+    this.container.addEventListener("mousemove", (e) => {
+      if (!this._ticking) {
+        window.requestAnimationFrame(() => {
+          this.handleMouseMove(e);
+          this._ticking = false;
+        });
+        this._ticking = true;
+      }
+    });
     this.container.addEventListener("mouseleave", () =>
       this.handleMouseLeave(),
     );
