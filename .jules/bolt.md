@@ -83,3 +83,8 @@ Conventional Commits per `AGENTS.md`.
 - Body: what was optimized and the file; the bottleneck removed; the before/after
   measurement and how it was obtained; "behaviour unchanged"; pasted
   `make precommit SKIP=1` output.
+
+## 2025-03-01 - perf(ui): throttle mousemove in tableGlassEffect using rAF
+
+**Learning:** Unthrottled mousemove listeners evaluating absolute page coordinates on every event emission cause heavy layout recalculations.
+**Action:** Always throttle continuous events like `mousemove` and `scroll` using `requestAnimationFrame` and a ticking lock.
