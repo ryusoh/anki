@@ -1,3 +1,4 @@
+import importlib
 import sys
 import unittest
 from unittest.mock import MagicMock, patch
@@ -17,6 +18,12 @@ sys.modules['anki'] = anki_mock
 sys.modules['anki.stats'] = anki_stats_mock
 
 import enhance_main_window.strings as strings_module
+
+# strings.py binds its color names via `from anki.stats import *` at first import.
+# Another suite may have imported it first under the conftest's bare anki.stats mock
+# (no col* attributes), leaving those names unbound. Reload so they bind from the
+# mock above regardless of collection order.
+importlib.reload(strings_module)
 
 
 class TestStrings(unittest.TestCase):

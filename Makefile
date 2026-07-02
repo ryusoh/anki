@@ -229,20 +229,23 @@ check-handler-validation:
 # combined `pytest` run fails to collect. Coverage is accumulated across suites
 # with --cov-append and reported once (mirrors check-node's JS coverage report).
 # Requires pytest-cov (declared in requirements.txt) — run `make install` first.
-# Excluded: tabbed_stats/tests — pre-existing failures under the root conftest
-# mocks (tabbed_stats/tests/test_addcards_deleted_widget.py); fix separately.
 PY_TEST_SUITES := \
 	auto_image/tests \
 	auto_mathjax/tests \
 	auto_wiktionary/tests \
 	data/anki/tests \
+	enhance_main_window/tests \
 	graph/tests \
+	hide_deck_collapse/tests \
+	hide_window_title/tests \
 	highlight_search_matches/tests \
+	no_leech_suspend/tests \
 	prioritize_front_field_search/tests \
 	remove_deck_highlight/tests \
 	rewrite_text_of_study_cards/tests \
 	stats_page_customizer/tests \
 	strip_html_tags/tests \
+	tabbed_stats/tests \
 	unify_review_count_colors/tests \
 	tests \
 	tools
