@@ -473,7 +473,7 @@ def test_compute_deck_layout_single_node():
 
 
 @patch('graph.export_data.ForceAtlas2')
-def test_compute_deck_layout_multiple_nodes(mock_fa2):
+def test_compute_deck_layout_multiple_nodes_extra(mock_fa2):
     import networkx as nx
 
     from graph.export_data import _compute_deck_layout
