@@ -119,3 +119,33 @@ def test_hide_window_title_no_mw(clean_sys_modules):
 
     # Should not crash
     import hide_window_title
+
+
+import sys
+from unittest.mock import MagicMock
+
+import pytest
+
+
+def test_hide_window_title_main_branch():
+    original_modules = sys.modules.copy()
+    mock_aqt = MagicMock()
+    mock_mw = MagicMock()
+    mock_aqt.mw = mock_mw
+
+    class MockAnkiQt:
+        def setWindowTitle(self, title):
+            pass
+
+    mock_aqt.main.AnkiQt = MockAnkiQt
+    sys.modules['aqt'] = mock_aqt
+    sys.modules['aqt.main'] = mock_aqt.main
+
+    if 'hide_window_title' in sys.modules:
+        del sys.modules['hide_window_title']
+
+    import hide_window_title
+
+    mock_mw.setWindowTitle.assert_called_once_with("")
+    sys.modules.clear()
+    sys.modules.update(original_modules)

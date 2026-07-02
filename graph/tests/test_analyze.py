@@ -714,3 +714,24 @@ def test_load_notes_with_decks_none(mock_path, capsys):
 
     captured = capsys.readouterr()
     assert "No notes found" in captured.err
+
+
+import networkx as nx
+import pytest
+
+
+def test_export_to_json(tmp_path, capsys):
+    from graph.analyze import export_graph
+
+    G = nx.DiGraph()
+    G.add_node('n1', front='Test', pagerank=0.5)
+    G.add_edge('n1', 'n2')
+
+    export_graph(G, tmp_path, format='json', deck_name='TestDeck')
+
+    files = list(tmp_path.glob('*.json'))
+    assert len(files) == 1
+    assert "TestDeck" in files[0].name
+
+    captured = capsys.readouterr()
+    assert "Exported to" in captured.out

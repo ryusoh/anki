@@ -241,7 +241,16 @@ def test_build_automaton_with_data():
     except ImportError:
         pytest.skip("ahocorasick not available")
 
-    notes = [{'guid': '1', 'front_norm': 'hello', 'subphrases': ['hi'], 'match_front': True}]
+    notes = [
+        {
+            'guid': '1',
+            'front_norm': 'hello',
+            'front': 'hello',
+            'front_len': 5,
+            'subphrases': ['hi'],
+            'match_front': True,
+        }
+    ]
     automaton, guids = _build_automaton(notes)
     assert len(automaton) == 2
     assert 'hello' in guids
@@ -384,3 +393,222 @@ def test_find_refs_bruteforce():
         df = {'common': 60, 'rare': 1, 'xyz': 1}
         _apply_df_filter(notes, df)
         assert notes[0]['subphrases'] == ['rare']
+
+
+import sys
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+import graph.references
+from graph.references import (
+    HAS_AHO,
+    _find_refs_aho,
+    _find_refs_aho_parallel,
+    _find_refs_bruteforce,
+    _scan_chunk,
+    _scan_target,
+    find_references_incremental,
+)
+from graph.tests.fixtures import ENGLISH_NOTES
+
+
+class MockAutomaton:
+    def __init__(self):
+        self.words = {}
+
+    def add_word(self, word, value):
+        self.words[word] = value
+
+    def make_automaton(self):
+        pass
+
+    def iter(self, string):
+        for word, value in self.words.items():
+            if word in string:
+                yield (string.find(word) + len(word) - 1, value)
+
+    def __len__(self):
+        return len(self.words)
+
+
+@pytest.fixture(autouse=True)
+def mock_ahocorasick():
+    mock_aho = MagicMock()
+    mock_aho.Automaton = MockAutomaton
+    sys.modules['ahocorasick'] = mock_aho
+    graph.references.ahocorasick = mock_aho
+    graph.references.HAS_AHO = True
+    yield
+    del sys.modules['ahocorasick']
+    delattr(graph.references, 'ahocorasick')
+    graph.references.HAS_AHO = False
+
+
+def test_find_refs_aho():
+    from graph.references import _apply_df_filter, _compute_df, _prepare_note_fields
+
+    fields = _prepare_note_fields(ENGLISH_NOTES)
+    df = _compute_df(fields)
+    _apply_df_filter(fields, df)
+
+    edges = _find_refs_aho(fields, 'English')
+    assert isinstance(edges, list)
+    assert _find_refs_aho([], 'English') == []
+
+
+def test_find_refs_aho_parallel():
+    from graph.references import _apply_df_filter, _compute_df, _prepare_note_fields
+
+    fields = _prepare_note_fields(ENGLISH_NOTES)
+    df = _compute_df(fields)
+    _apply_df_filter(fields, df)
+
+    with patch('graph.references._get_pool') as mock_pool:
+        mock_pool_instance = MagicMock()
+        mock_pool.return_value.__enter__.return_value = mock_pool_instance
+
+        def mock_map(func, chunks):
+            return [func(chunk) for chunk in chunks]
+
+        mock_pool_instance.map = mock_map
+        edges = _find_refs_aho_parallel(fields, 'English')
+        assert isinstance(edges, list)
+
+
+def test_find_references_incremental():
+    edges = find_references_incremental(ENGLISH_NOTES, {'eng001'}, 'English')
+    assert isinstance(edges, list)
+
+    edges_empty = find_references_incremental(ENGLISH_NOTES, set(), 'English')
+    assert edges_empty == []
+
+
+def test_scan_target():
+    tgt = {'guid': 't1', 'front': 'hello world', 'other': 'other text'}
+    automaton = MockAutomaton()
+    automaton.add_word('hello', 'hello')
+    automaton.add_word('other', 'other')
+    guid_by_pattern = {
+        'hello': [('s1', False), ('t1', False)],
+        'other': [('s2', True), ('t1', False)],
+    }
+    edges = []
+    seen_edges = set()
+    _scan_target(tgt, automaton, guid_by_pattern, 'Deck', edges, seen_edges)
+    assert len(edges) > 0
+
+
+def test_find_refs_bruteforce_edges():
+    from graph.references import _prepare_note_fields
+
+    fields = [
+        {'guid': 'short', 'front': 'hi', 'front_len': 2, 'other': '', 'subphrases': []},
+        {
+            'guid': 'nopat',
+            'front': 'hello',
+            'front_len': 5,
+            'other': '',
+            'subphrases': [],
+            'match_front': False,
+        },
+        {
+            'guid': 'valid1',
+            'front': 'pattern',
+            'front_len': 7,
+            'other': 'test',
+            'subphrases': ['pattern_sub'],
+            'match_front': True,
+        },
+        {
+            'guid': 'valid2',
+            'front': 'something',
+            'front_len': 9,
+            'other': 'pattern',
+            'subphrases': [],
+            'match_front': True,
+        },
+        {
+            'guid': 'valid3',
+            'front': 'pattern',
+            'front_len': 7,
+            'other': '',
+            'subphrases': [],
+            'match_front': True,
+        },
+    ]
+    edges = _find_refs_bruteforce(fields, 'English')
+    assert isinstance(edges, list)
+    assert _find_refs_bruteforce([], 'English') == []
+
+
+def test_aho_short_and_no_patterns():
+    from graph.references import _prepare_note_fields
+
+    fields = [
+        {'guid': 'short', 'front': 'hi', 'front_len': 2, 'other': '', 'subphrases': []},
+        {
+            'guid': 'nopat',
+            'front': 'hello',
+            'front_len': 5,
+            'other': '',
+            'subphrases': [],
+            'match_front': False,
+        },
+        {
+            'guid': 'valid1',
+            'front': 'pattern',
+            'front_len': 7,
+            'other': '',
+            'subphrases': ['pattern_sub'],
+            'match_front': True,
+        },
+        {
+            'guid': 'valid2',
+            'front': 'pattern',
+            'front_len': 7,
+            'other': '',
+            'subphrases': ['pattern_sub'],
+            'match_front': True,
+        },
+    ]
+    edges = _find_refs_aho(fields, 'English')
+    assert isinstance(edges, list)
+
+
+def test_scan_chunk():
+    from graph.references import _prepare_note_fields
+
+    fields = [
+        {
+            'guid': 't1',
+            'front': 'hello world',
+            'front_len': 11,
+            'other': 'other text',
+            'subphrases': [],
+            'match_front': True,
+        },
+        {
+            'guid': 's1',
+            'front': 'hello',
+            'front_len': 5,
+            'other': '',
+            'subphrases': [],
+            'match_front': True,
+        },
+        {
+            'guid': 's2',
+            'front': 'other',
+            'front_len': 5,
+            'other': '',
+            'subphrases': [],
+            'match_front': True,
+        },
+    ]
+    chunk = [fields[0]]
+    args = (chunk, fields, 'Deck')
+    edges = _scan_chunk(args)
+    assert len(edges) > 0
+
+    args_empty = (chunk, [], 'Deck')
+    assert _scan_chunk(args_empty) == []
