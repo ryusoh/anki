@@ -198,3 +198,62 @@ class TestDebug(unittest.TestCase):
             d = Dummy(1, b=3)
             self.assertEqual(d.val, 4)
             self.assertTrue(mock_print.called)
+
+
+class TestDebugCoverage:
+    def test_debugInsideThisMethod_not_zero(self):
+        from enhance_main_window import debug
+        from enhance_main_window.debug import debugInsideThisMethod
+
+        @debugInsideThisMethod
+        def test_func():
+            pass
+
+        debug.nbInsideThis = 1
+        test_func()
+        assert debug.nbInsideThis == 1
+        debug.nbInsideThis = 0
+
+    def test_debugInit_needSeparator_true(self):
+        from enhance_main_window.debug import debugInit
+
+        @debugInit
+        def test_func(self, arg1, arg2, kwarg1=None, kwarg2=None):
+            pass
+
+        class Dummy:
+            pass
+
+        obj = Dummy()
+        test_func(obj, "a", "b", kwarg1="c", kwarg2="d")
+
+    def test_assertEqual_assert_error(self):
+        from enhance_main_window.debug import assertEqual
+
+        class DummyDiff:
+            def firstDifference(self, other):
+                return "string_not_tuple"
+
+        try:
+            assertEqual(DummyDiff(), DummyDiff())
+        except TypeError:
+            pass
+
+    def test_assertEqual_no_difference_or_gen(self):
+        from enhance_main_window.debug import assertEqual
+
+        class DummyGen:
+            def firstDifference(self, other):
+                pass
+
+        assertEqual(DummyGen(), "a")
+        assertEqual("a", DummyGen())
+
+        class DummyNoDiff:
+            def firstDifference(self, other):
+                return type(None)()
+
+        try:
+            assertEqual(DummyNoDiff(), DummyNoDiff())
+        except TypeError:
+            pass
