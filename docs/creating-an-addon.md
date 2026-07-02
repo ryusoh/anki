@@ -103,3 +103,26 @@ Run from the **root** — `conftest.py` lives there and supplies the `aqt`/`anki
 mocks; `pytest` inside an addon subdir fails to import them. Invoke the quality
 tools via `make`, not by hand: e.g. Bandit needs `--ini .bandit` (its `-c`
 expects YAML), which the Makefile already passes.
+
+## Test gotchas that pass in your shell but fail under `make`
+
+- **`make` runs the repo-local `.venv/bin/python3`, not your shell's `python3`.**
+  The Makefile's `PYTHON` is `$(wildcard .venv/bin/python3)` when present. That venv
+  can have a **different package set** than the `python3` on your PATH — e.g. the
+  graph pipeline's `fa2_modified` (ForceAtlas2) may be installed in one and not the
+  other. A test that passes with a bare `python3 -m pytest` can still fail under
+  `make check`. **When a test is green in your shell but red in `make check`, re-run
+  it with `.venv/bin/python3 -m pytest …` before debugging anything else.**
+- **Never let a test spawn a real process pool.** `ProcessPoolExecutor` /
+  `multiprocessing` (default **spawn** on macOS) starts a fresh interpreter that
+  **re-imports the target module** — so any module-level `import` that isn't
+  installed in the repo `.venv` (e.g. `from fa2_modified import ForceAtlas2`) raises
+  `ModuleNotFoundError` in the child, and your `@patch`/`sys.modules` stubs (which
+  only exist in the parent) don't cross the process boundary. Patch the executor to
+  run in-process: `@patch('concurrent.futures.ProcessPoolExecutor',
+concurrent.futures.ThreadPoolExecutor)` keeps real `Future`/`as_completed`
+  semantics while the mocks apply. See `graph/tests/test_export_data.py::test_compute_layout`.
+- **Every `<addon>/tests/` is auto-gated.** `PY_TEST_SUITES` is discovered from
+  `git ls-files '*/test_*.py'`, so a new addon's tests join `make check-py` the moment
+  they're committed — nothing to register. `tests/test_makefile_test_gate.py` fails if
+  that discovery ever silently drops to empty.

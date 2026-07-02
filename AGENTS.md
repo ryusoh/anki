@@ -106,6 +106,13 @@ a valid Conventional Commit subject**.
   one at a time and accumulates coverage.
 - A `coverage/` **directory** at the repo root shadows the `coverage` command —
   invoke it as `python3 -m coverage`, never bare `coverage`.
+- **Verify with the same python `make` uses.** `make` runs the repo-local
+  `.venv/bin/python3`, which may have a different package set than your shell's
+  `python3`. A test green under a bare `python3 -m pytest` can be red under
+  `make check` — so a "verified" claim only counts if `make precommit SKIP=1`
+  passed, not a hand-run pytest. (Also: never spawn a real `ProcessPoolExecutor`
+  in a test — spawn children re-import the module and drop your mocks; patch it to
+  `ThreadPoolExecutor`. See `docs/creating-an-addon.md`.)
 
 ## Environment setup (run once in the VM before working)
 
