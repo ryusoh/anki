@@ -45,7 +45,7 @@ class TestCreateAddcardsTabDeletedWidget:
 
         mod._addcards = deleted_widget
 
-        _sip.isdeleted = MagicMock(return_value=True)
+        sys.modules["aqt.qt"].sip.isdeleted = MagicMock(return_value=True)
 
         with (
             patch.object(mod, "_close_stats"),
@@ -56,7 +56,7 @@ class TestCreateAddcardsTabDeletedWidget:
             mod._create_addcards_tab()
 
             # sip.isdeleted was called with the stale widget
-            _sip.isdeleted.assert_called_once_with(deleted_widget)
+            sys.modules["aqt.qt"].sip.isdeleted.assert_called_once_with(deleted_widget)
 
             # The stale widget's .show() must NOT have been called
             deleted_widget.show.assert_not_called()
@@ -67,7 +67,7 @@ class TestCreateAddcardsTabDeletedWidget:
 
         mod._addcards = live_widget
 
-        _sip.isdeleted = MagicMock(return_value=False)
+        sys.modules["aqt.qt"].sip.isdeleted = MagicMock(return_value=False)
 
         with (
             patch.object(mod, "_close_stats"),
