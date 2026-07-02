@@ -384,3 +384,62 @@ def test_find_refs_bruteforce():
         df = {'common': 60, 'rare': 1, 'xyz': 1}
         _apply_df_filter(notes, df)
         assert notes[0]['subphrases'] == ['rare']
+
+
+def test_get_pool():
+    from unittest.mock import MagicMock, patch
+
+    from graph.references import _get_pool
+
+    with patch('multiprocessing.get_context') as mock_ctx:
+        mock_pool = MagicMock()
+        mock_ctx.return_value.Pool.return_value = mock_pool
+        pool = _get_pool(2)
+        mock_ctx.assert_called_once_with('fork')
+        assert pool == mock_pool
+
+
+def test_compute_df_empty():
+    from graph.references import _compute_df
+
+    assert _compute_df([]) == {}
+
+
+def test_compute_df_no_tokens():
+    from graph.references import _compute_df
+
+    notes = [{'front_len': 0, 'front': '', 'subphrases_raw': set()}]
+    assert _compute_df(notes) == {}
+
+
+def test_compute_df_with_ahocorasick():
+    from graph.references import HAS_AHO, _compute_df
+
+    # Force ahocorasick block execution if possible, fallback to regex block if not available
+    notes = [
+        {'front_len': 5, 'front': f'word{i}', 'subphrases_raw': set(), 'other': f'has word{i}'}
+        for i in range(25)
+    ]
+    if HAS_AHO:
+        df = _compute_df(notes)
+        assert len(df) == 25
+        assert df['word0'] == 1
+
+
+def test_find_references_empty():
+    from graph.references import find_references
+
+    assert find_references([]) == []
+
+
+def test_find_references_progress():
+    from unittest.mock import MagicMock, patch
+
+    from graph.references import find_references
+
+    notes = [{'guid': '1', 'deck': 'A', 'flds': 'front\x1fback'}]
+    progress_mock = MagicMock()
+    with patch('graph.references.find_references_for_deck_only', return_value=['edge']):
+        res = find_references(notes, progress_callback=progress_mock)
+        assert res == ['edge']
+        progress_mock.assert_called_once_with('A', 0, 1, 1)
