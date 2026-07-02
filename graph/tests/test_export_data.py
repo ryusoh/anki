@@ -1,3 +1,4 @@
+import concurrent.futures
 from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
@@ -493,6 +494,10 @@ def test_compute_deck_layout_multiple_nodes_extra(mock_fa2):
     assert '1' in layout and '2' in layout
 
 
+# Run the layout pool in-process (threads) so the ForceAtlas2 patch below applies.
+# A real ProcessPoolExecutor spawns workers that re-import graph.export_data and
+# fail on `from fa2_modified import ForceAtlas2` (fa2_modified is not installed in CI).
+@patch('concurrent.futures.ProcessPoolExecutor', concurrent.futures.ThreadPoolExecutor)
 @patch('graph.export_data.ForceAtlas2')
 def test_compute_layout(mock_fa2):
     import networkx as nx

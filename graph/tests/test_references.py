@@ -241,11 +241,21 @@ def test_build_automaton_with_data():
     except ImportError:
         pytest.skip("ahocorasick not available")
 
-    notes = [{'guid': '1', 'front_norm': 'hello', 'subphrases': ['hi'], 'match_front': True}]
+    notes = [
+        {
+            'guid': '1',
+            'front': 'hello',
+            'front_len': 5,
+            'subphrases': ['hi'],
+            'match_front': True,
+        }
+    ]
     automaton, guids = _build_automaton(notes)
     assert len(automaton) == 2
     assert 'hello' in guids
     assert 'hi' in guids
+    assert guids['hello'] == [('1', False)]
+    assert guids['hi'] == [('1', True)]
 
 
 def test_apply_df_filter_empty():
@@ -279,16 +289,23 @@ def test_scan_chunk():
     except ImportError:
         pytest.skip("ahocorasick not available")
 
-    auto = ahocorasick.Automaton()
-    auto.add_word('hello', 'hello')
-    auto.make_automaton()
+    all_note_fields = [
+        {
+            'guid': '1',
+            'front': 'hello',
+            'front_len': 5,
+            'subphrases': [],
+            'match_front': True,
+        }
+    ]
+    chunk = [{'guid': '2', 'front': 'hello world', 'other': ''}]
 
-    guid_by_pattern = {'hello': {'type': 'whole', 'guid': '1'}}
-    chunk = [{'guid': '2', 'front_norm': 'hello world', 'other_norm': ''}]
-
-    result = _scan_chunk((chunk, auto, guid_by_pattern, "deck"))
+    result = _scan_chunk((chunk, all_note_fields, 'deck'))
     assert len(result) == 1
-    assert result[0] == ('1', '2', 'front_in_front')
+    assert result[0]['source'] == '2'
+    assert result[0]['target'] == '1'
+    assert result[0]['type'] == 'front_in_front'
+    assert result[0]['deck'] == 'deck'
 
 
 def test_find_refs_bruteforce():
