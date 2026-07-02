@@ -201,3 +201,24 @@ class TestDebug(unittest.TestCase):
             d = Dummy(1, b=3)
             self.assertEqual(d.val, 4)
             self.assertTrue(mock_print.called)
+
+
+import pytest
+
+
+def test_missing_coverage_debug():
+    import enhance_main_window.debug as debug_module
+
+    debug_module.mayDebug = True
+    debug_module.shouldDebug = True
+
+    @debug_module.debugInsideThisMethod
+    def outer():
+        @debug_module.debugInsideThisMethod
+        def inner():
+            return "inner"
+
+        return inner()
+
+    debug_module.nbInsideThis = 0
+    outer()
