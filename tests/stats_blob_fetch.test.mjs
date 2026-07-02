@@ -22,7 +22,7 @@ async function testBlobFetch() {
     script.textContent = scriptContent;
     dom.window.document.body.appendChild(script);
     window.__scSixMonthMode = true;
-    const req = new Uint8Array([0x0a, 0x04, 0x74, 0x65, 0x73, 0x74]); 
+    const req = new Uint8Array([0x0a, 0x04, 0x74, 0x65, 0x73, 0x74]);
     const blob = new window.Blob([req]);
     await window.fetch("graph", { method: "POST", body: blob });
     await new Promise(r => setTimeout(r, 100));

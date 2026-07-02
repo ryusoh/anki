@@ -36,12 +36,12 @@ async function testFetchBlobResponse() {
     const blob = await res.blob();
     const buf = await blob.arrayBuffer();
     const arr = new Uint8Array(buf);
-    
+
     // Index 2 is the tag of Entry 1 (0x0a). Should stay 0x0a.
     assert.strictEqual(arr[2], 0x0a, "Entry 1 (180 days) should NOT be truncated");
     // Index 9 is the tag of Entry 2 (0x0a). Should become 0x7a.
     assert.strictEqual(arr[9], 0x7a, "Entry 2 (185 days) SHOULD be truncated");
-    
+
     console.log("Regression Test: Blob Response passed!");
     process.exit(0);
   } catch (err) { console.error("TEST FAILED:", err); process.exit(1); }
