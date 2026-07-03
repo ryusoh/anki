@@ -181,27 +181,26 @@ class ActivityReporter:
         streak_last: int = 0
         current: int = 0
         total: int = 0
-        idx: int = 0
-        next_timestamp: Optional[int]
 
-        for idx, item in enumerate(history):
-            current += 1
-            timestamp, activity = item
+        # Bolt: Avoid overhead from enumerate and try/except lookahead per iteration
+        # by caching prev_timestamp and incrementing streak counts sequentially.
+        if history:
+            prev_timestamp = history[0][0] - 86400
+            for timestamp, activity in history:
+                total += activity
+                if timestamp == prev_timestamp + 86400:
+                    current += 1
+                else:
+                    if current > streak_max:
+                        streak_max = current
+                    current = 1
+                prev_timestamp = timestamp
 
-            try:
-                next_timestamp = history[idx + 1][0]
-            except IndexError:  # last item
-                streak_last = current
-                next_timestamp = None
+            streak_last = current
+            if current > streak_max:
+                streak_max = current
 
-            if timestamp + 86400 != next_timestamp:  # >1 day gap. streak over.
-                if current > streak_max:
-                    streak_max = current
-                current = 0
-
-            total += activity
-
-        days_learned: int = idx + 1
+        days_learned: int = len(history)
         today = self._today
 
         # Stats: current streak
