@@ -64,7 +64,7 @@ class FreeDictionary(Service):
 
             request = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 AwesomeTTS'})
             try:
-                with urllib.request.urlopen(request) as response:
+                with urllib.request.urlopen(request, timeout=10) as response:
                     data = loads(response.read().decode('utf-8'))
             except Exception as e:
                 raise IOError(f"Network error when connecting to Free Dictionary API: {e}") from e
@@ -88,7 +88,7 @@ class FreeDictionary(Service):
                 audio_url, headers={'User-Agent': 'Mozilla/5.0 AwesomeTTS'}
             )
             try:
-                with urllib.request.urlopen(audio_request) as audio_response:
+                with urllib.request.urlopen(audio_request, timeout=10) as audio_response:
                     with open(path, 'wb') as f:
                         f.write(audio_response.read())
             except Exception as e:
