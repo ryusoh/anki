@@ -5,10 +5,14 @@
     "#js/*": "./js/*",
     "#ui/*": "./js/ui/*"
   },
+  "dependencies": {
+    "jsdom": "^29.1.1"
+  },
   "overrides": {
     "undici": "^7.24.3"
   },
   "devDependencies": {
+    "c8": "^11.0.0",
     "eslint": "^10.6.0",
     "jest": "^30.4.2",
     "stylelint": "^17.14.0"
