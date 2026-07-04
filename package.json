@@ -6,7 +6,7 @@
     "#ui/*": "./js/ui/*"
   },
   "dependencies": {
-    "jsdom": "^23.2.0"
+    "jsdom": "^29.1.1"
   },
   "overrides": {
     "undici": "^7.24.3"
