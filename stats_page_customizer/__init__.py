@@ -131,26 +131,15 @@ def _fetch_future_due_rows(today: int, max_days: int) -> List[Any]:
 
 def _process_future_due_rows(rows: List[Any], max_days: int) -> List[Dict[str, int]]:
     """Helper to process database rows into the final list of dicts."""
-    counts_by_day: Dict[int, Dict[str, int]] = {}
+    # Bolt: Pre-allocate the list and update elements by index to avoid
+    # O(N) dict lookups and redundant dictionary creations in a hot loop
+    future_due = [{"day": day, "mature": 0, "young": 0} for day in range(max_days + 1)]
     for delta, mature, young in rows:
         day = int(delta or 0)
-        if day < 0 or day > max_days:
-            continue
-        counts_by_day[day] = {
-            "mature": int(mature or 0),
-            "young": int(young or 0),
-        }
+        if 0 <= day <= max_days:
+            future_due[day]["mature"] = int(mature or 0)
+            future_due[day]["young"] = int(young or 0)
 
-    future_due: List[Dict[str, int]] = []
-    for day in range(max_days + 1):
-        counts = counts_by_day.get(day)
-        future_due.append(
-            {
-                "day": day,
-                "mature": counts["mature"] if counts else 0,
-                "young": counts["young"] if counts else 0,
-            }
-        )
     return future_due
 
 
