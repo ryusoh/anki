@@ -747,65 +747,6 @@ function animate() {
 }
 animate();
 
-// --- MAGNETIC THUMB EFFECT ---
-if (window.gsap) {
-  const sliderGroup = document.getElementById("slider-group");
-  const magThumb = document.getElementById("magnetic-thumb");
-  if (sliderGroup && magThumb) {
-    let rect = null;
-    let centerX = 0;
-    let centerY = 0;
-
-    // Bolt: Pre-allocate gsap quickTo functions to avoid creating new Tweens on every mousemove
-    const xTo = window.gsap.quickTo(magThumb, "x", {
-      duration: 0.3,
-      ease: "power2.out",
-    });
-    const yTo = window.gsap.quickTo(magThumb, "y", {
-      duration: 0.3,
-      ease: "power2.out",
-    });
-
-    sliderGroup.addEventListener("mouseenter", () => {
-      // Bolt: Cache bounding box dimensions to prevent layout thrashing inside
-      // the high-frequency mousemove listener. Subtract current GSAP x/y transform
-      // values to prevent coordinate drift if user re-enters during a reset animation.
-      rect = magThumb.getBoundingClientRect();
-      const currentX = window.gsap.getProperty(magThumb, "x") || 0;
-      const currentY = window.gsap.getProperty(magThumb, "y") || 0;
-      centerX = rect.left - currentX + window.scrollX + rect.width / 2;
-      centerY = rect.top - currentY + window.scrollY + rect.height / 2;
-    });
-
-    sliderGroup.addEventListener("mousemove", (e) => {
-      if (!rect) {
-        rect = magThumb.getBoundingClientRect();
-        const currentX = window.gsap.getProperty(magThumb, "x") || 0;
-        const currentY = window.gsap.getProperty(magThumb, "y") || 0;
-        centerX = rect.left - currentX + window.scrollX + rect.width / 2;
-        centerY = rect.top - currentY + window.scrollY + rect.height / 2;
-      }
-
-      const distX = e.pageX - centerX;
-      const distY = e.pageY - centerY;
-
-      xTo(distX * 0.15);
-      yTo(distY * 0.15);
-    });
-
-    sliderGroup.addEventListener("mouseleave", () => {
-      rect = null;
-      window.gsap.to(magThumb, {
-        scale: 1,
-        x: 0,
-        y: 0,
-        duration: 0.7,
-        ease: "elastic.out(1, 0.3)",
-      });
-    });
-  }
-}
-
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
