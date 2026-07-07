@@ -4,6 +4,14 @@
 **Status:** Functional but requires security review  
 **Critical:** See SECURITY INCIDENT section below
 
+> **Revision note (July 2026):** This document is a dated handover snapshot.
+> The custom Three.js layer it originally described (`js/graph/viz_utils.js`,
+> `js/graph/graph_viz.js`, `js/graph/lod_utils.js`) and its jest tests in
+> `graph/tests/*.test.js` were removed (commit `a407b0ee` and follow-ups); the
+> current visualization is a single browser module, `js/graph/graph.js` — see
+> `js/graph/README.md`. The directory trees and testing sections below have
+> been corrected; other details may still reflect the March 2026 state.
+
 ---
 
 ## Project Overview
@@ -136,15 +144,14 @@ addons21/
 ├── graph/
 │   ├── index.html                 # 3D visualization
 │   ├── graph_data.json            # Graph data (GITIGNORED!)
-│   ├── lod_utils.js               # Level of Detail utilities
+│   ├── parser.py, builder.py, ... # Data pipeline (Python)
 │   └── tests/
-│       ├── test_lod.test.js       # LOD tests
-│       ├── test_clustering.test.js # Clustering tests
+│       ├── test_parser.py         # Pipeline tests (Python)
+│       ├── test_builder.py
 │       └── ...
 │
 ├── js/graph/
-│   ├── graph_viz.js               # Main visualization code
-│   └── viz_utils.js               # Utility functions
+│   └── graph.js                   # Visualization (browser ES module)
 │
 ├── css/graph.css                  # Visualization styles
 │
@@ -283,18 +290,17 @@ open graph/index.html
 make graph-analyze
 ```
 
-### 5. Graph Analysis (`graph/lod_utils.js`, `js/graph/graph_viz.js`)
+### 5. Graph Rendering (`js/graph/graph.js`)
 
-**Purpose:** Level of Detail, frustum culling, performance optimization
+**Purpose:** Browser-side rendering of the exported graph
 
-**Features:**
+> The former performance layer (`js/graph/lod_utils.js`, `graph_viz.js`,
+> `viz_utils.js` — LOD, frustum culling, instanced meshes) was removed.
+> Rendering now lives entirely in `js/graph/graph.js`, which draws layered
+> `THREE.Points` clouds instead. LOD and frustum culling are again listed
+> under Future Work.
 
-- LOD system (high/medium/low detail based on distance)
-- Frustum culling (only render visible nodes)
-- Instanced rendering (1000+ nodes at 60 FPS)
-- Cluster positioning (decks in separate regions)
-
-**Performance:**
+**Performance (historical figures for the removed layer):**
 
 - 100 nodes: Instant
 - 1,000 nodes: Smooth 60 FPS
@@ -358,22 +364,26 @@ Quick reference for deck names:
 
 ### Test Files
 
+The jest tests that used to live in `graph/tests/` were removed along with
+the viz layer they tested. What remains is the Python suite for the data
+pipeline:
+
 ```
 graph/tests/
-├── test_lod.test.js           # LOD system tests
-├── test_clustering.test.js    # Deck clustering tests
-├── test_positioning.test.js   # Node positioning tests
-├── test_deck_colors.test.js   # Color assignment tests
-└── test_graph_viz.test.js     # Visualization tests
+├── test_parser.py             # Field/reference parsing
+├── test_builder.py            # Graph construction
+├── test_export_data.py        # Data export
+├── test_incremental.py        # Incremental export
+└── ... (see graph/tests/)
 ```
 
 ### Run Tests
 
 ```bash
-# All tests
+# All suites
 make check
 
-# Graph tests only
+# Graph tests only (run from the repo ROOT — root conftest.py mocks aqt/anki)
 python3 -m pytest graph/tests/ -v
 
 # Security check
@@ -445,12 +455,9 @@ pytest>=8.0        # Testing
 
 ### JavaScript
 
-```json
-{
-  "three": "^0.128.0",
-  "jest": "^29.0.0"
-}
-```
+Three.js `0.128.0` is loaded in the browser from the jsDelivr CDN via an
+import map in `graph/index.html` — there is no npm dependency, build step,
+or JS test dependency for the graph.
 
 ### System
 
