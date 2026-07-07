@@ -15,7 +15,7 @@ Work through these steps:
    - a `Makefile` target (verification, data pipeline, lint/format);
    - a lint/CI gate under `.github/workflows/`;
    - behavioral guidance in a `.jules/*.md` persona, if it's about how an agent should work rather than repo facts;
-   - a small `GEMINI.md`/`CLAUDE.md` at the repo root — only if the rule is broadly useful and stable. There is none today; create one sparingly, since it becomes auto-loaded context for every future session.
+   - a small `GEMINI.md`/`CLAUDE.md` at the repo root — only if the rule is broadly useful and stable. `CLAUDE.md` exists today; extend it sparingly, since it is auto-loaded context for every future session and every edit busts the prompt cache.
 
 3. **Check what already exists first.** Before adding anything, read the relevant `Makefile` targets, `conftest.py`, `docs/`, `.jules/*.md`, `.github/workflows/`, and the addon's own `tests/`. Patch real gaps instead of duplicating. Don't put repo knowledge in chat or memory if it belongs in a version-controlled file.
 

@@ -32,8 +32,8 @@ Work through these steps:
    - behavioral guidance in a `.jules/*.md` persona, if it's about _how an agent
      should work_ rather than repo facts;
    - a small `CLAUDE.md` at the repo root — **only** if the rule is broadly useful
-     and stable. There is none today; create one sparingly, since it becomes
-     auto-loaded context for every future session.
+     and stable. One exists today; extend it sparingly, since it is auto-loaded
+     context for every future session and every edit busts the prompt cache.
 
 3. **Check what already exists first.** Before adding anything, read the relevant
    `Makefile` targets, `conftest.py`, `docs/`, `.jules/*.md`, `.github/workflows/`,

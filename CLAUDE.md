@@ -15,6 +15,9 @@ addon or tool with its own `tests/`. New addon? See `docs/creating-an-addon.md`
 - **Do not run one combined `pytest`** over the whole repo: each addon bootstraps
   its own `sys.path`, so suites only collect in isolation. `make check-py` runs
   them one at a time and accumulates coverage.
+- **JS tests: only root `tests/` (node runner, `node:test`) and `review_heatmap/tests/`
+  (jest) are executed** — a `*.test.js` anywhere else silently never runs. Browser-side
+  scripts are pinned with source-level regression tests. See `docs/js-testing.md`.
 - `make check` = `check-node` (JS, c8 coverage) + `check-py` (per-addon, coverage).
   `make precommit` is the full gate (`fmt-check` + `lint` + `quality-py` + `check`);
   CI runs `make precommit SKIP=1` on push/PR (`.github/workflows/ci.yml`).
