@@ -90,13 +90,22 @@ async function generateCoverageReport() {
       reporter: summaryDir
         ? ['text', 'text-summary', 'json-summary']
         : ['text', 'text-summary'],
-      src: [rootDir],
-      all: false,
+      // `all: true` puts every first-party source file in the denominator, so
+      // files with zero tests show up at 0% instead of being silently absent.
+      // The src dirs mirror eslint.config.cjs's scope: all JS we maintain,
+      // minus vendored trees and minified bundles (excluded below).
+      src: [
+        path.join(rootDir, 'js'),
+        path.join(rootDir, 'animated_glass_background', 'web'),
+        path.join(rootDir, 'enhance_main_window'),
+      ],
+      all: true,
       excludeNodeModules: true,
       exclude: [
         '**/node_modules/**',
         '**/tests/**',
         '**/*.test.*',
+        '**/*.min.js',
         'coverage/**',
         'js/vendor/**',
         'assets/**',
