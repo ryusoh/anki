@@ -1,17 +1,17 @@
 ---
 name: ship
-description: Ship a branch — fix quality failures, merge to main, and delete the branch. Use when the user asks to ship or merge a branch.
+description: Ship a branch — fix quality failures, merge to main, and delete the branch
+argument-hint: "<branch_name>"
 ---
 
-You are tasked with shipping the branch. Determine the target branch from the user's input or the conversation history.
+You are tasked with shipping the branch: **{{args}}**.
 
 Follow these steps precisely:
 
 1. **Checkout and Sync:**
    - Fetch all branches: `git fetch origin`
-   - Checkout the branch: `git checkout <branch_name>`
-   - Ensure it's up to date: `git pull origin <branch_name>`
-   - **Verify Branch Contents:** Run `git diff main...<branch_name> --name-only` to ensure it only contains the expected source code edits. Reject or manually fix the branch if it contains accidental scratch files (e.g., `test_*.js`, `scratch.py`, etc.). Do NOT blindly merge.
+   - Checkout the branch: `git checkout {{args}}`
+   - Ensure it's up to date: `git pull origin {{args}}`
 
 2. **Fix Quality and CI Failures:**
    - Run the Python quality gate: `make quality-py`.
@@ -23,7 +23,7 @@ Follow these steps precisely:
 3. **Merge into Main:**
    - Switch to main: `git checkout main`
    - Pull latest: `git pull origin main`
-   - Merge the branch: `git merge <branch_name>`
+   - Merge the branch: `git merge {{args}}`
    - **Conflict Resolution:** If conflicts occur:
      - List conflicted files: `git status`.
      - Read and resolve each conflict manually or using tools.
@@ -34,10 +34,10 @@ Follow these steps precisely:
    - Run `make precommit SKIP=1` on the merged `main` branch to ensure no regressions.
 
 5. **Cleanup:**
-   - **Ask for acknowledgement before pushing changes.** (List the file names that will be committed/pushed).
+   - **Ask for acknowledgement before pushing changes.**
    - Push main: `git push origin main`.
-   - Delete the local branch: `git branch -d <branch_name>`.
-   - Delete the remote branch: `git push origin --delete <branch_name>`.
+   - Delete the local branch: `git branch -d {{args}}`.
+   - Delete the remote branch: `git push origin --delete {{args}}`.
 
 6. **Report:**
    - Summarize the actions taken, including any conflicts resolved.
