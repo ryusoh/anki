@@ -59,7 +59,8 @@ The module runs once at startup, so registration happens at module scope.
   annotations, evaluated at `def` time) crashes the addon at load with
   `TypeError: unsupported operand type(s) for |`. Add
   `from __future__ import annotations` as the first import in every module —
-  the mocked test suite cannot catch this; only launching Anki does.
+  the mocked test suite cannot catch this; only launching Anki does. Ruff's
+  `FA102` rule (enabled in `pyproject.toml`) blocks the annotation case in CI.
 
 - **Hard-code Anki constants** (e.g. `LEECH_TAGONLY = 1`,
   `QUEUE_TYPE_SUSPENDED = -1`) rather than `from anki.consts import …`. The test
@@ -67,6 +68,41 @@ The module runs once at startup, so registration happens at module scope.
   so `from anki.consts import X` raises at import time. A `from anki.hooks import
 …` that may be missing should be wrapped in `try/except (ImportError,
 AttributeError)`.
+
+## Field HTML reality (for addons that transform field content)
+
+Never develop a field transform against an imagined HTML format — every wrong
+guess mangles real cards. Dump the **actual stored bytes** first:
+
+```bash
+python3 tools/dump_field.py 'front text'          # exact front-field match
+python3 tools/dump_field.py --contains 'passage'  # any field contains
+```
+
+(It copies the collection to a temp file, so it's safe while Anki runs.)
+
+What real fields look like (each of these was found in production cards, and
+`reflow_paragraphs/` pins them all as regression tests):
+
+- **Only `<br>` is a line break.** Multi-line paste is stored either as
+  `line<br>line` (often with inline tags per line: `<i>line</i><br>`) or as
+  one attribute-less **leaf `<div>` per line** — never assume just one format.
+- **Literal `\n` characters inside field HTML are whitespace, not breaks.**
+  Anki stores `line<br>\n`; treating the `\n` as a second break manufactures
+  phantom blank lines.
+- **`<div>` is structure, not a line separator.** Web-clipped dictionary
+  content nests `<ul><li><dl><dd><div>` many levels deep; converting div
+  boundaries to breaks explodes the field. Distinguish _leaf_ divs (no nested
+  block tags) from structural ones.
+- **Fields mix content types**: styled spans, `<ol>` lists, `<img>`,
+  `[sound:…]` refs, and prose can all share one field. A transform must
+  return an untouched field **byte-identical** — never normalize what it
+  didn't change.
+- The **editor** can hand the addon different bytes than the database stores;
+  when diagnosing, capture `editor.note.fields[i]` at click time (and keep
+  such capture files away from paths the test suite writes to).
+- Test fixtures: pin **structure-faithful synthetic fields**, not raw card
+  dumps — card content stays out of the public repo.
 
 ## Test pattern
 

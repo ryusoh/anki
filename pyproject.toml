@@ -40,6 +40,10 @@ select = [
     "F", # pyflakes
     "I", # isort
     "B", # flake8-bugbear
+    # Anki bundles Python 3.9: a PEP 604 union evaluated at def time crashes the
+    # addon at load. FA102 forces `from __future__ import annotations` wherever
+    # `X | Y` annotations appear (see docs/creating-an-addon.md).
+    "FA102",
 ]
 ignore = [
     "E501", # line length handled by black
