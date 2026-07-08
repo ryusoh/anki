@@ -54,34 +54,48 @@ def _visible(line: str) -> str:
 
 
 def _is_structural(line: str) -> bool:
-    """A line that is markup structure rather than prose: never reflowed,
-    and a hard boundary between prose segments."""
+    """A line that is markup structure or a list/glossary label rather than
+    prose: never reflowed, and a hard boundary between prose segments."""
     if _BLOCK_TAG_RE.search(line):
         return True
     visible = _visible(line)
-    return not visible or bool(_SOUND_ONLY_RE.match(visible))
+    if not visible or _SOUND_ONLY_RE.match(visible):
+        return True
+    # Header lines ("Similar:", "同義語:") and CJK glossary markers ("【记】…")
+    # label the lines around them; joining them into prose mangles the entry.
+    return visible.endswith((":", "：")) or visible.startswith(("【", "["))
 
 
-def _breaks_mid_sentence(line: str, next_line: str) -> bool:
-    ends_open = not _visible(line).endswith(tuple(_TERMINAL_CHARS))
-    next_starts_lower = _visible(next_line)[:1].islower()
-    return ends_open or next_starts_lower
+def _open_junction(line: str, next_line: str) -> bool:
+    """A line break that can only be a wrap artifact: the line stops without
+    finishing a sentence. A short line (a lone paragraph-opening word) only
+    counts when the next line continues in lowercase — a short heading
+    followed by a new sentence ("foible (n.)" / "1640s, …") is deliberate.
+    """
+    visible = _visible(line)
+    if visible.endswith(tuple(_TERMINAL_CHARS)):
+        return False
+    if len(visible) >= MIN_FILL_LEN:
+        return True
+    return _visible(next_line)[:1].islower()
 
 
 def _is_wrapped_prose(lines: list[str]) -> bool:
     """A segment of hard-wrapped prose: visible lines that on average fill
-    the column, with at least one break landing mid-sentence.
+    the column, and MOST breaks land mid-sentence.
 
     The mean (not a per-line cliff) tolerates the odd wrapped line that runs
-    short (a paragraph-opening word alone on a line); word/phrase lists still
-    fail by a wide margin.
+    short; word/phrase lists still fail it by a wide margin. The strict
+    majority of open junctions separates wrapped prose (nearly every break is
+    mid-sentence) from glossary blocks, where most lines end deliberately.
     """
     if len(lines) < 2:
         return False
     body = [_visible(line) for line in lines[:-1]]
     if sum(len(line) for line in body) / len(body) < MIN_FILL_LEN:
         return False
-    return any(_breaks_mid_sentence(a, b) for a, b in zip(lines[:-1], lines[1:]))
+    junctions = [_open_junction(a, b) for a, b in zip(lines[:-1], lines[1:])]
+    return sum(junctions) * 2 > len(junctions)
 
 
 def _ends_wrapped_paragraph(line: str) -> bool:

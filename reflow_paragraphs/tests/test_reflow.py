@@ -117,6 +117,33 @@ def test_div_per_line_prose_reflows_without_touching_nested_divs():
     assert reflow_field_html(html) == expected
 
 
+def test_definition_with_lowercase_example_and_header_is_untouched():
+    # Regression (real 'foible' card): a glossary block of definition, a
+    # lowercase example sentence, and a header line. The example starting
+    # lowercase after a '.'-ended definition must not read as a wrap.
+    html = (
+        "<div>a minor weakness or eccentricity in someone's character.</div>"
+        "<div>they have to tolerate each other's little foibles</div>"
+        "<div>同義語:</div>"
+    )
+    assert reflow_field_html(html) == html
+
+
+def test_cjk_glossary_marker_lines_are_untouched():
+    # Regression (real 'foible' card): 【英】/【考】/【记】 marker lines, a short
+    # POS heading, and an etymology paragraph are deliberate separate lines.
+    html = (
+        "<b>【英】</b> n. 小缺点，小毛病(a small weakness; fault)<br>"
+        "<b>【考】</b> foible : flaw / quibble : objection(程度: 小缺点, 缺点)<br>"
+        "<b>【记】</b> 可能来自feeble(脆弱 的)<br>"
+        "foible (n.) <br>"
+        '1640s, "weak point of a sword blade" (contrasted to forte), from French '
+        'foible (n.), from obsolete foible (adj.) "weak". Related: Foibles.<br>'
+        "n. (性格上的)小缺点; 小毛病 = fault"
+    )
+    assert reflow_field_html(html) == html
+
+
 def test_leaf_div_word_list_is_untouched():
     # Adjacent leaf divs holding list items (short visible text) are a run,
     # but must never be joined.
