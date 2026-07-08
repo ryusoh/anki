@@ -13,25 +13,43 @@ the reviewer accepts or closes the PR.
 
 ## Mandate
 
-This monorepo targets high coverage per addon. Each run, add real tests to the
-**least-covered** files first (up to 5 target files), then open one PR.
+**The goal is 100% coverage across every tested language (Python + JS), reached
+incrementally.** You run every day, unattended, and each run is one link in a
+compounding chain: drive as many files as possible _fully_ to 100%, open one PR,
+and leave the report strictly better than you found it. No file is out of reach
+forever — small utilities today, large browser bundles over successive runs.
 **Never modify production code.**
 
-## Select targets — lowest coverage first (mandatory)
+Each run, take up to 5 target files (see selection below), bring each one you
+touch to 100% (or as close as the reachable surface allows), then open one PR.
+
+## Select targets — quick wins first (mandatory)
 
 **Known failure mode to avoid:** reading a truncated coverage table from the
 terminal, seeing only the bottom rows, and re-testing files already at 100% while
 the worst files are ignored every run. Do **not** eyeball the printed table.
 Instead:
 
-1. Run `make coverage-rank` (optionally `LIMIT=10`). It regenerates fresh Python +
-   JS coverage from the repo ROOT and prints every file below 100% ascending by
-   coverage, with statement counts — files already at 100% are filtered out. This is
-   the source of truth for target selection; do not eyeball the raw table.
-2. Take the lowest-coverage files as targets, minus any already claimed by an open
-   PR. Prefer files with more uncovered statements (real surface) over a one-line
-   gap. Never touch a file already at 100%.
-3. For the tight edit→verify loop on a chosen addon, scope with
+1. Run `make coverage-rank` (optionally `LIMIT=5`). It regenerates fresh Python +
+   JS coverage from the repo ROOT and prints every file below 100%, with statement
+   counts and an `UNCOV` column (statements still uncovered = effort remaining).
+   Files already at 100% are filtered out. This is the source of truth for target
+   selection; do not eyeball the raw table.
+2. **Default order is `quickwin` — fewest uncovered statements first.** This is
+   deliberate: as a daily routine you maximise the number of files driven _fully_
+   to 100% per run, so coverage climbs monotonically and never stalls. Take the top
+   files as targets, minus any already claimed by an open PR. Never touch a file
+   already at 100%.
+3. Don't only ever pick one language. If the top of the list is a wall of 0% JS
+   browser files, still fold in the nearest tractable Python targets (and vice
+   versa) so every language advances. `make coverage-rank ORDER=coverage` (lowest
+   percent first) and `ORDER=surface` (biggest bundles first) are available when you
+   deliberately want to chip at a large file over several runs.
+4. Large browser bundles (e.g. `js/graph/graph.js`, `js/ambient/quantum_shader.js`)
+   are multi-run projects, not skips. When you pick one, make **real** incremental
+   progress — cover a coherent slice with genuine assertions — and note in the PR
+   body how much of it remains. They must reach 100% too, just not in one run.
+5. For the tight edit→verify loop on a chosen addon, scope with
    `make test-py SUITE=<addon>/tests` (the root `conftest.py` mocks `aqt`/`anki`; a
    subdir run fails to import them). Use `python3`, never `python`.
 
@@ -80,6 +98,28 @@ Instead:
   `global.window` / `global.document` stubs _before_ the dynamic `await import()`,
   and restore them in a `finally` block — a thrown assertion otherwise poisons later
   suites (cascading "Chart render error").
+- **Browser-runtime files are IN scope for 100%, not exempt.** The 0% wall under
+  `js/ui`, `js/ambient`, `js/graph`, `js/loader`, `animated_glass_background/web`,
+  and `enhance_main_window` is real, testable surface — `all: true` in
+  `tools/node_test_runner.mjs` counts them. Cover them by mocking the browser API
+  they touch and asserting the **specific** interaction, never "did not throw":
+  - **IIFE side-effect scripts** (e.g. `js/ui/reduced_motion.js`): stub
+    `window.matchMedia` / `document.querySelector` to return controllable fakes,
+    load the module, and assert the DOM effect (e.g. `video.pause()` was called,
+    attribute removed). Test both branches — reduced-motion on and off.
+  - **DOM/event scripts** (e.g. `js/ui/table_keyboard_nav.js`): build a jsdom tree,
+    invoke the exported init, dispatch the real events (`keydown` Enter/Space), and
+    assert the handler ran (`aria-sort` set, `header.click()` fired).
+  - **canvas / WebGL / p5.js renderers** (`quantum_shader.js`, `sketch.js`,
+    `graph.js`, `glass_effect.js`): mock `HTMLCanvasElement.getContext` (and the
+    injected `p5`/`THREE` globals) with spies; assert the graceful-degradation
+    early-exit when the context is unavailable, and — where feasible — that the
+    setup path issues the expected calls (`gl.shaderSource`, `gl.drawArrays`). Assert
+    on the API calls, not on pixels. Cover the guard/error branches first; they are
+    the cheapest real coverage.
+  - **service workers / loaders** (`service_worker_register.js`, `cdnFallback.js`):
+    stub `navigator.serviceWorker` / the failing `<script>`/`<img>` and assert the
+    fallback path is taken.
 - **Testing a script's `__main__`:** prefer calling the functions directly. If you
   must, use `runpy.run_module(..., run_name="__main__")` with `patch("sys.exit")` so
   the runner isn't terminated. Don't leak mock API keys into tracked files that

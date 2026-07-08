@@ -41,6 +41,17 @@ class FileCoverage:
     statements: int
     lang: str
 
+    @property
+    def uncovered(self) -> float:
+        """Approximate number of statements still uncovered.
+
+        This is the *effort remaining* to reach 100% on this file. The daily
+        Testpilot routine targets the smallest values first so every run drives
+        as many files as possible fully to 100% — steady, compounding progress —
+        instead of colliding with the largest browser bundles every time.
+        """
+        return self.statements * (100.0 - self.percent) / 100.0
+
 
 def _rel(path: str) -> str:
     """Return a repo-root-relative, forward-slash path."""
@@ -104,6 +115,17 @@ def main(argv: list[str] | None = None) -> int:
         default=100.0,
         help="Skip files at or above this coverage percent (default 100).",
     )
+    parser.add_argument(
+        "--order",
+        choices=("quickwin", "coverage", "surface"),
+        default="quickwin",
+        help=(
+            "Target order. quickwin (default): fewest uncovered statements first, so "
+            "each daily run finishes the most files to 100% — best for compounding "
+            "autonomous progress. coverage: lowest percent first. surface: most "
+            "uncovered statements first (tackle the biggest bundles)."
+        ),
+    )
     parser.add_argument("--py-json", default=DEFAULT_PY_JSON)
     parser.add_argument("--js-summary", default=DEFAULT_JS_SUMMARY)
     args = parser.parse_args(argv)
@@ -122,10 +144,14 @@ def main(argv: list[str] | None = None) -> int:
             else args.js_summary
         )
 
-    ranked = sorted(
-        (f for f in files if f.percent < args.threshold),
-        key=lambda f: (f.percent, f.path),
-    )
+    if args.order == "quickwin":
+        sort_key = lambda f: (f.uncovered, f.path)  # noqa: E731
+    elif args.order == "surface":
+        sort_key = lambda f: (-f.uncovered, f.path)  # noqa: E731
+    else:  # coverage
+        sort_key = lambda f: (f.percent, f.path)  # noqa: E731
+
+    ranked = sorted((f for f in files if f.percent < args.threshold), key=sort_key)
     if args.limit > 0:
         ranked = ranked[: args.limit]
 
@@ -134,9 +160,12 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     width = max(len(f.path) for f in ranked)
-    print(f"{'COVERAGE':>9}  {'FILE':<{width}}  STMTS  LANG")
+    print(f"{'COVERAGE':>9}  {'FILE':<{width}}  STMTS  UNCOV  LANG")
     for f in ranked:
-        print(f"{f.percent:8.1f}%  {f.path:<{width}}  {f.statements:>5}  {f.lang}")
+        print(
+            f"{f.percent:8.1f}%  {f.path:<{width}}  {f.statements:>5}  "
+            f"{round(f.uncovered):>5}  {f.lang}"
+        )
     return 0
 
 

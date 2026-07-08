@@ -253,11 +253,15 @@ check-py:
 	if [ "$$FAIL" != "0" ]; then echo "❌ Python tests failed"; exit 1; fi; \
 	echo "✅ Python tests complete"
 
-# Rank source files by coverage, lowest first, so Testpilot targets the genuinely
-# least-covered files instead of eyeballing a truncated table. Regenerates fresh
-# Python + JS coverage artifacts under coverage/ (gitignored), then ranks them.
-#   make coverage-rank            # all files below 100%
-#   make coverage-rank LIMIT=5    # the 5 lowest
+# Rank source files by coverage so Testpilot targets the highest-leverage files
+# instead of eyeballing a truncated table. Regenerates fresh Python + JS coverage
+# artifacts under coverage/ (gitignored), then ranks them. Default order is
+# "quickwin" (fewest uncovered statements first) so each autonomous daily run
+# finishes the most files to 100% and progress compounds toward full coverage.
+#   make coverage-rank                   # quick wins first, all files below 100%
+#   make coverage-rank LIMIT=5           # the 5 quickest wins
+#   make coverage-rank ORDER=coverage    # lowest percent first
+#   make coverage-rank ORDER=surface     # biggest uncovered bundles first
 coverage-rank:
 	@mkdir -p coverage/js
 	@$(PYTHON) -m coverage erase
@@ -269,7 +273,7 @@ coverage-rank:
 		NODE_V8_COVERAGE="$$COVDIR" COVERAGE_SUMMARY_DIR="coverage/js" \
 		node tools/node_test_runner.mjs >/dev/null 2>&1 || true; \
 		rm -rf "$$COVDIR"
-	@$(PYTHON) tools/coverage_rank.py $(if $(LIMIT),--limit $(LIMIT),)
+	@$(PYTHON) tools/coverage_rank.py $(if $(LIMIT),--limit $(LIMIT),) $(if $(ORDER),--order $(ORDER),)
 
 # -----------------------------------------------------------------------------
 # Python Quality (ruff / black / mypy / bandit) — first-party code only.
