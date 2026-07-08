@@ -54,6 +54,13 @@ The module runs once at startup, so registration happens at module scope.
       AnkiQt._my_addon_patched = True
   ```
 
+- **Write for Anki's bundled Python, not the repo's.** Anki 25.02 ships
+  Python 3.9, so syntax the test suite happily runs (e.g. PEP 604 `int | None`
+  annotations, evaluated at `def` time) crashes the addon at load with
+  `TypeError: unsupported operand type(s) for |`. Add
+  `from __future__ import annotations` as the first import in every module —
+  the mocked test suite cannot catch this; only launching Anki does.
+
 - **Hard-code Anki constants** (e.g. `LEECH_TAGONLY = 1`,
   `QUEUE_TYPE_SUSPENDED = -1`) rather than `from anki.consts import …`. The test
   harness mocks the `anki` package as a bare `MagicMock` with no real submodules,
