@@ -241,3 +241,80 @@ def test_reflow_is_idempotent():
     assert reflow_field_html(once) == once
     dict_once = reflow_field_html(DICTIONARY_FIELD.replace("\n", "<br>"))
     assert reflow_field_html(dict_once) == dict_once
+
+def test_colon_ended_long_line_is_not_structural():
+    # A long column-filling line ending in a colon is not treated as a structural list header.
+    text = (
+        "The quick brown fox jumps over the lazy dog and the furniture was no better:\n"
+        "three old chairs, not in the best repair; a painted table."
+    )
+    expected = (
+        "The quick brown fox jumps over the lazy dog and the furniture was no better: "
+        "three old chairs, not in the best repair; a painted table."
+    )
+    assert reflow_text(text) == expected
+
+
+def test_user_reported_paragraph_reflows_fully():
+    # Test case from user bug report where a colon at the end of a long wrapped
+    # line (part of the narrative) previously caused it to be classified as a
+    # structural header boundary, split, and partially un-reflowed.
+    text = (
+        "He woke up late the next day, unrefreshed, after a troubled\n"
+        "night’s sleep. He woke up sour, irritable and angry, and\n"
+        "looked with loathing at his garret. It was a tiny little cell,\n"
+        "about six paces in length, and a truly wretched sight with\n"
+        "its dusty, yellowy, peeling wallpaper and a ceiling low\n"
+        "enough to terrify even the modestly tall – you could bang\n"
+        "your head at any moment. The furniture was no better:\n"
+        "three old chairs, not in the best repair; a painted table in\n"
+        "the corner, on which lay several books and notebooks,\n"
+        "under a layer of dust so thick that no hand could have\n"
+        "touched them for many a day; and, lastly, a large ungainly\n"
+        "couch which took up virtually the entire length of the wall\n"
+        "and half the width of the room. Once upholstered in chintz,\n"
+        "now in tatters, it served Raskolnikov for his bed. He often\n"
+        "slept on it without bothering to undress and without sheets,\n"
+        "covering himself in his old threadbare student coat and\n"
+        "resting his head on a small pillow, which he bolstered by\n"
+        "placing all the linen he had, clean or worn, beneath it. In\n"
+        "front of the couch stood a little table."
+    )
+    expected = (
+        "He woke up late the next day, unrefreshed, after a troubled "
+        "night’s sleep. He woke up sour, irritable and angry, and "
+        "looked with loathing at his garret. It was a tiny little cell, "
+        "about six paces in length, and a truly wretched sight with "
+        "its dusty, yellowy, peeling wallpaper and a ceiling low "
+        "enough to terrify even the modestly tall – you could bang "
+        "your head at any moment. The furniture was no better: "
+        "three old chairs, not in the best repair; a painted table in "
+        "the corner, on which lay several books and notebooks, "
+        "under a layer of dust so thick that no hand could have "
+        "touched them for many a day; and, lastly, a large ungainly "
+        "couch which took up virtually the entire length of the wall "
+        "and half the width of the room. Once upholstered in chintz, "
+        "now in tatters, it served Raskolnikov for his bed. He often "
+        "slept on it without bothering to undress and without sheets, "
+        "covering himself in his old threadbare student coat and "
+        "resting his head on a small pillow, which he bolstered by "
+        "placing all the linen he had, clean or worn, beneath it. In "
+        "front of the couch stood a little table."
+    )
+    assert reflow_text(text) == expected
+
+
+def test_user_reported_short_paragraph_with_sentence_break_reflows():
+    # Test case from user bug report: a short 3-line paragraph that contains
+    # an internal sentence boundary (ending with '.') should still reflow.
+    text = (
+        "When the soup arrived and he set about eating, Nastasya\n"
+        "sat down next to him on the couch and began nattering.\n"
+        "She was a village girl and liked a good natter."
+    )
+    expected = (
+        "When the soup arrived and he set about eating, Nastasya "
+        "sat down next to him on the couch and began nattering. "
+        "She was a village girl and liked a good natter."
+    )
+    assert reflow_text(text) == expected
