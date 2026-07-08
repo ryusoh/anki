@@ -1,11 +1,10 @@
 import json
-import runpy
 from unittest.mock import MagicMock, mock_open, patch
 
 import networkx as nx
 import pytest
 
-from graph.quick_3d import scale_node_size, strip_html
+from graph.quick_3d import main, scale_node_size, strip_html
 
 
 def test_strip_html_none():
@@ -41,7 +40,7 @@ def test_main_execution_file_not_found(capsys):
     with patch('gzip.open', side_effect=FileNotFoundError):
         with patch('sys.exit', side_effect=SystemExit) as mock_exit:
             with pytest.raises(SystemExit):
-                runpy.run_module("graph.quick_3d", run_name="__main__")
+                main()
             mock_exit.assert_called_with(0)
             captured = capsys.readouterr()
             assert "not found. Skipping main execution." in captured.out
@@ -59,7 +58,7 @@ def test_main_execution_success(capsys):
     with patch('gzip.open', mock_open(read_data=mock_file_content)):
         with patch('graph.quick_3d.build_graph', return_value=test_graph):
             with patch('builtins.open', mock_open()) as mock_out:
-                runpy.run_module("graph.quick_3d", run_name="__main__")
+                main()
 
                 # Check output
                 captured = capsys.readouterr()

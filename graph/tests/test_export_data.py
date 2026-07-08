@@ -1,25 +1,23 @@
-def test_export_data_main_relayout_success(tmp_path):
+def test_export_data_main_relayout_success():
     import json
-    import runpy
-    import sys
-    from unittest.mock import MagicMock, mock_open, patch
+    from unittest.mock import mock_open, patch
+
+    import graph.export_data
 
     test_data = {'nodes': [{'id': 'A'}, {'id': 'B'}], 'links': [{'source': 'A', 'target': 'B'}]}
 
     with patch('sys.argv', ['export_data.py', '--relayout']):
         with patch('pathlib.Path.exists', return_value=True):
-            with patch('builtins.open', mock_open(read_data=json.dumps(test_data))):
-                # We also need to mock `ProcessPoolExecutor` inside the module run, but since `compute_layout` is mocked, it won't be reached
+            with patch('builtins.open', mock_open(read_data=json.dumps(test_data))) as mock_file:
+                # compute_layout is mocked, so the ProcessPoolExecutor path is never reached.
                 with patch('graph.export_data.compute_layout') as mock_layout:
-                    with patch('sys.exit') as mock_exit:
+                    with patch('sys.exit', side_effect=SystemExit) as mock_exit:
                         mock_layout.return_value = {'A': (1, 2, 3), 'B': (4, 5, 6)}
-                        # Do not raise SystemExit, because we want it to reach sys.exit(0)
-                        mock_exit.side_effect = SystemExit
-                        try:
-                            # It is hanging, this means `run_module` does something blocking.
-                            pass
-                        except SystemExit:
-                            pass
+                        with pytest.raises(SystemExit):
+                            graph.export_data.main()
+                        mock_exit.assert_called_with(0)
+                        # Updated coordinates were written back out.
+                        assert any(c.args and c.args[1] == 'w' for c in mock_file.call_args_list)
 
 
 import concurrent.futures
@@ -164,16 +162,13 @@ def test_compute_deck_layout_actual():
 
 
 def test_export_data_main_full():
-    import runpy
-    import sys
-
     with patch('sys.argv', ['export_data.py', '--relayout']):
         with patch('pathlib.Path.exists', return_value=False):
             with patch('builtins.print'):
                 with patch('sys.exit') as mock_exit:
                     mock_exit.side_effect = SystemExit
                     try:
-                        runpy.run_module('graph.export_data', run_name='__main__')
+                        graph.export_data.main()
                     except SystemExit:
                         pass
                     mock_exit.assert_called_with(1)

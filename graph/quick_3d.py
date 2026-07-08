@@ -29,7 +29,7 @@ def scale_node_size(pagerank):
     return min(3, max(0.5, pagerank * 100))
 
 
-if __name__ == '__main__':
+def main():
     # Load and take only 100
     notes_file = "./data/cloudflare/collection/notes.json.gz"
     try:
@@ -261,3 +261,7 @@ window.addEventListener('resize',()=>{{
 
     print("✅ FAST! Created 3D viz with 100 cards")
     print(f"🌐 Open: open {output_file}")
+
+
+if __name__ == '__main__':
+    main()

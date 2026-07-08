@@ -292,7 +292,8 @@ def compute_layout(graph, iterations=50):
     return all_positions
 
 
-if __name__ == '__main__':
+def main():
+    global OUTPUT_FILE
     # Parse arguments
     force_full = '--full' in sys.argv
     is_public = '--public' in sys.argv
@@ -399,7 +400,6 @@ if __name__ == '__main__':
         # Load existing output
         with open(OUTPUT_FILE, 'r') as f:
             existing = json.load(f)
-        existing_nodes = {n['id']: n for n in existing['nodes']}
         existing_links = existing['links']
 
         # Remove nodes that were deleted or modified (will be re-added)
@@ -575,3 +575,7 @@ if __name__ == '__main__':
 
     print(f'Done — {OUTPUT_FILE}')
     print(f'  {len(nodes)} nodes, {len(links)} links')
+
+
+if __name__ == '__main__':
+    main()
