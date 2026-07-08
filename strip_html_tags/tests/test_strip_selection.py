@@ -99,12 +99,36 @@ def test_block_boundary_space():
 def test_render_text():
     # Simple formatting tag strip
     assert _render_text("<b>hello</b> <i>world</i>") == "hello world"
-    # Block tags replace with space
-    assert _render_text("<div>first</div><div>second</div>") == "first second"
+    # Block boundaries preserve the visible line structure
+    assert _render_text("<div>first</div><div>second</div>") == "first<br>second"
     # Entities unescaped
     assert _render_text("hello &amp; world &lt;3") == "hello & world <3"
     # Collapse extra spaces
     assert _render_text("hello   world") == "hello world"
+
+
+def test_render_text_whole_field_keeps_lines_drops_empty_wrappers():
+    # Whole-field strip of a deeply nested dictionary field (real 'take-up'
+    # shape): every visible line survives as its own line, empty wrapper
+    # divs contribute nothing, and no tags remain.
+    html = (
+        '<div>UK headline line</div>'
+        '<h3><div><div><div>the acceptance of something offered.</div>'
+        '<div>"practices that discourage take-up"</div>'
+        '<div><div></div><div><div><div>Similar:</div></div></div>'
+        '<div><div>accept<div><div></div></div></div></div></div>'
+        '<span style="font-weight: 400;">The meeting took up a whole morning.</span>'
+        '</div></div></h3>'
+    )
+    expected = (
+        'UK headline line<br>'
+        'the acceptance of something offered.<br>'
+        '"practices that discourage take-up"<br>'
+        'Similar:<br>'
+        'accept<br>'
+        'The meeting took up a whole morning.'
+    )
+    assert _render_text(html) == expected
 
 
 # Test Case 9: on_js_message with standard JS messaging inputs
@@ -154,7 +178,9 @@ def test_on_js_message_strip_sel_with_editor_success():
 
     res = on_js_message("my_handled", "stripHtmlSel:world", mock_editor)
     assert res == (True, None)
-    assert mock_editor.note.fields[0] == "<div><b>hello world</div>"
+    # Balanced: stripping "world" removes only <i>…</i>; the <b> pair around
+    # "hello" (whose closer sits before the selection) must stay intact.
+    assert mock_editor.note.fields[0] == "<div><b>hello</b> world</div>"
     mock_editor.note.flush.assert_called_once()
     mock_editor.loadNoteKeepingFocus.assert_called_once()
 
@@ -204,6 +230,54 @@ def test_strip_field_edge_cases():
 
     mock_editor.currentField = 5
     _strip_field(mock_editor)
+
+
+# Regression (real 'take-up' card): the field is globally wrapped in <h3>,
+# lines are <span style="font-weight: 400;">…</span> separated by <br>.
+# Stripping one sentence must not eat the </div> closers before it, the <br>
+# line separator after it, or the NEXT sentence's <span> opener — doing so
+# unbalanced the field and made the following text render h3-big.
+def test_selection_strip_stays_balanced_across_line_spans():
+    html = (
+        '<h3><div>begin (a hobby or leisure-time activity)<br></div>'
+        '<span style="font-weight: 400;">The meeting took up a whole morning.</span>'
+        '<br style="font-weight: 400;">'
+        '<span style="font-weight: 400;">A: "Do you like to ski?"</span></h3>'
+    )
+    selected = "The meeting took up a whole morning."
+
+    res = _strip_selection(html, selected)
+    expected = (
+        '<h3><div>begin (a hobby or leisure-time activity)<br></div>'
+        'The meeting took up a whole morning.'
+        '<br style="font-weight: 400;">'
+        '<span style="font-weight: 400;">A: "Do you like to ski?"</span></h3>'
+    )
+    assert res == expected
+
+
+def test_selection_strip_keeps_unpaired_closers_before_selection():
+    html = '<div>intro</div></div><span style="color: red;">target text here</span><br>tail'
+    selected = "target text here"
+
+    res = _strip_selection(html, selected)
+    expected = '<div>intro</div></div>target text here<br>tail'
+    assert res == expected
+
+
+def test_selection_strip_replaces_enclosed_block_pairs_with_line_breaks():
+    # A block pair fully inside the strip range is structure: it becomes a
+    # line break, not silent deletion that glues the lines together.
+    html = (
+        '<h3><span style="font-size: 20px;">intro words here</span>'
+        '<div>middle line</div>'
+        '<span style="font-size: 20px;">outro words.</span></h3>'
+    )
+    selected = "intro words here middle line outro words."
+
+    res = _strip_selection(html, selected)
+    expected = '<div>intro words here<br>middle line<br>outro words.</div>'
+    assert res == expected
 
 
 def test_find_mismatches_none():

@@ -79,75 +79,126 @@ def _is_only_tags_between(s, start_idx, end_idx):
     return not bool(re.sub(r'[\s\xa0\u2000-\u200a\u200b\u200c\u200d\ufeff]+', '', rendered_slice))
 
 
+_VOID_TAGS = {'br', 'hr', 'img', 'input', 'wbr'}
+_HARD_BLOCK_TAGS = ['li', 'td', 'th', 'tr', 'ul', 'ol', 'div']
+_WRAPPER_BLOCK_TAGS = ['p', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']
+
+
 def _expand_left(html_str, html_start):
+    """Expand the strip range left over OPENING inline tags only — the
+    selection's own wrappers. A closing tag (or a br) before the selection
+    belongs to the preceding content: crossing it strips a closer whose
+    opener is outside the range and unbalances the field."""
     safe_html_start = html_start
     needs_block_wrapper = False
     while safe_html_start > 0:
         prev_tag_open = html_str.rfind('<', 0, safe_html_start)
         if prev_tag_open == -1:
             break
-
-        if _is_only_tags_between(html_str, prev_tag_open, html_start):
-            tag_content = html_str[prev_tag_open : html_str.find('>', prev_tag_open) + 1]
-            match = re.match(r'<\s*([a-zA-Z0-9]+)', tag_content)
-            if match:
-                tag_name = match.group(1).lower()
-                if tag_name in ['li', 'td', 'th', 'tr', 'ul', 'ol', 'div']:
-                    break
-                if tag_name in ['p', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
-                    needs_block_wrapper = True
-                    safe_html_start = prev_tag_open
-                    break
-            safe_html_start = prev_tag_open
-        else:
+        if not _is_only_tags_between(html_str, prev_tag_open, safe_html_start):
             break
+
+        tag_content = html_str[prev_tag_open : html_str.find('>', prev_tag_open) + 1]
+        if tag_content.startswith('</'):
+            break
+        match = re.match(r'<\s*([a-zA-Z0-9]+)', tag_content)
+        if match:
+            tag_name = match.group(1).lower()
+            if tag_name in _VOID_TAGS or tag_name in _HARD_BLOCK_TAGS:
+                break
+            if tag_name in _WRAPPER_BLOCK_TAGS:
+                needs_block_wrapper = True
+                safe_html_start = prev_tag_open
+                break
+        safe_html_start = prev_tag_open
     return safe_html_start, needs_block_wrapper
 
 
 def _expand_right(html_str, html_end, needs_block_wrapper):
+    """Expand the strip range right over CLOSING inline tags (the selection's
+    own wrappers) and trailing brs. An OPENING tag past the selection belongs
+    to the following content — eating it steals that content's formatting.
+
+    Also returns whether a wrapping block tag (p/h*/blockquote) was consumed:
+    only then are trailing brs artifacts of the removed block; otherwise a
+    trailing br is a line separator that must survive.
+    """
     safe_html_end = html_end
+    consumed_block = False
     while safe_html_end < len(html_str):
         next_tag_close = html_str.find('>', safe_html_end)
         if next_tag_close == -1:
             break
-
-        if _is_only_tags_between(html_str, html_end, next_tag_close + 1):
-            tag_content = html_str[safe_html_end : next_tag_close + 1]
-            match = re.search(r'<\s*/?\s*([a-zA-Z0-9]+)', tag_content)
-            if match:
-                tag_name = match.group(1).lower()
-                if not tag_content.startswith('</'):
-                    if tag_name in [
-                        'li',
-                        'td',
-                        'th',
-                        'tr',
-                        'ul',
-                        'ol',
-                        'div',
-                        'p',
-                        'blockquote',
-                        'h1',
-                        'h2',
-                        'h3',
-                        'h4',
-                        'h5',
-                        'h6',
-                    ]:
-                        break
-                if tag_name in ['li', 'td', 'th', 'tr', 'ul', 'ol', 'div']:
-                    break
-                if tag_name in ['p', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
-                    needs_block_wrapper = True
-                    safe_html_end = next_tag_close + 1
-                    break
-                if tag_name in ['br', 'hr']:
-                    safe_html_end = next_tag_close + 1
-                    continue
-            safe_html_end = next_tag_close + 1
-        else:
+        if not _is_only_tags_between(html_str, safe_html_end, next_tag_close + 1):
             break
-    return safe_html_end, needs_block_wrapper
+
+        tag_content = html_str[safe_html_end : next_tag_close + 1]
+        match = re.search(r'<\s*(/?)\s*([a-zA-Z0-9]+)', tag_content)
+        if not match:
+            break
+        closing = match.group(1) == '/'
+        tag_name = match.group(2).lower()
+
+        if not closing:
+            if tag_name in ('br', 'hr'):
+                safe_html_end = next_tag_close + 1
+                continue
+            break
+        if tag_name in _HARD_BLOCK_TAGS:
+            break
+        if tag_name in _WRAPPER_BLOCK_TAGS:
+            needs_block_wrapper = True
+            consumed_block = True
+            safe_html_end = next_tag_close + 1
+            break
+        safe_html_end = next_tag_close + 1
+    return safe_html_end, needs_block_wrapper, consumed_block
+
+
+def _strip_slice_balanced(html_slice, strip_trailing_voids):
+    """Strip only tags whose opener AND closer both sit inside the slice.
+
+    Unpaired tags (their partner lies outside the strip range) are kept, so
+    the surrounding document stays balanced. Trailing brs are kept unless the
+    enclosing block wrapper was consumed too. Text is entity-unescaped.
+    """
+    tags = []
+    for m in re.finditer(r'<[^>]+>', html_slice):
+        tm = re.match(r'<\s*(/?)\s*([a-zA-Z0-9]+)', m.group(0))
+        name = tm.group(2).lower() if tm else ''
+        closing = bool(tm and tm.group(1))
+        tags.append([m.start(), m.end(), name, closing, 'strip'])
+
+    stack = []
+    for k, (_s, _e, name, closing, _act) in enumerate(tags):
+        if not name or name in _VOID_TAGS:
+            continue
+        if not closing:
+            stack.append((name, k))
+            continue
+        for si in range(len(stack) - 1, -1, -1):
+            if stack[si][0] == name:
+                del stack[si]
+                break
+        else:
+            tags[k][4] = 'keep'  # closer whose opener is outside the slice
+    for _name, k in stack:
+        tags[k][4] = 'keep'  # opener whose closer is outside the slice
+
+    for k, (_s, e, name, _closing, _act) in enumerate(tags):
+        if name in _VOID_TAGS and not strip_trailing_voids:
+            if _is_only_tags_between(html_slice, e, len(html_slice)):
+                tags[k][4] = 'keep'  # trailing line separator, not selection content
+
+    out = []
+    pos = 0
+    for s, e, _name, _closing, act in tags:
+        out.append(html_module.unescape(html_slice[pos:s]))
+        if act == 'keep':
+            out.append(html_slice[s:e])
+        pos = e
+    out.append(html_module.unescape(html_slice[pos:]))
+    return ''.join(out)
 
 
 def _map_html_to_text(html_str):
@@ -300,11 +351,12 @@ def _strip_selection(html_str, selected_text):
 
     # --- SMART TAG EXPANSION WITH BLOCK REPLACEMENT ---
     safe_html_start, needs_block_wrapper = _expand_left(html_str, html_start)
-    safe_html_end, needs_block_wrapper = _expand_right(html_str, html_end, needs_block_wrapper)
+    safe_html_end, needs_block_wrapper, consumed_block = _expand_right(
+        html_str, html_end, needs_block_wrapper
+    )
 
     html_slice = html_str[safe_html_start:safe_html_end]
-    stripped = re.sub(r'<[^>]+>', '', html_slice)
-    stripped = html_module.unescape(stripped)
+    stripped = _strip_slice_balanced(html_slice, strip_trailing_voids=consumed_block)
 
     # Wrap in <div> ONLY if we removed a block wrapper so it doesn't merge with adjacent blocks
     if needs_block_wrapper:
