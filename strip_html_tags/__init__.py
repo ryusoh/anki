@@ -35,14 +35,20 @@ GET_SELECTION_JS = """
 
 def _render_text(html_str):
     """Convert HTML to plain text by removing tags and unescaping entities."""
-    # Insert a space for block-level tags so text doesn't merge across blocks
+    # Replace block-level tags with newlines so we can split and preserve lines
     block_re = r'</?(?:p|div|br|hr|li|ul|ol|tr|td|th|blockquote|h[1-6]|pre|table|thead|tbody|tfoot|dl|dt|dd)\b[^>]*>'
-    text = re.sub(block_re, ' ', html_str, flags=re.IGNORECASE)
+    text = re.sub(block_re, '\n', html_str, flags=re.IGNORECASE)
     text = re.sub(r'<[^>]+>', '', text)
     text = html_module.unescape(text)
-    # Collapse runs of whitespace
-    text = re.sub(r' {2,}', ' ', text)
-    return text.strip()
+
+    # Split by newlines, normalize spaces on each line, and drop empty lines
+    lines = []
+    for line in text.split('\n'):
+        line = re.sub(r'[\s\xa0\u2000-\u200a\u200b\u200c\u200d\ufeff]+', ' ', line)
+        line = line.strip()
+        if line:
+            lines.append(line)
+    return '<br>'.join(lines)
 
 
 def _find_mismatches(sel_normalized, rendered_normalized):
@@ -82,6 +88,33 @@ def _is_only_tags_between(s, start_idx, end_idx):
 _VOID_TAGS = {'br', 'hr', 'img', 'input', 'wbr'}
 _HARD_BLOCK_TAGS = ['li', 'td', 'th', 'tr', 'ul', 'ol', 'div']
 _WRAPPER_BLOCK_TAGS = ['p', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']
+_BLOCK_TAGS = {
+    'p',
+    'div',
+    'br',
+    'hr',
+    'li',
+    'ul',
+    'ol',
+    'tr',
+    'td',
+    'th',
+    'blockquote',
+    'h1',
+    'h2',
+    'h3',
+    'h4',
+    'h5',
+    'h6',
+    'pre',
+    'table',
+    'thead',
+    'tbody',
+    'tfoot',
+    'dl',
+    'dt',
+    'dd',
+}
 
 
 def _expand_left(html_str, html_start):
@@ -190,15 +223,60 @@ def _strip_slice_balanced(html_slice, strip_trailing_voids):
             if _is_only_tags_between(html_slice, e, len(html_slice)):
                 tags[k][4] = 'keep'  # trailing line separator, not selection content
 
-    out = []
+    tokens = []
     pos = 0
-    for s, e, _name, _closing, act in tags:
-        out.append(html_module.unescape(html_slice[pos:s]))
+    for s, e, name, _closing, act in tags:
+        text_before = html_module.unescape(html_slice[pos:s])
+        if text_before:
+            tokens.append(('text', text_before))
         if act == 'keep':
-            out.append(html_slice[s:e])
+            tokens.append(('keep', html_slice[s:e]))
+        elif name in _BLOCK_TAGS:
+            tokens.append(('block_boundary', name))
         pos = e
-    out.append(html_module.unescape(html_slice[pos:]))
-    return ''.join(out)
+    text_after = html_module.unescape(html_slice[pos:])
+    if text_after:
+        tokens.append(('text', text_after))
+
+    def is_content_empty(content):
+        return not bool(re.sub(r'[\s\xa0\u2000-\u200a\u200b\u200c\u200d\ufeff]+', '', content))
+
+    def is_block_tag_html(tag_html):
+        match = re.match(r'<\s*/?\s*([a-zA-Z0-9]+)', tag_html)
+        if match:
+            t_name = match.group(1).lower()
+            return t_name in _BLOCK_TAGS
+        return False
+
+    output_parts = []
+    has_content = False
+    pending_boundary = False
+
+    for t_type, t_val in tokens:
+        if t_type == 'text':
+            if not is_content_empty(t_val):
+                if pending_boundary and has_content:
+                    output_parts.append('<br>')
+                output_parts.append(t_val)
+                has_content = True
+                pending_boundary = False
+            else:
+                output_parts.append(t_val)
+        elif t_type == 'keep':
+            if is_block_tag_html(t_val):
+                output_parts.append(t_val)
+                has_content = False
+                pending_boundary = False
+            else:
+                if pending_boundary and has_content:
+                    output_parts.append('<br>')
+                output_parts.append(t_val)
+                has_content = True
+                pending_boundary = False
+        elif t_type == 'block_boundary':
+            pending_boundary = True
+
+    return ''.join(output_parts)
 
 
 def _map_html_to_text(html_str):
