@@ -38,3 +38,7 @@ def test_highlight_text():
         highlight_text("<div class=\"hello\">hello</div>", ["hello"])
         == "<div class=\"hello\"><span class=\"search-highlight\">hello</span></div>"
     )
+
+
+def test_extract_search_terms_empty_brackets():
+    assert extract_search_terms("()") == []

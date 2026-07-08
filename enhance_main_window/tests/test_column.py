@@ -82,3 +82,15 @@ def test_deleteColumn():
         assert cols[1].get("present") is False
         mock_writeConfig.assert_called()
         self_mock.show.assert_called()
+
+
+def test_linkHandler_unhandled_cmd():
+    with patch("enhance_main_window.column.lastHandler") as mock_lastHandler:
+        mock_lastHandler.return_value = "last"
+        assert col._linkHandler(None, "othercmd:arg") == "last"
+
+
+def test_linkHandler_no_colon():
+    with patch("enhance_main_window.column.lastHandler") as mock_lastHandler:
+        mock_lastHandler.return_value = "last"
+        assert col._linkHandler(None, "nourl") == "last"

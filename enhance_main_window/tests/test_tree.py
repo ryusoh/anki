@@ -46,3 +46,16 @@ def test_computeTime(mock_anki_modules):
     mock_anki_modules.col.db.all.return_value = [[123, 4000]]
     tree.computeTime()
     assert tree.times[123] == 4000
+
+
+def test_computeValues_None_or_zero(mock_anki_modules):
+    def mock_db_all(query):
+        if "from cards " in query.lower():
+            num_selects = query.count("SUM(")
+            return [[123] + [0, None] * (num_selects // 2) + [0] * (num_selects % 2)]
+        return []
+
+    mock_anki_modules.col.db.all.side_effect = mock_db_all
+    tree.computeValues()
+    for _name, did_dict in tree.values.items():
+        assert 123 not in did_dict
