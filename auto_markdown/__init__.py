@@ -57,7 +57,7 @@ def on_editor_did_init_buttons(buttons: list, editor: Editor) -> None:
         "autoMarkdown",
         on_auto_markdown,
         tip="Auto Markdown: convert markdown syntax to HTML in Front and Back fields",
-        label="Md",
+        label="M",
     )
     buttons.append(btn)
 
