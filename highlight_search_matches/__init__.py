@@ -31,11 +31,9 @@ def log(msg):
             logging.getLogger(__name__).debug(f"Failed to get config: {e}")
             return
     else:
-        # If not running in Anki context (e.g. some tests), allow logging
-        # unless it's explicitly disabled by an environment variable or similar
-        # but for simplicity, let's just allow it for now if current_mw is None
-        # so tests don't break.
-        pass
+        # If not running in Anki context, only allow logging if running in a test suite
+        if "pytest" not in sys.modules:
+            return
 
     try:
         with open(DEBUG_LOG, "a") as f:

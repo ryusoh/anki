@@ -43,6 +43,30 @@ def test_log_respects_debug_config(tmp_path):
     del aqt_mock.mw
 
 
+def test_log_no_log_outside_pytest(tmp_path):
+    import highlight_search_matches as hsm
+
+    # Get mocked aqt and ensure mw is None
+    aqt_mock = sys.modules["aqt"]
+    if hasattr(aqt_mock, "mw"):
+        del aqt_mock.mw
+
+    # Simulate running outside pytest by temporarily removing it from sys.modules
+    has_pytest = "pytest" in sys.modules
+    pytest_module = sys.modules.get("pytest")
+    if has_pytest:
+        del sys.modules["pytest"]
+
+    try:
+        hsm.DEBUG_LOG = tmp_path / "test_no_pytest.log"
+        hsm.log("should not be logged")
+        assert not os.path.exists(hsm.DEBUG_LOG)
+    finally:
+        # Restore sys.modules
+        if has_pytest:
+            sys.modules["pytest"] = pytest_module
+
+
 def test_init_addon_no_aqt():
     import highlight_search_matches as hsm
 
