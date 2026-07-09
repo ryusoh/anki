@@ -382,6 +382,52 @@ def _clean_spacings(parts: list[tuple[str, str]]) -> list[str]:
     return result
 
 
+def _upgrade_existing_tables(html: str) -> str:
+    """Upgrades old unstyled <table> elements to the new styled layout."""
+    if "table" not in html.lower():
+        return html
+
+    # 1. Bare <table> -> <table style="border-collapse: collapse;">
+    html = re.sub(
+        r"<table>",
+        r'<table style="border-collapse: collapse;">',
+        html,
+        flags=re.IGNORECASE,
+    )
+
+    # 2. Upgrade <th> with alignment parsing
+    def upgrade_th(m):
+        attrs = m.group(1) or ""
+        if "border:" in attrs and "padding:" in attrs:
+            return m.group(0)
+        align_css = ""
+        m_align = re.search(r"text-align:\s*(\w+);?", attrs)
+        if m_align:
+            align_css = f"text-align: {m_align.group(1)};"
+
+        style = f'style="border: 1px solid #ccc; padding: 6px 10px; background-color: rgba(150, 150, 150, 0.1); font-weight: bold; {align_css}"'
+        return f"<th {style}>"
+
+    html = re.sub(r"<th\b([^>]*)>", upgrade_th, html, flags=re.IGNORECASE)
+
+    # 3. Upgrade <td> with alignment parsing
+    def upgrade_td(m):
+        attrs = m.group(1) or ""
+        if "border:" in attrs and "padding:" in attrs:
+            return m.group(0)
+        align_css = ""
+        m_align = re.search(r"text-align:\s*(\w+);?", attrs)
+        if m_align:
+            align_css = f"text-align: {m_align.group(1)};"
+
+        style = f'style="border: 1px solid #ccc; padding: 6px 10px; {align_css}"'
+        return f"<td {style}>"
+
+    html = re.sub(r"<td\b([^>]*)>", upgrade_td, html, flags=re.IGNORECASE)
+
+    return html
+
+
 def convert_markdown_field(html: str) -> str:
     """Convert markdown syntax in an Anki field to HTML.
 
@@ -429,10 +475,14 @@ def convert_markdown_field(html: str) -> str:
     output = _clean_spacings(grouped)
     result = "".join(output)
 
+    # Upgrade any old unstyled HTML tables.
+    result = _upgrade_existing_tables(result)
+
     # Byte-identical guarantee.
     if result == html:
         return html
     return result
+
 
 
 

@@ -544,7 +544,31 @@ def test_real_world_sae_card_full_line():
     assert convert_markdown_field(html) == expected
 
 
+def test_upgrade_existing_tables():
+    """Verify that old unstyled HTML tables are upgraded to include borders, padding, and alignments."""
+    html = (
+        '<table>'
+        '<thead><tr><th style="text-align: center;">col1</th><th>col2</th></tr></thead>'
+        '<tbody><tr><td style="text-align: right;">val1</td><td>val2</td></tr></tbody>'
+        '</table>'
+    )
+    expected = (
+        '<table style="border-collapse: collapse;">'
+        '<thead><tr>'
+        '<th style="border: 1px solid #ccc; padding: 6px 10px; background-color: rgba(150, 150, 150, 0.1); font-weight: bold; text-align: center;">col1</th>'
+        '<th style="border: 1px solid #ccc; padding: 6px 10px; background-color: rgba(150, 150, 150, 0.1); font-weight: bold; ">col2</th>'
+        '</tr></thead>'
+        '<tbody><tr>'
+        '<td style="border: 1px solid #ccc; padding: 6px 10px; text-align: right;">val1</td>'
+        '<td style="border: 1px solid #ccc; padding: 6px 10px; ">val2</td>'
+        '</tr></tbody>'
+        '</table>'
+    )
+    assert convert_markdown_field(html) == expected
+
+
 # ---------------------------------------------------------------------------
+
 
 
 
