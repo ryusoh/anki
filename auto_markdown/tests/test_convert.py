@@ -441,10 +441,18 @@ def test_no_redundant_br_after_heading():
 
 
 def test_one_br_preserved_for_empty_line_after_heading():
-    """Verify that if two <br>s exist, one is removed and one is kept to render an empty line."""
+    """Verify that if two <br>s exist (standard paragraph gap), they are removed next to block elements."""
     html = '#### Heading<br><br>Text'
+    expected = '<h4>Heading</h4>Text'
+    assert convert_markdown_field(html) == expected
+
+
+def test_br_preserved_for_extra_empty_lines_after_heading():
+    """Verify that if three <br>s exist, one extra <br> is kept to render an extra empty line."""
+    html = '#### Heading<br><br><br>Text'
     expected = '<h4>Heading</h4><br>Text'
     assert convert_markdown_field(html) == expected
+
 
 
 def test_no_redundant_br_before_heading():
@@ -474,7 +482,27 @@ def test_no_redundant_br_around_code_block():
     assert convert_markdown_field(html) == expected
 
 
+def test_real_world_spacing_list_to_paragraph():
+    """Verify that redundant spacing between list and normal paragraph is removed."""
+    html = (
+        '- 远端 GPU 收到 RDMA Read 请求，从其 HBM 读出数据并封装成 RDMA 响应，发回本地。<br>'
+        '- 本地网卡收到响应后，不通过传统 DMA 写入显存的某个缓冲区，而是通过**缓存一致性互联**（如 NVLink-C2C、CXL 或 PCIe/CXL 的缓存注入机制）直接**写入 L2 Cache 中对应的 Cache Line**。<br>'
+        '- 如果是多个合并的请求，网卡或 L2 控制器会将大 Message 拆分成独立的 Cache Line，逐一填入 L2 的对应 set/way，并更新一致性状态（通常为 Shared 或 Exclusive）。<br><br>'
+        '这一步是“Cache 层面隐藏”的关键硬件支撑——数据就绪时，它已经躺在 SM 最快能拿到的 L2 里了（甚至有可能进一步推送到 L1）。'
+    )
+    expected = (
+        '<ul>'
+        '<li>远端 GPU 收到 RDMA Read 请求，从其 HBM 读出数据并封装成 RDMA 响应，发回本地。</li>'
+        '<li>本地网卡收到响应后，不通过传统 DMA 写入显存的某个缓冲区，而是通过<b>缓存一致性互联</b>（如 NVLink-C2C、CXL 或 PCIe/CXL 的缓存注入机制）直接<b>写入 L2 Cache 中对应的 Cache Line</b>。</li>'
+        '<li>如果是多个合并的请求，网卡或 L2 控制器会将大 Message 拆分成独立的 Cache Line，逐一填入 L2 的对应 set/way，并更新一致性状态（通常为 Shared 或 Exclusive）。</li>'
+        '</ul>'
+        '这一步是“Cache 层面隐藏”的关键硬件支撑——数据就绪时，它已经躺在 SM 最快能拿到的 L2 里了（甚至有可能进一步推送到 L1）。'
+    )
+    assert convert_markdown_field(html) == expected
+
+
 # ---------------------------------------------------------------------------
+
 
 
 

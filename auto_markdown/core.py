@@ -321,21 +321,46 @@ BLOCK_KINDS = {"heading", "ul", "ol", "table", "code_block", "bq", "hr"}
 
 
 def _clean_spacings(parts: list[tuple[str, str]]) -> list[str]:
-    """Removes redundant <br> tags adjacent to block-level elements."""
+    """Cleans up redundant spacings next to block elements and collapses spaces."""
+    result: list[str] = []
+    i = 0
     n = len(parts)
-    keep = [True] * n
-
-    for i in range(n):
+    while i < n:
         text, kind = parts[i]
-        if kind in BLOCK_KINDS:
-            # Check immediately preceding part.
-            if i > 0 and parts[i - 1][1] == "br":
-                keep[i - 1] = False
-            # Check immediately succeeding part.
-            if i + 1 < n and parts[i + 1][1] == "br":
-                keep[i + 1] = False
+        # Check if this starts a spacing sequence
+        if kind == "br" or (kind == "normal" and not text.strip().replace("&nbsp;", "")):
+            j = i
+            br_count = 0
+            while j < n:
+                t2, k2 = parts[j]
+                if k2 == "br":
+                    br_count += 1
+                    j += 1
+                elif k2 == "normal" and not t2.strip().replace("&nbsp;", ""):
+                    j += 1
+                else:
+                    break
 
-    return [parts[i][0] for i in range(n) if keep[i]]
+            # Determine if adjacent to a block element
+            touches_block = False
+            if i > 0 and parts[i - 1][1] in BLOCK_KINDS:
+                touches_block = True
+            if j < n and parts[j][1] in BLOCK_KINDS:
+                touches_block = True
+
+            if touches_block:
+                # Subtract 2 <br>s since paragraph breaks are implicit due to block margins.
+                new_br_count = max(0, br_count - 2)
+            else:
+                new_br_count = br_count
+
+            for _ in range(new_br_count):
+                result.append("<br>")
+            i = j
+        else:
+            result.append(text)
+            i += 1
+    return result
 
 
 def convert_markdown_field(html: str) -> str:
@@ -389,6 +414,8 @@ def convert_markdown_field(html: str) -> str:
     if result == html:
         return html
     return result
+
+
 
 
 def _assemble(parts: list[tuple[str, str]]) -> list[tuple[str, str]]:
