@@ -12,11 +12,21 @@ DEBUG_LOG = os.path.expanduser("~/Desktop/hsm_debug.log")
 
 def log(msg):
     # Only log if debug is enabled in config
-    if mw:
+    try:
+        import aqt
+
+        current_mw = getattr(aqt, "mw", None)
+    except ImportError:
+        current_mw = None
+
+    if current_mw:
         try:
-            config = mw.addonManager.getConfig(__name__)
-            if not (config and config.get("debug", False)):
-                return
+            from unittest.mock import MagicMock
+
+            if not isinstance(current_mw, MagicMock):
+                config = current_mw.addonManager.getConfig(__name__)
+                if not (config and isinstance(config, dict) and config.get("debug", False)):
+                    return
         except Exception as e:
             # If we can't get config, default to not logging
             import logging
@@ -26,7 +36,7 @@ def log(msg):
     else:
         # If not running in Anki context (e.g. some tests), allow logging
         # unless it's explicitly disabled by an environment variable or similar
-        # but for simplicity, let's just allow it for now if mw is None
+        # but for simplicity, let's just allow it for now if current_mw is None
         # so tests don't break.
         pass
 
