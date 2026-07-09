@@ -139,6 +139,180 @@ def _convert_line(line: str) -> tuple[str, str]:
 
 
 # ---------------------------------------------------------------------------
+# Code Blocks & Tables Parsing Helpers
+# ---------------------------------------------------------------------------
+
+
+def _parse_code_blocks(parts: list[tuple[str, bool]]) -> list[tuple[str, str]]:
+    """Identifies code blocks in the parts list.
+
+    parts is a list of (content, is_br).
+    Returns a list of (content, type) where type is 'code_block', 'br', or 'text'.
+    """
+    result: list[tuple[str, str]] = []
+    i = 0
+    n = len(parts)
+    while i < n:
+        content, is_br = parts[i]
+        if is_br:
+            result.append((content, "br"))
+            i += 1
+            continue
+
+        stripped = content.strip()
+        if stripped.startswith("```"):
+            lang = stripped[3:].strip()
+            # Find the closing ```
+            j = i + 1
+            code_lines: list[str] = []
+            closed = False
+            while j < n:
+                c2, is_br2 = parts[j]
+                if is_br2:
+                    code_lines.append(c2)
+                    j += 1
+                    continue
+                if c2.strip() == "```":
+                    closed = True
+                    break
+                code_lines.append(c2)
+                j += 1
+
+            if closed:
+                # Strip leading/trailing <br>s
+                if code_lines and _BR_SPLIT_RE.match(code_lines[0]):
+                    code_lines.pop(0)
+                if code_lines and _BR_SPLIT_RE.match(code_lines[-1]):
+                    code_lines.pop()
+                code_content = "".join(code_lines)
+                class_attr = f' class="language-{lang}"' if lang else ""
+                code_html = f"<pre><code{class_attr}>{code_content}</code></pre>"
+                result.append((code_html, "code_block"))
+                i = j + 1
+                continue
+
+        result.append((content, "text"))
+        i += 1
+    return result
+
+
+def _is_table_row(content: str) -> bool:
+    stripped = content.strip()
+    return stripped.startswith("|") and stripped.endswith("|") and len(stripped) > 1
+
+
+def _is_separator_row(content: str) -> bool:
+    if not _is_table_row(content):
+        return False
+    cells = [c.strip() for c in content.split("|")[1:-1]]
+    if not cells:
+        return False
+    for cell in cells:
+        if not cell:
+            return False
+        if not re.match(r"^:?-+:?$", cell):
+            return False
+    return True
+
+
+def _parse_alignment(cell: str) -> str:
+    cell = cell.strip()
+    if cell.startswith(":") and cell.endswith(":"):
+        return ' style="text-align: center;"'
+    elif cell.startswith(":"):
+        return ' style="text-align: left;"'
+    elif cell.endswith(":"):
+        return ' style="text-align: right;"'
+    return ""
+
+
+def _parse_tables(parts: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """Groups table rows and parses them into HTML tables."""
+    result: list[tuple[str, str]] = []
+    i = 0
+    n = len(parts)
+    while i < n:
+        content, kind = parts[i]
+        if kind != "text" or not _is_table_row(content):
+            result.append((content, kind))
+            i += 1
+            continue
+
+        # Found candidate header row. Look ahead for separator.
+        has_sep = False
+        sep_index = -1
+
+        j = i + 1
+        if j < n and parts[j][1] == "br":
+            j += 1
+        if j < n and parts[j][1] == "text" and _is_separator_row(parts[j][0]):
+            has_sep = True
+            sep_index = j
+
+        if not has_sep:
+            result.append((content, kind))
+            i += 1
+            continue
+
+        # Parse alignments from separator
+        sep_content = parts[sep_index][0]
+        sep_cells = [c.strip() for c in sep_content.split("|")[1:-1]]
+        alignments = [_parse_alignment(c) for c in sep_cells]
+        num_cols = len(sep_cells)
+
+        # Parse header row
+        header_cells = [c.strip() for c in content.split("|")[1:-1]]
+        while len(header_cells) < num_cols:
+            header_cells.append("")
+        header_cells = header_cells[:num_cols]
+
+        header_html_parts = []
+        for col_idx, cell in enumerate(header_cells):
+            align = alignments[col_idx] if col_idx < len(alignments) else ""
+            cell_html = _convert_inline(cell)
+            header_html_parts.append(f"<th{align}>{cell_html}</th>")
+
+        thead_html = f"<thead><tr>{''.join(header_html_parts)}</tr></thead>"
+
+        tbody_rows = []
+        curr = sep_index + 1
+
+        while curr < n:
+            if parts[curr][1] == "br":
+                curr += 1
+                continue
+
+            if (
+                parts[curr][1] == "text"
+                and _is_table_row(parts[curr][0])
+                and not _is_separator_row(parts[curr][0])
+            ):
+                row_content = parts[curr][0]
+                row_cells = [c.strip() for c in row_content.split("|")[1:-1]]
+                while len(row_cells) < num_cols:
+                    row_cells.append("")
+                row_cells = row_cells[:num_cols]
+
+                row_html_parts = []
+                for col_idx, cell in enumerate(row_cells):
+                    align = alignments[col_idx] if col_idx < len(alignments) else ""
+                    cell_html = _convert_inline(cell)
+                    row_html_parts.append(f"<td{align}>{cell_html}</td>")
+                tbody_rows.append(f"<tr>{''.join(row_html_parts)}</tr>")
+                curr += 1
+            else:
+                break
+
+        tbody_html = f"<tbody>{''.join(tbody_rows)}</tbody>" if tbody_rows else ""
+        table_html = f"<table>{thead_html}{tbody_html}</table>"
+
+        result.append((table_html, "table"))
+        i = curr
+
+    return result
+
+
+# ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
 
@@ -161,15 +335,27 @@ def convert_markdown_field(html: str) -> str:
         return html
 
     # Split on <br>, preserving delimiters.
-    parts = _BR_SPLIT_RE.split(html)
-
-    converted_parts: list[tuple[str, str]] = []
-    for part in parts:
-        # Delimiters (the <br> tags themselves) pass through.
+    split_parts = _BR_SPLIT_RE.split(html)
+    parts_tuples = []
+    for part in split_parts:
         if _BR_SPLIT_RE.match(part):
-            converted_parts.append((part, "br"))
+            parts_tuples.append((part, True))
         else:
-            converted_parts.append(_convert_line(part))
+            parts_tuples.append((part, False))
+
+    # Parse code blocks
+    parts = _parse_code_blocks(parts_tuples)
+
+    # Parse tables
+    parts = _parse_tables(parts)
+
+    # Parse individual lines
+    converted_parts: list[tuple[str, str]] = []
+    for content, kind in parts:
+        if kind == "text":
+            converted_parts.append(_convert_line(content))
+        else:
+            converted_parts.append((content, kind))
 
     # Group consecutive list items and blockquote lines.
     output = _assemble(converted_parts)
@@ -248,3 +434,4 @@ def _assemble(parts: list[tuple[str, str]]) -> list[str]:
             i += 1
 
     return output
+

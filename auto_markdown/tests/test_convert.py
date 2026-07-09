@@ -313,6 +313,89 @@ def test_existing_html_tags_preserved():
 
 
 # ---------------------------------------------------------------------------
+# Code Blocks
+# ---------------------------------------------------------------------------
+
+def test_code_block_cpp():
+    """Verify that a code block wraps code correctly and protects it from inner markdown formatting."""
+    html = (
+        '```cpp<br>'
+        '__global__ void kernel(const float* __restrict__ input, float* output) {<br>'
+        '&nbsp;&nbsp;&nbsp; // 使用 __ldg() 从全局内存只读加载<br>'
+        '&nbsp;&nbsp;&nbsp; float val = __ldg(input + threadIdx.x);<br>'
+        '&nbsp;&nbsp;&nbsp; output[threadIdx.x] = val * val;<br>'
+        '}<br>'
+        '```'
+    )
+    expected = (
+        '<pre><code class="language-cpp">__global__ void kernel(const float* __restrict__ input, float* output) {<br>'
+        '&nbsp;&nbsp;&nbsp; // 使用 __ldg() 从全局内存只读加载<br>'
+        '&nbsp;&nbsp;&nbsp; float val = __ldg(input + threadIdx.x);<br>'
+        '&nbsp;&nbsp;&nbsp; output[threadIdx.x] = val * val;<br>'
+        '}</code></pre>'
+    )
+    assert convert_markdown_field(html) == expected
+
+
+def test_code_block_protects_asterisks():
+    """Make sure * in a code block is not converted to italic/bold."""
+    html = (
+        '```c<br>'
+        'int *ptr = &val;<br>'
+        '```'
+    )
+    expected = (
+        '<pre><code class="language-c">int *ptr = &val;</code></pre>'
+    )
+    assert convert_markdown_field(html) == expected
+
+
+# ---------------------------------------------------------------------------
+# Markdown Tables
+# ---------------------------------------------------------------------------
+
+def test_simple_table():
+    """Verify simple table parsing."""
+    html = (
+        '| col1 | col2 |<br>'
+        '|---|---|<br>'
+        '| val1 | val2 |'
+    )
+    expected = (
+        '<table>'
+        '<thead><tr><th>col1</th><th>col2</th></tr></thead>'
+        '<tbody><tr><td>val1</td><td>val2</td></tr></tbody>'
+        '</table>'
+    )
+    assert convert_markdown_field(html) == expected
+
+
+def test_table_with_alignment_and_formatting():
+    """Verify table parsing with alignment (left, center, right) and formatting inside cells."""
+    html = (
+        '| Feature | **Lanczos** | Bicubic |<br>'
+        '|:---|:---:|---:|<br>'
+        '| Sharpness | `Very High` | Medium |'
+    )
+    expected = (
+        '<table>'
+        '<thead><tr>'
+        '<th style="text-align: left;">Feature</th>'
+        '<th style="text-align: center;"><b>Lanczos</b></th>'
+        '<th style="text-align: right;">Bicubic</th>'
+        '</tr></thead>'
+        '<tbody><tr>'
+        '<td style="text-align: left;">Sharpness</td>'
+        '<td style="text-align: center;"><code>Very High</code></td>'
+        '<td style="text-align: right;">Medium</td>'
+        '</tr></tbody>'
+        '</table>'
+    )
+    assert convert_markdown_field(html) == expected
+
+
+# ---------------------------------------------------------------------------
+
 # Integration: button handler
 # ---------------------------------------------------------------------------
 
