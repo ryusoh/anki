@@ -104,6 +104,22 @@ What real fields look like (each of these was found in production cards, and
 - Test fixtures: pin **structure-faithful synthetic fields**, not raw card
   dumps — card content stays out of the public repo.
 
+## Offline SQLite database queries
+
+If a script or test queries Anki's `.anki2` SQLite database directly (without importing Anki's Python libraries), it will likely crash with `no such collation sequence: unicase`. Anki registers a custom `unicase` collation function at the database level. To execute queries safely offline, copy the DB and register a dummy collation function:
+
+```python
+import sqlite3
+import shutil
+
+# Always query a copy to prevent locking Anki's live DB
+shutil.copy2(db_path, temp_db_path)
+conn = sqlite3.connect(temp_db_path)
+
+# Register a dummy collation to bypass the error
+conn.create_collation("unicase", lambda x, y: (x > y) - (x < y))
+```
+
 ## Test pattern
 
 The root `conftest.py` globally mocks `aqt`/`anki`, so a plain `import <addon>`
