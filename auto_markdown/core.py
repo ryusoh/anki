@@ -232,11 +232,11 @@ def _is_separator_row(content: str) -> bool:
 def _parse_alignment(cell: str) -> str:
     cell = cell.strip()
     if cell.startswith(":") and cell.endswith(":"):
-        return ' style="text-align: center;"'
+        return "center"
     elif cell.startswith(":"):
-        return ' style="text-align: left;"'
+        return "left"
     elif cell.endswith(":"):
-        return ' style="text-align: right;"'
+        return "right"
     return ""
 
 
@@ -283,8 +283,10 @@ def _parse_tables(parts: list[tuple[str, str]]) -> list[tuple[str, str]]:
         header_html_parts = []
         for col_idx, cell in enumerate(header_cells):
             align = alignments[col_idx] if col_idx < len(alignments) else ""
+            align_css = f"text-align: {align};" if align else ""
+            style = f'style="border: 1px solid #ccc; padding: 6px 10px; background-color: rgba(150, 150, 150, 0.1); font-weight: bold; {align_css}"'
             cell_html = _convert_inline(cell)
-            header_html_parts.append(f"<th{align}>{cell_html}</th>")
+            header_html_parts.append(f"<th {style}>{cell_html}</th>")
 
         thead_html = f"<thead><tr>{''.join(header_html_parts)}</tr></thead>"
 
@@ -310,18 +312,21 @@ def _parse_tables(parts: list[tuple[str, str]]) -> list[tuple[str, str]]:
                 row_html_parts = []
                 for col_idx, cell in enumerate(row_cells):
                     align = alignments[col_idx] if col_idx < len(alignments) else ""
+                    align_css = f"text-align: {align};" if align else ""
+                    style = f'style="border: 1px solid #ccc; padding: 6px 10px; {align_css}"'
                     cell_html = _convert_inline(cell)
-                    row_html_parts.append(f"<td{align}>{cell_html}</td>")
+                    row_html_parts.append(f"<td {style}>{cell_html}</td>")
                 tbody_rows.append(f"<tr>{''.join(row_html_parts)}</tr>")
                 curr += 1
             else:
                 break
 
         tbody_html = f"<tbody>{''.join(tbody_rows)}</tbody>" if tbody_rows else ""
-        table_html = f"<table>{thead_html}{tbody_html}</table>"
+        table_html = f'<table style="border-collapse: collapse;">{thead_html}{tbody_html}</table>'
 
         result.append((table_html, "table"))
         i = curr
+
 
     return result
 

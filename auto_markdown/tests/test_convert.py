@@ -362,9 +362,15 @@ def test_simple_table():
         '| val1 | val2 |'
     )
     expected = (
-        '<table>'
-        '<thead><tr><th>col1</th><th>col2</th></tr></thead>'
-        '<tbody><tr><td>val1</td><td>val2</td></tr></tbody>'
+        '<table style="border-collapse: collapse;">'
+        '<thead><tr>'
+        '<th style="border: 1px solid #ccc; padding: 6px 10px; background-color: rgba(150, 150, 150, 0.1); font-weight: bold; ">col1</th>'
+        '<th style="border: 1px solid #ccc; padding: 6px 10px; background-color: rgba(150, 150, 150, 0.1); font-weight: bold; ">col2</th>'
+        '</tr></thead>'
+        '<tbody><tr>'
+        '<td style="border: 1px solid #ccc; padding: 6px 10px; ">val1</td>'
+        '<td style="border: 1px solid #ccc; padding: 6px 10px; ">val2</td>'
+        '</tr></tbody>'
         '</table>'
     )
     assert convert_markdown_field(html) == expected
@@ -378,16 +384,16 @@ def test_table_with_alignment_and_formatting():
         '| Sharpness | `Very High` | Medium |'
     )
     expected = (
-        '<table>'
+        '<table style="border-collapse: collapse;">'
         '<thead><tr>'
-        '<th style="text-align: left;">Feature</th>'
-        '<th style="text-align: center;"><b>Lanczos</b></th>'
-        '<th style="text-align: right;">Bicubic</th>'
+        '<th style="border: 1px solid #ccc; padding: 6px 10px; background-color: rgba(150, 150, 150, 0.1); font-weight: bold; text-align: left;">Feature</th>'
+        '<th style="border: 1px solid #ccc; padding: 6px 10px; background-color: rgba(150, 150, 150, 0.1); font-weight: bold; text-align: center;"><b>Lanczos</b></th>'
+        '<th style="border: 1px solid #ccc; padding: 6px 10px; background-color: rgba(150, 150, 150, 0.1); font-weight: bold; text-align: right;">Bicubic</th>'
         '</tr></thead>'
         '<tbody><tr>'
-        '<td style="text-align: left;">Sharpness</td>'
-        '<td style="text-align: center;"><code>Very High</code></td>'
-        '<td style="text-align: right;">Medium</td>'
+        '<td style="border: 1px solid #ccc; padding: 6px 10px; text-align: left;">Sharpness</td>'
+        '<td style="border: 1px solid #ccc; padding: 6px 10px; text-align: center;"><code>Very High</code></td>'
+        '<td style="border: 1px solid #ccc; padding: 6px 10px; text-align: right;">Medium</td>'
         '</tr></tbody>'
         '</table>'
     )
@@ -403,25 +409,25 @@ def test_real_world_d2d_table():
         '| **先进封装（Advanced）** | 硅中介层、桥接 | &lt; 2mm | **超高密度布线**（线宽/间距可达微米级），带宽密度极高，常用于 CPU、GPU 和 HBM 之间的紧耦合。 |'
     )
     expected = (
-        '<table>'
+        '<table style="border-collapse: collapse;">'
         '<thead><tr>'
-        '<th style="text-align: left;">模式</th>'
-        '<th style="text-align: left;">物理介质</th>'
-        '<th style="text-align: left;">距离</th>'
-        '<th style="text-align: left;">关键特性</th>'
+        '<th style="border: 1px solid #ccc; padding: 6px 10px; background-color: rgba(150, 150, 150, 0.1); font-weight: bold; text-align: left;">模式</th>'
+        '<th style="border: 1px solid #ccc; padding: 6px 10px; background-color: rgba(150, 150, 150, 0.1); font-weight: bold; text-align: left;">物理介质</th>'
+        '<th style="border: 1px solid #ccc; padding: 6px 10px; background-color: rgba(150, 150, 150, 0.1); font-weight: bold; text-align: left;">距离</th>'
+        '<th style="border: 1px solid #ccc; padding: 6px 10px; background-color: rgba(150, 150, 150, 0.1); font-weight: bold; text-align: left;">关键特性</th>'
         '</tr></thead>'
         '<tbody>'
         '<tr>'
-        '<td style="text-align: left;"><b>标准封装（Standard）</b></td>'
-        '<td style="text-align: left;">有机基板</td>'
-        '<td style="text-align: left;">约 25mm</td>'
-        '<td style="text-align: left;">类似极短距的串行接口，常用于连接基于不同工艺或来自不同厂商的 Chiplet。</td>'
+        '<td style="border: 1px solid #ccc; padding: 6px 10px; text-align: left;"><b>标准封装（Standard）</b></td>'
+        '<td style="border: 1px solid #ccc; padding: 6px 10px; text-align: left;">有机基板</td>'
+        '<td style="border: 1px solid #ccc; padding: 6px 10px; text-align: left;">约 25mm</td>'
+        '<td style="border: 1px solid #ccc; padding: 6px 10px; text-align: left;">类似极短距的串行接口，常用于连接基于不同工艺或来自不同厂商的 Chiplet。</td>'
         '</tr>'
         '<tr>'
-        '<td style="text-align: left;"><b>先进封装（Advanced）</b></td>'
-        '<td style="text-align: left;">硅中介层、桥接</td>'
-        '<td style="text-align: left;">&lt; 2mm</td>'
-        '<td style="text-align: left;"><b>超高密度布线</b>（线宽/间距可达微米级），带宽密度极高，常用于 CPU、GPU 和 HBM 之间的紧耦合。</td>'
+        '<td style="border: 1px solid #ccc; padding: 6px 10px; text-align: left;"><b>先进封装（Advanced）</b></td>'
+        '<td style="border: 1px solid #ccc; padding: 6px 10px; text-align: left;">硅中介层、桥接</td>'
+        '<td style="border: 1px solid #ccc; padding: 6px 10px; text-align: left;">&lt; 2mm</td>'
+        '<td style="border: 1px solid #ccc; padding: 6px 10px; text-align: left;"><b>超高密度布线</b>（线宽/间距可达微米级），带宽密度极高，常用于 CPU、GPU 和 HBM 之间的紧耦合。</td>'
         '</tr>'
         '</tbody>'
         '</table>'
@@ -465,8 +471,9 @@ def test_no_redundant_br_before_heading():
 def test_no_redundant_br_around_table():
     """Verify that adjacent <br>s around a table are removed."""
     html = 'Text<br>| col |<br>|---|<br>| val |<br>More text'
-    expected = 'Text<table><thead><tr><th>col</th></tr></thead><tbody><tr><td>val</td></tr></tbody></table>More text'
+    expected = 'Text<table style="border-collapse: collapse;"><thead><tr><th style="border: 1px solid #ccc; padding: 6px 10px; background-color: rgba(150, 150, 150, 0.1); font-weight: bold; ">col</th></tr></thead><tbody><tr><td style="border: 1px solid #ccc; padding: 6px 10px; ">val</td></tr></tbody></table>More text'
     assert convert_markdown_field(html) == expected
+
 
 
 def test_no_redundant_br_around_code_block():
@@ -593,3 +600,28 @@ def test_apply_converts_both_fields():
     assert editor.note.fields[1] == '<h4>Back heading</h4>'
     editor.note.flush.assert_called_once()
     editor.loadNoteKeepingFocus.assert_called_once()
+
+
+def test_shortcut_registration():
+    """on_editor_did_init_shortcuts appends Ctrl+M to the shortcuts list."""
+    import sys
+    from unittest.mock import MagicMock
+
+    sys.modules['aqt'] = MagicMock()
+    sys.modules['aqt.editor'] = MagicMock()
+    sys.modules['aqt.gui_hooks'] = MagicMock()
+    sys.modules['aqt.utils'] = MagicMock()
+
+    import importlib
+    import auto_markdown
+    importlib.reload(auto_markdown)
+    from auto_markdown import on_editor_did_init_shortcuts
+
+    shortcuts = []
+    editor = MagicMock()
+    on_editor_did_init_shortcuts(shortcuts, editor)
+
+    assert len(shortcuts) == 1
+    assert shortcuts[0][0] == "Ctrl+M"
+    assert callable(shortcuts[0][1])
+

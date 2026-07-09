@@ -56,10 +56,16 @@ def on_editor_did_init_buttons(buttons: list, editor: Editor) -> None:
         None,
         "autoMarkdown",
         on_auto_markdown,
-        tip="Auto Markdown: convert markdown syntax to HTML in Front and Back fields",
+        tip="Auto Markdown: convert markdown syntax to HTML in Front and Back fields (Ctrl+M / Cmd+M)",
         label="M",
     )
     buttons.append(btn)
 
 
+def on_editor_did_init_shortcuts(shortcuts: list, editor: Editor) -> None:
+    shortcuts.append(("Ctrl+M", lambda: on_auto_markdown(editor)))
+
+
 gui_hooks.editor_did_init_buttons.append(on_editor_did_init_buttons)
+gui_hooks.editor_did_init_shortcuts.append(on_editor_did_init_shortcuts)
+
