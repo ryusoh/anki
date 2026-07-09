@@ -36,8 +36,8 @@ _OL_RE = re.compile(r"^\d+\.\s+(.+)$")
 # Horizontal rule: exactly '---', '***', or '___' (with optional trailing space).
 _HR_RE = re.compile(r"^(-{3,}|\*{3,}|_{3,})\s*$")
 
-# Blockquote: line starts with '> '.
-_BQ_RE = re.compile(r"^>\s?(.*)")
+# Blockquote: line starts with '> ' or '&gt; '.
+_BQ_RE = re.compile(r"^(?:>|&gt;)\s?(.*)")
 
 # Inline patterns — applied within a line.
 # Bold **...**  (non-greedy, no newlines).

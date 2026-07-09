@@ -142,14 +142,21 @@ def test_horizontal_rule_asterisks():
 
 def test_blockquote():
     html = '> This is a quote'
-    expected = '<blockquote>This is a quote</blockquote>'
+    expected = '<blockquote style="border-left: 4px solid #ccc; padding: 6px 12px; margin: 10px 0; background-color: rgba(150, 150, 150, 0.08);">This is a quote</blockquote>'
+    assert convert_markdown_field(html) == expected
+
+
+def test_blockquote_html_encoded():
+    html = '&gt; This is an encoded quote'
+    expected = '<blockquote style="border-left: 4px solid #ccc; padding: 6px 12px; margin: 10px 0; background-color: rgba(150, 150, 150, 0.08);">This is an encoded quote</blockquote>'
     assert convert_markdown_field(html) == expected
 
 
 def test_blockquote_multiple_br():
-    html = '> Line one<br>> Line two'
-    expected = '<blockquote>Line one<br>Line two</blockquote>'
+    html = '> Line one<br>&gt; Line two'
+    expected = '<blockquote style="border-left: 4px solid #ccc; padding: 6px 12px; margin: 10px 0; background-color: rgba(150, 150, 150, 0.08);">Line one<br>Line two</blockquote>'
     assert convert_markdown_field(html) == expected
+
 
 
 # ---------------------------------------------------------------------------
@@ -582,6 +589,21 @@ def test_upgrade_existing_code_blocks():
         'Some intro text<br>'
         '<pre style="background-color: #1e1e1e; color: #d4d4d4; padding: 12px 16px; border-radius: 6px; overflow-x: auto; font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace; font-size: 0.85em; line-height: 1.5; margin: 10px 0;"><code class="language-cpp">__global__ void kernel() {}</code></pre>'
         '<br>Some outro text'
+    )
+    assert convert_markdown_field(html) == expected
+
+
+def test_upgrade_existing_blockquotes():
+    """Verify that old unstyled HTML blockquote elements are upgraded to the new styled layout."""
+    html = (
+        'Intro text<br>'
+        '<blockquote>This is an old quote</blockquote>'
+        '<br>Outro text'
+    )
+    expected = (
+        'Intro text<br>'
+        '<blockquote style="border-left: 4px solid #ccc; padding: 6px 12px; margin: 10px 0; background-color: rgba(150, 150, 150, 0.08);">This is an old quote</blockquote>'
+        '<br>Outro text'
     )
     assert convert_markdown_field(html) == expected
 
