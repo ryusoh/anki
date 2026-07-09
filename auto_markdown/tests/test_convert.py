@@ -501,7 +501,45 @@ def test_real_world_spacing_list_to_paragraph():
     assert convert_markdown_field(html) == expected
 
 
+def test_mathjax_with_other_markdown():
+    """Verify that text around MathJax is still formatted correctly."""
+    html = 'This is **bold** with \\(x^2\\) math and `code`.'
+    expected = 'This is <b>bold</b> with \\(x^2\\) math and <code>code</code>.'
+    assert convert_markdown_field(html) == expected
+
+
+def test_real_world_sae_card():
+    """Verify formatting on the real-world SAE card line containing both HTML tags, bold, and MathJax."""
+    html = '<ul><li>**编码器**：将激活向量&nbsp;\\(\\mathbf{h} \\in \\mathbb{R}^d\\)&nbsp;映射到一个更高维。</li></ul>'
+    expected = '<ul><li><b>编码器</b>：将激活向量&nbsp;\\(\\mathbf{h} \\in \\mathbb{R}^d\\)&nbsp;映射到一个更高维。</li></ul>'
+    assert convert_markdown_field(html) == expected
+
+
+def test_bold_mixed_with_existing_html_bold():
+    """Verify that **bold** is converted even if <b>already bold</b> exists on the same line."""
+    html = 'This is **bold** and <b>already bold</b>.'
+    expected = 'This is <b>bold</b> and <b>already bold</b>.'
+    assert convert_markdown_field(html) == expected
+
+
+def test_real_world_sae_card_full_line():
+    """Verify formatting on the full second line of the SAE card (contains list, MathJax, and b tags)."""
+    html = (
+        '<ul><li>**编码器**：将激活向量&nbsp;\\(\\mathbf{h} \\in \\mathbb{R}^d\\)&nbsp;映射到一个更高维。</li>'
+        '<li>**解码器**：用这组潜在特征重建原始激活。</li></ul>'
+        '训练完成后，解码器权重矩阵代表一个<b>特征方向</b>。'
+    )
+    expected = (
+        '<ul><li><b>编码器</b>：将激活向量&nbsp;\\(\\mathbf{h} \\in \\mathbb{R}^d\\)&nbsp;映射到一个更高维。</li>'
+        '<li><b>解码器</b>：用这组潜在特征重建原始激活。</li></ul>'
+        '训练完成后，解码器权重矩阵代表一个<b>特征方向</b>。'
+    )
+    assert convert_markdown_field(html) == expected
+
+
 # ---------------------------------------------------------------------------
+
+
 
 
 

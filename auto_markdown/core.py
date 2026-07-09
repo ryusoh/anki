@@ -49,9 +49,10 @@ _CODE_RE = re.compile(r"`([^`]+?)`")
 
 # Already-converted patterns — skip to guarantee idempotency.
 _ALREADY_HEADING_RE = re.compile(r"^\s*<h[1-6][^>]*>", re.IGNORECASE)
-_ALREADY_HTML_BOLD_RE = re.compile(r"<b\b", re.IGNORECASE)
-_ALREADY_HTML_CODE_RE = re.compile(r"<code\b", re.IGNORECASE)
 _MATHJAX_RE = re.compile(r"\\[(\[(]|<anki-mathjax", re.IGNORECASE)
+_MATHJAX_BLOCKS_RE = re.compile(
+    r"(\\\\\(.*?\\\\\)|\\\\\\[.*?\\\\\\]|<anki-mathjax[^>]*>.*?</anki-mathjax>)", re.IGNORECASE
+)
 
 
 # ---------------------------------------------------------------------------
@@ -68,23 +69,36 @@ def _convert_inline(text: str) -> str:
     if not text:
         return text
 
-    # Skip MathJax content entirely.
-    if _MATHJAX_RE.search(text):
-        return text
+    # Find and protect MathJax blocks.
+    mathjax_blocks = []
+
+    def protect_mathjax(match):
+        placeholder = f"__MATHJAX_PLACEHOLDER_{len(mathjax_blocks)}__"
+        mathjax_blocks.append(match.group(0))
+        return placeholder
+
+    protected_text = _MATHJAX_BLOCKS_RE.sub(protect_mathjax, text)
 
     # Inline code first — protect code content from bold/italic conversion.
-    if "`" in text and not _ALREADY_HTML_CODE_RE.search(text):
-        text = _CODE_RE.sub(r"<code>\1</code>", text)
+    if "`" in protected_text:
+        protected_text = _CODE_RE.sub(r"<code>\1</code>", protected_text)
 
     # Bold **...** → <b>...</b>
-    if "**" in text and not _ALREADY_HTML_BOLD_RE.search(text):
-        text = _BOLD_RE.sub(r"<b>\1</b>", text)
+    if "**" in protected_text:
+        protected_text = _BOLD_RE.sub(r"<b>\1</b>", protected_text)
 
     # Italic *...* → <i>...</i>  (only after bold is handled)
-    if "*" in text and "<i>" not in text.lower():
-        text = _ITALIC_RE.sub(r"<i>\1</i>", text)
+    if "*" in protected_text and "<i>" not in protected_text.lower():
+        protected_text = _ITALIC_RE.sub(r"<i>\1</i>", protected_text)
 
-    return text
+    # Restore MathJax blocks.
+    for idx, block in enumerate(mathjax_blocks):
+        placeholder = f"__MATHJAX_PLACEHOLDER_{idx}__"
+        protected_text = protected_text.replace(placeholder, block)
+
+    return protected_text
+
+
 
 
 # ---------------------------------------------------------------------------
