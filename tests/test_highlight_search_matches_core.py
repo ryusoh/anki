@@ -106,7 +106,7 @@ def test_init_py_coverage():
     importlib.reload(highlight_search_matches)
 
     # Test when mw is present but no config
-    with patch("highlight_search_matches.mw") as mock_mw:
+    with patch("aqt.mw") as mock_mw:
         mock_mw.addonManager.getConfig.return_value = None
         with patch("builtins.open", mock_open()) as mocked_file:
             highlight_search_matches.log("test_message")
@@ -114,14 +114,14 @@ def test_init_py_coverage():
             mocked_file.assert_not_called()
 
     # Test when mw is present and debug is True
-    with patch("highlight_search_matches.mw") as mock_mw:
+    with patch("aqt.mw") as mock_mw:
         mock_mw.addonManager.getConfig.return_value = {"debug": True}
         with patch("builtins.open", mock_open()) as mocked_file:
             highlight_search_matches.log("test_message")
             mocked_file.assert_called()
 
     # Test Exception in getConfig
-    with patch("highlight_search_matches.mw") as mock_mw, patch("logging.getLogger") as mock_logger:
+    with patch("aqt.mw") as mock_mw, patch("logging.getLogger") as mock_logger:
         mock_mw.addonManager.getConfig.side_effect = Exception("err")
         highlight_search_matches.log("test_message")
         mock_logger.return_value.debug.assert_called()
