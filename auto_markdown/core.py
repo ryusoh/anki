@@ -100,7 +100,6 @@ def _convert_inline(text: str) -> str:
 
 
 
-
 # ---------------------------------------------------------------------------
 # Line-level conversion
 # ---------------------------------------------------------------------------
@@ -457,6 +456,29 @@ def _upgrade_existing_code_blocks(html: str) -> str:
     return html
 
 
+def _upgrade_existing_blockquotes(html: str) -> str:
+    """Upgrades old unstyled <blockquote> elements to the new styled layout."""
+    if "<blockquote" not in html.lower():
+        return html
+
+    def upgrade_blockquote(m):
+        attrs = m.group(1) or ""
+        if "border-left:" in attrs:
+            return m.group(0)
+
+        style = (
+            'style="border-left: 4px solid #ccc; padding: 6px 12px; margin: 10px 0; '
+            'background-color: rgba(150, 150, 150, 0.08);"'
+        )
+        other_attrs = attrs.strip()
+        if other_attrs:
+            return f"<blockquote {style} {other_attrs}>"
+        return f"<blockquote {style}>"
+
+    html = re.sub(r"<blockquote\b([^>]*)>", upgrade_blockquote, html, flags=re.IGNORECASE)
+    return html
+
+
 def convert_markdown_field(html: str) -> str:
     """Convert markdown syntax in an Anki field to HTML.
 
@@ -509,6 +531,9 @@ def convert_markdown_field(html: str) -> str:
 
     # Upgrade any old unstyled HTML code blocks.
     result = _upgrade_existing_code_blocks(result)
+
+    # Upgrade any old unstyled HTML blockquotes.
+    result = _upgrade_existing_blockquotes(result)
 
     # Byte-identical guarantee.
     if result == html:
@@ -579,7 +604,11 @@ def _assemble(parts: list[tuple[str, str]]) -> list[tuple[str, str]]:
                     j += 1
                 else:
                     break
-            output.append((f"<blockquote>{''.join(lines)}</blockquote>", "bq"))
+            style = (
+                'style="border-left: 4px solid #ccc; padding: 6px 12px; margin: 10px 0; '
+                'background-color: rgba(150, 150, 150, 0.08);"'
+            )
+            output.append((f"<blockquote {style}>{''.join(lines)}</blockquote>", "bq"))
             i = j
 
         else:
