@@ -18,6 +18,31 @@ def test_log(tmp_path):
         assert f.read() == "test message\n"
 
 
+def test_log_respects_debug_config(tmp_path):
+    import highlight_search_matches as hsm
+
+    # Get the mocked aqt module
+    aqt_mock = sys.modules["aqt"]
+
+    # 1. Test when config has debug=False
+    mock_mw = MagicMock()
+    mock_mw.addonManager.getConfig.return_value = {"debug": False}
+    aqt_mock.mw = mock_mw
+
+    hsm.DEBUG_LOG = tmp_path / "test_no_debug.log"
+    hsm.log("this should not be logged")
+    assert not os.path.exists(hsm.DEBUG_LOG)
+
+    # 2. Test when config has debug=True
+    mock_mw.addonManager.getConfig.return_value = {"debug": True}
+    hsm.log("this should be logged")
+    with open(hsm.DEBUG_LOG) as f:
+        assert f.read() == "this should be logged\n"
+
+    # Clean up mock
+    del aqt_mock.mw
+
+
 def test_init_addon_no_aqt():
     import highlight_search_matches as hsm
 

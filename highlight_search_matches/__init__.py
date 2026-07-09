@@ -21,12 +21,9 @@ def log(msg):
 
     if current_mw:
         try:
-            from unittest.mock import MagicMock
-
-            if not isinstance(current_mw, MagicMock):
-                config = current_mw.addonManager.getConfig(__name__)
-                if not (config and isinstance(config, dict) and config.get("debug", False)):
-                    return
+            config = current_mw.addonManager.getConfig(__name__)
+            if not config or (hasattr(config, "get") and not config.get("debug", False)):
+                return
         except Exception as e:
             # If we can't get config, default to not logging
             import logging

@@ -7,6 +7,7 @@
 - **Explicit Imports:** Avoid wildcard imports (`from aqt.qt import *`). Use explicit imports: `from aqt.qt import Qt, QAction, QDialog, ...`.
 - **Environment Gotcha:** `anki` and `aqt` modules are provided by the Anki runtime and are not available in the local dev environment.
 - **Linter Suppression:** Use `# type: ignore` on imports from `anki` or `aqt` to suppress unresolved import warnings in editors.
+- **MainWindow (`mw`) Reference Gotcha:** Do not import and bind `mw` at the module's top level (e.g., `from aqt import mw` at module root). When the module is first imported by Anki, `aqt.mw` is `None`. Doing a top-level import will permanently bind your local reference to `None`. Instead, look up `mw` dynamically inside functions or methods (e.g., `import aqt; mw = aqt.mw` or `from aqt import mw` inside the function).
 
 ### Configuration Pattern
 
