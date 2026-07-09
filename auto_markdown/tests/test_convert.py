@@ -394,7 +394,43 @@ def test_table_with_alignment_and_formatting():
     assert convert_markdown_field(html) == expected
 
 
+def test_real_world_d2d_table():
+    """Verify conversion of the table from the D2D card."""
+    html = (
+        '| 模式 | 物理介质 | 距离 | 关键特性 |<br>'
+        '| :--- | :--- | :--- | :--- |<br>'
+        '| **标准封装（Standard）** | 有机基板 | 约 25mm | 类似极短距的串行接口，常用于连接基于不同工艺或来自不同厂商的 Chiplet。 |<br>'
+        '| **先进封装（Advanced）** | 硅中介层、桥接 | &lt; 2mm | **超高密度布线**（线宽/间距可达微米级），带宽密度极高，常用于 CPU、GPU 和 HBM 之间的紧耦合。 |'
+    )
+    expected = (
+        '<table>'
+        '<thead><tr>'
+        '<th style="text-align: left;">模式</th>'
+        '<th style="text-align: left;">物理介质</th>'
+        '<th style="text-align: left;">距离</th>'
+        '<th style="text-align: left;">关键特性</th>'
+        '</tr></thead>'
+        '<tbody>'
+        '<tr>'
+        '<td style="text-align: left;"><b>标准封装（Standard）</b></td>'
+        '<td style="text-align: left;">有机基板</td>'
+        '<td style="text-align: left;">约 25mm</td>'
+        '<td style="text-align: left;">类似极短距的串行接口，常用于连接基于不同工艺或来自不同厂商的 Chiplet。</td>'
+        '</tr>'
+        '<tr>'
+        '<td style="text-align: left;"><b>先进封装（Advanced）</b></td>'
+        '<td style="text-align: left;">硅中介层、桥接</td>'
+        '<td style="text-align: left;">&lt; 2mm</td>'
+        '<td style="text-align: left;"><b>超高密度布线</b>（线宽/间距可达微米级），带宽密度极高，常用于 CPU、GPU 和 HBM 之间的紧耦合。</td>'
+        '</tr>'
+        '</tbody>'
+        '</table>'
+    )
+    assert convert_markdown_field(html) == expected
+
+
 # ---------------------------------------------------------------------------
+
 
 # Integration: button handler
 # ---------------------------------------------------------------------------
