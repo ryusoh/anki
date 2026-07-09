@@ -317,6 +317,27 @@ def _parse_tables(parts: list[tuple[str, str]]) -> list[tuple[str, str]]:
 # ---------------------------------------------------------------------------
 
 
+BLOCK_KINDS = {"heading", "ul", "ol", "table", "code_block", "bq", "hr"}
+
+
+def _clean_spacings(parts: list[tuple[str, str]]) -> list[str]:
+    """Removes redundant <br> tags adjacent to block-level elements."""
+    n = len(parts)
+    keep = [True] * n
+
+    for i in range(n):
+        text, kind = parts[i]
+        if kind in BLOCK_KINDS:
+            # Check immediately preceding part.
+            if i > 0 and parts[i - 1][1] == "br":
+                keep[i - 1] = False
+            # Check immediately succeeding part.
+            if i + 1 < n and parts[i + 1][1] == "br":
+                keep[i + 1] = False
+
+    return [parts[i][0] for i in range(n) if keep[i]]
+
+
 def convert_markdown_field(html: str) -> str:
     """Convert markdown syntax in an Anki field to HTML.
 
@@ -358,7 +379,10 @@ def convert_markdown_field(html: str) -> str:
             converted_parts.append((content, kind))
 
     # Group consecutive list items and blockquote lines.
-    output = _assemble(converted_parts)
+    grouped = _assemble(converted_parts)
+
+    # Clean up redundant spacings (e.g. <br> after block elements).
+    output = _clean_spacings(grouped)
     result = "".join(output)
 
     # Byte-identical guarantee.
@@ -367,7 +391,7 @@ def convert_markdown_field(html: str) -> str:
     return result
 
 
-def _assemble(parts: list[tuple[str, str]]) -> list[str]:
+def _assemble(parts: list[tuple[str, str]]) -> list[tuple[str, str]]:
     """Assemble converted parts, wrapping consecutive list/blockquote items.
 
     Consecutive 'ul' items → <ul>…</ul>, 'ol' → <ol>…</ol>,
@@ -375,7 +399,7 @@ def _assemble(parts: list[tuple[str, str]]) -> list[str]:
     <br> delimiters between same-type items are absorbed into the group;
     <br> delimiters at group boundaries are kept.
     """
-    output: list[str] = []
+    output: list[tuple[str, str]] = []
     i = 0
     n = len(parts)
 
@@ -403,7 +427,7 @@ def _assemble(parts: list[tuple[str, str]]) -> list[str]:
                 else:
                     break
             wrapper = "ul" if tag == "ul" else "ol"
-            output.append(f"<{wrapper}>{''.join(items)}</{wrapper}>")
+            output.append((f"<{wrapper}>{''.join(items)}</{wrapper}>", tag))
             i = j
 
         elif kind == "bq":
@@ -426,12 +450,13 @@ def _assemble(parts: list[tuple[str, str]]) -> list[str]:
                     j += 1
                 else:
                     break
-            output.append(f"<blockquote>{''.join(lines)}</blockquote>")
+            output.append((f"<blockquote>{''.join(lines)}</blockquote>", "bq"))
             i = j
 
         else:
-            output.append(text)
+            output.append((text, kind))
             i += 1
 
     return output
+
 

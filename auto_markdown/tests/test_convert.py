@@ -430,6 +430,52 @@ def test_real_world_d2d_table():
 
 
 # ---------------------------------------------------------------------------
+# Redundant Line Breaks Spacing
+# ---------------------------------------------------------------------------
+
+def test_no_redundant_br_after_heading():
+    """Verify that a <br> immediately after a heading is removed since heading is block-level."""
+    html = '#### Heading<br>Text'
+    expected = '<h4>Heading</h4>Text'
+    assert convert_markdown_field(html) == expected
+
+
+def test_one_br_preserved_for_empty_line_after_heading():
+    """Verify that if two <br>s exist, one is removed and one is kept to render an empty line."""
+    html = '#### Heading<br><br>Text'
+    expected = '<h4>Heading</h4><br>Text'
+    assert convert_markdown_field(html) == expected
+
+
+def test_no_redundant_br_before_heading():
+    """Verify that a <br> immediately before a heading is removed."""
+    html = 'Text<br>#### Heading'
+    expected = 'Text<h4>Heading</h4>'
+    assert convert_markdown_field(html) == expected
+
+
+def test_no_redundant_br_around_table():
+    """Verify that adjacent <br>s around a table are removed."""
+    html = 'Text<br>| col |<br>|---|<br>| val |<br>More text'
+    expected = 'Text<table><thead><tr><th>col</th></tr></thead><tbody><tr><td>val</td></tr></tbody></table>More text'
+    assert convert_markdown_field(html) == expected
+
+
+def test_no_redundant_br_around_code_block():
+    """Verify that adjacent <br>s around a code block are removed."""
+    html = (
+        'Text<br>'
+        '```cpp<br>'
+        'void f();<br>'
+        '```<br>'
+        'More text'
+    )
+    expected = 'Text<pre><code class="language-cpp">void f();</code></pre>More text'
+    assert convert_markdown_field(html) == expected
+
+
+# ---------------------------------------------------------------------------
+
 
 
 # Integration: button handler
