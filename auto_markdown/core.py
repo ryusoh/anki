@@ -200,7 +200,12 @@ def _parse_code_blocks(parts: list[tuple[str, bool]]) -> list[tuple[str, str]]:
                     code_lines.pop()
                 code_content = "".join(code_lines)
                 class_attr = f' class="language-{lang}"' if lang else ""
-                code_html = f"<pre><code{class_attr}>{code_content}</code></pre>"
+                style = (
+                    'style="background-color: #1e1e1e; color: #d4d4d4; padding: 12px 16px; '
+                    'border-radius: 6px; overflow-x: auto; font-family: SFMono-Regular, Consolas, '
+                    'Liberation Mono, Menlo, monospace; font-size: 0.85em; line-height: 1.5; margin: 10px 0;"'
+                )
+                code_html = f"<pre {style}><code{class_attr}>{code_content}</code></pre>"
                 result.append((code_html, "code_block"))
                 i = j + 1
                 continue
@@ -428,6 +433,30 @@ def _upgrade_existing_tables(html: str) -> str:
     return html
 
 
+def _upgrade_existing_code_blocks(html: str) -> str:
+    """Upgrades old unstyled <pre> elements to the new dark-styled layout."""
+    if "<pre" not in html.lower():
+        return html
+
+    def upgrade_pre(m):
+        attrs = m.group(1) or ""
+        if "background:" in attrs or "background-color:" in attrs:
+            return m.group(0)
+
+        style = (
+            'style="background-color: #1e1e1e; color: #d4d4d4; padding: 12px 16px; '
+            'border-radius: 6px; overflow-x: auto; font-family: SFMono-Regular, Consolas, '
+            'Liberation Mono, Menlo, monospace; font-size: 0.85em; line-height: 1.5; margin: 10px 0;"'
+        )
+        other_attrs = attrs.strip()
+        if other_attrs:
+            return f"<pre {style} {other_attrs}>"
+        return f"<pre {style}>"
+
+    html = re.sub(r"<pre\b([^>]*)>", upgrade_pre, html, flags=re.IGNORECASE)
+    return html
+
+
 def convert_markdown_field(html: str) -> str:
     """Convert markdown syntax in an Anki field to HTML.
 
@@ -478,10 +507,14 @@ def convert_markdown_field(html: str) -> str:
     # Upgrade any old unstyled HTML tables.
     result = _upgrade_existing_tables(result)
 
+    # Upgrade any old unstyled HTML code blocks.
+    result = _upgrade_existing_code_blocks(result)
+
     # Byte-identical guarantee.
     if result == html:
         return html
     return result
+
 
 
 

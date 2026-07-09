@@ -328,7 +328,7 @@ def test_code_block_cpp():
         '```'
     )
     expected = (
-        '<pre><code class="language-cpp">__global__ void kernel(const float* __restrict__ input, float* output) {<br>'
+        '<pre style="background-color: #1e1e1e; color: #d4d4d4; padding: 12px 16px; border-radius: 6px; overflow-x: auto; font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace; font-size: 0.85em; line-height: 1.5; margin: 10px 0;"><code class="language-cpp">__global__ void kernel(const float* __restrict__ input, float* output) {<br>'
         '&nbsp;&nbsp;&nbsp; // 使用 __ldg() 从全局内存只读加载<br>'
         '&nbsp;&nbsp;&nbsp; float val = __ldg(input + threadIdx.x);<br>'
         '&nbsp;&nbsp;&nbsp; output[threadIdx.x] = val * val;<br>'
@@ -345,9 +345,10 @@ def test_code_block_protects_asterisks():
         '```'
     )
     expected = (
-        '<pre><code class="language-c">int *ptr = &val;</code></pre>'
+        '<pre style="background-color: #1e1e1e; color: #d4d4d4; padding: 12px 16px; border-radius: 6px; overflow-x: auto; font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace; font-size: 0.85em; line-height: 1.5; margin: 10px 0;"><code class="language-c">int *ptr = &val;</code></pre>'
     )
     assert convert_markdown_field(html) == expected
+
 
 
 # ---------------------------------------------------------------------------
@@ -485,8 +486,11 @@ def test_no_redundant_br_around_code_block():
         '```<br>'
         'More text'
     )
-    expected = 'Text<pre><code class="language-cpp">void f();</code></pre>More text'
+    expected = (
+        'Text<pre style="background-color: #1e1e1e; color: #d4d4d4; padding: 12px 16px; border-radius: 6px; overflow-x: auto; font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace; font-size: 0.85em; line-height: 1.5; margin: 10px 0;"><code class="language-cpp">void f();</code></pre>More text'
+    )
     assert convert_markdown_field(html) == expected
+
 
 
 def test_real_world_spacing_list_to_paragraph():
@@ -567,7 +571,23 @@ def test_upgrade_existing_tables():
     assert convert_markdown_field(html) == expected
 
 
+def test_upgrade_existing_code_blocks():
+    """Verify that old unstyled HTML pre/code elements are upgraded to the new dark-styled layout."""
+    html = (
+        'Some intro text<br>'
+        '<pre><code class="language-cpp">__global__ void kernel() {}</code></pre>'
+        '<br>Some outro text'
+    )
+    expected = (
+        'Some intro text<br>'
+        '<pre style="background-color: #1e1e1e; color: #d4d4d4; padding: 12px 16px; border-radius: 6px; overflow-x: auto; font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace; font-size: 0.85em; line-height: 1.5; margin: 10px 0;"><code class="language-cpp">__global__ void kernel() {}</code></pre>'
+        '<br>Some outro text'
+    )
+    assert convert_markdown_field(html) == expected
+
+
 # ---------------------------------------------------------------------------
+
 
 
 
