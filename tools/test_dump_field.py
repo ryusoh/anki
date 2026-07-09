@@ -1,3 +1,4 @@
+import contextlib
 import os
 import sqlite3
 import sys
@@ -25,11 +26,13 @@ def test_split_fields_on_unit_separator():
 
 
 def test_find_notes_matches_front_field_exactly_by_default():
-    notes = find_notes(_db(), "anguish")
+    with contextlib.closing(_db()) as con:
+        notes = find_notes(con, "anguish")
     assert [nid for nid, _ in notes] == [1]
     assert notes[0][1][1] == "<div><i>severe pain</i></div>"
 
 
 def test_find_notes_contains_matches_any_field():
-    notes = find_notes(_db(), "anguish", contains=True)
+    with contextlib.closing(_db()) as con:
+        notes = find_notes(con, "anguish", contains=True)
     assert [nid for nid, _ in notes] == [1, 2, 3]
