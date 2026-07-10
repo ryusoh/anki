@@ -146,7 +146,7 @@ def test_redirect_then_parse_gives_real_definition():
     assert "夢中" in parsed
 
 
-@patch('auto_wiktionary.utils.fetch_wiktionary_html')
+@patch(f'{__name__}.fetch_wiktionary_html')
 def test_full_redirect_flow_with_mock_fetch(mock_fetch):
     """End-to-end: fetching 血眼 triggers redirect, then fetches ちまなこ."""
     mock_fetch.side_effect = lambda word, lang: {
