@@ -257,8 +257,13 @@ def _create_addcards_tab() -> None:
     from aqt.addcards import AddCards
     from aqt.qt import Qt
 
-    # Monkey-patch show() to prevent the window from appearing separately
-    _original_show = AddCards.show
+    # Monkey-patch show() to prevent the window from appearing separately.
+    # AddCards inherits show() from QWidget: assigning the fetched sip unbound
+    # method back would plant it in AddCards.__dict__, where it no longer
+    # binds self and any later .show() raises TypeError — so restore by
+    # deleting the override unless the class had its own show().
+    _had_own_show = "show" in AddCards.__dict__
+    _original_show = AddCards.__dict__.get("show")
 
     def _patched_show(self):
         pass  # Don't show as separate window
@@ -267,7 +272,10 @@ def _create_addcards_tab() -> None:
     try:
         addcards = AddCards(mw)
     finally:
-        AddCards.show = _original_show
+        if _had_own_show:
+            AddCards.show = _original_show
+        else:
+            del AddCards.show
 
     _addcards = addcards
 

@@ -196,6 +196,43 @@ def test_on_state_did_change():
         mock_close_stats.assert_not_called()
 
 
+def test_create_addcards_tab_leaves_addcards_class_dict_clean():
+    """Regression: AddCards inherits show() from QWidget, so 'restoring' it by
+    assignment plants the fetched sip unbound method into AddCards.__dict__,
+    where it no longer binds self — the second Add click then dies with
+    TypeError: show(self): first argument of unbound method must have type
+    'QWidget'. The restore must leave the class dict untouched."""
+    import aqt
+
+    import tabbed_stats
+
+    class FakeWidgetBase:
+        def show(self):
+            self.shown = True
+
+    class FakeAddCards(FakeWidgetBase):
+        def __init__(self, mw):
+            self.show()  # real AddCards shows itself during __init__
+
+        def centralWidget(self):
+            return MagicMock()
+
+        def hide(self):
+            pass
+
+    addcards_mod = MagicMock()
+    addcards_mod.AddCards = FakeAddCards
+    sys.modules['aqt.addcards'] = addcards_mod
+    aqt.addcards = addcards_mod
+
+    tabbed_stats._create_addcards_tab()
+
+    assert 'show' not in FakeAddCards.__dict__
+    # the "already open" branch calls _addcards.show(); it must bind and work
+    tabbed_stats._addcards.show()
+    assert tabbed_stats._addcards.shown
+
+
 def test_patched_dialogs_open():
     import tabbed_stats
     from tabbed_stats import _patched_dialogs_open
