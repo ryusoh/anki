@@ -13,6 +13,28 @@ A `*.test.js` anywhere else is **silently never executed** — it shows up in
 `graph/tests/*.test.js` sat dead for months, importing modules that no longer
 existed, and nothing failed.)
 
+**Why `review_heatmap/tests/` isn't in the coverage numbers**: `make
+check-node` runs it as a separate, uninstrumented `npx jest` invocation after
+the root suite's `c8`/`node_test_runner.mjs` pass finishes — it's a pass/fail
+gate only. The two suites use different runners (plain `node:test` vs. jest+
+jsdom) with different coverage engines (`c8`/V8 vs. jest's own Istanbul), and
+nothing merges the two reports. This is deliberate scope, not an oversight —
+see the jsdom section below for why `review_heatmap/tests/` can't just move
+onto the root runner.
+
+**Worktree footgun (fixed 2026-07-11)**: `package.json`'s
+`testPathIgnorePatterns` used to list a bare `/.claude/`, meant to stop jest
+from crawling into nested Claude Code worktree copies of the repo (e.g.
+`<repo>/.claude/worktrees/*`) when run from the main checkout. But an
+unanchored `/.claude/` matches the _whole absolute path_ — so when the
+checkout you're running tests from is itself inside `.claude/worktrees/...`
+(true for every Claude Code coding session), it matched every single file and
+jest silently reported "No tests found" for `review_heatmap/tests/` instead
+of failing loudly. Now anchored as `<rootDir>/.claude/` /
+`<rootDir>/.venv/`, which still excludes nested worktrees from the main
+checkout but no longer nukes the whole suite when the checkout itself lives
+under `.claude/`.
+
 ## Writing a root `tests/` JS test
 
 - Use `node:test` + `node:assert` — **not** `@jest/globals`. The runner is plain

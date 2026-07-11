@@ -21,8 +21,8 @@
   "jest": {
     "testPathIgnorePatterns": [
       "/node_modules/",
-      "/.claude/",
-      "/.venv/"
+      "<rootDir>/.claude/",
+      "<rootDir>/.venv/"
     ]
   }
 }
