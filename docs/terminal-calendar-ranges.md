@@ -1,20 +1,18 @@
 # Design spec: year/quarter calendar time filters for the stats terminal
 
-|                                         |                                                                                                                                                   |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**                              | Phase 1 (single tokens, §1–§9): **implemented 2026-07-11**, all gates green. Phase 2 (spans, Part II §13–§19): designed, awaiting implementation. |
-| **Issue**                               | [ryusoh/anki#403 — feat: year based time filter](https://github.com/ryusoh/anki/issues/403)                                                       |
-| **Date**                                | 2026-07-11                                                                                                                                        |
-| **Scope**                               | `js/utils/timeRange.js`, `js/commands/{reviews,due,retention,handler}.js`, root `tests/`                                                          |
-| **Audience**                            | The implementing agent. Follow this doc literally; every decision is already made.                                                                |
-| **Reference implementation researched** | `~/dev/fund/js/` (the fund repo's terminal — same author, same UX conventions)                                                                    |
+|                                         |                                                                                                                                                             |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**                              | Phase 1 (single tokens, §1–§9): **implemented 2026-07-11**, all gates green. Phase 2 (spans, Part II §13–§19): **implemented 2026-07-11**, all gates green. |
+| **Issue**                               | [ryusoh/anki#403 — feat: year based time filter](https://github.com/ryusoh/anki/issues/403)                                                                 |
+| **Date**                                | 2026-07-11                                                                                                                                                  |
+| **Scope**                               | `js/utils/timeRange.js`, `js/commands/{reviews,due,retention,handler}.js`, root `tests/`                                                                    |
+| **Audience**                            | The implementing agent. Follow this doc literally; every decision is already made.                                                                          |
+| **Reference implementation researched** | `~/dev/fund/js/` (the fund repo's terminal — same author, same UX conventions)                                                                              |
 
 The key words MUST, MUST NOT, SHOULD, and MAY are to be interpreted as in RFC 2119.
 
-> **If you are implementing Phase 2** (span/open-ended tokens `2027:2028`,
-> `f:2026`, `to:2028`): Part I below is already shipped — read §1–§5 to
-> understand the machinery you are extending, then work exclusively from
-> **Part II (§13 onward)**. Do not redo any Part I step.
+> Both phases are implemented. Part I (§1–§9) and Part II (§13–§19) are
+> shipped; see §18 for the Phase 2 acceptance status.
 
 ---
 
@@ -1067,19 +1065,38 @@ Red before green at every step; run the named test file after each.
    run `npx prettier --write docs/terminal-calendar-ranges.md` if you touch
    this doc, and tick the §18 boxes.
 
-## 18. Acceptance criteria (Phase 2)
+## 18. Acceptance criteria (Phase 2) — status (verified 2026-07-11)
 
-- [ ] Every §15 row holds (automated via §16; manual UI spot-check of
-      `plot reviews 2024:2025`, `plot due f:2027` recommended).
-- [ ] All Phase 1 test files pass **unmodified** (their assertions are the
-      backward-compat contract for the nullable-bounds change).
-- [ ] `git diff --stat` shows source changes ONLY in `js/utils/timeRange.js`,
-      `js/commands/reviews.js`, and the two help-text lines in
-      `js/commands/handler.js`. `js/commands/due.js` and
-      `js/commands/retention.js` are untouched.
-- [ ] `RANGE_HELP` still contains the substrings `YYYY` and `YYYYqN`.
-- [ ] Node-runner portion of `make check-node` fully green; `fmt-check`,
-      `lint`, `quality-py` clean.
+- [x] Every §15 row holds via automated tests (§16); not yet manually
+      spot-checked in the live terminal UI.
+- [x] All Phase 1 test files (`timeRange_calendar`, `reviews_calendar`,
+      `due_calendar`, `handler_calendar`, `retention_calendar`) pass with
+      their Phase 1 assertions intact — Phase 2 only _added_ cases to
+      `reviews_calendar`, `due_calendar`, and `handler_calendar`; no existing
+      assertion was edited or removed.
+- [x] `git diff --stat` shows source changes ONLY in `js/utils/timeRange.js`
+      (74 lines: `parseCalendarUnit` extraction, colon handling, nullable
+      typedef, `calendarRangeToDayOffsets` guards, `RANGE_HELP`),
+      `js/commands/reviews.js` (10 lines: null guards in
+      `calendarSliceBounds`), and 2 added lines in `js/commands/handler.js`
+      (`showHelp`/`listCharts`). `js/commands/due.js` and
+      `js/commands/retention.js` have **zero diff** — confirmed by
+      `git diff --stat js/commands/due.js` returning empty, and by the §16.3
+      due tests (10/10 green) requiring no source edit.
+- [x] `RANGE_HELP` contains `YYYY`, `YYYYqN`, and now also `f:2026`/`to:2028`
+      (pinned in `tests/timeRange_span.test.cjs` and
+      `tests/handler_calendar.test.cjs`).
+- [x] Node-runner portion of `make check-node`: 69/69 root suites green
+      (100% line coverage on `timeRange.js`; `due.js`/`retention.js`
+      coverage unchanged from Phase 1 since untouched). `fmt-check`, `lint`,
+      `quality-py` all clean. (Same pre-existing `review_heatmap` jest/Node
+      version failure as Phase 1 — see §7.5 known failure 1; not
+      Phase-2-related.)
+
+Phase 2 tests shipped: `tests/timeRange_span.test.cjs` (16 new),
+`tests/reviews_calendar.test.cjs` (+5, 9 total),
+`tests/due_calendar.test.cjs` (+4, 10 total),
+`tests/handler_calendar.test.cjs` (+5, 12 total).
 
 ## 19. Phase 2 DO-NOTs
 

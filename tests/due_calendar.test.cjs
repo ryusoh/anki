@@ -142,6 +142,56 @@ test("getFutureDueData: by-deck calendar filter mirrors the global filter", asyn
   assert.ok(deckDays.every((d) => d >= nextYearStartOffset && d <= nextYearEndOffset));
 });
 
+test("getFutureDueData: open-from 'f:<next year>' keeps everything from next-year start onward, no upper truncation", async () => {
+  freshMock();
+  const { getFutureDueData } = await import("../js/commands/due.js");
+  const result = getFutureDueData(`f:${nextYear}`);
+  const days = result.map((e) => e.day);
+  assert.strictEqual(Math.min(...days), nextYearStartOffset);
+  // The mock data's own last entry is at nextYearEndOffset -- an
+  // unbounded-future window must reach all the way to it, not truncate.
+  assert.strictEqual(Math.max(...days), nextYearEndOffset);
+});
+
+test("getFutureDueData: open-to 'to:<current year>' keeps offsets 0..end-of-current-year", async () => {
+  freshMock();
+  const { getFutureDueData } = await import("../js/commands/due.js");
+  const result = getFutureDueData(`to:${currentYear}`);
+  const days = result.map((e) => e.day);
+  assert.strictEqual(Math.min(...days), 0);
+  assert.strictEqual(Math.max(...days), currentYearEndOffset);
+});
+
+test("getFutureDueData: open-to 'to:<last year>' returns empty (array and by-deck object)", async () => {
+  freshMock();
+  const { getFutureDueData } = await import("../js/commands/due.js");
+  assert.deepStrictEqual(getFutureDueData(`to:${lastYear}`), []);
+  assert.deepStrictEqual(getFutureDueData(`to:${lastYear}`, true), {});
+});
+
+test("renderFutureDueChart: open-from 'f:<next year>' labels start at next Jan 1 through the last data day", async () => {
+  freshMock();
+  const { getFutureDueData, renderFutureDueChart } = await import(
+    "../js/commands/due.js"
+  );
+  const { parseRangeSpec } = await import("../js/utils/timeRange.js");
+  global.document = makeDomMock();
+
+  const spec = parseRangeSpec(`f:${nextYear}`);
+  const data = getFutureDueData(`f:${nextYear}`);
+  const res = renderFutureDueChart(data, false, undefined, spec);
+
+  assert.strictEqual(res.success, true);
+  assert.strictEqual(
+    capturedConfig.data.labels[0],
+    isoDate(new Date(nextYear, 0, 1)),
+  );
+  assert.strictEqual(
+    capturedConfig.data.labels.length,
+    nextYearEndOffset - nextYearStartOffset + 1,
+  );
+});
+
 test("renderFutureDueChart: next-year window labels start at next Jan 1, not day-0 padding", async () => {
   freshMock();
   const { getFutureDueData, renderFutureDueChart } = await import(

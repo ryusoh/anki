@@ -777,6 +777,7 @@ export function showHelp(appendLine) {
   appendLine("  1m-12m, 1y+ (e.g. 13y), Nd (e.g. 15d)", "muted");
   appendLine("  Combos: 1y4m, 3m9d, 2y6m15d", "muted");
   appendLine("  2025, 2023q2 (calendar year / quarter)", "muted");
+  appendLine("  2027:2028, f:2026, to:2028 (calendar spans)", "muted");
   appendLine("  all (full history)", "muted");
   appendLine("", "muted");
   appendLine("Examples:", "muted");
@@ -814,6 +815,7 @@ export function listCharts(appendLine) {
   appendLine("Time ranges:", "muted");
   appendLine("  1m-12m, 1y+, Nd, combos (1y4m, 3m9d), all", "muted");
   appendLine("  2025, 2023q2 (calendar year / quarter)", "muted");
+  appendLine("  2027:2028, f:2026, to:2028 (calendar spans)", "muted");
   appendLine("", "muted");
   appendLine("Examples:", "muted");
   appendLine("  plot due            - Next 30 days (default)", "muted");

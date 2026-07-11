@@ -13,7 +13,7 @@
 export const DEFAULT_RANGE = "1m";
 
 export const RANGE_HELP =
-  "Valid ranges: 1m-12m, 1y-Ny, Nd, combos (1y4m), YYYY (e.g. 2025), YYYYqN (e.g. 2023q2), all";
+  "Valid ranges: 1m-12m, 1y-Ny, Nd, combos (1y4m), YYYY, YYYYqN (2023q2), spans (2020:2023, f:2026, to:2028), all";
 
 // Regex that matches one or more segments: Ny, Nm, Nd (in any order, but
 // the entire string must be consumed by these segments).
@@ -78,7 +78,7 @@ export function formatRange(rangeKey) {
 /**
  * @typedef {{ kind: "duration", days: number }
  *         | { kind: "all" }
- *         | { kind: "calendar", from: string, to: string, label: string }} RangeSpec
+ *         | { kind: "calendar", from: string|null, to: string|null, label: string }} RangeSpec
  */
 
 const CALENDAR_RE = /^(\d{4})(?:q([1-4]))?$/;
@@ -92,13 +92,11 @@ const MIN_YEAR = 1970;
 const MAX_YEAR = 2099;
 
 /**
- * Parse a calendar token ("2025", "2023q2") into a calendar RangeSpec.
- * @param {string} rangeKey
- * @returns {RangeSpec|undefined} calendar spec, or undefined if not calendar
+ * Parse one calendar unit ("2025", "2023q2") -> {from, to, label},
+ * or undefined. Both bounds are always non-null for a unit.
  */
-export function parseCalendarRange(rangeKey) {
-  if (!rangeKey || typeof rangeKey !== "string") return undefined;
-  const match = rangeKey.trim().toLowerCase().match(CALENDAR_RE);
+function parseCalendarUnit(token) {
+  const match = token.match(CALENDAR_RE);
   if (!match) return undefined;
   const year = parseInt(match[1], 10);
   if (year < MIN_YEAR || year > MAX_YEAR) return undefined;
@@ -106,18 +104,69 @@ export function parseCalendarRange(rangeKey) {
     const quarter = parseInt(match[2], 10);
     const [start, end] = QUARTER_BOUNDS[quarter];
     return {
-      kind: "calendar",
       from: `${year}-${start}`,
       to: `${year}-${end}`,
       label: `${year} Q${quarter}`,
     };
   }
   return {
-    kind: "calendar",
     from: `${year}-01-01`,
     to: `${year}-12-31`,
     label: `${year}`,
   };
+}
+
+/**
+ * Parse a calendar token into a calendar RangeSpec.
+ * Single units: "2025", "2023q2".
+ * Spans:        "2020:2023", "2023q1:2024q2", "2023:2024q2".
+ * Open-ended:   "f:2026" / "from:2026" (from unit start, no upper bound),
+ *               "to:2028" (up to unit end, no lower bound).
+ * @param {string} rangeKey
+ * @returns {RangeSpec|undefined} calendar spec, or undefined if not calendar
+ */
+export function parseCalendarRange(rangeKey) {
+  if (!rangeKey || typeof rangeKey !== "string") return undefined;
+  const key = rangeKey.trim().toLowerCase();
+  if (key.includes(":")) {
+    const parts = key.split(":");
+    if (parts.length !== 2 || !parts[0] || !parts[1]) return undefined;
+    const [head, tail] = parts;
+    if (head === "f" || head === "from") {
+      const unit = parseCalendarUnit(tail);
+      if (!unit) return undefined;
+      return {
+        kind: "calendar",
+        from: unit.from,
+        to: null,
+        label: `from ${unit.label}`,
+      };
+    }
+    if (head === "to") {
+      const unit = parseCalendarUnit(tail);
+      if (!unit) return undefined;
+      return {
+        kind: "calendar",
+        from: null,
+        to: unit.to,
+        label: `to ${unit.label}`,
+      };
+    }
+    const left = parseCalendarUnit(head);
+    const right = parseCalendarUnit(tail);
+    if (!left || !right) return undefined;
+    // ISO strings compare lexicographically; reject inverted spans.
+    if (left.from > right.to) return undefined;
+    return {
+      kind: "calendar",
+      from: left.from,
+      to: right.to,
+      label: `${left.label} to ${right.label}`,
+    };
+  }
+  const unit = parseCalendarUnit(key);
+  if (!unit) return undefined;
+  return { kind: "calendar", from: unit.from, to: unit.to, label: unit.label };
 }
 
 /**
@@ -148,7 +197,8 @@ export function calendarRangeToDayOffsets(spec, now = new Date()) {
     return new Date(y, m - 1, d);
   };
   const diff = (target) => Math.round((target - today) / 86400000);
-  const end = diff(toLocal(spec.to));
+  const end = spec.to === null ? Infinity : diff(toLocal(spec.to));
   if (end < 0) return null;
-  return { start: Math.max(0, diff(toLocal(spec.from))), end };
+  const start = spec.from === null ? 0 : Math.max(0, diff(toLocal(spec.from)));
+  return { start, end };
 }

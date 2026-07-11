@@ -115,6 +115,65 @@ test("getReviewStatsData: by-deck calendar filter pads window and sums pre-windo
   assert.strictEqual(deckAWindow[2].count, 2);
 });
 
+test("getReviewStatsData: open-from 'f:' keeps everything on/after the unit start", async () => {
+  freshMock();
+  const { getReviewStatsData } = await import("../js/commands/reviews.js");
+  const result = getReviewStatsData("f:2025");
+  assert.deepStrictEqual(
+    result.map((e) => e.date),
+    ["2025-01-01", "2025-01-03", "2025-06-30", "2026-01-01"],
+  );
+  assert.deepStrictEqual(result.preSliceSum, {
+    ...ZERO_SUM,
+    mature: 3,
+    time: 30,
+  });
+});
+
+test("getReviewStatsData: open-to 'to:' keeps everything through the unit end, zero pre-sum", async () => {
+  freshMock();
+  const { getReviewStatsData } = await import("../js/commands/reviews.js");
+  const result = getReviewStatsData("to:2024");
+  assert.deepStrictEqual(
+    result.map((e) => e.date),
+    ["2024-12-30", "2024-12-31"],
+  );
+  assert.deepStrictEqual(result.preSliceSum, ZERO_SUM);
+});
+
+test("getReviewStatsData: year:year span covers both years, zero pre-sum", async () => {
+  freshMock();
+  const { getReviewStatsData } = await import("../js/commands/reviews.js");
+  const result = getReviewStatsData("2024:2025");
+  assert.deepStrictEqual(
+    result.map((e) => e.date),
+    ["2024-12-30", "2024-12-31", "2025-01-01", "2025-01-03", "2025-06-30"],
+  );
+  assert.deepStrictEqual(result.preSliceSum, ZERO_SUM);
+});
+
+test("getReviewStatsData: by-deck open-from filter pads window and sums pre-window deck entries", async () => {
+  freshMock();
+  const { getReviewStatsData } = await import("../js/commands/reviews.js");
+  const result = getReviewStatsData("f:2025", true);
+  assert.deepStrictEqual(result.dates, [
+    "2025-01-01",
+    "2025-01-03",
+    "2025-06-30",
+    "2026-01-01",
+  ]);
+  assert.deepStrictEqual(result.preSliceSumsByDeck.DeckA, {
+    count: 3,
+    time: 30,
+  });
+  const deckAWindow = result.byDeck.DeckA;
+  assert.strictEqual(deckAWindow.length, 4);
+  assert.strictEqual(deckAWindow[0].count, 1);
+  assert.strictEqual(deckAWindow[1].count, 0);
+  assert.strictEqual(deckAWindow[2].count, 2);
+  assert.strictEqual(deckAWindow[3].count, 0);
+});
+
 test("getReviewStatsData: duration '1m' and 'all' still return every entry, unchanged", async () => {
   freshMock();
   const { getReviewStatsData } = await import("../js/commands/reviews.js");

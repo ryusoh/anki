@@ -27,9 +27,15 @@ export function destroyCharts() {
  */
 function calendarSliceBounds(entries, spec) {
   let start = 0;
-  while (start < entries.length && entries[start].date < spec.from) start++;
+  if (spec.from !== null) {
+    while (start < entries.length && entries[start].date < spec.from) start++;
+  }
   let end = start;
-  while (end < entries.length && entries[end].date <= spec.to) end++;
+  if (spec.to === null) {
+    end = entries.length;
+  } else {
+    while (end < entries.length && entries[end].date <= spec.to) end++;
+  }
   return { start, end };
 }
 

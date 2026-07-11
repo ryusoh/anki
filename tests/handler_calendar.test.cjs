@@ -129,10 +129,61 @@ test("handleCommand: out-of-bounds calendar year is an invalid range, not a cras
   assert.ok(lines.some((l) => l.text.includes("Unknown range: 2101")));
 });
 
-test("RANGE_HELP: exported from handler.js and mentions calendar tokens", async () => {
+test("handleCommand: 'plot reviews 2024:2025' routes to plot-reviews with the span range", async () => {
+  const { handleCommand } = await import("../js/commands/handler.js");
+  const { lines, appendLine } = captureLines();
+  const result = handleCommand("plot reviews 2024:2025", appendLine);
+  assert.strictEqual(result.handled, true);
+  assert.strictEqual(result.command, "plot-reviews");
+  assert.strictEqual(result.range, "2024:2025");
+  assert.ok(!lines.some((l) => l.text.includes("Unknown range")));
+});
+
+test("handleCommand: bare open-from token re-renders the current chart (shortcut path)", async () => {
+  const { handleCommand } = await import("../js/commands/handler.js");
+  const { appendLine } = captureLines();
+  handleCommand("plot reviews", appendLine);
+  const result = handleCommand("f:2026", appendLine);
+  assert.strictEqual(result.handled, true);
+  assert.ok(result.command.startsWith("reviews"));
+  assert.strictEqual(result.range, "f:2026");
+});
+
+test("handleCommand: 'plot due to:2028' routes to plot-due with the open-to range", async () => {
+  const { handleCommand } = await import("../js/commands/handler.js");
+  const { appendLine } = captureLines();
+  const result = handleCommand("plot due to:2028", appendLine);
+  assert.strictEqual(result.handled, true);
+  assert.strictEqual(result.command, "plot-due");
+  assert.strictEqual(result.range, "to:2028");
+});
+
+test("handleCommand: inverted span is an invalid range, not a crash", async () => {
+  const { handleCommand } = await import("../js/commands/handler.js");
+  const { lines, appendLine } = captureLines();
+  const result = handleCommand("plot reviews 2023:2020", appendLine);
+  assert.strictEqual(result.handled, true);
+  assert.strictEqual(result.error, "invalid range");
+  assert.ok(lines.some((l) => l.text.includes("Unknown range: 2023:2020")));
+});
+
+test("RANGE_HELP: exported from handler.js and mentions calendar tokens and spans", async () => {
   const { RANGE_HELP } = await import("../js/commands/handler.js");
   assert.ok(RANGE_HELP.includes("YYYY"));
   assert.ok(RANGE_HELP.includes("YYYYqN"));
+  assert.ok(RANGE_HELP.includes("f:2026"));
+  assert.ok(RANGE_HELP.includes("to:2028"));
+});
+
+test("showHelp and listCharts: mention calendar spans", async () => {
+  const { showHelp, listCharts } = await import("../js/commands/handler.js");
+  const helpLines = [];
+  showHelp((text) => helpLines.push(text));
+  assert.ok(helpLines.some((l) => l.includes("f:2026")));
+
+  const chartLines = [];
+  listCharts((text) => chartLines.push(text));
+  assert.ok(chartLines.some((l) => l.includes("f:2026")));
 });
 
 test("handleCommand: invalid-range hint text uses RANGE_HELP, not the old literal", async () => {
