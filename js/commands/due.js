@@ -168,6 +168,9 @@ export function renderFutureDueChart(
   const numDays = maxDay - minDay + 1;
   const labels = new Array(numDays);
   const isCalendar = rangeSpec && rangeSpec.kind === "calendar";
+  // Calendar mode labels the axis with real dates, but the hover tooltip
+  // keeps the relative-offset form (Today/Tomorrow/+Nd) duration mode uses.
+  const tooltipTitles = isCalendar ? new Array(numDays) : null;
   const base = new Date();
   const todayLocal = new Date(
     base.getFullYear(),
@@ -176,6 +179,8 @@ export function renderFutureDueChart(
   );
   for (let i = 0; i < numDays; i++) {
     const day = minDay + i;
+    const offsetLabel =
+      day === 0 ? "Today" : day === 1 ? "Tomorrow" : `+${day}d`;
     if (isCalendar) {
       const d = new Date(
         todayLocal.getFullYear(),
@@ -185,12 +190,9 @@ export function renderFutureDueChart(
       const mm = String(d.getMonth() + 1).padStart(2, "0");
       const dd = String(d.getDate()).padStart(2, "0");
       labels[i] = `${d.getFullYear()}-${mm}-${dd}`;
-    } else if (day === 0) {
-      labels[i] = "Today";
-    } else if (day === 1) {
-      labels[i] = "Tomorrow";
+      tooltipTitles[i] = offsetLabel;
     } else {
-      labels[i] = `+${day}d`;
+      labels[i] = offsetLabel;
     }
   }
 
@@ -266,7 +268,15 @@ export function renderFutureDueChart(
         legend.style.display = "flex";
       }
 
-      finishRenderDue(canvas, labels, datasets, legend, section, byDeck);
+      finishRenderDue(
+        canvas,
+        labels,
+        datasets,
+        legend,
+        section,
+        byDeck,
+        tooltipTitles,
+      );
     });
     return { success: true }; // async render
   } else {
@@ -336,11 +346,27 @@ export function renderFutureDueChart(
       legend.style.display = "flex";
     }
 
-    return finishRenderDue(canvas, labels, datasets, legend, section, byDeck);
+    return finishRenderDue(
+      canvas,
+      labels,
+      datasets,
+      legend,
+      section,
+      byDeck,
+      tooltipTitles,
+    );
   }
 }
 
-function finishRenderDue(canvas, labels, datasets, legend, section, byDeck) {
+function finishRenderDue(
+  canvas,
+  labels,
+  datasets,
+  legend,
+  section,
+  byDeck,
+  tooltipTitles = null,
+) {
   const ctx = canvas.getContext("2d");
   try {
     futureChart = new Chart(ctx, {
@@ -382,7 +408,10 @@ function finishRenderDue(canvas, labels, datasets, legend, section, byDeck) {
               title: (items) => {
                 let title = "";
                 for (let i = 0; i < items.length; i++) {
-                  title += (i > 0 ? "\n" : "") + items[i].label;
+                  const text = tooltipTitles
+                    ? tooltipTitles[items[i].dataIndex]
+                    : items[i].label;
+                  title += (i > 0 ? "\n" : "") + text;
                 }
                 return title;
               },

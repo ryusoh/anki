@@ -1111,3 +1111,20 @@ Phase 2 tests shipped: `tests/timeRange_span.test.cjs` (16 new),
    for it — `all` already covers that).
 6. All Part I DO-NOTs (§6) still apply, especially: no `new Date("YYYY-MM-DD")`,
    no index arithmetic on review dates, no trie changes, run from repo root.
+
+---
+
+# Amendments (post-Phase-2)
+
+## A1 (2026-07-11): due-chart tooltip shows relative offsets in calendar mode
+
+User feedback after shipping: hovering a calendar-filtered due chart showed
+the date (the axis label) in the tooltip title; it should show the same
+relative-offset form (`Today` / `Tomorrow` / `+Nd`) that duration filters
+show. Implemented TDD in `js/commands/due.js`: `renderFutureDueChart` builds
+a `tooltipTitles` array parallel to the date labels in calendar mode and the
+tooltip title callback prefers it (falling back to the axis label in
+duration mode, which is unchanged). Axis labels remain real dates — only the
+hover tooltip switches. Pinned by four cases in `tests/due_calendar.test.cjs`
+("tooltip title: …"). This supersedes the §5.4 note that labels alone carry
+the calendar context.

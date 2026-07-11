@@ -200,3 +200,87 @@ test("renderFutureDueChart: duration-mode labels are unchanged (Today, Tomorrow,
     "+2d",
   ]);
 });
+
+test("tooltip title: calendar next-year window shows +XXXd offsets, not the date", async () => {
+  freshMock();
+  const { getFutureDueData, renderFutureDueChart } = await import(
+    "../js/commands/due.js"
+  );
+  const { parseRangeSpec } = await import("../js/utils/timeRange.js");
+  global.document = makeDomMock();
+
+  const spec = parseRangeSpec(String(nextYear));
+  const data = getFutureDueData(String(nextYear));
+  renderFutureDueChart(data, false, undefined, spec);
+
+  const title = getLastConfig().options.plugins.tooltip.callbacks.title;
+  const jan1Label = isoDate(new Date(nextYear, 0, 1));
+  assert.strictEqual(
+    title([{ label: jan1Label, dataIndex: 0 }]),
+    `+${nextYearStartOffset}d`,
+  );
+  assert.strictEqual(
+    title([{ label: isoDate(new Date(nextYear, 0, 11)), dataIndex: 10 }]),
+    `+${nextYearStartOffset + 10}d`,
+  );
+  // axis labels stay dates — only the tooltip switches to offsets
+  assert.strictEqual(getLastConfig().data.labels[0], jan1Label);
+});
+
+test("tooltip title: calendar window starting today uses Today/Tomorrow like duration mode", async () => {
+  freshMock();
+  const { getFutureDueData, renderFutureDueChart } = await import(
+    "../js/commands/due.js"
+  );
+  const { parseRangeSpec } = await import("../js/utils/timeRange.js");
+  global.document = makeDomMock();
+
+  const spec = parseRangeSpec(String(currentYear));
+  const data = getFutureDueData(String(currentYear));
+  renderFutureDueChart(data, false, undefined, spec);
+
+  const title = getLastConfig().options.plugins.tooltip.callbacks.title;
+  assert.strictEqual(title([{ label: "whatever", dataIndex: 0 }]), "Today");
+  assert.strictEqual(title([{ label: "whatever", dataIndex: 1 }]), "Tomorrow");
+  assert.strictEqual(title([{ label: "whatever", dataIndex: 2 }]), "+2d");
+});
+
+test("tooltip title: multiple calendar items join with newline", async () => {
+  freshMock();
+  const { getFutureDueData, renderFutureDueChart } = await import(
+    "../js/commands/due.js"
+  );
+  const { parseRangeSpec } = await import("../js/utils/timeRange.js");
+  global.document = makeDomMock();
+
+  const spec = parseRangeSpec(String(nextYear));
+  renderFutureDueChart(getFutureDueData(String(nextYear)), false, undefined, spec);
+
+  const title = getLastConfig().options.plugins.tooltip.callbacks.title;
+  assert.strictEqual(
+    title([
+      { label: "x", dataIndex: 0 },
+      { label: "y", dataIndex: 1 },
+    ]),
+    `+${nextYearStartOffset}d\n+${nextYearStartOffset + 1}d`,
+  );
+});
+
+test("tooltip title: duration mode still echoes the item label", async () => {
+  freshMock();
+  const { renderFutureDueChart } = await import("../js/commands/due.js");
+  global.document = makeDomMock();
+
+  renderFutureDueChart(
+    [
+      { day: 0, mature: 1, young: 1 },
+      { day: 1, mature: 1, young: 1 },
+    ],
+    false,
+    null,
+    null,
+  );
+
+  const title = getLastConfig().options.plugins.tooltip.callbacks.title;
+  assert.strictEqual(title([{ label: "Tomorrow", dataIndex: 1 }]), "Tomorrow");
+});
