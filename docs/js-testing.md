@@ -38,18 +38,57 @@ existed, and nothing failed.)
   `tests/handler_calendar.test.cjs`) — that's a deliberate second idiom, not
   a gap to unify.
 
-## jsdom version constraint (pinned to ^27.3.0)
+## jsdom version constraint (pinned to exactly 27.0.0)
 
-`jsdom` is pinned to `^27.3.0` in `package.json`. **Do not upgrade past 27.x**
-without verifying Jest compatibility.
+`jsdom` is pinned to the **exact** version `27.0.0` in `package.json`
+(`"jsdom": "27.0.0"`, no `^`) — a caret range will drift forward on
+`npm install` and silently reintroduce the breakage below (this happened
+once already: `^27.3.0` resolved to `27.4.0`, which is broken). **Do not
+change the jsdom version, and do not add a `^`/`~`, without re-running
+`NODE_OPTIONS="--experimental-vm-modules --no-warnings" npx jest
+review_heatmap/tests/` and confirming both suites still pass** — nothing in
+`make check-node`/`make precommit` catches jsdom drift on its own; see the
+"why `precommit-fix` can't catch this" note below.
 
-**Why**: Starting at jsdom 27.4.0, the dependency chain
-`jsdom → html-encoding-sniffer@^6 → @exodus/bytes` introduces an ESM-only
-package. Jest's CJS `require()` cannot load ESM-only packages on Node < 24.9,
-so the `review_heatmap/tests/` jest suites crash at import time. jsdom 27.3.0
-is the last version using `html-encoding-sniffer@^4` (pure CJS).
+**Why**: Node's native ESM `import()` handles real ESM packages fine (which
+is why the many `tests/*.test.mjs` files that `import { JSDOM } from
+"jsdom"` are unaffected), but Jest's CJS `require()` cannot load an ESM-only
+package without Node 24.9+'s synchronous vm-module APIs. jsdom's own code
+does an eager, top-level, synchronous `require()` of its dependencies, so if
+any package in that chain is ESM-only, the two `review_heatmap/tests/` jest
+suites crash at import time — regardless of Jest's own
+`--experimental-vm-modules` flag, since the failure happens inside jsdom's
+require graph, not in Jest's test-file loading.
 
-**Known behavioral gaps vs. jsdom 28+**:
+Diagnosed 2026-07-11 (confirmed empirically by re-running the jest suite
+after each change, not by reasoning about version numbers alone — an earlier
+attempt at this fix pinned `^27.3.0` and declared it fixed without
+re-verifying against a clean `npm ci`, and it was not: see below). Three
+**independent** transitive dependencies of jsdom have each gone ESM-only in
+recent releases; all three had to be pinned away simultaneously:
+
+| Culprit                                                     | Introduced at                                                                                                                                                                                                            | Safe below                                                                                                                                                                   |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `html-encoding-sniffer` → `@exodus/bytes`                   | `jsdom@27.4.0`+ (bumps to `html-encoding-sniffer@^6`)                                                                                                                                                                    | `jsdom@27.0.0`–`27.3.0` (any keeps `html-encoding-sniffer@^4`)                                                                                                               |
+| `parse5`                                                    | `jsdom@27.0.1`+ (bumps to `parse5@^8.0.0`, ESM-only)                                                                                                                                                                     | `jsdom@27.0.0` only (the sole 27.x release still on `parse5@^7.3.0`)                                                                                                         |
+| `cssstyle` → `@asamuzakjp/css-color` → `@csstools/css-calc` | `@asamuzakjp/css-color@4.1.2`+ (bumps to `css-calc@^3.0.0`, ESM-only) — `cssstyle@^5.x` (required by every jsdom 27.x) always pulls in `@asamuzakjp/css-color`, so this can't be avoided by a jsdom version choice alone | forced via `package.json`'s `overrides["@asamuzakjp/css-color"] = "4.1.0"` (still depends on `@csstools/css-calc@^2.1.4`, which has a `main: dist/index.cjs` — dual CJS/ESM) |
+
+So the fix is **both** "pin jsdom to exactly `27.0.0`" (avoids the first two)
+**and** the `@asamuzakjp/css-color` override in `package.json` (avoids the
+third) — pinning jsdom alone is not sufficient.
+
+**Why `make precommit-fix SKIP=1` can't catch or fix this**: the Makefile's
+`install` target now runs `npm ci` (added 2026-07-11 for exactly this
+reason), so a fresh `make install` / `make precommit-fix` will resync
+`node_modules` to whatever `package.json`/`package-lock.json` currently say —
+but it cannot know if package.json's declared version is _itself_ wrong
+(e.g. reverted to a caret range, or the override removed). Verifying the
+actual jsdom/css-color/parse5 versions landed correctly requires re-running
+the jest suite (above), not just `make check-node`'s exit code, since a
+broken `node_modules` state fails loudly and a merely-different-but-still-
+broken one can look identical from the outside without careful diffing.
+
+**Known behavioral gaps vs. jsdom 28+** (both still apply at 27.0.0):
 
 - **`Blob.prototype.arrayBuffer()`** — missing in jsdom 27. Tests that need it
   should call `polyfillBlobArrayBuffer(window)` from
@@ -58,9 +97,21 @@ is the last version using `html-encoding-sniffer@^4` (pure CJS).
   jsdom 27 (vs. `"0px"` in 28+). Both are valid CSS; assertions should expect
   `"0"`.
 
+**Automated dependency bumpers are a live risk to this pin** —
+`.github/workflows/dependency-auto-resolver.yml` runs
+`npm install undici@latest jsdom@latest` on a schedule (Monday 10 AM UTC) and
+via manual dispatch, and `.github/dependabot.yml` groups minor/patch updates
+for production dependencies (which includes `jsdom`). Either could open a PR
+that silently reintroduces this exact breakage. As of 2026-07-11 neither has
+been adjusted to respect this pin — that requires a CI/workflow-file decision
+outside the scope of a docs fix; flag it to a human before merging any PR
+either of them opens that touches `jsdom`, `@asamuzakjp/css-color`, `parse5`,
+or `html-encoding-sniffer`.
+
 **Upgrade path**: When the project moves to Node 24.9+ (or Jest drops the
-synchronous CJS→ESM restriction), bump jsdom, remove the polyfill guard, and
-update zero-value assertions.
+synchronous CJS→ESM restriction), bump jsdom freely, drop the
+`@asamuzakjp/css-color` override, remove the polyfill guard, and update
+zero-value assertions.
 
 ## Testing browser-side scripts
 

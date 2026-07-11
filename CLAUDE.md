@@ -37,6 +37,12 @@ card? Same doc's "Field HTML reality" section — start with
   invoke coverage as `python3 -m coverage`, never bare `coverage`.
 - `check-py` needs `pytest-cov` (in `requirements.txt`; `make install` first) and,
   for `graph/tests`, `networkx`.
+- **`make install` also runs `npm ci`**, syncing `node_modules` exactly to
+  `package-lock.json`. `make check-node`/`precommit` never install JS deps
+  themselves — a stale `node_modules` can silently drift from a changed
+  `package.json` and nothing in the gate will catch it except re-running the
+  affected suite. See `docs/js-testing.md`'s jsdom pin note for a case where
+  this bit us.
 - **Python dev/lint tools need a venv.** System `python3` is Homebrew and
   externally-managed (PEP 668), so a bare `pip3 install` of ruff/black/mypy/bandit is
   blocked. Install the pinned tools into a venv: `make install-dev` (or

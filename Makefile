@@ -57,6 +57,8 @@ help:
 install:
 	@echo "📦 Installing Python dependencies..."
 	@pip3 install -q -r requirements.txt
+	@echo "📦 Syncing JS dependencies (npm ci, respects package-lock.json exactly)..."
+	@npm ci
 	@echo "✅ Dependencies installed"
 
 install-dev:

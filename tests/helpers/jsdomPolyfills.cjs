@@ -1,10 +1,7 @@
 /**
- * Polyfills for jsdom behavioral gaps under the pinned version (^27.3.0).
- *
- * jsdom is pinned to 27.x because 27.4+ pulls in html-encoding-sniffer@6
- * which depends on @exodus/bytes (ESM-only). Jest's CJS require() cannot
- * load ESM-only packages on Node < 24.9, so upgrading jsdom breaks the
- * review_heatmap jest suites.
+ * Polyfills for jsdom behavioral gaps under the pinned version (exactly
+ * 27.0.0 -- see "jsdom version constraint" in docs/js-testing.md for the
+ * full three-culprit ESM-only dependency-chain rationale).
  *
  * jsdom 27's Blob does not expose .arrayBuffer(). Tests that exercise
  * production code calling blob.arrayBuffer() (e.g. stats_page_customizer's
