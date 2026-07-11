@@ -1,15 +1,24 @@
 # Design spec: year/quarter calendar time filters for the stats terminal
 
-|                                         |                                                                                             |
-| --------------------------------------- | ------------------------------------------------------------------------------------------- |
-| **Status**                              | Approved for implementation (design complete, no code written)                              |
-| **Issue**                               | [ryusoh/anki#403 — feat: year based time filter](https://github.com/ryusoh/anki/issues/403) |
-| **Date**                                | 2026-07-11                                                                                  |
-| **Scope**                               | `js/utils/timeRange.js`, `js/commands/{reviews,due,retention,handler}.js`, root `tests/`    |
-| **Audience**                            | The implementing agent. Follow this doc literally; every decision is already made.          |
-| **Reference implementation researched** | `~/dev/fund/js/` (the fund repo's terminal — same author, same UX conventions)              |
+|                                         |                                                                                                                                                   |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**                              | Phase 1 (single tokens, §1–§9): **implemented 2026-07-11**, all gates green. Phase 2 (spans, Part II §13–§19): designed, awaiting implementation. |
+| **Issue**                               | [ryusoh/anki#403 — feat: year based time filter](https://github.com/ryusoh/anki/issues/403)                                                       |
+| **Date**                                | 2026-07-11                                                                                                                                        |
+| **Scope**                               | `js/utils/timeRange.js`, `js/commands/{reviews,due,retention,handler}.js`, root `tests/`                                                          |
+| **Audience**                            | The implementing agent. Follow this doc literally; every decision is already made.                                                                |
+| **Reference implementation researched** | `~/dev/fund/js/` (the fund repo's terminal — same author, same UX conventions)                                                                    |
 
 The key words MUST, MUST NOT, SHOULD, and MAY are to be interpreted as in RFC 2119.
+
+> **If you are implementing Phase 2** (span/open-ended tokens `2027:2028`,
+> `f:2026`, `to:2028`): Part I below is already shipped — read §1–§5 to
+> understand the machinery you are extending, then work exclusively from
+> **Part II (§13 onward)**. Do not redo any Part I step.
+
+---
+
+# Part I — Phase 1: single calendar tokens (IMPLEMENTED)
 
 ---
 
@@ -87,11 +96,12 @@ lexicographically.
 
 ### 2.5 What we deliberately do NOT port (non-goals, v1)
 
-| Fund feature                                                          | Why cut                                                                                          |
-| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Bare `q2` with `lastContextYear` (`dateUtils.js:8`)                   | Cross-module mutable state; not in the issue's examples. Deferred (§10).                         |
-| `from <tok>` / `<tok> to <tok>` / `f:<tok>` / `2020:2023` span syntax | Multi-token grammar collides with this terminal's `[range]`-is-one-token design. Deferred (§10). |
-| `mode: 'start'/'end'` half-open ranges (`date.js:314-319`)            | Only needed for the `from`/`to` syntax above.                                                    |
+| Fund feature                                               | Why cut from Phase 1                                                                             |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Bare `q2` with `lastContextYear` (`dateUtils.js:8`)        | Cross-module mutable state; not in the issue's examples. Deferred (§10).                         |
+| Colon syntax `f:<tok>` / `to:<tok>` / `<tok>:<tok>`        | Single-token, so it DOES fit our grammar — **ported in Phase 2 (Part II, §13)**, not deferred.   |
+| Multi-word `from <tok>` / `<tok> to <tok>`                 | Multi-token grammar collides with this terminal's `[range]`-is-one-token design. Deferred (§10). |
+| `mode: 'start'/'end'` half-open ranges (`date.js:314-319`) | Subsumed by Phase 2's nullable `from`/`to` bounds (§14.2) — no separate mode parameter needed.   |
 
 ---
 
@@ -617,6 +627,19 @@ that hardcode `"Valid ranges: 1m-12m, 1y-Ny, all"`, which may be updated to
 `RANGE_HELP` (search `tests/` for that literal first and list the hits in the
 PR description).
 
+**Known pre-existing failures — NOT yours to fix** (both confirmed present on
+a clean tree via `git stash` on 2026-07-11; do not chase them):
+
+1. `review_heatmap/tests/` under jest fails to even load
+   (`Jest's require(ESM) requires Node v24.9+`) — a local Node/jest version
+   mismatch. This makes the _tail_ of `make check-node` (and therefore
+   `make precommit`) exit non-zero in this environment. The bar for this
+   feature is: **all 68+ root `tests/` suites green in the node-runner
+   portion of `make check-node`**, plus `fmt-check`/`lint`/`quality-py` clean.
+2. `tests/handler_coverage.test.cjs` prints
+   `FAIL: span.setAttribute is not a function` mid-run but exits 0 (homegrown
+   runner, doesn't set the exit code) — cosmetic, pre-existing.
+
 ---
 
 ## 8. Implementation order (one commit per step is fine)
@@ -639,24 +662,34 @@ PR description).
 
 ---
 
-## 9. Acceptance criteria
+## 9. Acceptance criteria — Phase 1 status (verified 2026-07-11)
 
 - [ ] Every row of the §4.2 behavior matrix holds when run manually in the
-      terminal UI against the live JSON.
-- [ ] All §7 tests pass via `make check-node`; `make precommit` is green.
-- [ ] `git grep "Valid ranges: 1m-12m, 1y-Ny, all"` returns nothing.
-- [ ] No changes under `js/utils/trie.js`, `js/terminal.js`, or the Python
+      terminal UI against the live JSON. _(Not yet manually exercised — only
+      pinned by the automated suites below.)_
+- [x] All §7 tests pass via the node-runner portion of `make check-node`
+      (68/68 suites, 100% line coverage on every touched file); `fmt-check`,
+      `lint`, `quality-py`, `check-py` all green. (`make precommit` cannot
+      fully pass in this environment — see §7.5 known failure 1.)
+- [x] `git grep "Valid ranges: 1m-12m, 1y-Ny, all"` returns nothing in source
+      (only this doc mentions the old literal, descriptively).
+- [x] No changes under `js/utils/trie.js`, `js/terminal.js`, or the Python
       exporters.
-- [ ] Duration ranges (`1m`, `2y6m15d`, `all`) behave byte-identically
+- [x] Duration ranges (`1m`, `2y6m15d`, `all`) behave byte-identically
       (regression cases in §7.2/§7.3).
 
-## 10. Deferred (explicitly out of scope, do not implement)
+Phase 1 tests shipped: `tests/timeRange_calendar.test.cjs` (19),
+`tests/reviews_calendar.test.cjs` (5), `tests/due_calendar.test.cjs` (6),
+`tests/retention_calendar.test.cjs` (3), `tests/handler_calendar.test.cjs` (7).
+
+## 10. Deferred (out of scope for BOTH phases, do not implement)
 
 - Bare `qN` with a remembered context year (fund `dateUtils.js:8-65`).
-- Span syntax: `2020:2023`, `2023q1:2024q2`, `from 2023`, `<a> to <b>`
-  (fund `dateUtils.js:74-187,258-337`). If added later, it slots into
-  `parseRangeSpec` without touching consumers.
-- Month tokens (`2025-03`) — natural extension of `CALENDAR_RE`.
+- Multi-word span syntax: `from 2023`, `2023 to 2024` (fund
+  `dateUtils.js:74-187`) — multi-token, collides with the one-token `[range]`
+  grammar. The colon forms (`2020:2023`, `f:2026`, `to:2028`) are NOT
+  deferred — they are Phase 2 (Part II).
+- Month tokens (`2025-03`) — natural extension of the token grammar.
 - Autocomplete/trie entries for calendar tokens.
 
 ## 11. Open questions / unverified
@@ -681,3 +714,385 @@ PR description).
 | Reviews/due/retention data access          | `js/commands/reviews.js:20-153`, `js/commands/due.js:21-57`, `js/commands/retention.js:172-191`                         |
 | Data-shape measurements (gaps, invariants) | `data/anki/review_stats_data.json`, `data/anki/custom_stats_data.json`, measured 2026-07-11                             |
 | Test conventions                           | `tests/timeRange.test.cjs`, `tests/handler_coverage.test.cjs`, `tools/node_test_runner.mjs:11-23`, `docs/js-testing.md` |
+
+---
+
+# Part II — Phase 2: span and open-ended range tokens (TO IMPLEMENT)
+
+Everything in Part II assumes Phase 1 is already merged (it is — see the
+status table). Line numbers below cite the **post-Phase-1** source as of
+2026-07-11. Re-verify each cited line before editing; if it has drifted,
+locate the construct by name, not by number.
+
+## 13. Summary and grammar
+
+Phase 2 ports the fund's **colon syntax** (`parseSimplifiedDateRange`,
+`~/dev/fund/js/transactions/terminal/dateUtils.js:258-337`) — the remaining
+feature-parity gap named in the follow-up request: `2027:2028`, `f:2026`,
+`to:2028`. These are all **single tokens** (no spaces), so they fit the
+one-token `[range]` grammar and — exactly as in Phase 1 §3.2 — **the router
+needs zero changes**. Verified 2026-07-11: all four example tokens currently
+return `isValidRange(...) === false` / `parseRangeSpec(...) === undefined`,
+so there is no grammar collision to migrate around.
+
+### 13.1 Grammar (normative)
+
+```
+range      = duration | calendar            ; duration UNCHANGED (Part I)
+calendar   = unit | span | open-from | open-to
+unit       = year | quarter                  ; Phase 1 tokens, UNCHANGED
+span       = unit ":" unit                   ; e.g. 2020:2023, 2023q1:2024q2, 2023:2024q2
+open-from  = ("f" / "from") ":" unit         ; e.g. f:2026, from:2026, f:2023q2
+open-to    = "to" ":" unit                   ; e.g. to:2028, to:2023q2
+```
+
+- One colon exactly; a token containing a colon MUST split into exactly two
+  non-empty parts (`"2023::2024"` and `":2023"` and `"2023:"` are invalid).
+- Whitespace inside the token is invalid (`"2020 : 2023"` — the router only
+  ever hands us whitespace-free tokens anyway, but the parser MUST NOT strip
+  interior spaces).
+- Each `unit` obeys the Phase 1 rules verbatim: 1970–2099 bounds,
+  case-insensitive `q`, quarter table from §5.1(4). The right side of `f:` /
+  `to:` MUST be a calendar unit — `f:3m`, `to:all`, `f:2101` are invalid.
+- **Span resolution:** `A:B` → `{from: A.from, to: B.to}`. Validity rule:
+  `A.from <= B.to` as a plain ISO-string comparison. This makes
+  `2023:2020` and `2023q2:2023q1` invalid, while `2023:2023` (≡ `2023`) and
+  `2023:2023q1` (Jan 1 – Mar 31) are valid. NOTE this is deliberately more
+  general than the fund, which only allows year:year or quarter:quarter
+  (`dateUtils.js:301-333`) — we also accept mixed `2023:2024q2`; it falls out
+  of the same code path for free.
+- **Labels** (used by `formatRange` and chart messages): span →
+  `"<A.label> to <B.label>"` (e.g. `"2027 to 2028"`, `"2023 Q1 to 2024 Q2"`);
+  open-from → `"from <unit.label>"`; open-to → `"to <unit.label>"`. Do not
+  special-case `A === B` — `"2023 to 2023"` is acceptable output.
+
+### 13.2 Nullable bounds — the one semantic change
+
+The calendar `RangeSpec` arms become **nullable**:
+
+```
+{ kind: "calendar", from: string|null, to: string|null, label: string }
+```
+
+`from === null` means "unbounded past" (window starts at the data's first
+entry / day 0). `to === null` means "unbounded future" (window extends to the
+data's last entry / last offset). Phase 1 tokens continue to produce both
+bounds non-null, so every existing Phase 1 test keeps passing byte-identically.
+
+Exactly **two functions** in the entire codebase dereference `spec.from` /
+`spec.to` (verified by grep on 2026-07-11) and therefore need null guards:
+
+1. `calendarRangeToDayOffsets` — `js/utils/timeRange.js:151,153`
+2. `calendarSliceBounds` — `js/commands/reviews.js:30,32`
+
+Everything else consumes only `spec.kind`, `spec.label`, or the derived
+`offsets.start/end` — meaning **`js/commands/due.js`, `retention.js`, and
+`handler.js` need ZERO source changes in Phase 2** (they get the feature
+through the two functions above). Tests for them are still required (§16).
+
+## 14. Detailed design
+
+### 14.1 `js/utils/timeRange.js` — restructure `parseCalendarRange`
+
+Extract the current single-token body (`timeRange.js:99-121`) into a private
+`parseCalendarUnit(token)` that returns `{from, to, label}` **without** the
+`kind` field, then rebuild the exported `parseCalendarRange` on top of it.
+Reference implementation (replaces `timeRange.js:94-121`; keep `CALENDAR_RE`,
+`QUARTER_BOUNDS`, `MIN_YEAR`, `MAX_YEAR` as they are):
+
+```js
+/**
+ * Parse one calendar unit ("2025", "2023q2") -> {from, to, label},
+ * or undefined. Both bounds are always non-null for a unit.
+ */
+function parseCalendarUnit(token) {
+  const match = token.match(CALENDAR_RE);
+  if (!match) return undefined;
+  const year = parseInt(match[1], 10);
+  if (year < MIN_YEAR || year > MAX_YEAR) return undefined;
+  if (match[2]) {
+    const quarter = parseInt(match[2], 10);
+    const [start, end] = QUARTER_BOUNDS[quarter];
+    return {
+      from: `${year}-${start}`,
+      to: `${year}-${end}`,
+      label: `${year} Q${quarter}`,
+    };
+  }
+  return {
+    from: `${year}-01-01`,
+    to: `${year}-12-31`,
+    label: `${year}`,
+  };
+}
+
+/**
+ * Parse a calendar token into a calendar RangeSpec.
+ * Single units: "2025", "2023q2".
+ * Spans:        "2020:2023", "2023q1:2024q2", "2023:2024q2".
+ * Open-ended:   "f:2026" / "from:2026" (from unit start, no upper bound),
+ *               "to:2028" (up to unit end, no lower bound).
+ * @param {string} rangeKey
+ * @returns {RangeSpec|undefined} calendar spec, or undefined if not calendar
+ */
+export function parseCalendarRange(rangeKey) {
+  if (!rangeKey || typeof rangeKey !== "string") return undefined;
+  const key = rangeKey.trim().toLowerCase();
+  if (key.includes(":")) {
+    const parts = key.split(":");
+    if (parts.length !== 2 || !parts[0] || !parts[1]) return undefined;
+    const [head, tail] = parts;
+    if (head === "f" || head === "from") {
+      const unit = parseCalendarUnit(tail);
+      if (!unit) return undefined;
+      return {
+        kind: "calendar",
+        from: unit.from,
+        to: null,
+        label: `from ${unit.label}`,
+      };
+    }
+    if (head === "to") {
+      const unit = parseCalendarUnit(tail);
+      if (!unit) return undefined;
+      return {
+        kind: "calendar",
+        from: null,
+        to: unit.to,
+        label: `to ${unit.label}`,
+      };
+    }
+    const left = parseCalendarUnit(head);
+    const right = parseCalendarUnit(tail);
+    if (!left || !right) return undefined;
+    // ISO strings compare lexicographically; reject inverted spans.
+    if (left.from > right.to) return undefined;
+    return {
+      kind: "calendar",
+      from: left.from,
+      to: right.to,
+      label: `${left.label} to ${right.label}`,
+    };
+  }
+  const unit = parseCalendarUnit(key);
+  if (!unit) return undefined;
+  return { kind: "calendar", from: unit.from, to: unit.to, label: unit.label };
+}
+```
+
+Backward-compat trap: existing tests `deepStrictEqual` the output of
+`parseCalendarRange("2025")` against exactly
+`{kind, from, to, label}` — the wrapper above preserves that shape and key
+set. Do not add fields.
+
+Update the `@typedef` at `timeRange.js:79-82` to the nullable form (§13.2).
+
+**`calendarRangeToDayOffsets`** (`timeRange.js:144-154`) — add null guards.
+`end` may now legitimately be `Infinity` (callers filter with
+`e.day <= offsets.end`, which is `Infinity`-safe):
+
+```js
+export function calendarRangeToDayOffsets(spec, now = new Date()) {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const toLocal = (iso) => {
+    const [y, m, d] = iso.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  };
+  const diff = (target) => Math.round((target - today) / 86400000);
+  const end = spec.to === null ? Infinity : diff(toLocal(spec.to));
+  if (end < 0) return null;
+  const start = spec.from === null ? 0 : Math.max(0, diff(toLocal(spec.from)));
+  return { start, end };
+}
+```
+
+**`RANGE_HELP`** (`timeRange.js:15-16`) — new normative string. It MUST keep
+the substrings `YYYY` and `YYYYqN` (pinned by
+`tests/handler_calendar.test.cjs`, the "mentions calendar tokens" case):
+
+```js
+export const RANGE_HELP =
+  "Valid ranges: 1m-12m, 1y-Ny, Nd, combos (1y4m), YYYY, YYYYqN (2023q2), spans (2020:2023, f:2026, to:2028), all";
+```
+
+The two hardcoded copies of the old string in
+`tests/handler_calendar.test.cjs` assert via the imported constant, so they
+survive; but `grep -rn "Valid ranges:" tests/` first and update any literal
+that duplicates the exact Phase 1 wording.
+
+### 14.2 `js/commands/reviews.js` — null-safe `calendarSliceBounds`
+
+Replace the body (`reviews.js:29-35`):
+
+```js
+function calendarSliceBounds(entries, spec) {
+  let start = 0;
+  if (spec.from !== null) {
+    while (start < entries.length && entries[start].date < spec.from) start++;
+  }
+  let end = start;
+  if (spec.to === null) {
+    end = entries.length;
+  } else {
+    while (end < entries.length && entries[end].date <= spec.to) end++;
+  }
+  return { start, end };
+}
+```
+
+Semantics falling out for free (no further edits in this file):
+
+- `f:2025` → `start` at first entry ≥ `2025-01-01`, `end = length`;
+  `preSliceSum` covers everything before 2025 (cumulative charts stay
+  correct).
+- `to:2024` → `start = 0` (so `preSliceSum` is all zeros — nothing precedes
+  an unbounded-past window), `end` after the last entry ≤ `2024-12-31`.
+- `2024:2025` → both loops run, same as a Phase 1 token spanning two years.
+
+### 14.3 `js/commands/due.js`, `retention.js`, `handler.js` — NO source changes
+
+- `due.js` consumes only `calendarRangeToDayOffsets` output and
+  `rangeSpec.kind`. With `to: null`, `offsets.end === Infinity` and the
+  existing `e.day <= offsets.end` filter keeps every future entry; `minDay`/
+  `maxDay`/label logic already derives from the filtered data. With
+  `from: null`, `offsets.start === 0`. A `to:<past year>` window yields
+  `null` offsets → the existing empty path. **Do not edit this file.**
+- `retention.js` message comes from `formatRange` → `spec.label`. Done.
+- `handler.js` routing is gated by `isValidRange` (§3.2) — colon tokens flow
+  through identically (verified: they are plain tokens after the lowercase
+  trim; nothing else in `handleCommand` interprets `:`). Only the help text
+  changes: add one line to `showHelp` and `listCharts` next to the Phase 1
+  calendar line: `2027:2028, f:2026, to:2028 (calendar spans)` — match the
+  neighboring lines' `appendLine("...", "muted")` style. That is the ONLY
+  `handler.js` edit.
+
+## 15. Behavior matrix (Phase 2)
+
+With today = `2026-07-11`, data as in §3.3:
+
+| Input                        | Chart     | Result                                                                                      |
+| ---------------------------- | --------- | ------------------------------------------------------------------------------------------- |
+| `plot reviews 2024:2025`     | reviews   | entries `2024-01-01 … 2025-12-31`; message `… (2024 to 2025).`                              |
+| `plot reviews 2023q4:2024q1` | reviews   | entries `2023-10-01 … 2024-03-31`; message `… (2023 Q4 to 2024 Q1).`                        |
+| `retention f:2025`           | retention | entries from `2025-01-01` through the last entry; message `… (from 2025).`                  |
+| `reviews to:2024`            | reviews   | entries up to `2024-12-31`; cumulative variant starts at zero (nothing precedes the window) |
+| `plot due f:2027`            | due       | offsets `174 … end-of-data`, date-labeled x-axis (calendar mode)                            |
+| `plot due to:2026`           | due       | offsets `0 … 173`                                                                           |
+| `plot due to:2025`           | due       | empty (window entirely past) — same path as `plot due 2025`                                 |
+| bare `f:2026` after `pr`     | reviews   | shortcut path re-renders reviews from 2026-01-01 on                                         |
+| `plot reviews 2023:2020`     | —         | `Unknown range: 2023:2020` + `RANGE_HELP`                                                   |
+| `plot reviews f:3m`          | —         | invalid (unit after `f:` must be calendar)                                                  |
+| `plot reviews 2023::2024`    | —         | invalid (exactly one colon)                                                                 |
+
+`activeTimeRange` persistence, cumulative `preSliceSum` seeding, and the
+empty-window messages all behave exactly as specified for Phase 1 (§4.2) —
+spans reuse those paths, they do not add new ones.
+
+## 16. Test plan (Phase 2)
+
+Same conventions as §7 (CommonJS + `node:test`, dynamic `await import()`, no
+`Date.parse`, construct `now` as `new Date(2026, 6, 11)`).
+
+### 16.1 `tests/timeRange_span.test.cjs` (new file, pure logic)
+
+| Case                                                                                                                                                                                | Expectation                                                                   |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `parseRangeSpec("2027:2028")`                                                                                                                                                       | `{kind:"calendar", from:"2027-01-01", to:"2028-12-31", label:"2027 to 2028"}` |
+| `parseRangeSpec("2023q1:2024q2")`                                                                                                                                                   | `from:"2023-01-01", to:"2024-06-30", label:"2023 Q1 to 2024 Q2"`              |
+| mixed `"2023:2024q2"` and `"2023q4:2024"`                                                                                                                                           | `2023-01-01…2024-06-30` and `2023-10-01…2024-12-31`                           |
+| `"2023:2023"`                                                                                                                                                                       | valid; `from/to` equal the `2023` unit; label `"2023 to 2023"`                |
+| `"2023:2023q1"`                                                                                                                                                                     | valid; `2023-01-01…2023-03-31`                                                |
+| `parseRangeSpec("f:2026")`, `"from:2026"`                                                                                                                                           | `{from:"2026-01-01", to:null, label:"from 2026"}` (both aliases)              |
+| `parseRangeSpec("f:2023q2")`                                                                                                                                                        | `{from:"2023-04-01", to:null, label:"from 2023 Q2"}`                          |
+| `parseRangeSpec("to:2028")`                                                                                                                                                         | `{from:null, to:"2028-12-31", label:"to 2028"}`                               |
+| `parseRangeSpec("to:2023q2")`                                                                                                                                                       | `{from:null, to:"2023-06-30", label:"to 2023 Q2"}`                            |
+| `" F:2026 "`, `"TO:2028"` (trim + case)                                                                                                                                             | valid, same as lowercase                                                      |
+| invalid: `"2023:2020"`, `"2023q2:2023q1"`, `"2023::2024"`, `":2023"`, `"2023:"`, `"f:"`, `"to:"`, `"f:3m"`, `"to:all"`, `"f:2101"`, `"t:2026"`, `"2020 : 2023"`, `"2020:2023:2025"` | `parseRangeSpec` → `undefined`; `isValidRange` → `false` for each             |
+| `formatRange("2027:2028")`, `("f:2026")`, `("to:2028")`                                                                                                                             | `"2027 to 2028"`, `"from 2026"`, `"to 2028"`                                  |
+| Phase 1 regression: `parseCalendarRange("2025")` deep-equals its Phase 1 shape; `parseRange("f:2026")` → `undefined`                                                                | unchanged                                                                     |
+| `calendarRangeToDayOffsets(parse("f:2027"), now)`                                                                                                                                   | `{start:174, end:Infinity}`                                                   |
+| `calendarRangeToDayOffsets(parse("f:2025"), now)` (from in past)                                                                                                                    | `{start:0, end:Infinity}` (clamped, NOT null — future is unbounded)           |
+| `calendarRangeToDayOffsets(parse("to:2027"), now)`                                                                                                                                  | `{start:0, end:538}`                                                          |
+| `calendarRangeToDayOffsets(parse("to:2025"), now)`                                                                                                                                  | `null` (entirely past)                                                        |
+
+### 16.2 Extend `tests/reviews_calendar.test.cjs` (same 6-entry gap mock)
+
+- `getReviewStatsData("f:2025")` → the four entries dated ≥ `2025-01-01`
+  (including `2026-01-01`); `preSliceSum` = sum of the two 2024 entries.
+- `getReviewStatsData("to:2024")` → the two 2024 entries; `preSliceSum` all
+  zeros.
+- `getReviewStatsData("2024:2025")` → the first five entries; `preSliceSum`
+  all zeros.
+- By-deck: `getReviewStatsData("f:2025", true)` → `dates` are the four ≥
+  2025 dates; DeckA's pre-window count lands in `preSliceSumsByDeck`.
+
+### 16.3 Extend `tests/due_calendar.test.cjs` (same runtime-relative mock)
+
+- `getFutureDueData("f:<next year>")` → every entry with
+  `day >= nextYearStartOffset`, through the end of the mock data (no upper
+  truncation).
+- `getFutureDueData("to:<current year>")` → offsets `0…currentYearEndOffset`.
+- `getFutureDueData("to:<last year>")` → `[]`; by-deck → `{}`.
+- Render `f:<next year>`: first label is next Jan 1 (`YYYY-MM-DD`), label
+  count = number of days from next Jan 1 through the last mock entry.
+
+### 16.4 Extend `tests/handler_calendar.test.cjs`
+
+- `handleCommand("plot reviews 2024:2025", log)` → `command:"plot-reviews"`,
+  `range:"2024:2025"`, no `Unknown range` line.
+- Bare `handleCommand("f:2026", log)` after a reviews command → shortcut path,
+  `range:"f:2026"`.
+- `handleCommand("plot due to:2028", log)` → `plot-due`, `range:"to:2028"`.
+- `handleCommand("plot reviews 2023:2020", log)` → error result with
+  `Unknown range: 2023:2020` and `RANGE_HELP`.
+
+## 17. Implementation order (Phase 2)
+
+Red before green at every step; run the named test file after each.
+
+1. Write `tests/timeRange_span.test.cjs` (§16.1) → confirm red →
+   restructure `timeRange.js` (§14.1: `parseCalendarUnit`, colon handling,
+   nullable typedef, `calendarRangeToDayOffsets` guards, `RANGE_HELP`) →
+   green. Then run `tests/timeRange_calendar.test.cjs` AND
+   `tests/timeRange.test.cjs` — both MUST pass unmodified.
+2. Extend `tests/reviews_calendar.test.cjs` (§16.2) → red →
+   `calendarSliceBounds` null guards (§14.2) → green.
+3. Extend `tests/due_calendar.test.cjs` (§16.3) → these SHOULD pass with no
+   `due.js` edits (that is the point of §14.3). If any fails, the bug is in
+   step 1, not in `due.js` — do not edit `due.js`.
+4. Extend `tests/handler_calendar.test.cjs` (§16.4) → routing cases should
+   already pass; add the two help-text lines to `showHelp`/`listCharts`
+   (§14.3) — the only `handler.js` edit.
+5. Gate per §7.5, including its **known pre-existing failures** note. Also
+   run `npx prettier --write docs/terminal-calendar-ranges.md` if you touch
+   this doc, and tick the §18 boxes.
+
+## 18. Acceptance criteria (Phase 2)
+
+- [ ] Every §15 row holds (automated via §16; manual UI spot-check of
+      `plot reviews 2024:2025`, `plot due f:2027` recommended).
+- [ ] All Phase 1 test files pass **unmodified** (their assertions are the
+      backward-compat contract for the nullable-bounds change).
+- [ ] `git diff --stat` shows source changes ONLY in `js/utils/timeRange.js`,
+      `js/commands/reviews.js`, and the two help-text lines in
+      `js/commands/handler.js`. `js/commands/due.js` and
+      `js/commands/retention.js` are untouched.
+- [ ] `RANGE_HELP` still contains the substrings `YYYY` and `YYYYqN`.
+- [ ] Node-runner portion of `make check-node` fully green; `fmt-check`,
+      `lint`, `quality-py` clean.
+
+## 19. Phase 2 DO-NOTs
+
+1. **Do not** edit `js/commands/due.js` or `js/commands/retention.js` — if a
+   span test fails there, fix `timeRange.js` (§17 step 3).
+2. **Do not** accept duration or `all` tokens after `f:`/`to:` — calendar
+   units only.
+3. **Do not** implement multi-word forms (`from 2023`, `2023 to 2024`) or a
+   `t:` alias — `f:`, `from:`, `to:` exactly, matching the fund
+   (`dateUtils.js:276,288`).
+4. **Do not** special-case `A === B` spans or collapse labels.
+5. **Do not** return `Infinity`/`null` mixtures beyond the spec: open-from →
+   `to: null`; open-to → `from: null`; never both null (there is no token
+   for it — `all` already covers that).
+6. All Part I DO-NOTs (§6) still apply, especially: no `new Date("YYYY-MM-DD")`,
+   no index arithmetic on review dates, no trie changes, run from repo root.
