@@ -267,7 +267,7 @@ repo lints with ESLint, 2-space indent, double quotes, trailing semicolons):
 
 ```js
 /**
- * @typedef {{ kind: "duration", days: number }
+ * @typedef {% raw %}{{ kind: "duration", days: number }{% endraw %}
  *         | { kind: "all" }
  *         | { kind: "calendar", from: string, to: string, label: string }} RangeSpec
  */
@@ -329,7 +329,7 @@ export function parseRangeSpec(rangeKey) {
  * Map a calendar spec onto due-chart day offsets relative to `now`.
  * @param {RangeSpec} spec - must be kind "calendar"
  * @param {Date} [now] - injectable for tests
- * @returns {{start: number, end: number}|null} inclusive offsets, clamped to
+ * @returns {% raw %}{{start: number, end: number}{% endraw %}|null} inclusive offsets, clamped to
  *   start >= 0; null when the whole window is in the past (end < 0)
  */
 export function calendarRangeToDayOffsets(spec, now = new Date()) {
