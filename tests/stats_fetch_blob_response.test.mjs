@@ -15,6 +15,17 @@ async function testFetchBlobResponse() {
   try {
     const dom = new JSDOM('<html><body></body></html>', { runScripts: "dangerously" });
     const window = dom.window;
+    // Polyfill Blob.prototype.arrayBuffer for jsdom < 28
+    if (typeof window.Blob.prototype.arrayBuffer !== "function") {
+      window.Blob.prototype.arrayBuffer = function () {
+        return new Promise((resolve, reject) => {
+          const r = new window.FileReader();
+          r.onload = () => resolve(r.result);
+          r.onerror = () => reject(r.error);
+          r.readAsArrayBuffer(this);
+        });
+      };
+    }
     window.Response = class {
       constructor(body, init) { this.body = body; this.init = init || {}; this.status = this.init.status || 200; this.ok = true; }
       async arrayBuffer() { return this.body; }

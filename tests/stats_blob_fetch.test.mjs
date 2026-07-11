@@ -15,6 +15,17 @@ async function testBlobFetch() {
   try {
     const dom = new JSDOM('<html><body></body></html>', { runScripts: "dangerously" });
     const window = dom.window;
+    // Polyfill Blob.prototype.arrayBuffer for jsdom < 28
+    if (typeof window.Blob.prototype.arrayBuffer !== "function") {
+      window.Blob.prototype.arrayBuffer = function () {
+        return new Promise((resolve, reject) => {
+          const r = new window.FileReader();
+          r.onload = () => resolve(r.result);
+          r.onerror = () => reject(r.error);
+          r.readAsArrayBuffer(this);
+        });
+      };
+    }
     let fetchedBody = null;
     window.fetch = function(url, opts) { fetchedBody = opts.body; return Promise.resolve({ ok: true }); };
     const scriptContent = fs.readFileSync(INJECTED_JS_PATH, 'utf-8');

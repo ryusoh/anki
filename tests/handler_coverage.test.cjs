@@ -31,7 +31,7 @@ global.document = {
   querySelector: () => null,
   getElementById: defaultGetElementById,
   querySelectorAll: () => [],
-  createElement: () => ({ dataset: {}, appendChild: () => {}, classList: { add: () => {} }, style: {} }),
+  createElement: () => ({ dataset: {}, appendChild: () => {}, classList: { add: () => {} }, style: {}, setAttribute: () => {}, className: "" }),
   createTextNode: () => ({})
 };
 

@@ -38,25 +38,6 @@ existed, and nothing failed.)
   `tests/handler_calendar.test.cjs`) — that's a deliberate second idiom, not
   a gap to unify.
 
-## Known pre-existing failures (not yours to fix)
-
-Confirmed present on a clean `main` via `git stash` (2026-07-11) — don't
-spend time chasing these; verify your own change is unrelated and move on:
-
-- **`review_heatmap/tests/*.test.js` fail to even load under jest**:
-  `Jest's require(ESM) requires Node v24.9+ for synchronous vm module APIs;
-the current Node version does not expose them.` This is a local Node/jest
-  version mismatch, not a code regression — it makes the _tail_ of
-  `make check-node` (and therefore `make precommit`) exit non-zero in this
-  environment regardless of what you changed. The bar for JS work is: all
-  suites in the **node-runner portion** of `make check-node` (root `tests/`)
-  green, plus `fmt-check`/`lint`/`quality-py` clean.
-- **`tests/handler_coverage.test.cjs`** prints
-  `FAIL: renderReviewsChart correctly handles preSliceSum with fallback` /
-  `span.setAttribute is not a function` mid-run but still exits 0 — it's a
-  homegrown pass/fail counter that doesn't set `process.exitCode`, so the
-  print is cosmetic noise, not a real failure.
-
 ## Testing browser-side scripts
 
 Scripts like `js/graph/graph.js` execute at module top level against CDN
