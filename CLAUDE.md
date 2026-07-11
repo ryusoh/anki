@@ -6,6 +6,8 @@ addon or tool with its own `tests/`. New addon? See `docs/creating-an-addon.md`
 (layout, hook/test patterns). Debugging a field-transform addon against a real
 card? Same doc's "Field HTML reality" section — start with
 `python3 tools/dump_field.py --contains '<text>'`, don't hand-roll sqlite3.
+Writing a design spec for another agent to implement? See
+`docs/delegation-specs.md` first (parity sign-off, anchor citations, doc gotchas).
 
 ## Running tests & checks
 
