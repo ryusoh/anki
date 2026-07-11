@@ -625,18 +625,12 @@ that hardcode `"Valid ranges: 1m-12m, 1y-Ny, all"`, which may be updated to
 `RANGE_HELP` (search `tests/` for that literal first and list the hits in the
 PR description).
 
-**Known pre-existing failures — NOT yours to fix** (both confirmed present on
-a clean tree via `git stash` on 2026-07-11; do not chase them):
-
-1. `review_heatmap/tests/` under jest fails to even load
-   (`Jest's require(ESM) requires Node v24.9+`) — a local Node/jest version
-   mismatch. This makes the _tail_ of `make check-node` (and therefore
-   `make precommit`) exit non-zero in this environment. The bar for this
-   feature is: **all 68+ root `tests/` suites green in the node-runner
-   portion of `make check-node`**, plus `fmt-check`/`lint`/`quality-py` clean.
-2. `tests/handler_coverage.test.cjs` prints
-   `FAIL: span.setAttribute is not a function` mid-run but exits 0 (homegrown
-   runner, doesn't set the exit code) — cosmetic, pre-existing.
+**Known pre-existing failures — NOT yours to fix.** See "Known pre-existing
+failures" in `docs/js-testing.md` (the `review_heatmap` jest/Node-version
+mismatch and the cosmetic `handler_coverage.test.cjs` print) — both predate
+this feature and are unrelated to it; do not chase them. The bar for this
+feature is: all root `tests/` suites green in the node-runner portion of
+`make check-node`, plus `fmt-check`/`lint`/`quality-py` clean.
 
 ---
 

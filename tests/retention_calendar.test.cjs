@@ -8,16 +8,13 @@
 
 const test = require("node:test");
 const assert = require("assert");
+const {
+  createChartDomMock,
+  createMockChartClass,
+} = require("./helpers/chartDomMock.cjs");
 
 global.window = {
-  Chart: class {
-    constructor(ctx, config) {
-      this.config = config || {};
-      this.data = this.config.data || { datasets: [] };
-    }
-    destroy() {}
-    update() {}
-  },
+  Chart: createMockChartClass().MockChart,
   reviewStatsData: {
     reviews: [
       { date: "2025-06-01", retention: 0.9 },
@@ -26,32 +23,7 @@ global.window = {
   },
 };
 
-global.document = {
-  createTextNode: (text) => ({ nodeType: 3, textContent: text }),
-  createElement: () => ({
-    setAttribute: () => {},
-    appendChild: () => {},
-    style: {},
-    classList: { add: () => {}, remove: () => {}, contains: () => false },
-  }),
-  getElementById: (id) => {
-    if (id === "runningAmountCanvas") return { getContext: () => ({}) };
-    if (id === "runningAmountSection")
-      return { classList: { remove: () => {}, contains: () => false } };
-    if (id === "chartLegend")
-      return {
-        style: {},
-        textContent: "",
-        appendChild: () => {},
-        replaceChildren: () => {},
-        innerHTML: "",
-        querySelectorAll: () => [],
-      };
-    if (id === "runningAmountEmpty") return { style: {}, textContent: "" };
-    return null;
-  },
-  querySelector: () => null,
-};
+global.document = createChartDomMock();
 
 test("showRetention: calendar year token produces a calendar-style message", async () => {
   const { showRetention } = await import("../js/commands/retention.js");

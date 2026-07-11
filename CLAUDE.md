@@ -24,10 +24,12 @@ card? Same doc's "Field HTML reality" section — start with
   `make precommit` is the full gate (`fmt-check` + `lint` + `quality-py` + `check`);
   CI runs `make precommit SKIP=1` on push/PR (`.github/workflows/ci.yml`).
 - **Lint/format/type/security:** `make lint` (ESLint + Stylelint + markdownlint) and
-  `make quality-py` (ruff / black / mypy / bandit). Auto-fix with `make lint-fix` and
-  `make fmt-py`. Tooling is pinned in `requirements-dev.txt` and covers all addon
-  source we maintain; only vendored code (`review_heatmap/libaddon`, `_vendor/` trees)
-  and minified bundles are excluded. See `docs/lint-and-quality.md`.
+  `make quality-py` (ruff / black / mypy / bandit). Auto-fix with `make lint-fix`,
+  `make fmt` (Prettier: JS/CSS/**MD**/JSON/HTML — run this after hand-authoring any
+  `docs/*.md`, or `fmt-check` fails on table/list formatting), and `make fmt-py`.
+  Tooling is pinned in `requirements-dev.txt` and covers all addon source we
+  maintain; only vendored code (`review_heatmap/libaddon`, `_vendor/` trees) and
+  minified bundles are excluded. See `docs/lint-and-quality.md`.
 
 ## Gotchas
 
