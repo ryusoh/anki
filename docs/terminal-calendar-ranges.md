@@ -1,3 +1,7 @@
+---
+render_with_liquid: false
+---
+
 # Design spec: year/quarter calendar time filters for the stats terminal
 
 |                                         |                                                                                                                                                             |
