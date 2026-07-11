@@ -1,8 +1,12 @@
 import assert from 'assert';
 import fs from 'fs';
 import { JSDOM } from 'jsdom';
+import { createRequire } from 'module';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+const require = createRequire(import.meta.url);
+const { polyfillBlobArrayBuffer } = require('./helpers/jsdomPolyfills.cjs');
 
 process.on('uncaughtException', (err) => { console.error("FATAL UNCAUGHT EXCEPTION:", err); process.exit(1); });
 process.on('unhandledRejection', (err) => { console.error("FATAL UNHANDLED REJECTION:", err); process.exit(1); });
@@ -15,17 +19,7 @@ async function testFetchBlobResponse() {
   try {
     const dom = new JSDOM('<html><body></body></html>', { runScripts: "dangerously" });
     const window = dom.window;
-    // Polyfill Blob.prototype.arrayBuffer for jsdom < 28
-    if (typeof window.Blob.prototype.arrayBuffer !== "function") {
-      window.Blob.prototype.arrayBuffer = function () {
-        return new Promise((resolve, reject) => {
-          const r = new window.FileReader();
-          r.onload = () => resolve(r.result);
-          r.onerror = () => reject(r.error);
-          r.readAsArrayBuffer(this);
-        });
-      };
-    }
+    polyfillBlobArrayBuffer(window);
     window.Response = class {
       constructor(body, init) { this.body = body; this.init = init || {}; this.status = this.init.status || 200; this.ok = true; }
       async arrayBuffer() { return this.body; }

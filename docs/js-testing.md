@@ -38,6 +38,30 @@ existed, and nothing failed.)
   `tests/handler_calendar.test.cjs`) — that's a deliberate second idiom, not
   a gap to unify.
 
+## jsdom version constraint (pinned to ^27.3.0)
+
+`jsdom` is pinned to `^27.3.0` in `package.json`. **Do not upgrade past 27.x**
+without verifying Jest compatibility.
+
+**Why**: Starting at jsdom 27.4.0, the dependency chain
+`jsdom → html-encoding-sniffer@^6 → @exodus/bytes` introduces an ESM-only
+package. Jest's CJS `require()` cannot load ESM-only packages on Node < 24.9,
+so the `review_heatmap/tests/` jest suites crash at import time. jsdom 27.3.0
+is the last version using `html-encoding-sniffer@^4` (pure CJS).
+
+**Known behavioral gaps vs. jsdom 28+**:
+
+- **`Blob.prototype.arrayBuffer()`** — missing in jsdom 27. Tests that need it
+  should call `polyfillBlobArrayBuffer(window)` from
+  `tests/helpers/jsdomPolyfills.cjs` right after creating the JSDOM instance.
+- **CSSOM zero serialization** — `style.borderRadius = "0"` stays as `"0"` in
+  jsdom 27 (vs. `"0px"` in 28+). Both are valid CSS; assertions should expect
+  `"0"`.
+
+**Upgrade path**: When the project moves to Node 24.9+ (or Jest drops the
+synchronous CJS→ESM restriction), bump jsdom, remove the polyfill guard, and
+update zero-value assertions.
+
 ## Testing browser-side scripts
 
 Scripts like `js/graph/graph.js` execute at module top level against CDN
