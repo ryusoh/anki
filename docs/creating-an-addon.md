@@ -79,7 +79,22 @@ python3 tools/dump_field.py 'front text'          # exact front-field match
 python3 tools/dump_field.py --contains 'passage'  # any field contains
 ```
 
-(It copies the collection to a temp file, so it's safe while Anki runs.)
+(It copies the collection to a temp file, so it's safe while Anki runs. It also
+auto-picks the most-recently-modified profile, so you don't need to hunt for the
+collection path — pass `--collection` only to override that.)
+
+If a search substring matches many unrelated notes, search on the exact card
+title/phrase the user gave you first (with `--contains`) rather than a broad
+keyword — it's usually a one-shot unique match, cheaper than iterating broader
+and narrower queries.
+
+**Fresh, unsaved edits won't show up.** The collection file only reflects
+fields Anki has flushed to disk (on field blur or card switch), not mid-edit
+keystrokes — a note can be many months stale even though the user "just pasted"
+into it moments ago. If the dump looks stale or the reported content is
+missing, ask the user to click into another field or switch cards and back
+(triggers the autosave) and re-run the dump; if they'd rather not interrupt
+their edit, ask them to paste the raw field HTML directly instead.
 
 What real fields look like (each of these was found in production cards, and
 `reflow_paragraphs/` pins them all as regression tests):

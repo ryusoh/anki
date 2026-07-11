@@ -3,7 +3,9 @@
 Monorepo of Anki addons (Python) plus a JS/graph data pipeline. Each top-level
 directory (`auto_wiktionary/`, `graph/`, `data/anki/`, …) is a self-contained
 addon or tool with its own `tests/`. New addon? See `docs/creating-an-addon.md`
-(layout, hook/test patterns).
+(layout, hook/test patterns). Debugging a field-transform addon against a real
+card? Same doc's "Field HTML reality" section — start with
+`python3 tools/dump_field.py --contains '<text>'`, don't hand-roll sqlite3.
 
 ## Running tests & checks
 
