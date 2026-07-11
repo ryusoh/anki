@@ -443,6 +443,35 @@ def test_real_world_d2d_table():
     assert convert_markdown_field(html) == expected
 
 
+def test_table_glued_to_preceding_list_no_br():
+    """A table pasted right after a list: Anki opens a new <div> instead of
+    inserting <br> before the header row, so the row's '|' starts partway
+    through a text part rather than at its front. The table must still be
+    recognized (see the UALink card investigation)."""
+    html = (
+        "<div><ul><li>\n<div>intro text</div></li></ul>"
+        "<div>| col1 | col2 |<br>"
+        "| --- | --- |<br>"
+        "| a | b |<br></div></div>"
+    )
+    expected = (
+        "<div><ul><li>\n<div>intro text</div></li></ul>"
+        "<div>"
+        '<table style="border-collapse: collapse;">'
+        "<thead><tr>"
+        '<th style="border: 1px solid #ccc; padding: 6px 10px; background-color: rgba(150, 150, 150, 0.1); font-weight: bold; ">col1</th>'
+        '<th style="border: 1px solid #ccc; padding: 6px 10px; background-color: rgba(150, 150, 150, 0.1); font-weight: bold; ">col2</th>'
+        "</tr></thead>"
+        "<tbody><tr>"
+        '<td style="border: 1px solid #ccc; padding: 6px 10px; ">a</td>'
+        '<td style="border: 1px solid #ccc; padding: 6px 10px; ">b</td>'
+        "</tr></tbody>"
+        "</table>"
+        "</div></div>"
+    )
+    assert convert_markdown_field(html) == expected
+
+
 # ---------------------------------------------------------------------------
 # Redundant Line Breaks Spacing
 # ---------------------------------------------------------------------------

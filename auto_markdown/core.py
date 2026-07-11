@@ -233,6 +233,36 @@ def _is_separator_row(content: str) -> bool:
     return True
 
 
+# A table row glued onto preceding HTML with no <br> before it — Anki's
+# paste sometimes opens/closes a block tag (e.g. `</ul><div>`) right before
+# a table's first row instead of inserting <br>. `.*` is greedy so this
+# anchors on the LAST such tag, which is the boundary immediately before
+# the row; inline tags (<b>, <i>, ...) that can legitimately appear inside
+# a cell are not in the tag set, so they can't be mistaken for the boundary.
+_BLOCK_BOUNDARY_TABLE_ROW_RE = re.compile(
+    r"^(.*</?(?:div|ul|ol|li|p|blockquote|h[1-6])\b[^>]*>)\s*(\|.+\|)\s*$",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def _split_leading_block_boundary_row(parts: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """Splits a table row glued onto preceding HTML into (prefix, row) parts.
+
+    Without this, a part like `</ul><div>| a | b |` fails `_is_table_row`
+    (it doesn't start with '|'), so `_parse_tables` never sees the row.
+    """
+    result: list[tuple[str, str]] = []
+    for content, kind in parts:
+        if kind == "text" and not _is_table_row(content):
+            m = _BLOCK_BOUNDARY_TABLE_ROW_RE.match(content)
+            if m and _is_table_row(m.group(2).strip()):
+                result.append((m.group(1), "text"))
+                result.append((m.group(2).strip(), "text"))
+                continue
+        result.append((content, kind))
+    return result
+
+
 def _parse_alignment(cell: str) -> str:
     cell = cell.strip()
     if cell.startswith(":") and cell.endswith(":"):
@@ -507,6 +537,9 @@ def convert_markdown_field(html: str) -> str:
 
     # Parse code blocks
     parts = _parse_code_blocks(parts_tuples)
+
+    # Split off table rows glued onto preceding HTML with no <br>.
+    parts = _split_leading_block_boundary_row(parts)
 
     # Parse tables
     parts = _parse_tables(parts)
