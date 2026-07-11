@@ -1,50 +1,63 @@
-"""Guard: docs containing Liquid-lookalike syntax must disable Liquid rendering.
+"""Guard: markdown published by GitHub Pages must not contain bare ``{{``.
 
-The repo's docs are published via GitHub Pages (Jekyll). Jekyll's Liquid
-templating eats ``{{ ... }}`` sequences EVEN INSIDE fenced code blocks, which
-silently mangles rendered docs. Two real cases:
+The repo is published via GitHub Pages (actions/jekyll-build-pages), which
+runs **Jekyll 3.10**. Jekyll pipes every non-dot-directory markdown file
+through Liquid, EVEN INSIDE fenced/inline code, and:
 
-- JSDoc typedef braces (``@typedef {{ kind: "duration", ... }}``) in
-  docs/terminal-calendar-ranges.md — fixed by hand in commit 87df3ff3.
-- Anki template syntax (``{{Front}}`` / ``{{Back}}``) in
-  docs/anki-knowledge-graph-architecture.md — the latent instance this test
-  was born red against.
+- an unterminated-looking ``{{`` (e.g. JSDoc ``@typedef`` braces) hard-fails
+  the whole Pages build with ``Liquid syntax error: Variable '{{' was not
+  properly terminated`` — this broke the build twice on 2026-07-11
+  (docs/terminal-calendar-ranges.md, then docs/delegation-specs.md);
+- a well-formed one (e.g. Anki's template fields) renders as an empty Liquid
+  variable, silently mangling the published page.
 
-The fix is a YAML front-matter block at the very top of the file:
+**``render_with_liquid: false`` front matter does NOT help**: it is a
+Jekyll 4.0 feature and Jekyll 3.10 silently ignores it (first fix attempt,
+reverted — see commit b6a68a24). The only mitigation that works on this
+Pages setup is wrapping the brace-bearing span in raw tags::
 
-    ---
-    render_with_liquid: false
-    ---
+    {% raw %}{{ ... }}{% endraw %}
 
-This test makes the rule a gate instead of tribal knowledge: any docs/*.md
-containing ``{{`` must declare ``render_with_liquid: false``.
+or rewording prose to avoid literal double braces. This test enforces that:
+after stripping raw-tag regions, no tracked, Pages-visible markdown file may
+contain ``{{``. (Dot-directories like .agents/ and .claude/ are invisible to
+Jekyll and exempt.)
 """
 
+import re
+import subprocess
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-DOCS_DIR = REPO_ROOT / "docs"
+
+RAW_REGION = re.compile(r"{%\s*raw\s*%}.*?{%\s*endraw\s*%}", re.DOTALL)
 
 
-def _front_matter(text: str) -> str:
-    """Return the YAML front-matter block, or '' if the file has none."""
-    if not text.startswith("---\n"):
-        return ""
-    end = text.find("\n---", 4)
-    return text[4:end] if end != -1 else ""
-
-
-def test_docs_with_liquid_lookalikes_disable_liquid_rendering():
-    offenders = []
-    for md in sorted(DOCS_DIR.glob("**/*.md")):
-        text = md.read_text(encoding="utf-8")
-        if "{{" not in text:
+def _pages_visible_markdown():
+    out = subprocess.run(
+        ["git", "ls-files", "*.md"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    for rel in out.splitlines():
+        # Jekyll skips files under dot-directories (.agents/, .claude/, ...).
+        if any(part.startswith(".") for part in Path(rel).parts[:-1]):
             continue
-        if "render_with_liquid: false" not in _front_matter(text):
-            offenders.append(str(md.relative_to(REPO_ROOT)))
+        yield rel
+
+
+def test_pages_markdown_has_no_bare_liquid_braces():
+    offenders = []
+    for rel in _pages_visible_markdown():
+        text = (REPO_ROOT / rel).read_text(encoding="utf-8")
+        if "{{" in RAW_REGION.sub("", text):
+            offenders.append(rel)
     assert not offenders, (
-        "These docs contain '{{' (Jekyll/Liquid will mangle them on GitHub "
-        "Pages, even inside code fences) but lack 'render_with_liquid: false' "
-        "front matter — add the front-matter block from "
-        f"tests/test_docs_liquid_guard.py's docstring: {offenders}"
+        "These Pages-visible markdown files contain a bare '{{' — Jekyll "
+        "3.10 Liquid will crash the Pages build (or silently mangle the "
+        "page), and render_with_liquid front matter does NOT work on "
+        "Jekyll 3. Wrap the span in {% raw %}...{% endraw %} or reword: "
+        f"{offenders}"
     )

@@ -1,7 +1,3 @@
----
-render_with_liquid: false
----
-
 # Anki Knowledge Graph Architecture
 
 ## Overview
@@ -162,7 +158,7 @@ anki-content/
     "config": {
       "css": ".card { font-family: ... }",
       "templates": [
-        {"name": "Card 1", "qfmt": "{{Front}}", "afmt": "{{Back}}"}
+        {"name": "Card 1", "qfmt": "{% raw %}{{Front}}{% endraw %}", "afmt": "{% raw %}{{Back}}{% endraw %}"}
       ],
       "flds": [{"name": "Front"}, {"name": "Back"}]
     }

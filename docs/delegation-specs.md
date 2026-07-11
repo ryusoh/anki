@@ -1,7 +1,3 @@
----
-render_with_liquid: false
----
-
 # Writing a design spec another agent will implement
 
 How to write a spec (a `docs/*.md` design doc) when the research/design is done
@@ -65,10 +61,14 @@ and zero source edits outside the predicted files.
 
 - Run `make fmt` after hand-authoring — Prettier owns markdown table/list
   formatting and `make fmt-check` will fail otherwise (see CLAUDE.md).
-- If the doc contains Liquid-lookalike braces — JSDoc typedefs like
-  `@typedef {{ kind: ... }}`, Anki template fields like `{{Front}}` — add
-  `render_with_liquid: false` YAML front matter (as this doc does):
-  GitHub Pages' Jekyll mangles `{{` even inside code fences. Gated by
+- **No bare double-open-braces anywhere in the file** — not even inside code
+  fences or inline code. GitHub Pages builds every non-dot-directory
+  markdown file with Jekyll **3.10**, whose Liquid pass either crashes the
+  whole Pages build (JSDoc `@typedef` braces did this twice on 2026-07-11)
+  or silently blanks the span (Anki template-field syntax). The
+  `render_with_liquid: false` front matter does NOT work — it's a Jekyll 4
+  feature that 3.10 ignores. Either wrap the span in
+  `{% raw %}`…`{% endraw %}` tags or reword to avoid the braces. Gated by
   `tests/test_docs_liquid_guard.py`.
 - Keep a **Status** row in the header table and update it when a phase
   ships; "design complete, no code written" sitting on top of shipped code
