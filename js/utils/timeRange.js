@@ -12,6 +12,9 @@
 
 export const DEFAULT_RANGE = "1m";
 
+export const RANGE_HELP =
+  "Valid ranges: 1m-12m, 1y-Ny, Nd, combos (1y4m), YYYY (e.g. 2025), YYYYqN (e.g. 2023q2), all";
+
 // Regex that matches one or more segments: Ny, Nm, Nd (in any order, but
 // the entire string must be consumed by these segments).
 const RANGE_RE = /^(?:(\d+)y)?(?:(\d+)m)?(?:(\d+)d)?$/;
@@ -56,7 +59,7 @@ export function parseRange(rangeKey) {
  * @returns {boolean}
  */
 export function isValidRange(rangeKey) {
-  return parseRange(rangeKey) !== undefined;
+  return parseRangeSpec(rangeKey) !== undefined;
 }
 
 /**
@@ -65,8 +68,87 @@ export function isValidRange(rangeKey) {
  * @returns {string}
  */
 export function formatRange(rangeKey) {
+  const spec = parseRangeSpec(rangeKey);
+  if (spec === undefined) return "unknown";
+  if (spec.kind === "all") return "all time";
+  if (spec.kind === "calendar") return spec.label;
+  return `${spec.days} days`;
+}
+
+/**
+ * @typedef {{ kind: "duration", days: number }
+ *         | { kind: "all" }
+ *         | { kind: "calendar", from: string, to: string, label: string }} RangeSpec
+ */
+
+const CALENDAR_RE = /^(\d{4})(?:q([1-4]))?$/;
+const QUARTER_BOUNDS = {
+  1: ["01-01", "03-31"],
+  2: ["04-01", "06-30"],
+  3: ["07-01", "09-30"],
+  4: ["10-01", "12-31"],
+};
+const MIN_YEAR = 1970;
+const MAX_YEAR = 2099;
+
+/**
+ * Parse a calendar token ("2025", "2023q2") into a calendar RangeSpec.
+ * @param {string} rangeKey
+ * @returns {RangeSpec|undefined} calendar spec, or undefined if not calendar
+ */
+export function parseCalendarRange(rangeKey) {
+  if (!rangeKey || typeof rangeKey !== "string") return undefined;
+  const match = rangeKey.trim().toLowerCase().match(CALENDAR_RE);
+  if (!match) return undefined;
+  const year = parseInt(match[1], 10);
+  if (year < MIN_YEAR || year > MAX_YEAR) return undefined;
+  if (match[2]) {
+    const quarter = parseInt(match[2], 10);
+    const [start, end] = QUARTER_BOUNDS[quarter];
+    return {
+      kind: "calendar",
+      from: `${year}-${start}`,
+      to: `${year}-${end}`,
+      label: `${year} Q${quarter}`,
+    };
+  }
+  return {
+    kind: "calendar",
+    from: `${year}-01-01`,
+    to: `${year}-12-31`,
+    label: `${year}`,
+  };
+}
+
+/**
+ * Parse any range token into a RangeSpec.
+ * @param {string} rangeKey
+ * @returns {RangeSpec|undefined} undefined if invalid
+ */
+export function parseRangeSpec(rangeKey) {
+  const calendar = parseCalendarRange(rangeKey);
+  if (calendar) return calendar;
   const days = parseRange(rangeKey);
-  if (days === null) return "all time";
-  if (days === undefined) return "unknown";
-  return `${days} days`;
+  if (days === null) return { kind: "all" };
+  if (days === undefined) return undefined;
+  return { kind: "duration", days };
+}
+
+/**
+ * Map a calendar spec onto due-chart day offsets relative to `now`.
+ * @param {RangeSpec} spec - must be kind "calendar"
+ * @param {Date} [now] - injectable for tests
+ * @returns {{start: number, end: number}|null} inclusive offsets, clamped to
+ *   start >= 0; null when the whole window is in the past (end < 0)
+ */
+export function calendarRangeToDayOffsets(spec, now = new Date()) {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const toLocal = (iso) => {
+    const [y, m, d] = iso.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  };
+  const diff = (target) => Math.round((target - today) / 86400000);
+  const end = diff(toLocal(spec.to));
+  if (end < 0) return null;
+  return { start: Math.max(0, diff(toLocal(spec.from))), end };
 }

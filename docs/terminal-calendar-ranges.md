@@ -1,13 +1,13 @@
 # Design spec: year/quarter calendar time filters for the stats terminal
 
-| | |
-|---|---|
-| **Status** | Approved for implementation (design complete, no code written) |
-| **Issue** | [ryusoh/anki#403 — feat: year based time filter](https://github.com/ryusoh/anki/issues/403) |
-| **Date** | 2026-07-11 |
-| **Scope** | `js/utils/timeRange.js`, `js/commands/{reviews,due,retention,handler}.js`, root `tests/` |
-| **Audience** | The implementing agent. Follow this doc literally; every decision is already made. |
-| **Reference implementation researched** | `~/dev/fund/js/` (the fund repo's terminal — same author, same UX conventions) |
+|                                         |                                                                                             |
+| --------------------------------------- | ------------------------------------------------------------------------------------------- |
+| **Status**                              | Approved for implementation (design complete, no code written)                              |
+| **Issue**                               | [ryusoh/anki#403 — feat: year based time filter](https://github.com/ryusoh/anki/issues/403) |
+| **Date**                                | 2026-07-11                                                                                  |
+| **Scope**                               | `js/utils/timeRange.js`, `js/commands/{reviews,due,retention,handler}.js`, root `tests/`    |
+| **Audience**                            | The implementing agent. Follow this doc literally; every decision is already made.          |
+| **Reference implementation researched** | `~/dev/fund/js/` (the fund repo's terminal — same author, same UX conventions)              |
 
 The key words MUST, MUST NOT, SHOULD, and MAY are to be interpreted as in RFC 2119.
 
@@ -16,12 +16,12 @@ The key words MUST, MUST NOT, SHOULD, and MAY are to be interpreted as in RFC 21
 ## 1. Summary
 
 The stats terminal (`js/terminal.js` + `js/commands/`) currently accepts only
-*relative* time ranges — "the last N days" (`1m`, `2y`, `1y4m`, `all`). This
-feature adds *calendar* range tokens, ported from the fund repo's terminal:
+_relative_ time ranges — "the last N days" (`1m`, `2y`, `1y4m`, `all`). This
+feature adds _calendar_ range tokens, ported from the fund repo's terminal:
 
-| Token | Meaning | Example resolved range |
-|---|---|---|
-| `2025` | full calendar year | `2025-01-01` … `2025-12-31` |
+| Token    | Meaning                            | Example resolved range      |
+| -------- | ---------------------------------- | --------------------------- |
+| `2025`   | full calendar year                 | `2025-01-01` … `2025-12-31` |
 | `2023q2` | one quarter (case-insensitive `q`) | `2023-04-01` … `2023-06-30` |
 
 They work **everywhere an existing `[range]` is accepted**, including the bare
@@ -81,17 +81,17 @@ entry dates against it (`js/transactions/terminal/handlers/plot.js:123-151`,
 `normalizeDateOnly` (`js/utils/date.js:327-340`) warns that
 `new Date('YYYY-MM-DD')` parses as **UTC midnight**, which shifts to the
 previous day in UTC-negative timezones. Bare date strings must be constructed
-at *local* midnight via `new Date(y, m-1, d)`. This spec adopts that rule
+at _local_ midnight via `new Date(y, m-1, d)`. This spec adopts that rule
 (§5.1) and otherwise avoids `Date` entirely by comparing ISO strings
 lexicographically.
 
 ### 2.5 What we deliberately do NOT port (non-goals, v1)
 
-| Fund feature | Why cut |
-|---|---|
-| Bare `q2` with `lastContextYear` (`dateUtils.js:8`) | Cross-module mutable state; not in the issue's examples. Deferred (§10). |
+| Fund feature                                                          | Why cut                                                                                          |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Bare `q2` with `lastContextYear` (`dateUtils.js:8`)                   | Cross-module mutable state; not in the issue's examples. Deferred (§10).                         |
 | `from <tok>` / `<tok> to <tok>` / `f:<tok>` / `2020:2023` span syntax | Multi-token grammar collides with this terminal's `[range]`-is-one-token design. Deferred (§10). |
-| `mode: 'start'/'end'` half-open ranges (`date.js:314-319`) | Only needed for the `from`/`to` syntax above. |
+| `mode: 'start'/'end'` half-open ranges (`date.js:314-319`)            | Only needed for the `from`/`to` syntax above.                                                    |
 
 ---
 
@@ -185,19 +185,19 @@ quarter        = year ("q" / "Q") ("1"/"2"/"3"/"4")
 
 With today = `2026-07-11` (examples; behavior is defined relative to "today"):
 
-| Input | Chart | Result |
-|---|---|---|
-| `plot reviews 2025` | reviews | entries with `2025-01-01 ≤ date ≤ 2025-12-31`; message `Rendered review history chart (2025).` |
-| `plot reviews 2023q2` | reviews | entries in `2023-04-01…2023-06-30`; message `… (2023 Q2).` |
-| `retention 2024` | retention | retention line over 2024 entries |
-| `plot due 2026` | due | day-offsets `0…173` (window clamped to start today — past days have no due data) |
-| `plot due 2027` | due | day-offsets `174…538`, x-axis labeled with real dates (§5.4) |
-| `plot due 2025` | due | empty ⇒ existing "No future reviews in this range." path |
-| `reviews 2027` (future year, past chart) | reviews | empty slice ⇒ existing "No review data available." path |
-| bare `2023q2` after `pr` | reviews | re-renders current chart with the quarter (shortcut path) |
-| bare `2025` with no chart yet | due | defaults to due chart (existing shortcut behavior, `handler.js:145-147`) |
-| `plot reviews 2101` | — | invalid range ⇒ existing `Unknown range: 2101` message |
-| `plot reviews 2023q5` | — | invalid range (same path) |
+| Input                                    | Chart     | Result                                                                                         |
+| ---------------------------------------- | --------- | ---------------------------------------------------------------------------------------------- |
+| `plot reviews 2025`                      | reviews   | entries with `2025-01-01 ≤ date ≤ 2025-12-31`; message `Rendered review history chart (2025).` |
+| `plot reviews 2023q2`                    | reviews   | entries in `2023-04-01…2023-06-30`; message `… (2023 Q2).`                                     |
+| `retention 2024`                         | retention | retention line over 2024 entries                                                               |
+| `plot due 2026`                          | due       | day-offsets `0…173` (window clamped to start today — past days have no due data)               |
+| `plot due 2027`                          | due       | day-offsets `174…538`, x-axis labeled with real dates (§5.4)                                   |
+| `plot due 2025`                          | due       | empty ⇒ existing "No future reviews in this range." path                                       |
+| `reviews 2027` (future year, past chart) | reviews   | empty slice ⇒ existing "No review data available." path                                        |
+| bare `2023q2` after `pr`                 | reviews   | re-renders current chart with the quarter (shortcut path)                                      |
+| bare `2025` with no chart yet            | due       | defaults to due chart (existing shortcut behavior, `handler.js:145-147`)                       |
+| `plot reviews 2101`                      | —         | invalid range ⇒ existing `Unknown range: 2101` message                                         |
+| `plot reviews 2023q5`                    | —         | invalid range (same path)                                                                      |
 
 Cumulative review charts over a calendar window MUST seed their running totals
 with the pre-window sums (`preSliceSum` semantics preserved), i.e.
@@ -385,7 +385,7 @@ so all three range kinds produce `{ start, end }` and share the existing
   `start = 0, end = allData.length` — keep returning the full copy with a
   zeroed `preSliceSum` exactly as now (`reviews.js:110-124`).
 - `spec.kind === "duration"`: `start = Math.max(0, allData.length - spec.days),
-  end = allData.length` — identical to today.
+end = allData.length` — identical to today.
 - `spec.kind === "calendar"`: `({ start, end } = calendarSliceBounds(allData, spec))`.
 
 Then `const slice = allData.slice(start, end);` and run the existing
@@ -450,11 +450,19 @@ day and labeling calendar mode with real dates:
    ```js
    const isCalendar = rangeSpec && rangeSpec.kind === "calendar";
    const base = new Date();
-   const todayLocal = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+   const todayLocal = new Date(
+     base.getFullYear(),
+     base.getMonth(),
+     base.getDate(),
+   );
    for (let i = 0; i < numDays; i++) {
      const day = minDay + i;
      if (isCalendar) {
-       const d = new Date(todayLocal.getFullYear(), todayLocal.getMonth(), todayLocal.getDate() + day);
+       const d = new Date(
+         todayLocal.getFullYear(),
+         todayLocal.getMonth(),
+         todayLocal.getDate() + day,
+       );
        const mm = String(d.getMonth() + 1).padStart(2, "0");
        const dd = String(d.getDate()).padStart(2, "0");
        labels[i] = `${d.getFullYear()}-${mm}-${dd}`;
@@ -529,23 +537,23 @@ ESM source so c8 sees coverage (`tests/timeRange.test.cjs:22`).
 
 ### 7.1 `tests/timeRange_calendar.test.cjs` (pure logic, no DOM)
 
-| Case | Expectation |
-|---|---|
-| `parseRangeSpec("2025")` | `{kind:"calendar", from:"2025-01-01", to:"2025-12-31", label:"2025"}` |
-| `parseRangeSpec("2023q2")`, `"2023Q2"`, `" 2023q2 "` | `{…, from:"2023-04-01", to:"2023-06-30", label:"2023 Q2"}` |
-| all four quarters of one year | boundary table from §5.1(4) |
-| `"2024q1"` (leap year) | `to === "2024-03-31"` (leap day irrelevant — documents why) |
-| `"2023q5"`, `"2023q0"`, `"202"`, `"20255"`, `"1969"`, `"2100"`, `"q2"`, `"2023 q2"` | `undefined` (calendar-wise) — and `isValidRange` false for each |
-| `parseRangeSpec("3m")` | `{kind:"duration", days:90}` |
-| `parseRangeSpec("all")` | `{kind:"all"}` |
-| `parseRange("2025")` | still `undefined` (no grammar collision) |
-| `isValidRange("2025")`, `isValidRange("2023q2")` | `true` |
-| `formatRange("2025")`, `formatRange("2023q2")` | `"2025"`, `"2023 Q2"` |
-| `formatRange("3m")`, `formatRange("all")` | unchanged `"90 days"`, `"all time"` |
-| `calendarRangeToDayOffsets(spec2026, now=2026-07-11)` | `{start:0, end:173}` (clamped) |
-| `calendarRangeToDayOffsets(spec2027, now=2026-07-11)` | `{start:174, end:538}` |
-| `calendarRangeToDayOffsets(spec2025, now=2026-07-11)` | `null` |
-| quarter spanning today (`2026q3`, now=2026-07-11) | `{start:0, end:81}` |
+| Case                                                                                | Expectation                                                           |
+| ----------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `parseRangeSpec("2025")`                                                            | `{kind:"calendar", from:"2025-01-01", to:"2025-12-31", label:"2025"}` |
+| `parseRangeSpec("2023q2")`, `"2023Q2"`, `" 2023q2 "`                                | `{…, from:"2023-04-01", to:"2023-06-30", label:"2023 Q2"}`            |
+| all four quarters of one year                                                       | boundary table from §5.1(4)                                           |
+| `"2024q1"` (leap year)                                                              | `to === "2024-03-31"` (leap day irrelevant — documents why)           |
+| `"2023q5"`, `"2023q0"`, `"202"`, `"20255"`, `"1969"`, `"2100"`, `"q2"`, `"2023 q2"` | `undefined` (calendar-wise) — and `isValidRange` false for each       |
+| `parseRangeSpec("3m")`                                                              | `{kind:"duration", days:90}`                                          |
+| `parseRangeSpec("all")`                                                             | `{kind:"all"}`                                                        |
+| `parseRange("2025")`                                                                | still `undefined` (no grammar collision)                              |
+| `isValidRange("2025")`, `isValidRange("2023q2")`                                    | `true`                                                                |
+| `formatRange("2025")`, `formatRange("2023q2")`                                      | `"2025"`, `"2023 Q2"`                                                 |
+| `formatRange("3m")`, `formatRange("all")`                                           | unchanged `"90 days"`, `"all time"`                                   |
+| `calendarRangeToDayOffsets(spec2026, now=2026-07-11)`                               | `{start:0, end:173}` (clamped)                                        |
+| `calendarRangeToDayOffsets(spec2027, now=2026-07-11)`                               | `{start:174, end:538}`                                                |
+| `calendarRangeToDayOffsets(spec2025, now=2026-07-11)`                               | `null`                                                                |
+| quarter spanning today (`2026q3`, now=2026-07-11)                                   | `{start:0, end:81}`                                                   |
 
 Construct `now` as `new Date(2026, 6, 11)` (local), never from a string.
 
@@ -559,7 +567,7 @@ and multiple years, e.g. dates `2024-12-30, 2024-12-31, 2025-01-01, 2025-01-03,
   `preSliceSum` equals the sum of the two 2024 entries' fields.
 - `getReviewStatsData("2025q1")` returns the two Q1 entries.
 - `getReviewStatsData("2027")` returns `[]` with a fully-populated zero/summed
-  `preSliceSum` (sum of *all* entries — everything is before the window).
+  `preSliceSum` (sum of _all_ entries — everything is before the window).
 - By-deck: `getReviewStatsData("2025", true)` — `dates` are the three 2025
   dates; a deck with an entry only on `2024-12-31` gets its count in
   `preSliceSumsByDeck` and zero-padded rows in the window.
@@ -663,13 +671,13 @@ PR description).
 
 ## 12. Source index
 
-| Claim area | Primary source |
-|---|---|
-| Fund token parsing / quarter resolution | `~/dev/fund/js/utils/date.js:256-321` |
-| Fund range grammar & context year | `~/dev/fund/js/transactions/terminal/dateUtils.js` |
-| Fund consumption & UX | `~/dev/fund/js/transactions/terminal/handlers/plot.js:118-151` |
-| UTC-midnight pitfall | `~/dev/fund/js/utils/date.js:327-340` |
-| This repo's range pipeline | `js/utils/timeRange.js`, `js/commands/handler.js:682-744` |
-| Reviews/due/retention data access | `js/commands/reviews.js:20-153`, `js/commands/due.js:21-57`, `js/commands/retention.js:172-191` |
-| Data-shape measurements (gaps, invariants) | `data/anki/review_stats_data.json`, `data/anki/custom_stats_data.json`, measured 2026-07-11 |
-| Test conventions | `tests/timeRange.test.cjs`, `tests/handler_coverage.test.cjs`, `tools/node_test_runner.mjs:11-23`, `docs/js-testing.md` |
+| Claim area                                 | Primary source                                                                                                          |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| Fund token parsing / quarter resolution    | `~/dev/fund/js/utils/date.js:256-321`                                                                                   |
+| Fund range grammar & context year          | `~/dev/fund/js/transactions/terminal/dateUtils.js`                                                                      |
+| Fund consumption & UX                      | `~/dev/fund/js/transactions/terminal/handlers/plot.js:118-151`                                                          |
+| UTC-midnight pitfall                       | `~/dev/fund/js/utils/date.js:327-340`                                                                                   |
+| This repo's range pipeline                 | `js/utils/timeRange.js`, `js/commands/handler.js:682-744`                                                               |
+| Reviews/due/retention data access          | `js/commands/reviews.js:20-153`, `js/commands/due.js:21-57`, `js/commands/retention.js:172-191`                         |
+| Data-shape measurements (gaps, invariants) | `data/anki/review_stats_data.json`, `data/anki/custom_stats_data.json`, measured 2026-07-11                             |
+| Test conventions                           | `tests/timeRange.test.cjs`, `tests/handler_coverage.test.cjs`, `tools/node_test_runner.mjs:11-23`, `docs/js-testing.md` |

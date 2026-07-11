@@ -5,7 +5,7 @@
 
 import { bindLegendToggle, isLabelHidden } from "#js/commands/legendToggle.js";
 import { getReviewStatsData } from "#js/commands/reviews.js";
-import { parseRange, DEFAULT_RANGE } from "#js/utils/timeRange.js";
+import { formatRange, DEFAULT_RANGE } from "#js/utils/timeRange.js";
 
 const Chart = window.Chart;
 
@@ -180,8 +180,7 @@ export function showRetention(rangeKey = DEFAULT_RANGE) {
 
   const data = getReviewStatsData(rangeKey);
   const rangeLabel = rangeKey || DEFAULT_RANGE;
-  const days = parseRange(rangeLabel);
-  const rangeText = days === null ? "all time" : `${days} days`;
+  const rangeText = formatRange(rangeLabel);
 
   const result = renderRetentionChart(data);
   if (result.success) {

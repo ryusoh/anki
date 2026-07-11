@@ -5,7 +5,12 @@
  */
 
 import { createCommandTrie } from "../utils/trie.js";
-import { parseRange, isValidRange, DEFAULT_RANGE } from "../utils/timeRange.js";
+import {
+  parseRange,
+  isValidRange,
+  DEFAULT_RANGE,
+  RANGE_HELP,
+} from "../utils/timeRange.js";
 import { showDue, destroyChart as destroyDueChart } from "./due.js";
 import { showReviews, destroyCharts } from "./reviews.js";
 import { showRetention, destroyRetentionChart } from "./retention.js";
@@ -14,7 +19,7 @@ import { toggleZoom, getZoomState } from "./zoom.js";
 // Create command trie for validation
 const commandTrie = createCommandTrie();
 
-export { parseRange, isValidRange, DEFAULT_RANGE };
+export { parseRange, isValidRange, DEFAULT_RANGE, RANGE_HELP };
 
 let currentChart = null;
 let activeTimeRange = DEFAULT_RANGE;
@@ -315,7 +320,7 @@ function handlePlotCommand(normalized, activeTimeRange, appendLine) {
 
     if (range && !isValidRange(range)) {
       appendLine(`Unknown range: ${range}`, "warn");
-      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      appendLine(RANGE_HELP, "muted");
       return { handled: true, command: "plot", error: "invalid range" };
     }
 
@@ -460,7 +465,7 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
       return updateChartState("due", false, true, false, appendLine, range);
     } else if (dueDeckMatch[1]) {
       appendLine(`Unknown range: ${dueDeckMatch[1]}`, "warn");
-      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      appendLine(RANGE_HELP, "muted");
       return { handled: true, command: "due-deck", error: "invalid range" };
     }
   }
@@ -473,7 +478,7 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
       return updateChartState("due", false, false, false, appendLine, range);
     } else if (dueMatch[2]) {
       appendLine(`Unknown range: ${dueMatch[2]}`, "warn");
-      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      appendLine(RANGE_HELP, "muted");
       return { handled: true, command: "due", error: "invalid range" };
     }
   }
@@ -488,7 +493,7 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
       return updateChartState("reviews", true, true, true, appendLine, range);
     } else if (rtdcMatch[2]) {
       appendLine(`Unknown range: ${rtdcMatch[2]}`, "warn");
-      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      appendLine(RANGE_HELP, "muted");
       return {
         handled: true,
         command: "reviews-time-deck-cumulative",
@@ -507,7 +512,7 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
       return updateChartState("reviews", true, false, true, appendLine, range);
     } else if (rtcMatch[1]) {
       appendLine(`Unknown range: ${rtcMatch[1]}`, "warn");
-      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      appendLine(RANGE_HELP, "muted");
       return {
         handled: true,
         command: "reviews-time-cumulative",
@@ -526,7 +531,7 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
       return updateChartState("reviews", false, true, true, appendLine, range);
     } else if (rdcMatch[1]) {
       appendLine(`Unknown range: ${rdcMatch[1]}`, "warn");
-      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      appendLine(RANGE_HELP, "muted");
       return {
         handled: true,
         command: "reviews-deck-cumulative",
@@ -543,7 +548,7 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
       return updateChartState("reviews", false, false, true, appendLine, range);
     } else if (rcMatch[1]) {
       appendLine(`Unknown range: ${rcMatch[1]}`, "warn");
-      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      appendLine(RANGE_HELP, "muted");
       return {
         handled: true,
         command: "reviews-cumulative",
@@ -562,7 +567,7 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
       return updateChartState("reviews", true, true, false, appendLine, range);
     } else if (rtdMatch[2]) {
       appendLine(`Unknown range: ${rtdMatch[2]}`, "warn");
-      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      appendLine(RANGE_HELP, "muted");
       return {
         handled: true,
         command: "reviews-time-deck",
@@ -583,7 +588,7 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
       return updateChartState("reviews", true, false, false, appendLine, range);
     } else if (rtMatch[1]) {
       appendLine(`Unknown range: ${rtMatch[1]}`, "warn");
-      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      appendLine(RANGE_HELP, "muted");
       return { handled: true, command: "reviews-time", error: "invalid range" };
     }
   }
@@ -600,7 +605,7 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
       return updateChartState("reviews", false, true, false, appendLine, range);
     } else if (rdMatch[1]) {
       appendLine(`Unknown range: ${rdMatch[1]}`, "warn");
-      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      appendLine(RANGE_HELP, "muted");
       return { handled: true, command: "reviews-deck", error: "invalid range" };
     }
   }
@@ -626,7 +631,7 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
       );
     } else if (rMatch[1]) {
       appendLine(`Unknown range: ${rMatch[1]}`, "warn");
-      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      appendLine(RANGE_HELP, "muted");
       return { handled: true, command: "reviews", error: "invalid range" };
     }
   }
@@ -646,7 +651,7 @@ function handleRegexCommands(normalized, activeTimeRange, appendLine) {
       );
     } else if (retMatch[1]) {
       appendLine(`Unknown range: ${retMatch[1]}`, "warn");
-      appendLine("Valid ranges: 1m-12m, 1y-Ny, all", "muted");
+      appendLine(RANGE_HELP, "muted");
       return { handled: true, command: "retention", error: "invalid range" };
     }
   }
@@ -771,12 +776,14 @@ export function showHelp(appendLine) {
   appendLine("Time ranges:", "muted");
   appendLine("  1m-12m, 1y+ (e.g. 13y), Nd (e.g. 15d)", "muted");
   appendLine("  Combos: 1y4m, 3m9d, 2y6m15d", "muted");
+  appendLine("  2025, 2023q2 (calendar year / quarter)", "muted");
   appendLine("  all (full history)", "muted");
   appendLine("", "muted");
   appendLine("Examples:", "muted");
   appendLine("  plot due          - Default: 1 month", "muted");
   appendLine("  plot due 3m9d     - 3 months and 9 days", "muted");
   appendLine("  plot reviews 1y   - 1 year", "muted");
+  appendLine("  plot reviews 2025 - Calendar year 2025", "muted");
   appendLine("  plot retention 1y4m - 1 year and 4 months", "muted");
   appendLine("", "muted");
   appendLine("Shortcuts (no 'plot' needed):", "muted");
@@ -806,11 +813,13 @@ export function listCharts(appendLine) {
   appendLine("", "muted");
   appendLine("Time ranges:", "muted");
   appendLine("  1m-12m, 1y+, Nd, combos (1y4m, 3m9d), all", "muted");
+  appendLine("  2025, 2023q2 (calendar year / quarter)", "muted");
   appendLine("", "muted");
   appendLine("Examples:", "muted");
   appendLine("  plot due            - Next 30 days (default)", "muted");
   appendLine("  plot due 3m9d       - Next 3 months and 9 days", "muted");
   appendLine("  plot reviews 1y     - Last 1 year history", "muted");
+  appendLine("  plot reviews 2025   - Calendar year 2025", "muted");
   appendLine("  plot retention 1y4m - Last 1 year and 4 months", "muted");
   appendLine("", "muted");
   appendLine("Shortcuts:", "muted");

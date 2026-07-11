@@ -4,7 +4,13 @@
  */
 
 import { bindLegendToggle, isLabelHidden } from "#js/commands/legendToggle.js";
-import { parseRange, DEFAULT_RANGE } from "#js/utils/timeRange.js";
+import {
+  parseRange,
+  parseRangeSpec,
+  formatRange,
+  calendarRangeToDayOffsets,
+  DEFAULT_RANGE,
+} from "#js/utils/timeRange.js";
 
 const Chart = window.Chart;
 
@@ -29,10 +35,31 @@ export function getFutureDueData(rangeKey = DEFAULT_RANGE, byDeck = false) {
     allData = Array.isArray(payload.futureDue) ? payload.futureDue : [];
   }
 
-  const days = parseRange(rangeKey);
-  if (days === null || days === undefined) {
+  const spec = parseRangeSpec(rangeKey);
+
+  if (!spec || spec.kind === "all") {
     return allData;
   }
+
+  if (spec.kind === "calendar") {
+    const offsets = calendarRangeToDayOffsets(spec);
+    // Whole window already in the past -> nothing is due there.
+    if (!offsets) return byDeck ? {} : [];
+    const inWindow = (e) => e.day >= offsets.start && e.day <= offsets.end;
+
+    if (byDeck) {
+      const limitedData = {};
+      for (const [deckName, entries] of Object.entries(allData)) {
+        if (Array.isArray(entries)) {
+          limitedData[deckName] = entries.filter(inWindow);
+        }
+      }
+      return limitedData;
+    }
+    return allData.filter(inWindow);
+  }
+
+  const days = spec.days;
 
   if (byDeck) {
     const limitedData = {};
@@ -56,7 +83,12 @@ export function getFutureDueData(rangeKey = DEFAULT_RANGE, byDeck = false) {
   }
 }
 
-export function renderFutureDueChart(data, byDeck = false, rangeDays = null) {
+export function renderFutureDueChart(
+  data,
+  byDeck = false,
+  rangeDays = null,
+  rangeSpec = null,
+) {
   const canvas = document.getElementById("runningAmountCanvas");
   const section = document.getElementById("runningAmountSection");
   const legend = document.getElementById("chartLegend");
@@ -104,9 +136,12 @@ export function renderFutureDueChart(data, byDeck = false, rangeDays = null) {
   /* c8 ignore next */
   if (empty) empty.style.display = "none";
 
-  // Compute maximum day for labels
+  // Compute the min/max day span for labels. For every existing caller data
+  // starts at day 0, so minDay is always 0 there (backward-compat guarantee);
+  // a calendar window starting in the future is the only case minDay > 0.
   let maxDay = 0;
-  /* c8 ignore next 10 */
+  let minDay = Infinity;
+  /* c8 ignore next 14 */
   if (byDeck) {
     // Bolt: Use native for loops to find the max day instead of .flatMap().map()
     // This avoids large intermediate array allocations and prevents Math.max stack overflow on large datasets.
@@ -115,22 +150,48 @@ export function renderFutureDueChart(data, byDeck = false, rangeDays = null) {
         if (entries[i].day > maxDay) {
           maxDay = entries[i].day;
         }
+        if (entries[i].day < minDay) {
+          minDay = entries[i].day;
+        }
       }
     }
   } else {
     maxDay = data.length > 0 ? data[data.length - 1].day : 0;
+    minDay = data.length > 0 ? data[0].day : 0;
   }
+  if (minDay === Infinity) minDay = 0;
 
   if (rangeDays && maxDay < rangeDays - 1) {
     maxDay = rangeDays - 1;
   }
 
-  const numDays = maxDay + 1;
+  const numDays = maxDay - minDay + 1;
   const labels = new Array(numDays);
+  const isCalendar = rangeSpec && rangeSpec.kind === "calendar";
+  const base = new Date();
+  const todayLocal = new Date(
+    base.getFullYear(),
+    base.getMonth(),
+    base.getDate(),
+  );
   for (let i = 0; i < numDays; i++) {
-    if (i === 0) labels[i] = "Today";
-    else if (i === 1) labels[i] = "Tomorrow";
-    else labels[i] = `+${i}d`;
+    const day = minDay + i;
+    if (isCalendar) {
+      const d = new Date(
+        todayLocal.getFullYear(),
+        todayLocal.getMonth(),
+        todayLocal.getDate() + day,
+      );
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      labels[i] = `${d.getFullYear()}-${mm}-${dd}`;
+    } else if (day === 0) {
+      labels[i] = "Today";
+    } else if (day === 1) {
+      labels[i] = "Tomorrow";
+    } else {
+      labels[i] = `+${day}d`;
+    }
   }
 
   const datasets = [];
@@ -160,7 +221,7 @@ export function renderFutureDueChart(data, byDeck = false, rangeDays = null) {
 
         const counts = new Array(numDays);
         for (let i = 0; i < numDays; i++) {
-          counts[i] = daySparseMap[i] || 0;
+          counts[i] = daySparseMap[minDay + i] || 0;
         }
 
         const color = getGroupedDeckColor(
@@ -222,8 +283,8 @@ export function renderFutureDueChart(data, byDeck = false, rangeDays = null) {
     const matureDataset = new Array(numDays);
     const youngDataset = new Array(numDays);
     for (let i = 0; i < numDays; i++) {
-      matureDataset[i] = dayMapMature[i] || 0;
-      youngDataset[i] = dayMapYoung[i] || 0;
+      matureDataset[i] = dayMapMature[minDay + i] || 0;
+      youngDataset[i] = dayMapYoung[minDay + i] || 0;
     }
 
     /* c8 ignore next */
@@ -369,10 +430,11 @@ export function showDue(rangeKey = DEFAULT_RANGE, byDeck = false) {
   const data = getFutureDueData(rangeKey, byDeck);
   /* c8 ignore next */
   const rangeLabel = rangeKey || DEFAULT_RANGE;
+  const spec = parseRangeSpec(rangeLabel);
   const days = parseRange(rangeLabel);
-  const rangeText = days === null ? "all time" : `${days} days`;
+  const rangeText = formatRange(rangeLabel);
 
-  const result = renderFutureDueChart(data, byDeck, days);
+  const result = renderFutureDueChart(data, byDeck, days, spec);
   /* c8 ignore next 4 */
   if (result.success) {
     return `Rendered upcoming reviews chart (${rangeText}).`;

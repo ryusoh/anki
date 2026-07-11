@@ -4,7 +4,11 @@
  */
 
 import { bindLegendToggle, isLabelHidden } from "#js/commands/legendToggle.js";
-import { parseRange, DEFAULT_RANGE } from "#js/utils/timeRange.js";
+import {
+  parseRangeSpec,
+  formatRange,
+  DEFAULT_RANGE,
+} from "#js/utils/timeRange.js";
 
 const Chart = window.Chart;
 
@@ -17,21 +21,45 @@ export function destroyCharts() {
   }
 }
 
+/**
+ * Index window [start, end) of entries with from <= date <= to.
+ * Entries are sorted ascending by date; linear scan is fine (~2.3k entries).
+ */
+function calendarSliceBounds(entries, spec) {
+  let start = 0;
+  while (start < entries.length && entries[start].date < spec.from) start++;
+  let end = start;
+  while (end < entries.length && entries[end].date <= spec.to) end++;
+  return { start, end };
+}
+
+/**
+ * Resolve a range token into an index window [start, end) over
+ * date-sorted entries. Shared by the global and by-deck branches below.
+ */
+function resolveSliceWindow(entries, rangeKey) {
+  const spec = parseRangeSpec(rangeKey);
+  if (!spec || spec.kind === "all") {
+    return { start: 0, end: entries.length };
+  }
+  if (spec.kind === "duration") {
+    return {
+      start: Math.max(0, entries.length - spec.days),
+      end: entries.length,
+    };
+  }
+  return calendarSliceBounds(entries, spec);
+}
+
 export function getReviewStatsData(rangeKey = DEFAULT_RANGE, byDeck = false) {
   const payload = window.reviewStatsData || {};
-
-  const days = parseRange(rangeKey);
 
   if (byDeck) {
     const byDeckData = payload.reviewsByDeck || {};
     // Extract dates from global to ensure all dates are present
     const globalData = Array.isArray(payload.reviews) ? payload.reviews : [];
-    let globalSlice = globalData;
-    let sliceIndex = 0;
-    if (days !== null && days !== undefined) {
-      sliceIndex = Math.max(0, globalData.length - days);
-      globalSlice = globalData.slice(sliceIndex);
-    }
+    const { start, end } = resolveSliceWindow(globalData, rangeKey);
+    const globalSlice = globalData.slice(start, end);
 
     // Bolt: Use pre-allocated array instead of .map() to reduce garbage collection pressure.
     // This optimization bypasses callback function overhead during layout calculations.
@@ -107,24 +135,11 @@ export function getReviewStatsData(rangeKey = DEFAULT_RANGE, byDeck = false) {
   }
 
   const allData = Array.isArray(payload.reviews) ? payload.reviews : [];
-  if (days === null || days === undefined) {
-    const arr = [...allData];
-    arr.preSliceSum = {
-      mature: 0,
-      young: 0,
-      learn: 0,
-      relearn: 0,
-      time_mature: 0,
-      time_young: 0,
-      time_learn: 0,
-      time_relearn: 0,
-      time: 0,
-    };
-    return arr;
-  }
-
-  const sliceIndex = Math.max(0, allData.length - days);
-  const slice = allData.slice(sliceIndex);
+  const { start: sliceIndex, end: sliceEnd } = resolveSliceWindow(
+    allData,
+    rangeKey,
+  );
+  const slice = allData.slice(sliceIndex, sliceEnd);
 
   const preSliceSum = {
     mature: 0,
@@ -763,8 +778,7 @@ export function showReviews(
 
   const data = getReviewStatsData(rangeKey, byDeck);
   const rangeLabel = rangeKey || DEFAULT_RANGE;
-  const days = parseRange(rangeLabel);
-  const rangeText = days === null ? "all time" : `${days} days`;
+  const rangeText = formatRange(rangeLabel);
 
   const result = renderReviewsChart(data, showTime, byDeck, isCumulative);
   if (result.success) {
