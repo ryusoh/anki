@@ -68,4 +68,3 @@ def on_editor_did_init_shortcuts(shortcuts: list, editor: Editor) -> None:
 
 gui_hooks.editor_did_init_buttons.append(on_editor_did_init_buttons)
 gui_hooks.editor_did_init_shortcuts.append(on_editor_did_init_shortcuts)
-

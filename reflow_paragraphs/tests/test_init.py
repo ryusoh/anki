@@ -16,6 +16,7 @@ def _load():
     sys.modules['aqt.editor'] = MagicMock()
     sys.modules['aqt.utils'] = MagicMock()
     import reflow_paragraphs
+
     importlib.reload(reflow_paragraphs)
     return reflow_paragraphs
 

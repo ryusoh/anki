@@ -8,10 +8,10 @@ from __future__ import annotations
 
 from auto_markdown.core import convert_markdown_field
 
-
 # ---------------------------------------------------------------------------
 # Headings
 # ---------------------------------------------------------------------------
+
 
 def test_h4_heading():
     html = '#### This is a heading'
@@ -42,6 +42,7 @@ def test_heading_not_converted_if_no_space():
 # Bold
 # ---------------------------------------------------------------------------
 
+
 def test_bold_double_asterisk():
     html = 'This is **bold** text'
     expected = 'This is <b>bold</b> text'
@@ -67,6 +68,7 @@ def test_bold_with_inline_code():
 # Inline code
 # ---------------------------------------------------------------------------
 
+
 def test_inline_code():
     html = 'Use `LDG` for read-only data'
     expected = 'Use <code>LDG</code> for read-only data'
@@ -89,6 +91,7 @@ def test_inline_code_with_brackets():
 # ---------------------------------------------------------------------------
 # Unordered lists
 # ---------------------------------------------------------------------------
+
 
 def test_unordered_list_single():
     html = '- List item'
@@ -116,6 +119,7 @@ def test_unordered_list_with_inline_formatting():
 # Ordered lists
 # ---------------------------------------------------------------------------
 
+
 def test_ordered_list():
     html = '1. First<br>2. Second<br>3. Third'
     expected = '<ol><li>First</li><li>Second</li><li>Third</li></ol>'
@@ -125,6 +129,7 @@ def test_ordered_list():
 # ---------------------------------------------------------------------------
 # Horizontal rule
 # ---------------------------------------------------------------------------
+
 
 def test_horizontal_rule_dashes():
     html = '---'
@@ -139,6 +144,7 @@ def test_horizontal_rule_asterisks():
 # ---------------------------------------------------------------------------
 # Blockquote
 # ---------------------------------------------------------------------------
+
 
 def test_blockquote():
     html = '> This is a quote'
@@ -158,10 +164,10 @@ def test_blockquote_multiple_br():
     assert convert_markdown_field(html) == expected
 
 
-
 # ---------------------------------------------------------------------------
 # Mixed content
 # ---------------------------------------------------------------------------
+
 
 def test_heading_with_bold_and_code():
     """A heading line that also has bold and code."""
@@ -174,13 +180,7 @@ def test_heading_with_bold_and_code():
 
 def test_multiline_mixed():
     """Heading, prose, list items across <br>."""
-    html = (
-        '#### Heading<br>'
-        'Some **bold** text<br>'
-        '<br>'
-        '- Item one<br>'
-        '- Item two'
-    )
+    html = '#### Heading<br>' 'Some **bold** text<br>' '<br>' '- Item one<br>' '- Item two'
     result = convert_markdown_field(html)
     assert '<h4>Heading</h4>' in result
     assert '<b>bold</b>' in result
@@ -190,6 +190,7 @@ def test_multiline_mixed():
 # ---------------------------------------------------------------------------
 # MathJax passthrough
 # ---------------------------------------------------------------------------
+
 
 def test_mathjax_inline_passthrough():
     r"""Don't mangle \(...\) MathJax expressions."""
@@ -211,6 +212,7 @@ def test_anki_mathjax_tag_passthrough():
 # ---------------------------------------------------------------------------
 # Idempotency and no-op
 # ---------------------------------------------------------------------------
+
 
 def test_idempotent():
     """Running twice gives the same result."""
@@ -245,6 +247,7 @@ def test_plain_text_no_change():
 # Real-world integration: the LDG card back field
 # ---------------------------------------------------------------------------
 
+
 def test_real_world_ldg_card():
     """Full back field from the real LDG card, verifying key conversions."""
     html = (
@@ -274,7 +277,10 @@ def test_real_world_ldg_card():
     assert '<h4>② 在远程 RDMA 访问中，它是"本地加载"的语义起点</h4>' in result
 
     # Bold converted
-    assert '<b>这让 GPU 的片上缓存资源分配更合理，局部性更好，从而让 Warp 切换延迟隐藏的效率更高。</b>' in result
+    assert (
+        '<b>这让 GPU 的片上缓存资源分配更合理，局部性更好，从而让 Warp 切换延迟隐藏的效率更高。</b>'
+        in result
+    )
 
     # Inline code converted
     assert '<code>LDG</code>' in result
@@ -293,6 +299,7 @@ def test_real_world_ldg_card():
 # ---------------------------------------------------------------------------
 # Edge cases
 # ---------------------------------------------------------------------------
+
 
 def test_asterisk_not_list_in_prose():
     """A * in prose (not at line start) is not a list item."""
@@ -323,6 +330,7 @@ def test_existing_html_tags_preserved():
 # Code Blocks
 # ---------------------------------------------------------------------------
 
+
 def test_code_block_cpp():
     """Verify that a code block wraps code correctly and protects it from inner markdown formatting."""
     html = (
@@ -346,29 +354,19 @@ def test_code_block_cpp():
 
 def test_code_block_protects_asterisks():
     """Make sure * in a code block is not converted to italic/bold."""
-    html = (
-        '```c<br>'
-        'int *ptr = &val;<br>'
-        '```'
-    )
-    expected = (
-        '<pre style="background-color: #1e1e1e; color: #d4d4d4; padding: 12px 16px; border-radius: 6px; overflow-x: auto; font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace; font-size: 0.85em; line-height: 1.5; margin: 10px 0;"><code class="language-c">int *ptr = &val;</code></pre>'
-    )
+    html = '```c<br>' 'int *ptr = &val;<br>' '```'
+    expected = '<pre style="background-color: #1e1e1e; color: #d4d4d4; padding: 12px 16px; border-radius: 6px; overflow-x: auto; font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace; font-size: 0.85em; line-height: 1.5; margin: 10px 0;"><code class="language-c">int *ptr = &val;</code></pre>'
     assert convert_markdown_field(html) == expected
-
 
 
 # ---------------------------------------------------------------------------
 # Markdown Tables
 # ---------------------------------------------------------------------------
 
+
 def test_simple_table():
     """Verify simple table parsing."""
-    html = (
-        '| col1 | col2 |<br>'
-        '|---|---|<br>'
-        '| val1 | val2 |'
-    )
+    html = '| col1 | col2 |<br>' '|---|---|<br>' '| val1 | val2 |'
     expected = (
         '<table style="border-collapse: collapse;">'
         '<thead><tr>'
@@ -476,6 +474,7 @@ def test_table_glued_to_preceding_list_no_br():
 # Redundant Line Breaks Spacing
 # ---------------------------------------------------------------------------
 
+
 def test_no_redundant_br_after_heading():
     """Verify that a <br> immediately after a heading is removed since heading is block-level."""
     html = '#### Heading<br>Text'
@@ -497,7 +496,6 @@ def test_br_preserved_for_extra_empty_lines_after_heading():
     assert convert_markdown_field(html) == expected
 
 
-
 def test_no_redundant_br_before_heading():
     """Verify that a <br> immediately before a heading is removed."""
     html = 'Text<br>#### Heading'
@@ -512,21 +510,11 @@ def test_no_redundant_br_around_table():
     assert convert_markdown_field(html) == expected
 
 
-
 def test_no_redundant_br_around_code_block():
     """Verify that adjacent <br>s around a code block are removed."""
-    html = (
-        'Text<br>'
-        '```cpp<br>'
-        'void f();<br>'
-        '```<br>'
-        'More text'
-    )
-    expected = (
-        'Text<pre style="background-color: #1e1e1e; color: #d4d4d4; padding: 12px 16px; border-radius: 6px; overflow-x: auto; font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace; font-size: 0.85em; line-height: 1.5; margin: 10px 0;"><code class="language-cpp">void f();</code></pre>More text'
-    )
+    html = 'Text<br>' '```cpp<br>' 'void f();<br>' '```<br>' 'More text'
+    expected = 'Text<pre style="background-color: #1e1e1e; color: #d4d4d4; padding: 12px 16px; border-radius: 6px; overflow-x: auto; font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace; font-size: 0.85em; line-height: 1.5; margin: 10px 0;"><code class="language-cpp">void f();</code></pre>More text'
     assert convert_markdown_field(html) == expected
-
 
 
 def test_real_world_spacing_list_to_paragraph():
@@ -624,11 +612,7 @@ def test_upgrade_existing_code_blocks():
 
 def test_upgrade_existing_blockquotes():
     """Verify that old unstyled HTML blockquote elements are upgraded to the new styled layout."""
-    html = (
-        'Intro text<br>'
-        '<blockquote>This is an old quote</blockquote>'
-        '<br>Outro text'
-    )
+    html = 'Intro text<br>' '<blockquote>This is an old quote</blockquote>' '<br>Outro text'
     expected = (
         'Intro text<br>'
         '<blockquote style="border-left: 4px solid #ccc; padding: 6px 12px; margin: 10px 0; background-color: rgba(150, 150, 150, 0.08);">This is an old quote</blockquote>'
@@ -640,14 +624,9 @@ def test_upgrade_existing_blockquotes():
 # ---------------------------------------------------------------------------
 
 
-
-
-
-
-
-
 # Integration: button handler
 # ---------------------------------------------------------------------------
+
 
 def test_on_auto_markdown_calls_save_first():
     """Button handler must saveNow before reading fields."""
@@ -661,6 +640,7 @@ def test_on_auto_markdown_calls_save_first():
 
     import importlib
     import auto_markdown
+
     importlib.reload(auto_markdown)
     from auto_markdown import on_auto_markdown
 
@@ -681,6 +661,7 @@ def test_apply_converts_both_fields():
 
     import importlib
     import auto_markdown
+
     importlib.reload(auto_markdown)
     from auto_markdown import _apply_markdown
 
@@ -709,6 +690,7 @@ def test_shortcut_registration():
 
     import importlib
     import auto_markdown
+
     importlib.reload(auto_markdown)
     from auto_markdown import on_editor_did_init_shortcuts
 
@@ -719,4 +701,3 @@ def test_shortcut_registration():
     assert len(shortcuts) == 1
     assert shortcuts[0][0] == "Ctrl+M"
     assert callable(shortcuts[0][1])
-

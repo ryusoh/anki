@@ -65,7 +65,9 @@ def _is_structural(line: str) -> bool:
     # Header lines ("Similar:", "同義語:") and CJK glossary markers ("【记】…")
     # label the lines around them; joining them into prose mangles the entry.
     # Note: A colon-ended line is only structural if it's not column-filling.
-    return (visible.endswith((":", "：")) and len(visible) < MIN_FILL_LEN) or visible.startswith(("【", "["))
+    return (visible.endswith((":", "：")) and len(visible) < MIN_FILL_LEN) or visible.startswith(
+        ("【", "[")
+    )
 
 
 def _open_junction(line: str, next_line: str) -> bool:
@@ -193,10 +195,7 @@ def _reflow_leaf_div_runs(html: str) -> tuple[str, bool]:
     i = 0
     while i < len(matches):
         j = i
-        while (
-            j + 1 < len(matches)
-            and not html[matches[j].end() : matches[j + 1].start()].strip()
-        ):
+        while j + 1 < len(matches) and not html[matches[j].end() : matches[j + 1].start()].strip():
             j += 1
         run = matches[i : j + 1]
         if len(run) >= 2:

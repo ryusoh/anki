@@ -99,7 +99,6 @@ def _convert_inline(text: str) -> str:
     return protected_text
 
 
-
 # ---------------------------------------------------------------------------
 # Line-level conversion
 # ---------------------------------------------------------------------------
@@ -361,7 +360,6 @@ def _parse_tables(parts: list[tuple[str, str]]) -> list[tuple[str, str]]:
         result.append((table_html, "table"))
         i = curr
 
-
     return result
 
 
@@ -574,10 +572,6 @@ def convert_markdown_field(html: str) -> str:
     return result
 
 
-
-
-
-
 def _assemble(parts: list[tuple[str, str]]) -> list[tuple[str, str]]:
     """Assemble converted parts, wrapping consecutive list/blockquote items.
 
@@ -649,5 +643,3 @@ def _assemble(parts: list[tuple[str, str]]) -> list[tuple[str, str]]:
             i += 1
 
     return output
-
-

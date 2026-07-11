@@ -161,9 +161,7 @@ def test_mixed_field_reflows_only_the_prose_run():
         'especially for curtains and upholstery. "floral chintz curtains"<br>'
         '</li></ol><img src="paste-abc123.jpg">'
     )
-    prose_lines = "<br>".join(
-        f"<i>{line}</i>" for line in PDF_PARAGRAPH.split("\n")
-    )
+    prose_lines = "<br>".join(f"<i>{line}</i>" for line in PDF_PARAGRAPH.split("\n"))
     sound = "[sound:forvo-abc123.mp3]"
     html = f"{head}<br>{prose_lines}<br>{sound}"
 
@@ -241,6 +239,7 @@ def test_reflow_is_idempotent():
     assert reflow_field_html(once) == once
     dict_once = reflow_field_html(DICTIONARY_FIELD.replace("\n", "<br>"))
     assert reflow_field_html(dict_once) == dict_once
+
 
 def test_colon_ended_long_line_is_not_structural():
     # A long column-filling line ending in a colon is not treated as a structural list header.

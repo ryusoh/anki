@@ -177,8 +177,7 @@ def _open_deck_chooser() -> None:
 
     deck_name = json.dumps(ret.name)
 
-    _stats_web.eval(
-        f"""
+    _stats_web.eval(f"""
     (function() {{
         const radios = document.querySelectorAll('.range-box input[type="radio"]');
         for (const r of radios) {{
@@ -197,8 +196,7 @@ def _open_deck_chooser() -> None:
             input.dispatchEvent(new Event('change', {{ bubbles: true }}));
         }}
     }})();
-    """
-    )
+    """)
 
 
 def _create_stats_tab() -> None:

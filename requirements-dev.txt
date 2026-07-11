@@ -6,7 +6,7 @@
 # produce identical formatting/lint results — a newer black/ruff can change
 # style and turn the build red unexpectedly.
 ruff==0.12.10
-black==25.1.0
+black==26.3.1
 mypy==1.17.1
 bandit==1.8.6
 
