@@ -12,6 +12,8 @@ def mock_aqt():
     aqt_mock.mw = mw_mock
     aqt_mock.gui_hooks = MagicMock()
     aqt_mock.qt = MagicMock()
+    # default: widgets are alive (a bare MagicMock would read as "deleted")
+    aqt_mock.qt.sip.isdeleted.return_value = False
     aqt_mock.webview = MagicMock()
 
     sys.modules['aqt'] = aqt_mock

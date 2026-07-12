@@ -36,6 +36,58 @@ sys.modules.setdefault("aqt.dialogs", MagicMock())
 import tabbed_stats as mod
 
 
+class TestCloseAddcardsDeletedWidget:
+    """Calling _close_addcards when _addcards is a deleted widget.
+
+    Real-world trigger: AddCards closes itself through a native path (Escape,
+    aqt.dialogs.closeAll on sync/profile close) so the C++ object is destroyed
+    while the module global still holds the Python wrapper. Clicking Decks then
+    fires state_did_change -> _close_addcards -> _addcards._close(), which
+    raises inside saveGeom:
+        RuntimeError: wrapped C/C++ object of type AddCards has been deleted
+    """
+
+    def test_deleted_addcards_is_not_closed_again(self):
+        deleted_widget = MagicMock()
+        deleted_widget._close.side_effect = RuntimeError(
+            "wrapped C/C++ object of type AddCards has been deleted"
+        )
+        deleted_central = MagicMock()
+        deleted_central.hide.side_effect = RuntimeError(
+            "wrapped C/C++ object of type QWidget has been deleted"
+        )
+
+        mod._addcards = deleted_widget
+        mod._addcards_central = deleted_central
+
+        sys.modules["aqt.qt"].sip.isdeleted = MagicMock(return_value=True)
+
+        with patch.object(mod, "mw", _aqt.mw):
+            mod._close_addcards()
+
+        deleted_widget._close.assert_not_called()
+        deleted_central.hide.assert_not_called()
+        assert mod._addcards is None
+        assert mod._addcards_central is None
+
+    def test_live_addcards_is_closed_properly(self):
+        live_widget = MagicMock()
+        live_central = MagicMock()
+
+        mod._addcards = live_widget
+        mod._addcards_central = live_central
+
+        sys.modules["aqt.qt"].sip.isdeleted = MagicMock(return_value=False)
+
+        with patch.object(mod, "mw", _aqt.mw):
+            mod._close_addcards()
+
+        live_widget._close.assert_called_once()
+        live_central.hide.assert_called_once()
+        assert mod._addcards is None
+        assert mod._addcards_central is None
+
+
 class TestCreateAddcardsTabDeletedWidget:
     """Calling _create_addcards_tab when _addcards is a deleted widget."""
 

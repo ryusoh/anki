@@ -177,7 +177,8 @@ def _open_deck_chooser() -> None:
 
     deck_name = json.dumps(ret.name)
 
-    _stats_web.eval(f"""
+    _stats_web.eval(
+        f"""
     (function() {{
         const radios = document.querySelectorAll('.range-box input[type="radio"]');
         for (const r of radios) {{
@@ -196,7 +197,8 @@ def _open_deck_chooser() -> None:
             input.dispatchEvent(new Event('change', {{ bubbles: true }}));
         }}
     }})();
-    """)
+    """
+    )
 
 
 def _create_stats_tab() -> None:
@@ -303,14 +305,21 @@ def _close_addcards() -> None:
     if _addcards is None:
         return
 
+    from aqt.qt import sip
+
     if _addcards_central is not None:
-        mw.mainLayout.removeWidget(_addcards_central)
-        _addcards_central.hide()
+        if not sip.isdeleted(_addcards_central):
+            mw.mainLayout.removeWidget(_addcards_central)
+            _addcards_central.hide()
         _addcards_central = None
 
-    # Let AddCards clean itself up properly
-    _addcards._close_event_has_cleaned_up = False
-    _addcards._close()
+    # AddCards may have closed itself (Escape, dialogs.closeAll on
+    # sync/profile close), leaving a dead wrapper — calling _close() on it
+    # raises RuntimeError inside saveGeom.
+    if not sip.isdeleted(_addcards):
+        # Let AddCards clean itself up properly
+        _addcards._close_event_has_cleaned_up = False
+        _addcards._close()
     _addcards = None
 
 
