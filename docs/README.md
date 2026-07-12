@@ -1,0 +1,33 @@
+# Docs index
+
+## Anki knowledge graph
+
+- [anki-knowledge-graph-architecture.md](anki-knowledge-graph-architecture.md) — data flow, GitHub/R2 split, schema (start here)
+- [security-protocol.md](security-protocol.md) — private-data protection layers, pre-commit security check, incident response
+- [anki-data-fetch.md](anki-data-fetch.md) — `make fetch` / `data/anki/fetch` mechanics
+- [fetch-data-lag.md](fetch-data-lag.md) — why `make fetch` can lag behind live Anki edits (WAL)
+- [incremental-staging.md](incremental-staging.md) — hash-map-based incremental R2 staging
+- [r2-upload-guide.md](r2-upload-guide.md) — R2 staging directory layout and upload
+- [r2-sync-guide.md](r2-sync-guide.md) — the `--sync` flag and orphaned-note deletion
+- [graph-analysis-guide.md](graph-analysis-guide.md) — `graph/analyze.py` CLI usage
+- [deck-aliases.md](deck-aliases.md) — deck alias table (`J`, `C`, `E`, `S`, `T`, `F`)
+
+## Repo-wide conventions
+
+- [creating-an-addon.md](creating-an-addon.md) — anatomy of a self-contained addon + test pattern
+- [js-testing.md](js-testing.md) — which JS test suites actually run
+- [lint-and-quality.md](lint-and-quality.md) — formatting/lint/type/security gate
+- [delegation-specs.md](delegation-specs.md) — how to write a design spec for another agent to implement
+
+## Historical records
+
+Point-in-time snapshots kept for context, not maintained as living reference —
+verify against current code/Makefile before trusting specifics.
+
+- [project-handover.md](project-handover.md) — March 2026 handover doc and security incident writeup
+- [git-ignore-audit.md](git-ignore-audit.md) — March 2026 `.gitignore` audit report
+- [graph-merger-tdd.md](graph-merger-tdd.md) — TDD build log for the original graph/PageRank module
+
+## Design specs
+
+- [terminal-calendar-ranges.md](terminal-calendar-ranges.md) — year/quarter calendar time filters for the stats terminal
