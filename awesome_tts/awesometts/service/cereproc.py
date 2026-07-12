@@ -109,7 +109,9 @@ class CereProc(Service):
             password = options['password']
 
             ssml_text = f"""<?xml version="1.0" encoding="UTF-8"?>
-    <speak xmlns="http://www.w3.org/2001/10/synthesis">{text}</speak>""".encode(encoding='utf-8')
+    <speak xmlns="http://www.w3.org/2001/10/synthesis">{text}</speak>""".encode(
+                encoding='utf-8'
+            )
 
             url = f'https://api.cerevoice.com/v2/speak?voice={voice_name}&audio_format=mp3'
             # logging.debug(f'querying url: {url}')
