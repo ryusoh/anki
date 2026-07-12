@@ -4,6 +4,20 @@
 PYTHON := $(if $(wildcard .venv/bin/python3),"$(CURDIR)/.venv/bin/python3",python3)
 NPM := npm
 
+# Fail loudly if an installed dev tool has drifted from its requirements-dev.txt
+# pin, instead of silently formatting/linting with the wrong version — a stale
+# .venv can pass this locally and still turn CI red (or vice versa). Usage:
+# $(call CHECK_TOOL_VERSION,black)
+define CHECK_TOOL_VERSION
+pinned=$$(grep -m1 '^$(1)==' requirements-dev.txt | cut -d= -f3); \
+installed=$$($(PYTHON) -m $(1) --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1); \
+if [ -n "$$pinned" ] && [ "$$pinned" != "$$installed" ]; then \
+	echo "⊘ $(1) $$installed installed but requirements-dev.txt pins $$pinned — .venv is stale."; \
+	echo "  This can pass locally and still fail in CI (or vice versa). Fix: make install-dev"; \
+	exit 1; \
+fi
+endef
+
 # File patterns for formatters/linters (exclude vendor, data, and node_modules directories)
 JS_FILES := $(shell git ls-files --cached --others --exclude-standard '*.js' 2>/dev/null | grep -v '^js/vendor/' | grep -v '^assets/vendor/' | grep -v '^data/' | grep -v '^coverage/' | grep -v 'node_modules' | grep -v '\.min\.js$$' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
 CSS_FILES := $(shell git ls-files --cached --others --exclude-standard '*.css' 2>/dev/null | grep -v '^assets/vendor/' | grep -v '^coverage/' | grep -v '\.min\.css$$' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
@@ -56,14 +70,14 @@ help:
 
 install:
 	@echo "📦 Installing Python dependencies..."
-	@pip3 install -q -r requirements.txt
+	@$(PYTHON) -m pip install -q -r requirements.txt
 	@echo "📦 Syncing JS dependencies (npm ci, respects package-lock.json exactly)..."
 	@npm ci
 	@echo "✅ Dependencies installed"
 
 install-dev:
 	@echo "📦 Installing Python dev/lint dependencies..."
-	@pip3 install -q -r requirements-dev.txt
+	@$(PYTHON) -m pip install -q -r requirements-dev.txt
 	@echo "✅ Dev dependencies installed"
 
 # -----------------------------------------------------------------------------
@@ -289,11 +303,13 @@ quality-py: lint-py fmt-py-check typecheck security-py
 
 lint-py:
 	@$(PYTHON) -m ruff --version >/dev/null 2>&1 || { echo "⊘ ruff not installed (pip install -r requirements-dev.txt)"; exit 1; }
+	@$(call CHECK_TOOL_VERSION,ruff)
 	@echo "🐍 Ruff (lint)..."
 	@$(PYTHON) -m ruff check $(PY_ALL)
 
 fmt-py-check:
 	@$(PYTHON) -m black --version >/dev/null 2>&1 || { echo "⊘ black not installed (pip install -r requirements-dev.txt)"; exit 1; }
+	@$(call CHECK_TOOL_VERSION,black)
 	@echo "🐍 Black (format check)..."
 	@$(PYTHON) -m black --check $(PY_ALL)
 
@@ -304,11 +320,13 @@ fmt-py:
 
 typecheck:
 	@$(PYTHON) -m mypy --version >/dev/null 2>&1 || { echo "⊘ mypy not installed (pip install -r requirements-dev.txt)"; exit 1; }
+	@$(call CHECK_TOOL_VERSION,mypy)
 	@echo "🐍 mypy (type check)..."
 	@$(PYTHON) -m mypy $(PY_SRC)
 
 security-py:
 	@$(PYTHON) -m bandit --version >/dev/null 2>&1 || { echo "⊘ bandit not installed (pip install -r requirements-dev.txt)"; exit 1; }
+	@$(call CHECK_TOOL_VERSION,bandit)
 	@echo "🐍 Bandit (security, high severity)..."
 	@$(PYTHON) -m bandit -rq -lll --ini .bandit $(PY_SRC)
 

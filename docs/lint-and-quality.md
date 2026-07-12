@@ -64,6 +64,14 @@ System `python3` is Homebrew and **externally-managed (PEP 668)** — a bare
 `requirements-dev.txt` so local and CI produce identical formatting; bumping black
 or ruff can change formatting and turn the build red, so bump deliberately.
 
+Unlike `node_modules` (auto-synced by `make install` via `npm ci`), nothing
+re-installs this venv when `requirements-dev.txt` changes — it can silently drift
+(e.g. `black` bumped in the pin but not in your local venv). `lint-py`,
+`fmt-py-check`, `typecheck`, and `security-py` each compare their tool's
+`--version` against the pin before running and fail fast with `make install-dev`
+as the fix, so a stale local tool can no longer format/lint with the wrong version
+and produce a result that silently diverges from CI.
+
 ### Makefile Execution Gotchas
 
 - **Spaces in paths:** The repo path `$(CURDIR)` contains spaces (e.g., `/Application Support/`). Always quote commands that interpolate `$(CURDIR)`, and avoid using `$(wildcard)` with absolute paths since it splits on spaces. Use relative paths with `$(wildcard)` (e.g., `$(wildcard .venv/bin/python3)`).

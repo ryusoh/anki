@@ -49,6 +49,10 @@ Writing a design spec for another agent to implement? See
   externally-managed (PEP 668), so a bare `pip3 install` of ruff/black/mypy/bandit is
   blocked. Install the pinned tools into a venv: `make install-dev` (or
   `pip install -r requirements-dev.txt`). CI installs them fresh, so no venv there.
+  Unlike JS deps, nothing auto-syncs this venv — `quality-py`'s targets now fail
+  loudly with a version mismatch if an installed tool has drifted from its
+  `requirements-dev.txt` pin (formerly this silently passed locally with a stale
+  tool and only broke in CI's `fmt-py-check`); the fix is always `make install-dev`.
 - TDD-style corner-case tests live next to each addon (e.g.
   `auto_wiktionary/tests/` pins Wiktionary redirect cases). Add a failing test
   there first, then fix.
