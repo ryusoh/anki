@@ -66,7 +66,7 @@ Anki users want to visualize relationships between their cards (which cards refe
 - **ALWAYS** keep private data in `data/cloudflare/` (gitignored)
 - If security check fails, DO NOT COMMIT - remove private data first
 
-**See:** `docs/SECURITY_PROTOCOL.md` for full security documentation
+**See:** `docs/security-protocol.md` for full security documentation
 
 ---
 
@@ -156,7 +156,7 @@ addons21/
 ├── css/graph.css                  # Visualization styles
 │
 ├── docs/
-│   ├── SECURITY_PROTOCOL.md       # Security documentation
+│   ├── security-protocol.md       # Security documentation
 │   ├── anki-knowledge-graph-architecture.md
 │   ├── graph-analysis-guide.md
 │   └── ...
@@ -561,7 +561,7 @@ cat ~/.anki-r2/credentials
 
 ### Documentation
 
-- `docs/SECURITY_PROTOCOL.md` - Security procedures
+- `docs/security-protocol.md` - Security procedures
 - `docs/graph-analysis-guide.md` - Graph usage guide
 - `docs/r2-upload-guide.md` - R2 setup guide
 - `docs/anki-knowledge-graph-architecture.md` - Architecture overview
@@ -588,7 +588,7 @@ cat ~/.anki-r2/credentials
    ```
 
 3. **Contact GitHub support** to purge CDN cache
-4. **Review security procedures** in `docs/SECURITY_PROTOCOL.md`
+4. **Review security procedures** in `docs/security-protocol.md`
 
 ---
 
