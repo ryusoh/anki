@@ -75,25 +75,13 @@ addons21`). A Makefile recipe that builds `VAR=$(CURDIR)/...` (or any other
   under an unrelated message (this happened: 2026-07-13, commit `e3800278`).
   Check `git status` before running `precommit-fix` with `YOLO=1`/`MSG=`, and
   prefer worktree isolation for any spawned session that might invoke it.
-- **`make -n precommit-fix` is NOT a dry run.** The recipe is one
-  backslash-continued command containing `$(MAKE)`, and GNU make executes
-  `$(MAKE)`-bearing lines even under `-n` — the real `git add -A`/commit/push
-  step runs (only recursive sub-makes go dry). Bit an agent 2026-07-13: two
-  junk commits from an attempted syntax check. There is no safe `-n` for this
-  target; inspect the recipe text or test extracted snippets instead
-  (`tests/test_makefile_push_gate.py` shows the pattern).
-- **`git push` on a limited/slow network:** `precommit-fix` pushes via
-  `tools/git_push_retry.py` (backoff retries; falls back to pushing queued
-  commits one at a time so each HTTP request stays small; later attempts force
-  HTTP/1.1 + big `http.postBuffer`). A bare `git push` of a multi-MiB pack on
-  a slow uplink dies with `RPC failed; HTTP 408` (seen 2026-07-13), and the
-  old recipe swallowed that failure (exit 0, commit silently unpushed) —
-  pinned by `tests/test_makefile_push_gate.py` + `tests/test_git_push_retry.py`.
-  Run the wrapper directly to drain unpushed commits: `python3 tools/git_push_retry.py`.
-  The backgrounded R2-upload/graph-push jobs are likewise capped at
-  `NET_DEADLINE` seconds (default 900) via `tools/run_with_deadline.py` — on a
-  trickling link their per-request timeouts never fire and `precommit-fix`'s
-  `wait` used to hang forever after the graph-local log. A deadline kill exits
-  124 → loud failure; both uploads resume incrementally on rerun. Raise it
-  with `make precommit-fix YOLO=1 NET_DEADLINE=3600` when a slow-but-working
-  upload should be allowed to finish. Pinned by `tests/test_makefile_net_deadline.py`.
+- **Limited/slow network:** `precommit-fix` pushes via `tools/git_push_retry.py`
+  (backoff retries + per-commit chunking; run it directly to drain unpushed
+  commits) and caps its backgrounded R2/graph uploads at `NET_DEADLINE` seconds
+  (default 900; raise with `NET_DEADLINE=3600` to let a slow upload finish).
+  Failures are loud, never silent, and reruns resume incrementally. Full map:
+  `docs/limited-network.md`.
+- **`make -n precommit-fix` is NOT a dry run** — GNU make executes
+  `$(MAKE)`-bearing recipe lines under `-n`, so it used to really commit. The
+  Makefile now refuses `-n`/`-q`/`-t` for this target at parse time (pinned by
+  `tests/test_makefile_dryrun_guard.py`); don't try to "syntax check" it that way.

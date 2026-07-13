@@ -17,6 +17,7 @@
 - [creating-an-addon.md](creating-an-addon.md) — anatomy of a self-contained addon + test pattern
 - [js-testing.md](js-testing.md) — which JS test suites actually run
 - [lint-and-quality.md](lint-and-quality.md) — formatting/lint/type/security gate
+- [limited-network.md](limited-network.md) — slow-uplink survival: push retry/chunking, NET_DEADLINE upload caps, `make -n` refusal
 - [delegation-specs.md](delegation-specs.md) — how to write a design spec for another agent to implement
 
 ## Historical records

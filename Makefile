@@ -470,7 +470,22 @@ NET_DEADLINE ?= 900
 # CAUTION: `make -n precommit-fix` is NOT a dry run. The recipe is one
 # backslash-continued command containing `$(MAKE)`, and GNU make executes
 # $(MAKE)-bearing recipe lines even under -n — so the REAL git add/commit/push
-# step runs (only the recursive sub-makes go dry).
+# step would run (only the recursive sub-makes go dry). The guard below makes
+# -n/-q/-t refuse outright instead (bit an agent 2026-07-13: an attempted
+# `make -n` syntax check created two junk commits). MAKEFLAGS packs the
+# single-letter flags into its dash-less first word; long options like
+# --no-print-directory are separate words and filtered out to avoid the 'n'
+# in their names false-positiving. Pinned by tests/test_makefile_dryrun_guard.py.
+# The check is parse-time (not a recipe line) because prerequisites like
+# fetch-prompt-fix are themselves $(MAKE)-bearing and would execute — and
+# block on a read prompt — before any recipe-line guard could fire.
+PRECOMMIT_FIX_DRYRUN_FLAGS = $(filter-out --%,$(firstword $(MAKEFLAGS)))
+PRECOMMIT_FIX_DRYRUN = $(findstring n,$(PRECOMMIT_FIX_DRYRUN_FLAGS))$(findstring q,$(PRECOMMIT_FIX_DRYRUN_FLAGS))$(findstring t,$(PRECOMMIT_FIX_DRYRUN_FLAGS))
+ifneq (,$(PRECOMMIT_FIX_DRYRUN))
+ifneq (,$(filter precommit-fix,$(MAKECMDGOALS)))
+$(error make -n/-q/-t precommit-fix is NOT a dry run — the $$(MAKE)-bearing recipe would really commit and push. Refusing. Inspect the recipe text instead)
+endif
+endif
 #
 # CAUTION: the commit step below runs `git add -A`, which stages EVERYTHING
 # in the working tree, not just what this invocation touched. If another
