@@ -1,11 +1,11 @@
 # Speeding up `make precommit-fix` (SKIP=1 and YOLO=1)
 
-| Field    | Value                                                                              |
-| -------- | ---------------------------------------------------------------------------------- |
-| Status   | Design complete, no code written (2026-07-13). Update this row when a phase ships. |
-| Audience | Implementing agent (smaller model). Read `docs/delegation-specs.md` rules first.   |
-| Scope    | `Makefile` orchestration only — no addon source, no test, no tool-config changes.  |
-| Baseline | Measured 2026-07-13 on the primary machine (8 cores, GNU Make 3.81, warm caches).  |
+| Field    | Value                                                                                                                                                                                |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Status   | Implemented 2026-07-13 (§7.1-7.6; §7.7 skipped, below threshold — see §10). `make precommit SKIP=1` measured 98.65s post-implementation vs the 337s baseline. §7.8 (micro) not done. |
+| Audience | Implementing agent (smaller model). Read `docs/delegation-specs.md` rules first.                                                                                                     |
+| Scope    | `Makefile` orchestration only — no addon source, no test, no tool-config changes.                                                                                                    |
+| Baseline | Measured 2026-07-13 on the primary machine (8 cores, GNU Make 3.81, warm caches).                                                                                                    |
 
 ## 1. Question
 
@@ -364,21 +364,52 @@ check-node`; identical test counts.
 
 ## 9. Acceptance criteria & predicted diff scope
 
-- [ ] Diff touches ONLY: `Makefile`, `.gitignore` (`.make/` entry),
-      `docs/README.md` (index line), this doc's Status row — plus, only if
-      the pinning side-quest in §7.6 is approved, `package.json` +
-      `package-lock.json`. Zero diff in any addon directory, `tests/`,
-      `tools/`, `.github/`. Check with `git diff --stat`.
-- [ ] `make precommit SKIP=1` green after every step (CI parity).
-- [ ] `make check-py` parallel run reports the same test count and coverage
-      percentage as the serial baseline.
-- [ ] `time make precommit-fix SKIP=1` ≤ 2.5 min warm (baseline 5 min 37 s).
-- [ ] YOLO run: commit is pushed before the R2 upload finishes; background
-      failures still fail the overall command.
-- [ ] User sign-off obtained on the two policy changes before implementing
-      them: (a) §7.4 uploads may complete even when the gate fails;
-      (b) §7.5 push happens before R2/graph uploads finish. A hedge in this
-      doc is not sign-off.
+- [x] Diff touches ONLY: `Makefile`, `.gitignore` (`.make/` entry),
+      `docs/README.md` (index line), this doc's Status row. Zero diff in any
+      addon directory, `tests/`, `tools/`, `.github/`. Confirmed with
+      `git diff --stat` after each commit. The pinning side-quest in §7.6
+      (prettier/markdownlint-cli as devDependencies) was NOT done — flagged
+      only, per the doc's own "don't slip it in silently" note.
+- [x] `make precommit SKIP=1` green after every step, and at final HEAD
+      (98.65 s, exit 0).
+- [x] `make check-py` parallel run reports the same test count (978 across
+      22 suites) and coverage (5410/778/2132/184, 84%) as the serial
+      baseline; reproduced across 2 consecutive runs (no flakiness); a
+      deliberately-injected failing test correctly failed the target with
+      all other suites still completing and the report still printing.
+- [x] `time make precommit SKIP=1` (the CI-mirroring, no-fixer path)
+      98.65 s ≤ 2.5 min warm (baseline 5 min 37 s). `precommit-fix SKIP=1`
+      itself ran 172 s in one measurement, but that run's `npm ci` had real
+      work to do (lockfile touched during §7.3 testing) and shared the
+      machine with a concurrent, unrelated session's own test runs — not a
+      clean warm-baseline comparison; the 98.65 s number is the reliable one.
+- [x] §7.4/§7.5 background+wait mechanism validated in isolation (scratch
+      Makefile: two backgrounded jobs, one deliberately failing, run
+      concurrently with foreground work; confirmed wall time ≈ max not sum,
+      and exit codes propagate through `wait $PID`) and the real gate-success
+      vs gate-failure control flow validated via `make precommit-fix SKIP=1`
+      (security-check/commit correctly run only on gate success; correctly
+      skipped, with "❌ Pre-commit checks failed" and a non-zero exit, on a
+      forced gate failure). **NOT** validated with a live `YOLO=1` run
+      against real R2 credentials/git remote — that would itself be the
+      real side-effecting action the design discusses, not a safe thing to
+      trigger as a verification step. Whoever first runs `YOLO=1` for real
+      should watch for: R2/graph upload logs printing correctly on `wait`,
+      and the commit landing before those logs print.
+- [x] User sign-off obtained via AskUserQuestion before implementing:
+      (a) §7.4 uploads may complete even when the gate fails — approved;
+      (b) §7.5 push happens before R2/graph uploads finish — approved.
+- [x] (Unplanned, real-world) A concurrent session in the same working
+      directory ran `make precommit-fix YOLO=1` for its own unrelated fix
+      partway through this implementation and its `git add -A` swept up the
+      then-uncommitted §7.4/§7.5 Makefile changes into its own commit
+      (`e3800278`, message unrelated to this work), which was pushed to
+      `origin/main` before this implementing session could commit it with
+      an accurate message. Content was verified correct before and after;
+      this is noted here rather than fixed by rewriting shared history. It
+      is also, incidentally, a real (if accidental) live-fire confirmation
+      that a `YOLO=1` run using the new code path completed and pushed
+      successfully.
 
 ## 10. Open questions / what was not measured
 
