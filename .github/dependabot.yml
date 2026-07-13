@@ -21,6 +21,14 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    ignore:
+      # jsdom >=27.1.0 drops parse5's CJS build (ESM-only from 27.1.0) and
+      # >=27.4.0 also pulls @exodus/bytes into html-encoding-sniffer (ESM-only).
+      # Jest can't require() either synchronously without Node >=24.9 (our
+      # CI/dev Node is 22.x). Re-review once Node is upgraded, or once jsdom's
+      # dependency tree is CJS-safe again.
+      - dependency-name: "jsdom"
+        versions: [">=27.1.0"]
 
   # GitHub Actions
   - package-ecosystem: "github-actions"

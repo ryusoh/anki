@@ -106,9 +106,8 @@ test("computed 16px container radius is applied to the canvas and draw()", () =>
 
 test("excludeHeader forces the canvas radius to 0", () => {
   const effect = createEffect("16px", { excludeHeader: true });
-  // The source assigns "0"; jsdom's CSSOM (29.x+) normalizes unitless zero
-  // lengths to "0px" on read-back.
-  assert.strictEqual(effect.canvas.style.borderRadius, "0px");
+  // The source assigns "0"; jsdom's CSSOM keeps it as "0" (unitless zero is valid CSS).
+  assert.strictEqual(effect.canvas.style.borderRadius, "0");
   assert.deepStrictEqual(drawnRadii(effect), [0, 0, 0, 0]);
   effect.dispose();
 });
