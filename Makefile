@@ -274,18 +274,27 @@ check-handler-validation:
 PY_TEST_EXCLUDE :=
 PY_TEST_SUITES := $(filter-out $(PY_TEST_EXCLUDE),$(shell git ls-files --cached --others --exclude-standard '*/test_*.py' 2>/dev/null | sed -E 's|/[^/]+$$||' | sort -u))
 
+# Suites run as parallel sub-make jobs (one phony target per suite) instead of
+# a serial loop: each gets its own COVERAGE_FILE (no shared state to race on)
+# and coverage combine merges them after. -p no:cacheprovider avoids N pytest
+# processes racing to write the same .pytest_cache/v/cache/* files — nothing
+# here uses --lf/--ff so the cache plugin buys nothing anyway.
+PY_COV_DIR := coverage/py-data
+PY_SUITE_TARGETS := $(addprefix pysuite/,$(PY_TEST_SUITES))
+.PHONY: $(PY_SUITE_TARGETS)
+$(PY_SUITE_TARGETS): pysuite/%:
+	@echo "  → $*"
+	@COVERAGE_FILE="$(CURDIR)/$(PY_COV_DIR)/.coverage.$(subst /,_,$*)" \
+		$(PYTHON) -m pytest -q -p no:cacheprovider --cov --cov-report= "$*"
+
 check-py:
-	@echo "🐍 Running Python Test Suite (with coverage)..."
-	@# Invoke coverage via `python -m` (never bare `coverage`): the repo-root
-	@# coverage/ directory shadows the `coverage` command on PATH.
-	@$(PYTHON) -m coverage erase
-	@FAIL=0; \
-	for suite in $(PY_TEST_SUITES); do \
-		echo "  → $$suite"; \
-		$(PYTHON) -m pytest -q --cov --cov-append --cov-report= "$$suite" || FAIL=1; \
-	done; \
+	@echo "🐍 Running Python Test Suite (with coverage, parallel)..."
+	@mkdir -p $(PY_COV_DIR)
+	@rm -f $(PY_COV_DIR)/.coverage.*
+	@FAIL=0; $(MAKE) -j$(JOBS) -k $(PY_SUITE_TARGETS) || FAIL=1; \
 	echo ""; \
 	echo "📊 Combined Python coverage:"; \
+	$(PYTHON) -m coverage combine $(PY_COV_DIR); \
 	$(PYTHON) -m coverage report -m; \
 	if [ "$$FAIL" != "0" ]; then echo "❌ Python tests failed"; exit 1; fi; \
 	echo "✅ Python tests complete"
