@@ -9,7 +9,9 @@
 #   4. On each line, finds $...$ pairs via regex
 #   5. Validates each match (not numeric-only, not empty, etc.)
 #   6. Replaces $content$ with \(content\)
-#   7. Writes the modified HTML back and reloads the field
+#   7. Lines that are entirely bare LaTeX (e.g. \frac{...} with no $ at all)
+#      are wrapped whole in \[...\] display math
+#   8. Writes the modified HTML back and reloads the field
 
 import os
 import re
@@ -34,6 +36,26 @@ DOLLAR_PAIR_RE = re.compile(r'(?<!\\)\$\$([^$]+?)\$\$|(?<!\\)\$([^$\n]+?)\$')
 # Patterns indicating content is already MathJax-wrapped
 ALREADY_MATHJAX_RE = re.compile(r'\\[(\(|\[]|<anki-mathjax', re.IGNORECASE)
 
+# Whitelisted LaTeX commands that mark a line as bare LaTeX. A generic
+# \[a-zA-Z]+ would false-positive on Windows paths like C:\Users\name.
+BARE_LATEX_COMMAND_RE = re.compile(
+    r'\\(?:'
+    r'frac|dfrac|tfrac|text|times|sqrt|sum|prod|int|cdot|pm|mp|div(?:isionsymbol)?|'
+    r'leq?|geq?|neq|approx|equiv|propto|infty|log|ln|exp|sin|cos|tan|lim|'
+    r'partial|nabla|to|rightarrow|Rightarrow|left|right|over|hat|bar|vec|'
+    r'mathbb|mathrm|mathbf|mathit|operatorname|'
+    r'alpha|beta|gamma|Gamma|delta|Delta|epsilon|theta|lambda|mu|pi|rho|'
+    r'sigma|Sigma|tau|phi|Phi|omega|Omega'
+    r')\b'
+)
+
+# \text-like groups whose braces hold prose, not math — their contents must
+# not count against the "leftover prose" check below.
+TEXT_GROUP_RE = re.compile(r'\\(?:text|textbf|textit|mathrm|mathbf|operatorname)\s*\{[^{}]*\}')
+
+# Any \command token (for stripping when measuring leftover prose)
+ANY_LATEX_COMMAND_RE = re.compile(r'\\[a-zA-Z]+')
+
 
 def _is_purely_numeric(s):
     """Check if the text content (tags stripped) is purely numeric/currency-like.
@@ -53,11 +75,32 @@ def _is_whitespace_only(s):
     return len(text) == 0
 
 
+def _looks_like_bare_latex(segment):
+    """Decide whether a logical line is a bare LaTeX formula (no $ delimiters).
+
+    True only when the line contains a whitelisted LaTeX command, has no $
+    or HTML tags, and — once \\text{...} groups and \\commands are stripped —
+    nothing prose-like remains (only short variable names like PV, r, n).
+    """
+    text = segment.replace('&nbsp;', ' ')
+    if '$' in text or '<' in text:
+        return False
+    if not BARE_LATEX_COMMAND_RE.search(text):
+        return False
+    stripped = TEXT_GROUP_RE.sub(' ', text)
+    stripped = ANY_LATEX_COMMAND_RE.sub(' ', stripped)
+    return all(len(word) <= 2 for word in re.findall(r'[a-zA-Z]+', stripped))
+
+
 def _convert_dollar_to_mathjax(html_str):
     """Convert $...$ patterns to \\(...\\) MathJax inline notation.
 
     Only matches pairs of $ on the same logical line. Skips content that
     is already MathJax-wrapped, purely numeric, or whitespace-only.
+
+    Additionally, a logical line consisting entirely of bare LaTeX (commands
+    like \\frac/\\text but no $ delimiters at all) is wrapped whole in
+    \\[...\\] display math.
 
     Args:
         html_str: Raw HTML content of an Anki field.
@@ -109,6 +152,14 @@ def _convert_dollar_to_mathjax(html_str):
             return '\\(' + inner + '\\)'
 
         converted = DOLLAR_PAIR_RE.sub(replace_match, segment)
+
+        # Whole line of bare LaTeX (no $ anywhere) → wrap in display math
+        if converted == segment and _looks_like_bare_latex(segment):
+            core = segment.strip()
+            lead = segment[: len(segment) - len(segment.lstrip())]
+            trail = segment[len(segment.rstrip()) :]
+            converted = lead + '\\[' + core + '\\]' + trail
+
         result_parts.append(converted)
 
     return ''.join(result_parts)

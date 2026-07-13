@@ -232,6 +232,89 @@ def test_mixed_block_and_inline():
     assert _convert_dollar_to_mathjax(html) == expected
 
 
+# --- Bare LaTeX (no $ delimiters) Tests ---
+
+
+def test_bare_latex_line_wrapped_as_block():
+    """A whole line of bare LaTeX (no $ at all) should be wrapped in \\[...\\]."""
+    html = (
+        '<div>\\text{Percentage of Total Assets} = '
+        '\\frac{\\text{Line Item}}{\\text{Total Assets}} \\times 100</div>'
+    )
+    expected = (
+        '<div>\\[\\text{Percentage of Total Assets} = '
+        '\\frac{\\text{Line Item}}{\\text{Total Assets}} \\times 100\\]</div>'
+    )
+    assert _convert_dollar_to_mathjax(html) == expected
+
+
+def test_bare_latex_real_card_field():
+    """The exact field HTML from the 'Vertical Common-Sized BS How it Works' card."""
+    html = (
+        '<div><b>Formula:</b></div><div><br></div><div>\n'
+        '<div>\\text{Percentage of Total Assets} = '
+        '\\frac{\\text{Line Item}}{\\text{Total Assets}} \\times 100</div></div>'
+        '<div><br></div><div><b>Example:</b></div>'
+    )
+    result = _convert_dollar_to_mathjax(html)
+    assert (
+        '\\[\\text{Percentage of Total Assets} = '
+        '\\frac{\\text{Line Item}}{\\text{Total Assets}} \\times 100\\]'
+    ) in result
+    # Surrounding prose/structure untouched
+    assert result.startswith('<div><b>Formula:</b></div>')
+    assert result.endswith('<div><b>Example:</b></div>')
+
+
+def test_bare_latex_short_variables_ok():
+    """Short variable names around commands still count as a formula line."""
+    html = '<div>PV = \\frac{FV}{(1+r)^n}</div>'
+    expected = '<div>\\[PV = \\frac{FV}{(1+r)^n}\\]</div>'
+    assert _convert_dollar_to_mathjax(html) == expected
+
+
+def test_bare_latex_prose_mentioning_command_not_wrapped():
+    """A prose sentence that merely mentions a LaTeX command must stay prose."""
+    html = 'The result is \\frac{1}{2} of the total amount'
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_bare_latex_windows_path_not_wrapped():
+    """Backslash paths are not LaTeX."""
+    html = 'C:\\Users\\name\\frames'
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_bare_latex_plain_prose_not_wrapped():
+    html = 'each item is expressed as a percentage of total assets'
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_bare_latex_already_mathjax_skipped():
+    html = '\\[\\frac{a}{b}\\]'
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_bare_latex_idempotent():
+    html = '<div>\\frac{a}{b} \\times 100</div>'
+    first = _convert_dollar_to_mathjax(html)
+    second = _convert_dollar_to_mathjax(first)
+    assert first == second == '<div>\\[\\frac{a}{b} \\times 100\\]</div>'
+
+
+def test_bare_latex_line_with_dollars_left_to_dollar_logic():
+    """If a line has $ pairs, the dollar logic owns it — no whole-line wrap."""
+    html = 'formula $\\frac{a}{b}$ here'
+    expected = 'formula \\(\\frac{a}{b}\\) here'
+    assert _convert_dollar_to_mathjax(html) == expected
+
+
+def test_bare_latex_line_with_inline_tags_not_wrapped():
+    """Inline HTML tags inside a would-be formula would break MathJax — skip."""
+    html = '<b>\\frac{a}{b}</b> \\times 100'
+    assert _convert_dollar_to_mathjax(html) == html
+
+
 def test_real_world_input():
     """The user's exact real-world input — mixed block and inline math."""
     html = (
