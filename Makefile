@@ -566,7 +566,7 @@ precommit-fix: .make/pip.stamp .make/npm-ci.stamp $(if $(filter 1,$(SKIP_FETCH) 
 			echo "   commit above already ran before this background job finished:"; \
 			git add data/cloudflare/hash_map.json && \
 			git commit -m "chore: update R2 hash map after sync" && \
-			git push && \
+			$(PYTHON) tools/git_push_retry.py && \
 			echo "✅ Hash map committed and pushed." || \
 			echo "⚠️  Failed to commit/push the updated hash map — it will be picked up by the next run's git add -A."; \
 		fi; \
