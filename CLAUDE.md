@@ -90,3 +90,10 @@ addons21`). A Makefile recipe that builds `VAR=$(CURDIR)/...` (or any other
   old recipe swallowed that failure (exit 0, commit silently unpushed) —
   pinned by `tests/test_makefile_push_gate.py` + `tests/test_git_push_retry.py`.
   Run the wrapper directly to drain unpushed commits: `python3 tools/git_push_retry.py`.
+  The backgrounded R2-upload/graph-push jobs are likewise capped at
+  `NET_DEADLINE` seconds (default 900) via `tools/run_with_deadline.py` — on a
+  trickling link their per-request timeouts never fire and `precommit-fix`'s
+  `wait` used to hang forever after the graph-local log. A deadline kill exits
+  124 → loud failure; both uploads resume incrementally on rerun. Raise it
+  with `make precommit-fix YOLO=1 NET_DEADLINE=3600` when a slow-but-working
+  upload should be allowed to finish. Pinned by `tests/test_makefile_net_deadline.py`.
