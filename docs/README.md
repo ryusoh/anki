@@ -31,3 +31,4 @@ verify against current code/Makefile before trusting specifics.
 ## Design specs
 
 - [terminal-calendar-ranges.md](terminal-calendar-ranges.md) — year/quarter calendar time filters for the stats terminal
+- [precommit-speed.md](precommit-speed.md) — measured baseline + parallelization plan for `make precommit-fix` (SKIP/YOLO)
