@@ -1,8 +1,12 @@
 .PHONY: help fetch fetch-r2 check precommit precommit-fix fmt fmt-check lint lint-js lint-css lint-fix hooks \
-	quality-py lint-py fmt-py fmt-py-check typecheck security-py install-dev coverage-rank
+	quality-py lint-py fmt-py fmt-py-check typecheck security-py install-dev coverage-rank verify
 
 PYTHON := $(if $(wildcard .venv/bin/python3),"$(CURDIR)/.venv/bin/python3",python3)
 NPM := npm
+
+# Core count for the parallel verify gate (see `verify` target below). sysctl
+# is macOS; nproc covers Linux CI runners; 4 is a safe last-resort default.
+JOBS ?= $(shell sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)
 
 # Fail loudly if an installed dev tool has drifted from its requirements-dev.txt
 # pin, instead of silently formatting/linting with the wrong version — a stale
@@ -357,7 +361,14 @@ security-py:
 # applies everywhere; CI runs `make precommit SKIP=1`.
 VERIFY_GATE := fmt-check lint quality-py check
 
-precommit: $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt) $(VERIFY_GATE)
+# Every VERIFY_GATE member (and its own sub-prerequisites, e.g. quality-py's
+# lint-py/fmt-py-check/typecheck/security-py) is read-only, so the whole gate
+# can run under one `-j`. Recursive make (not a bare top-level -j) so
+# precommit-fix's left-to-right "fixers before gate" ordering can't break.
+verify:
+	@$(MAKE) -j$(JOBS) $(VERIFY_GATE)
+
+precommit: $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt) verify
 	@echo ""
 	@echo "✅ Pre-commit checks passed"
 
@@ -372,9 +383,9 @@ fetch-prompt:
 	fi
 
 # Fix-then-verify: auto-fix everything (fmt, lint-fix, fmt-py) and THEN run the exact
-# same $(VERIFY_GATE) as `precommit`, so a green precommit-fix means CI is green too.
-# Prereqs run left-to-right, so all fixers complete before the gate.
-precommit-fix: install $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt-fix) fmt lint-fix fmt-py $(VERIFY_GATE) $(if $(filter 1,$(SKIP)),,graph-local-prompt)
+# same $(VERIFY_GATE) (via `verify`) as `precommit`, so a green precommit-fix means
+# CI is green too. Prereqs run left-to-right, so all fixers complete before the gate.
+precommit-fix: install $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt-fix) fmt lint-fix fmt-py verify $(if $(filter 1,$(SKIP)),,graph-local-prompt)
 	@echo ""
 	@echo "🔒 Running EXTREMELY RIGOROUS security check..."
 	@echo "   Scanning ALL files for private Anki data..."
