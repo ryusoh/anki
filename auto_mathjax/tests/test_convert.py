@@ -112,22 +112,30 @@ def test_latex_commands_preserved():
     assert _convert_dollar_to_mathjax(html) == expected
 
 
-# --- Test 16: Currency — no closing pair on same segment ---
+# --- Test 16: Two currency amounts on one line — NOT a math pair ---
 def test_currency_no_pair():
+    """ "$5 and $10" would regex-match as the pair "$5 and $", but both $
+    are immediately followed by a digit — that's currency, leave it alone."""
     html = '$5 and $10'
-    # This has two $ signs but they form a pair "$5 and $" — let's check
-    # Actually $5 and $10 — the regex will try to match $5 and $ which has content "5 and "
-    # But "5 and " is not purely numeric, so it WOULD match...
-    # Actually wait: DOLLAR_PAIR_RE is r'(?<!\\)\$([^$\n]+?)\$' — non-greedy
-    # It would match "$5 and $" with content "5 and "
-    # This is a tricky edge case — let's see what the current behavior is
-    # and we may need to adjust the test
-    result = _convert_dollar_to_mathjax(html)
-    # The regex WILL match "$5 and $" since "5 and " is valid content
-    # This is actually acceptable behavior — if user has two $ on same line,
-    # they likely intend math. But let's document this edge case.
-    # For now, we accept the conversion since both $ are on same line
-    assert result == '\\(5 and \\)10'
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_currency_pair_in_prose_untouched():
+    """The closing sentence of the 'Quick Assets' card: two dollar amounts
+    in one sentence must not be paired into math."""
+    html = (
+        '<div>This means the company has $1.67 in liquid assets '
+        'for every $1 of current liabilities.</div>'
+    )
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_digit_leading_math_still_converts():
+    """A $ pair whose content starts with a digit is still math when the
+    closing $ is NOT followed by a digit."""
+    html = '$2x$ terms'
+    expected = '\\(2x\\) terms'
+    assert _convert_dollar_to_mathjax(html) == expected
 
 
 # --- Test 17: Dollar on separate lines, no pairs ---
@@ -273,10 +281,11 @@ def test_bare_latex_short_variables_ok():
     assert _convert_dollar_to_mathjax(html) == expected
 
 
-def test_bare_latex_prose_mentioning_command_not_wrapped():
-    """A prose sentence that merely mentions a LaTeX command must stay prose."""
+def test_bare_latex_fragment_in_prose_wrapped_inline():
+    """Prose stays prose; only the embedded LaTeX fragment is wrapped inline."""
     html = 'The result is \\frac{1}{2} of the total amount'
-    assert _convert_dollar_to_mathjax(html) == html
+    expected = 'The result is \\(\\frac{1}{2}\\) of the total amount'
+    assert _convert_dollar_to_mathjax(html) == expected
 
 
 def test_bare_latex_windows_path_not_wrapped():
@@ -309,9 +318,56 @@ def test_bare_latex_line_with_dollars_left_to_dollar_logic():
     assert _convert_dollar_to_mathjax(html) == expected
 
 
-def test_bare_latex_line_with_inline_tags_not_wrapped():
-    """Inline HTML tags inside a would-be formula would break MathJax — skip."""
+def test_bare_latex_line_with_inline_tags_wraps_fragments():
+    """Inline HTML tags never end up inside math — each fragment wraps alone."""
     html = '<b>\\frac{a}{b}</b> \\times 100'
+    expected = '<b>\\(\\frac{a}{b}\\)</b> \\(\\times 100\\)'
+    assert _convert_dollar_to_mathjax(html) == expected
+
+
+def test_embedded_latex_quick_assets_card():
+    """The exact formula line from the 'Quick Assets' card: bold prose label,
+    &nbsp; entities, then a bare \\frac fragment with numbers around it."""
+    html = '<div><b>Quick Ratio</b>&nbsp;=&nbsp; ' '\\frac{100,000}{60,000} = 1.67&nbsp;</div>'
+    expected = (
+        '<div><b>Quick Ratio</b>&nbsp;=&nbsp; ' '\\(\\frac{100,000}{60,000} = 1.67\\)&nbsp;</div>'
+    )
+    assert _convert_dollar_to_mathjax(html) == expected
+
+
+def test_embedded_latex_nested_text_args():
+    """\\frac with nested \\text{...} arguments stays one fragment."""
+    html = '<div><b>Ratio</b>: \\frac{\\text{Quick Assets}}' '{\\text{Current Liabilities}}</div>'
+    expected = (
+        '<div><b>Ratio</b>: \\(\\frac{\\text{Quick Assets}}'
+        '{\\text{Current Liabilities}}\\)</div>'
+    )
+    assert _convert_dollar_to_mathjax(html) == expected
+
+
+def test_embedded_latex_sentence_period_not_swallowed():
+    """Trailing sentence punctuation stays outside the math wrap."""
+    html = 'computed as \\frac{1}{2}.'
+    expected = 'computed as \\(\\frac{1}{2}\\).'
+    assert _convert_dollar_to_mathjax(html) == expected
+
+
+def test_embedded_latex_numbers_only_line_untouched():
+    """A plain arithmetic line with no LaTeX command must stay untouched."""
+    html = '<div><b>Quick Assets</b>&nbsp;=&nbsp; 50,000 + 20,000 + 30,000 = 100,000&nbsp;</div>'
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_embedded_latex_idempotent():
+    html = '<b>Quick Ratio</b> = \\frac{100,000}{60,000} = 1.67'
+    first = _convert_dollar_to_mathjax(html)
+    second = _convert_dollar_to_mathjax(first)
+    assert first == second == '<b>Quick Ratio</b> = \\(\\frac{100,000}{60,000} = 1.67\\)'
+
+
+def test_embedded_latex_skipped_when_dollars_present():
+    """Lines containing $ are left to the dollar logic entirely."""
+    html = 'Cash: $50,000 plus \\frac{1}{2}'
     assert _convert_dollar_to_mathjax(html) == html
 
 

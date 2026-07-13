@@ -10,7 +10,8 @@
 #   5. Validates each match (not numeric-only, not empty, etc.)
 #   6. Replaces $content$ with \(content\)
 #   7. Lines that are entirely bare LaTeX (e.g. \frac{...} with no $ at all)
-#      are wrapped whole in \[...\] display math
+#      are wrapped whole in \[...\] display math; bare LaTeX fragments
+#      embedded in a prose line are wrapped inline in \(...\)
 #   8. Writes the modified HTML back and reloads the field
 
 import os
@@ -56,6 +57,21 @@ TEXT_GROUP_RE = re.compile(r'\\(?:text|textbf|textit|mathrm|mathbf|operatorname)
 # Any \command token (for stripping when measuring leftover prose)
 ANY_LATEX_COMMAND_RE = re.compile(r'\\[a-zA-Z]+')
 
+# A "math run" embedded in a prose line: one or more \command tokens (brace
+# arguments, nesting depth <= 2) linked by numbers/operators/whitespace.
+# Letters are deliberately excluded from the filler so prose words never get
+# pulled into a run, and <, >, & break a run so HTML tags/entities stay out.
+_EMBEDDED_TOKEN = r'\\[a-zA-Z]+(?:\s*\{(?:[^{}<>&]|\{[^{}<>&]*\})*\})*'
+_EMBEDDED_FILLER = r'[0-9\s=+\-*/^_().,%]'
+EMBEDDED_RUN_RE = re.compile(
+    _EMBEDDED_FILLER + r'*(?:' + _EMBEDDED_TOKEN + _EMBEDDED_FILLER + r'*)+'
+)
+
+# Characters trimmed off the ends of a math run before wrapping: sentence
+# punctuation and a leading/trailing "=" that reads as prose glue
+# (e.g. "<b>Quick Ratio</b> = \frac{...}").
+_RUN_TRIM_CHARS = '.,;:= \t'
+
 
 def _is_purely_numeric(s):
     """Check if the text content (tags stripped) is purely numeric/currency-like.
@@ -90,6 +106,28 @@ def _looks_like_bare_latex(segment):
     stripped = TEXT_GROUP_RE.sub(' ', text)
     stripped = ANY_LATEX_COMMAND_RE.sub(' ', stripped)
     return all(len(word) <= 2 for word in re.findall(r'[a-zA-Z]+', stripped))
+
+
+def _wrap_embedded_latex(segment):
+    """Wrap bare-LaTeX fragments inside a prose/HTML line in \\(...\\).
+
+    Used when a line mixes prose (or inline tags) with LaTeX, e.g.
+    "<b>Quick Ratio</b> = \\frac{100,000}{60,000} = 1.67". Only runs
+    containing a whitelisted command are wrapped; surrounding prose,
+    tags and entities are untouched.
+    """
+
+    def repl(m):
+        run = m.group(0)
+        if not BARE_LATEX_COMMAND_RE.search(run):
+            return run
+        core = run.strip(_RUN_TRIM_CHARS)
+        if not core:
+            return run
+        start = run.find(core)
+        return run[:start] + '\\(' + core + '\\)' + run[start + len(core) :]
+
+    return EMBEDDED_RUN_RE.sub(repl, segment)
 
 
 def _convert_dollar_to_mathjax(html_str):
@@ -144,6 +182,11 @@ def _convert_dollar_to_mathjax(html_str):
             if _is_purely_numeric(inner):
                 return m.group(0)  # return unchanged
 
+            # Currency pair, not math: both $ immediately followed by a
+            # digit (e.g. "$1.67 ... for every $1 of ...")
+            if inner[0].isdigit() and m.end() < len(m.string) and m.string[m.end()].isdigit():
+                return m.group(0)  # return unchanged
+
             # Skip whitespace-only content
             if _is_whitespace_only(inner):
                 return m.group(0)  # return unchanged
@@ -153,12 +196,16 @@ def _convert_dollar_to_mathjax(html_str):
 
         converted = DOLLAR_PAIR_RE.sub(replace_match, segment)
 
-        # Whole line of bare LaTeX (no $ anywhere) → wrap in display math
-        if converted == segment and _looks_like_bare_latex(segment):
-            core = segment.strip()
-            lead = segment[: len(segment) - len(segment.lstrip())]
-            trail = segment[len(segment.rstrip()) :]
-            converted = lead + '\\[' + core + '\\]' + trail
+        # Bare LaTeX (no $ anywhere): a whole-line formula becomes display
+        # math; otherwise wrap just the embedded fragments inline.
+        if converted == segment and '$' not in segment:
+            if _looks_like_bare_latex(segment):
+                core = segment.strip()
+                lead = segment[: len(segment) - len(segment.lstrip())]
+                trail = segment[len(segment.rstrip()) :]
+                converted = lead + '\\[' + core + '\\]' + trail
+            else:
+                converted = _wrap_embedded_latex(segment)
 
         result_parts.append(converted)
 
