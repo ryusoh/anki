@@ -393,8 +393,14 @@ check-node`; identical test counts.
 3. **pytest-cov + `COVERAGE_FILE`** interaction assumed from coverage.py
    docs; smoke-test with 2 suites before converting (explicit first action
    in §7.2).
-4. **check-node internal split** (node runner vs jest) — unmeasured; §7.7
-   says measure first.
+4. **check-node internal split** (node runner vs jest) — measured 2026-07-13:
+   node:test runner ~51 s, jest ~1.5–5 s (jest was much slower — 50–98 s — in
+   earlier measurements, but that was the jsdom-29/Node-22 ESM incompatibility
+   breaking `review_heatmap/tests/*.test.js`, since fixed; not a splitting
+   issue). Below the doc's own "≥30 s" bar for §7.7 — **skipped**: node:test
+   alone already dominates check-node's wall time, so splitting the two into
+   parallel sub-targets would save only the few seconds jest overlaps, not
+   worth the added target/complexity.
 5. **Cold-cache numbers**: mypy was warm (2.3 s); a cold `.mypy_cache` run
    will make `typecheck` a temporary critical-path item but changes no
    ordering decision.
