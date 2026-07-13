@@ -41,6 +41,10 @@ make lint-fix             # eslint --fix + stylelint --fix + markdownlint --fix
 make fmt                  # prettier --write
 ```
 
+After hand-authoring Python, run `make fmt-py` **before** `make quality-py`: the
+gate's black step is check-only, so a formatting miss costs a full mypy pass over
+the whole repo before you find out.
+
 ## `precommit` vs `precommit-fix`
 
 Both end with the **same** `$(VERIFY_GATE)` (`fmt-check lint quality-py check`),

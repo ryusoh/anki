@@ -96,6 +96,24 @@ missing, ask the user to click into another field or switch cards and back
 (triggers the autosave) and re-run the dump; if they'd rather not interrupt
 their edit, ask them to paste the raw field HTML directly instead.
 
+**Before declaring a transform done, sweep it across the whole collection:**
+
+```bash
+python3 tools/sweep_transform.py auto_mathjax:_convert_dollar_to_mathjax
+python3 tools/sweep_transform.py <module>:<function> --contains 'Quick' --limit 10
+```
+
+It mocks `aqt`, imports the addon's transform function, runs it over **every**
+note field (on a temp copy of the collection), prints a diff per field that
+would change, and re-applies the transform to each result to flag idempotency
+bugs. The card the user reported is never the only shape in the collection:
+auto_mathjax's bare-LaTeX feature was built against one reported card, a second
+differently-shaped card came back as a bug report, and the first full sweep
+then surfaced 184 further notes the heuristic would have mangled (stock
+cashtags like `$INTC … $SOI` pairing into math, `$$` money slang matching the
+block branch). Review every diff line before shipping; heuristics earn trust
+by their blast radius, not by the one card they were written for.
+
 What real fields look like (each of these was found in production cards, and
 `reflow_paragraphs/` pins them all as regression tests):
 
