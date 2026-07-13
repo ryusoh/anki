@@ -425,17 +425,26 @@ fetch-prompt:
 # same $(VERIFY_GATE) (via `verify`) as `precommit`, so a green precommit-fix means
 # CI is green too.
 #
-# YOLO=1 overlaps the slow, tracked-file-independent steps (R2 sync, graph
-# exports — see docs/precommit-speed.md §4: their outputs are all gitignored
-# or network-only, git add -A never picks them up) with the fixers+gate
-# instead of running everything serially: they're kicked off in the
-# background right after fetch, fixers+gate run in the foreground, commit
-# +push fires as soon as the gate+security scan are green (not waiting on
-# the background jobs — approved policy, docs/precommit-speed.md §9), and
-# the background jobs are wait-ed on and their logs printed last. A failed
-# gate skips security-check/commit entirely, matching the old prerequisite-
-# failure hard-stop; background jobs are still waited on and reported either
-# way since they were already started.
+# YOLO=1 overlaps the slow steps (R2 sync, graph exports — see
+# docs/precommit-speed.md §4) with the fixers+gate instead of running
+# everything serially: they're kicked off in the background right after
+# fetch, fixers+gate run in the foreground, commit+push fires as soon as
+# the gate+security scan are green (not waiting on the background jobs —
+# approved policy, docs/precommit-speed.md §9), and the background jobs are
+# wait-ed on and their logs printed last. A failed gate skips security-
+# check/commit entirely, matching the old prerequisite-failure hard-stop;
+# background jobs are still waited on and reported either way since they
+# were already started.
+# graph-local/graph-push write only gitignored files, so the early commit
+# above never misses anything of theirs. The R2 upload is the ONE exception
+# — it's the sole path that mutates a tracked file (data/cloudflare/
+# hash_map.json, via save_hash_map() in data/anki/upload-to-r2, after a
+# successful upload), so it can finish well after the main commit already
+# ran. That's handled below with its own small follow-up commit right after
+# the R2 job's `wait`, instead of blocking the main commit on it — losing
+# hash_map.json (not committing it at all) isn't safe to do here: without a
+# real hash map, upload-to-r2 treats every note as unseen and silently
+# re-uploads everything (see docs/incremental-staging.md).
 # Depends on the stamped install targets (not `install`), so an unchanged
 # lockfile/requirements.txt skips npm ci/pip install on every invocation.
 #
@@ -511,6 +520,17 @@ precommit-fix: .make/pip.stamp .make/npm-ci.stamp $(if $(filter 1,$(SKIP_FETCH) 
 	if [ -n "$$BG_R2_PID" ]; then \
 		wait $$BG_R2_PID || BG_FAIL=1; \
 		echo ""; echo "📤 R2 upload log:"; cat .make/r2-upload.log; \
+		if ! git diff --quiet -- data/cloudflare/hash_map.json 2>/dev/null; then \
+			echo ""; \
+			echo "📝 R2 upload updated the hash map (GUID->SHA256 only, no note content —"; \
+			echo "   see docs/incremental-staging.md) — committing separately, since the main"; \
+			echo "   commit above already ran before this background job finished:"; \
+			git add data/cloudflare/hash_map.json && \
+			git commit -m "chore: update R2 hash map after sync" && \
+			git push && \
+			echo "✅ Hash map committed and pushed." || \
+			echo "⚠️  Failed to commit/push the updated hash map — it will be picked up by the next run's git add -A."; \
+		fi; \
 	fi; \
 	if [ -n "$$BG_GRAPHPUSH_PID" ]; then \
 		wait $$BG_GRAPHPUSH_PID || BG_FAIL=1; \

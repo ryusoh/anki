@@ -31,9 +31,12 @@ min**. Almost all of it is parallelizable or overlappable:
    `fetch-and-stage-r2`, **not** on the gate → start it in the background
    right after staging and `wait` for it at the end (§7.4).
 3. Commit+push only needs: fetch outputs + fixer outputs + green gate +
-   green security scan. It does **not** need graph exports (gitignored
-   output) or R2 uploads (network-only) → commit and push immediately after
-   the gate, in parallel with the uploads (§7.5).
+   green security scan — graph exports and the R2 upload's own file output
+   are gitignored/network-only, so commit and push immediately after the
+   gate, in parallel with the uploads (§7.5). **Correction, 2026-07-13**:
+   the R2 upload has one tracked side effect (`data/cloudflare/hash_map.json`)
+   the original version of this section missed — see §4's "Key verified
+   fact" and §7.5's follow-up-commit note.
 4. `install` runs `npm ci` (15.5 s) on **every** invocation even when
    `package-lock.json` is untouched → stamp-file it (§7.3).
 5. Cache flags for the JS tools (`prettier --cache`, `eslint --cache`,
@@ -89,14 +92,26 @@ if drifted, locate by name).
 | Verify gate (`VERIFY_GATE := fmt-check lint quality-py check`, Makefile:358) | each sub-target                           | **read-only**                                                                                               | `check-py` writes `.coverage*` (gitignored); `check-node` writes a mktemp covdir                                                                                                                                                                                | —                                                       |
 | `security_check.py`                                                          | `precommit-fix:` recipe body              | read-only                                                                                                   | read-only                                                                                                                                                                                                                                                       | —                                                       |
 | `graph-local`                                                                | `graph-local:` (Makefile:159)             | —                                                                                                           | writes `graph/*.json` — **all gitignored** (`graph/.gitignore` line 1: `*.json`; only non-JSON exception is tracked `.incremental_config.json`… which is tracked because gitignore lists `*.json` yet the file was force-added; verify with `git check-ignore`) | reads Anki DB                                           |
-| `fetch-r2-skip-fetch` (R2 sync upload)                                       | `fetch-r2-skip-fetch:` (Makefile:112)     | —                                                                                                           | reads staging dir                                                                                                                                                                                                                                               | **~3–5 min** R2 list+upload                             |
+| `fetch-r2-skip-fetch` (R2 sync upload)                                       | `fetch-r2-skip-fetch:` (Makefile:112)     | **writes** `data/cloudflare/hash_map.json` (tracked — `save_hash_map()` in `data/anki/upload-to-r2`, only after a successful upload) | reads staging dir                                                                                                                                                                                                                                               | **~3–5 min** R2 list+upload (observed 15-20+ min for a full `--sync` pass) |
 | `graph-push` = `graph-public` + upload                                       | `graph-push: graph-public` (Makefile:155) | —                                                                                                           | writes `graph/*_public.json` (gitignored, see `OUTPUT_FILE` in `graph/export_history.py`)                                                                                                                                                                       | uploads via `graph/upload_public.py`                    |
 | commit+push                                                                  | end of `precommit-fix:` recipe            | `git add -A && git commit && git push`                                                                      | —                                                                                                                                                                                                                                                               | git remote                                              |
 
-Key verified fact: **`git add -A` picks up nothing from `graph-local`,
-`graph-push`, or the R2 steps** — their file outputs are all gitignored and
-their other effects are network-only. Only `fetch-and-stage-r2` and the
-three fixers mutate tracked files.
+Key verified fact, corrected 2026-07-13 (was wrong in the original version
+of this doc — see below): **`git add -A` picks up nothing from `graph-local`
+or `graph-push`** — their file outputs are all gitignored and their other
+effects are network-only. `fetch-r2-skip-fetch` is the **one exception**: it
+mutates `data/cloudflare/hash_map.json`, a tracked file, via
+`save_hash_map()` in `data/anki/upload-to-r2` — but only *after* the network
+upload completes, which in YOLO mode is backgrounded and can finish well
+after the main commit already ran (§7.4/§7.5). Losing this file (not
+tracking it at all) is not a safe fix: `upload-to-r2`'s `--upload-only` path
+decides what to upload purely from the local hash map (`old_hash_map.get(guid)
+is None` → upload) with no fallback check against what's actually already in
+the R2 bucket, so a missing/empty hash map silently behaves like `--full`
+and re-uploads everything — see `docs/incremental-staging.md`. The actual
+fix implemented: a small follow-up commit for just `hash_map.json`, fired
+right after the R2 background job's `wait` succeeds, separate from the main
+commit (see the `precommit-fix` recipe).
 
 ## 5. Hard ordering constraints (the real DAG)
 
@@ -275,19 +290,46 @@ scripts copy/read only; `docs/fetch-data-lag.md` documents the read path.)
   commit that didn't happen" — same category as answering `y` to today's
   prompt and then not committing. If unacceptable, guard with
   `EARLY_UPLOAD=0` to restore the serial order.
-- Saving: the entire R2 sync (~3–5 min) and graph exports disappear from the
-  critical path; YOLO total ≈ max(R2 sync, gate) + fetch + push.
+- Saving: the entire R2 sync (~3–5 min, observed 15-20+ min in practice) and
+  graph exports disappear from the critical path; YOLO total ≈ max(R2 sync,
+  gate) + fetch + push.
 - Verify: full `make precommit-fix YOLO=1` run; confirm both logs are
   printed, exit code reflects a forced upload failure (test by temporarily
-  breaking the R2 credentials path), and `git status` is clean afterwards.
+  breaking the R2 credentials path). **Correction, 2026-07-13**: `git
+  status` is NOT necessarily clean right after — see the follow-up-commit
+  note under §7.5 below; it converges once that fires, not immediately.
 
 ### 7.5 YOLO: commit and push as soon as the tree is commit-ready
 
 Move the existing commit block (anchor: `📝 Committing:` in the
 `precommit-fix` recipe) to run right after gate + `security_check.py`
 succeed — i.e. **before** the `wait` from §7.4, not after the uploads.
-Justification is §4/§5: nothing the background jobs produce is tracked.
 `git push` (network) then overlaps the R2 upload.
+
+**Correction, 2026-07-13 — the "nothing tracked" justification was wrong for
+one file.** `graph-local`/`graph-push` really do write only gitignored
+output, but the R2 upload's `save_hash_map()` call (in
+`data/anki/upload-to-r2`, after a successful upload) mutates
+`data/cloudflare/hash_map.json`, which **is** tracked. Since that upload is
+now backgrounded and can finish after the main commit, its hash-map update
+can miss the main commit entirely. Considered and rejected: untracking
+`hash_map.json` (simplest, but `upload-to-r2 --upload-only` has no fallback
+check against R2's actual state — a missing/empty hash map makes it
+silently re-upload everything, see `docs/incremental-staging.md`); keeping
+the R2 upload synchronous before commit (correct, but it's the single
+slowest step — 15-20+ min observed — so this would defeat most of §7.4's
+point). Implemented instead: right after the R2 background job's `wait`
+succeeds, check `git diff --quiet -- data/cloudflare/hash_map.json`, and if
+it changed, fire one small separate `git add`/`commit`/`push` for just that
+file (message: `chore: update R2 hash map after sync`), unconditionally —
+not gated on `GATE_OK`/`SEC_OK`, since the hash map's correctness is
+independent of code quality, and not re-run through `security_check.py`,
+since the file structurally cannot contain note content (GUID→SHA256 only).
+If the process is killed before this fires (e.g. the terminal closes during
+the still-running R2 sync), nothing is lost beyond that one commit being
+deferred: `save_hash_map()` already wrote the correct file to disk
+regardless of git, and the *next* `precommit-fix` run's main `git add -A`
+will pick up the stale-but-uncommitted file anyway.
 
 - Saving: the push lands ~3–5 min earlier; total wall time drops by
   whatever the uploads no longer serialize (order of minutes).
