@@ -371,6 +371,246 @@ def test_embedded_latex_skipped_when_dollars_present():
     assert _convert_dollar_to_mathjax(html) == html
 
 
+# --- Prose protection (shapes found by tools/sweep_transform.py) ---
+# Cashtags, money slang, and finance commentary regex-match as $ pairs but
+# must never convert. Each test pins the shape of a real mangled note.
+
+
+def test_cashtag_list_not_math():
+    """Note 1448934758847: a run of stock cashtags pairs up as $META $AMZN..."""
+    html = (
+        'So yes, please keep telling me about how $META $AMZN $GOOG and $MSFT '
+        'are "cheap" on PE ratios where the E is a total mirage. <br>'
+    )
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_cashtag_pair_short_tickers_not_math():
+    """Note 1764066539029: $GOOG ... $NVDA — short tickers with prose between."""
+    html = '<div>$GOOG TPU vs $NVDA GPU</div>'
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_cashtag_adjacent_tickers_not_math():
+    """Note about oil ETFs: $USO $OXY $XOM — content of the pair is one
+    3-letter ticker plus trailing space."""
+    html = '$USO $OXY $XOM  The eco-friendly International Energy Agency'
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_cashtag_japanese_prose_not_math():
+    """Note 1428668343805: $INTC ... $SOI with Japanese prose between."""
+    html = (
+        '<div>1月に$INTCに35ドルの価格目標を出したとき、Bernsteinをピエロだと非難したよ。 '
+        '一方、他の機関はこっそりロングポジションを取る（$SOIで見られるように）。</div>'
+    )
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_cashtag_single_letter_cjk_not_math():
+    """Note 1780799245450: $MAと$V — two-letter/one-letter tickers, only CJK
+    between the $ signs."""
+    html = '<div>$MAと$Vはさらに極端です。彼らはほとんど在庫を持たず。</div>'
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_cashtag_anchor_then_currency_not_math():
+    """Note 1440881107480: linked $baba cashtag pairs with the $ of US$100.80."""
+    html = (
+        '<a href="https://stocktwits.com/symbol/BABA">$baba</a> '
+        'indicating an open at around US$100.80'
+    )
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_cashtag_linked_pair_not_math():
+    """Note 1448934757006: two linked cashtags — the pair content spans
+    HTML tags, which a formula never does."""
+    html = (
+        'YouTube is a hybrid of '
+        '<a href="https://x.com/search?q=%24NFLX&amp;src=cashtag_click">$NFLX</a>, '
+        '<a href="https://x.com/search?q=%24SPOT&amp;src=cashtag_click">$SPOT</a> '
+        '&amp; TikTok -- with better margins.'
+    )
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_double_dollar_money_slang_not_math():
+    """Note 1436157395396: $$ as slang for money — the block-math branch
+    must not pair 'big $$. ... pool $$.' into \\[...\\]."""
+    html = (
+        'You can’t run a campaign for POTUS without big $$. Most candidates '
+        'don’t have it, so they lean on donors who pool $$. That group '
+        'defines the campaign, tells people what to say.'
+    )
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_double_dollar_money_slang_question_not_math():
+    """Note 1631256811209 shape: 'making $$ off this? ... his $$?'"""
+    html = (
+        'Is always legitimate to ask ‘is this guy making $$ off this? '
+        'Who is paying? Is what he says dictated by how he makes his $$?’'
+    )
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_trailing_currency_prose_not_math():
+    """Note 1500235933005: amounts written as 60$ / 40$ pair across prose."""
+    html = (
+        'A lot of American companies become unprofitable with wti around 60$. '
+        'They have to use the lowest cost wells. One of the reasons Warren '
+        'buffet is buying OXY is they can break even around 40$ a barrel.'
+    )
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_lone_dollar_prose_pair_not_math():
+    """Note 1421507902490: 'tax drag $ and ... tax drag $ and ...' — bare $
+    used as the word 'dollars', twice on one logical line."""
+    html = (
+        '<li>As investment horizon increases: tax drag $ and tax drag % '
+        'increases</li><li>As investment return increases: tax drag $ and '
+        'tax drag % increases</li>'
+    )
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_cashtag_slash_pair_not_math():
+    """Note 1606615521635: $ORCL/$MSFT — the closing $ of the pair is really
+    the next ticker's prefix (immediately followed by a letter)."""
+    html = (
+        "<div>I don't care for $ORCL/$MSFT as longs, but as a barometer for "
+        "OAI, I don't think these stocks can languish forever</div>"
+    )
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_cashtag_two_letter_ticker_not_math():
+    """Note 1740033936309: $BIDU $TENCENT $JD $BABA $PDD — the two-letter
+    ticker $JD would pass the short-word check, but its closing $ starts
+    the next cashtag."""
+    html = (
+        '<dd>$BIDU $TENCENT $JD $BABA $PDD  Look at the way these gems are '
+        'bought up with any attempt to sell them down.</dd>'
+    )
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_usenet_message_id_not_math():
+    """Note 1775888044474: message-ID 5npiei$lrn$1@thor.atcon.com — a $ pair
+    inside an identifier, with a digit right after the closing $."""
+    html = 'message-ID <span>&lt;</span>5npiei$lrn$1@thor.atcon.com<span>&gt;</span>:'
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_mathml_annotation_displaystyle_untouched():
+    """Note 1780300730631: MathML <annotation>{\\displaystyle ...} sources
+    (Wikipedia paste) must not get fragments wrapped."""
+    html = (
+        '<annotation>{\\displaystyle \\left\\langle A\\bullet B\\right\\rangle '
+        '={\\overline {\\left\\langle B\\bullet A\\right\\rangle }}}</annotation>'
+    )
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_mathml_annotation_displaystyle_with_digits_untouched():
+    """Same note: {\\displaystyle ... \\Re _{\\geq 0}} — digits inside the
+    run must not defeat the displaystyle guard."""
+    html = (
+        '<annotation>{\\displaystyle \\left\\langle A\\bullet A\\right\\rangle '
+        '\\in \\Re _{\\geq 0}}</annotation>'
+    )
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+# --- Real math must still convert despite the prose guards ---
+
+
+def test_inline_greek_in_cjk_prose_still_converts():
+    """Note with 角速度（$\\omega$）: CJK around the pair is fine — only CJK
+    inside the pair marks prose."""
+    html = '<div>角速度（$\\omega$）表示<b>物体绕轴旋转的快慢</b>。</div>'
+    expected = '<div>角速度（\\(\\omega\\)）表示<b>物体绕轴旋转的快慢</b>。</div>'
+    assert _convert_dollar_to_mathjax(html) == expected
+
+
+def test_inline_single_letter_with_prose_after_still_converts():
+    """Note with $g$ (General Intelligence): a one-letter variable converts
+    even though prose follows the pair."""
+    html = 'To hold <b>$g$ (General Intelligence)</b> constant'
+    expected = 'To hold <b>\\(g\\) (General Intelligence)</b> constant'
+    assert _convert_dollar_to_mathjax(html) == expected
+
+
+def test_single_word_pair_still_converts():
+    """$math$ — a single word with no whitespace reads as a variable name,
+    not prose (also pinned by test_missing.py fixtures)."""
+    assert _convert_dollar_to_mathjax('$math$') == '\\(math\\)'
+
+
+# --- Wikipedia {\displaystyle ...} pastes (note 1639716063357) ---
+
+
+def test_wikipedia_displaystyle_paste_untouched():
+    """{\\displaystyle O(\\log N)} next to its rendered <img> fallback:
+    wrapping just '(\\log' would mangle it — a bare command with no braced
+    or numeric operand is not a self-contained formula."""
+    html = (
+        '<dd><i>Time complexity:</i>&nbsp;{\\displaystyle O(\\log N)}'
+        '<img src="14eea297b4387decf341763c39dc038e05744272">.</dd>'
+    )
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+# --- Interior of an existing multi-line \[...\] block (notes 1764121857247,
+# --- 1764836660467): lines between \[ and \] are already math ---
+
+
+def test_multiline_display_block_interior_untouched():
+    html = (
+        '<div><pre><pre><div>\\[\\begin{bmatrix}\n'
+        '\\lambda &amp; 1 &amp; 0 &amp; \\cdots \\\\\n'
+        '0 &amp; \\cdots &amp; 0 &amp; \\lambda\n'
+        '\\end{bmatrix}\\]</div>'
+    )
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_multiline_display_block_continuation_untouched():
+    html = (
+        '<div>\\[\\frac{\\partial L}{\\partial x_0}\n'
+        '= \\frac{\\partial L}{\\partial x_n}\n'
+        '\\cdot \\frac{\\partial x_n}{\\partial x_{n-1}}\n'
+        '\\frac{\\partial x_1}{\\partial x_0}\\]<br>'
+    )
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_conversion_resumes_after_display_block():
+    """The in-math state must close at \\] so later lines still convert."""
+    html = '\\[a\n+ b\\]<br>then $x^2$ here'
+    expected = '\\[a\n+ b\\]<br>then \\(x^2\\) here'
+    assert _convert_dollar_to_mathjax(html) == expected
+
+
+# --- CJK prose lines with stray LaTeX fragments (notes 1753244189584 &
+# --- the Bernoulli-head note): never display-wrap a prose sentence ---
+
+
+def test_cjk_prose_line_not_display_wrapped():
+    html = '<ul><li><div>只玩几何优势为正的游戏：确保 (E\\ln(1+r)&gt;0)。</div>'
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_cjk_prose_rho_not_wrapped():
+    html = (
+        '<div>把压力 P、速度 v 和海拔 z 全部除以 \\rho g，都能化成“液柱高度”'
+        '这个统一单位——这就是伯努利方程里的压头、速度头、位置头概念。</div>'
+    )
+    assert _convert_dollar_to_mathjax(html) == html
+
+
 def test_real_world_input():
     """The user's exact real-world input — mixed block and inline math."""
     html = (
