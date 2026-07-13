@@ -448,6 +448,20 @@ fetch-prompt:
 # Depends on the stamped install targets (not `install`), so an unchanged
 # lockfile/requirements.txt skips npm ci/pip install on every invocation.
 #
+# The push goes through tools/git_push_retry.py (retries with backoff; falls
+# back to pushing queued commits one at a time so each HTTP request stays
+# small — a bare `git push` dies with HTTP 408 on a slow uplink, observed
+# 2026-07-13). The commit step is skipped when the index is empty instead of
+# aborting the chain, so a rerun after a failed push still retries the push.
+# A failed commit/push flips PUSH_OK=0 and fails the target loudly — it used
+# to be swallowed (exit 0 with the commit silently unpushed). Pinned by
+# tests/test_makefile_push_gate.py.
+#
+# CAUTION: `make -n precommit-fix` is NOT a dry run. The recipe is one
+# backslash-continued command containing `$(MAKE)`, and GNU make executes
+# $(MAKE)-bearing recipe lines even under -n — so the REAL git add/commit/push
+# step runs (only the recursive sub-makes go dry).
+#
 # CAUTION: the commit step below runs `git add -A`, which stages EVERYTHING
 # in the working tree, not just what this invocation touched. If another
 # process (a concurrent agent session sharing this checkout, a background
@@ -468,7 +482,7 @@ precommit-fix: .make/pip.stamp .make/npm-ci.stamp $(if $(filter 1,$(SKIP_FETCH) 
 		echo "🌐 Push public Knowledge Graph data to R2? auto-yes (YOLO, backgrounded)"; \
 		$(MAKE) graph-push > .make/graph-push.log 2>&1 & BG_GRAPHPUSH_PID=$$!; \
 	fi; \
-	GATE_OK=1; SEC_OK=1; \
+	GATE_OK=1; SEC_OK=1; PUSH_OK=1; \
 	$(MAKE) fmt lint-fix fmt-py verify || GATE_OK=0; \
 	if [ "$$GATE_OK" = "1" ]; then \
 		if [ "$(YOLO)" != "1" ] && [ -z "$(SKIP)" ]; then $(MAKE) graph-local-prompt; fi; \
@@ -501,11 +515,11 @@ precommit-fix: .make/pip.stamp .make/npm-ci.stamp $(if $(filter 1,$(SKIP_FETCH) 
 				echo ""; \
 				echo "📝 Committing: $$_msg"; \
 				git add -A && \
-				git commit -m "$$_msg" && \
+				{ git diff --cached --quiet || git commit -m "$$_msg"; } && \
 				echo "" && \
 				echo "🚀 Pushing to remote..." && \
-				git push && \
-				echo "✅ Committed and pushed."; \
+				$(PYTHON) tools/git_push_retry.py && \
+				echo "✅ Committed and pushed." || PUSH_OK=0; \
 			fi; \
 		fi; \
 	else \
@@ -537,6 +551,11 @@ precommit-fix: .make/pip.stamp .make/npm-ci.stamp $(if $(filter 1,$(SKIP_FETCH) 
 		echo ""; echo "🌐 Graph push log:"; cat .make/graph-push.log; \
 	fi; \
 	if [ "$$GATE_OK" != "1" ] || [ "$$SEC_OK" != "1" ]; then exit 1; fi; \
+	if [ "$$PUSH_OK" != "1" ]; then \
+		echo "❌ Commit/push step failed — any commit created is safe locally;"; \
+		echo "   rerun 'git push' (or python3 tools/git_push_retry.py) when the network recovers"; \
+		exit 1; \
+	fi; \
 	if [ "$$BG_FAIL" != "0" ]; then echo "❌ Background R2/graph job(s) failed — see logs above"; exit 1; fi
 
 fetch-prompt-fix:
