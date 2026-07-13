@@ -89,11 +89,31 @@ help:
 		python3 -m venv .venv; \
 	fi
 
-install: | .venv
-	@echo "📦 Installing Python dependencies..."
-	@.venv/bin/python3 -m pip install -q -r requirements.txt
+# Stamped so `precommit-fix` (via these targets, not `install`) skips npm
+# ci/pip install entirely when the lockfile/requirements haven't changed —
+# npm ci alone is ~15s on every invocation otherwise. `.make/` is gitignored.
+# FORCE_INSTALL=1 makes both unconditional (mirrors plain `install` below).
+ifeq ($(FORCE_INSTALL),1)
+.PHONY: .make/npm-ci.stamp .make/pip.stamp
+endif
+
+.make/npm-ci.stamp: package-lock.json | .venv
 	@echo "📦 Syncing JS dependencies (npm ci, respects package-lock.json exactly)..."
 	@npm ci
+	@mkdir -p .make
+	@touch $@
+
+.make/pip.stamp: requirements.txt | .venv
+	@echo "📦 Installing Python dependencies..."
+	@.venv/bin/python3 -m pip install -q -r requirements.txt
+	@mkdir -p .make
+	@touch $@
+
+# Explicit `make install` always (re)installs regardless of the stamps —
+# precommit-fix depends on the stamped targets above instead of this one.
+install: | .venv
+	@rm -f .make/pip.stamp .make/npm-ci.stamp
+	@$(MAKE) .make/pip.stamp .make/npm-ci.stamp
 	@echo "✅ Dependencies installed"
 
 install-dev: | .venv
@@ -394,7 +414,9 @@ fetch-prompt:
 # Fix-then-verify: auto-fix everything (fmt, lint-fix, fmt-py) and THEN run the exact
 # same $(VERIFY_GATE) (via `verify`) as `precommit`, so a green precommit-fix means
 # CI is green too. Prereqs run left-to-right, so all fixers complete before the gate.
-precommit-fix: install $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt-fix) fmt lint-fix fmt-py verify $(if $(filter 1,$(SKIP)),,graph-local-prompt)
+# Depends on the stamped install targets (not `install`), so an unchanged
+# lockfile/requirements.txt skips npm ci/pip install on every invocation.
+precommit-fix: .make/pip.stamp .make/npm-ci.stamp $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt-fix) fmt lint-fix fmt-py verify $(if $(filter 1,$(SKIP)),,graph-local-prompt)
 	@echo ""
 	@echo "🔒 Running EXTREMELY RIGOROUS security check..."
 	@echo "   Scanning ALL files for private Anki data..."
