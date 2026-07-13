@@ -240,17 +240,16 @@ audit:
 
 check: check-node check-py
 
+# The jsdom-pin guard lives in a file, NOT as an inline `node -e ' \ ...'`
+# script: macOS's bundled GNU make 3.81 collapses recipe backslash-newlines
+# into one line (valid JS) but make 4.x on CI preserves them per POSIX — the
+# shell keeps them literally inside single quotes and node dies with
+# `SyntaxError: Expected unicode escape`. Same Makefile: green locally, red
+# on CI (seen 2026-07-14). Never backslash-continue an interpreter script
+# inside recipe quotes — pinned by
+# tests/test_makefile_no_inline_multiline_scripts.py.
 check-node:
-	@node -e ' \
-		const pinned = require("./package.json").dependencies.jsdom; \
-		if (pinned !== "27.0.0") { \
-			console.error("jsdom is " + JSON.stringify(pinned) + ", expected exactly \"27.0.0\"."); \
-			console.error("Any newer jsdom (even a patch bump) pulls ESM-only transitive deps"); \
-			console.error("that Jest cannot require() on Node < 24.9 - see docs/js-testing.md"); \
-			console.error("(jsdom version constraint section) before changing this."); \
-			process.exit(1); \
-		} \
-	'
+	@node tools/check_jsdom_pin.mjs
 	@COVDIR=$$(mktemp -d 2>/dev/null || mktemp -d -t c8cov); \
 	NODE_V8_COVERAGE="$$COVDIR" node tools/node_test_runner.mjs; \
 	STATUS=$$?; \

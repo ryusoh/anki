@@ -70,9 +70,16 @@ change the jsdom version, and do not add a `^`/`~`, without re-running
 `NODE_OPTIONS="--experimental-vm-modules --no-warnings" npx jest
 review_heatmap/tests/` and confirming both suites still pass.**
 
-As of 2026-07-13, `check-node`'s Makefile target asserts `package.json`'s
+As of 2026-07-13, `check-node` asserts `package.json`'s
 `dependencies.jsdom` is exactly `"27.0.0"` before running anything else, and
-fails loudly with a pointer back to this section if not — this catches the
+fails loudly with a pointer back to this section if not. The check lives in
+`tools/check_jsdom_pin.mjs` (tested by `tests/test_check_jsdom_pin.py`) — it
+was originally an inline backslash-continued `node -e ' \ ...'` script in the
+Makefile, which macOS's GNU make 3.81 collapses to one valid line but CI's
+make 4.x passes through with literal backslashes, i.e. a SyntaxError that
+only CI could see (bit us 2026-07-14;
+`tests/test_makefile_no_inline_multiline_scripts.py` now bans the pattern
+repo-wide). This catches the
 jsdom-field-drift case (a bad dependabot/auto-resolver PR, a stray `^`)
 regardless of CI's Node version (all four `.github/workflows/*.yml` pin
 Node 24, which is why the original `ce967f67` bump's CI stayed green while
