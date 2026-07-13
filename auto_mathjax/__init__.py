@@ -7,11 +7,14 @@
 #   2. Python reads the raw HTML of the current field
 #   3. Splits into logical lines (by <br>, <div>, </p>, \n)
 #   4. On each line, finds $...$ pairs via regex
-#   5. Validates each match (not numeric-only, not empty, etc.)
+#   5. Validates each match (not numeric-only, not empty, not prose —
+#      stock cashtags like "$INTC ... $SOI" and "$$" as money slang
+#      regex-match as pairs but must never convert)
 #   6. Replaces $content$ with \(content\)
 #   7. Lines that are entirely bare LaTeX (e.g. \frac{...} with no $ at all)
 #      are wrapped whole in \[...\] display math; bare LaTeX fragments
-#      embedded in a prose line are wrapped inline in \(...\)
+#      embedded in a prose line are wrapped inline in \(...\); the interior
+#      of an existing multi-line \[...\] block is left untouched
 #   8. Writes the modified HTML back and reloads the field
 
 import os
@@ -57,6 +60,19 @@ TEXT_GROUP_RE = re.compile(r'\\(?:text|textbf|textit|mathrm|mathbf|operatorname)
 # Any \command token (for stripping when measuring leftover prose)
 ANY_LATEX_COMMAND_RE = re.compile(r'\\[a-zA-Z]+')
 
+# CJK ideographs, kana, and fullwidth punctuation. Natural-language text in
+# these scripts never appears inside a formula (outside \text{...} groups),
+# so it marks $-pair content or a bare line as prose.
+CJK_RE = re.compile('[\u3000-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff00-\uffef]')
+
+HTML_TAG_RE = re.compile(r'<[^>]+>')
+
+# MathJax open/close delimiters, for tracking a \[...\] (or \(...\)) block
+# that spans multiple logical lines: everything until the closer is already
+# math and must not be touched.
+MATH_DELIM_RE = re.compile(r'\\([\[\]()])')
+_MATH_CLOSER = {'[': ']', '(': ')'}
+
 # A "math run" embedded in a prose line: one or more \command tokens (brace
 # arguments, nesting depth <= 2) linked by numbers/operators/whitespace.
 # Letters are deliberately excluded from the filler so prose words never get
@@ -91,6 +107,47 @@ def _is_whitespace_only(s):
     return len(text) == 0
 
 
+def _decode_entities(s):
+    return s.replace('&nbsp;', ' ').replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&')
+
+
+def _looks_like_math_content(inner):
+    """Decide whether the content of a $...$/$$...$$ pair plausibly is math.
+
+    Stock cashtags ($INTC ... $SOI), $$ as slang for money, and prose
+    between two currency amounts all regex-match as pairs. A formula never
+    spans HTML tags, never contains CJK prose (outside \\text{...} groups),
+    and its words are short variable names — unless an explicit \\command
+    marks it as LaTeX. A single word with no whitespace ($math$) still
+    counts as a variable name.
+    """
+    if HTML_TAG_RE.search(inner):
+        return False
+    text = _decode_entities(inner)
+    if BARE_LATEX_COMMAND_RE.search(text):
+        return True
+    stripped = TEXT_GROUP_RE.sub(' ', text)
+    stripped = ANY_LATEX_COMMAND_RE.sub(' ', stripped)
+    if CJK_RE.search(stripped):
+        return False
+    if re.fullmatch(r'[a-zA-Z]+', text):
+        return True
+    return all(len(word) <= 2 for word in re.findall(r'[a-zA-Z]+', stripped))
+
+
+def _track_math_state(open_delim, segment):
+    """Advance the open-MathJax-delimiter state ('[', '(' or None) across
+    one logical line, so multi-line \\[...\\] blocks are recognized."""
+    for m in MATH_DELIM_RE.finditer(segment):
+        tok = m.group(1)
+        if open_delim is None:
+            if tok in _MATH_CLOSER:
+                open_delim = tok
+        elif tok == _MATH_CLOSER[open_delim]:
+            open_delim = None
+    return open_delim
+
+
 def _looks_like_bare_latex(segment):
     """Decide whether a logical line is a bare LaTeX formula (no $ delimiters).
 
@@ -105,6 +162,8 @@ def _looks_like_bare_latex(segment):
         return False
     stripped = TEXT_GROUP_RE.sub(' ', text)
     stripped = ANY_LATEX_COMMAND_RE.sub(' ', stripped)
+    if CJK_RE.search(stripped):
+        return False
     return all(len(word) <= 2 for word in re.findall(r'[a-zA-Z]+', stripped))
 
 
@@ -116,6 +175,15 @@ def _wrap_embedded_latex(segment):
     containing a whitelisted command are wrapped; surrounding prose,
     tags and entities are untouched.
     """
+    # A CJK prose line is not a formula card: letters break embedded runs,
+    # so wrapping fragments there mangles shapes like (E\ln(1+r)>0).
+    if CJK_RE.search(TEXT_GROUP_RE.sub(' ', segment)):
+        return segment
+    # {\displaystyle ...} marks LaTeX source pasted from Wikipedia/MathML —
+    # it renders via its own <img>/<math> fallback; wrapping fragments of
+    # it (e.g. just "(\log" out of O(\log N)) mangles the source.
+    if '\\displaystyle' in segment:
+        return segment
 
     def repl(m):
         run = m.group(0)
@@ -123,6 +191,10 @@ def _wrap_embedded_latex(segment):
             return run
         core = run.strip(_RUN_TRIM_CHARS)
         if not core:
+            return run
+        # A bare \command with no braced or numeric operand (Wikipedia's
+        # {\displaystyle O(\log N)} pastes) is not a self-contained formula.
+        if not re.search(r'[{0-9]', core):
             return run
         start = run.find(core)
         return run[:start] + '\\(' + core + '\\)' + run[start + len(core) :]
@@ -153,15 +225,24 @@ def _convert_dollar_to_mathjax(html_str):
     segments = LINE_SPLIT_RE.split(html_str)
 
     result_parts = []
+    open_delim = None  # inside a \[...\] / \(...\) block spanning lines
     for segment in segments:
         # If this segment is a delimiter (tag/newline), pass through unchanged
         if LINE_SPLIT_RE.match(segment):
             result_parts.append(segment)
             continue
 
+        # Interior of a multi-line \[...\] block opened on an earlier line
+        # is already math — pass through until the closing delimiter.
+        if open_delim is not None:
+            result_parts.append(segment)
+            open_delim = _track_math_state(open_delim, segment)
+            continue
+
         # Skip segments that already contain MathJax notation
         if ALREADY_MATHJAX_RE.search(segment):
             result_parts.append(segment)
+            open_delim = _track_math_state(open_delim, segment)
             continue
 
         # Find and replace $$...$$ and $...$ pairs in this segment
@@ -173,6 +254,10 @@ def _convert_dollar_to_mathjax(html_str):
                 # $$...$$ → \[...\] (block/display MathJax)
                 if _is_whitespace_only(block_inner):
                     return m.group(0)
+                # $$ as slang for money: "big $$. ... pool $$." pairs up
+                # with prose between — leave it alone.
+                if not _looks_like_math_content(block_inner):
+                    return m.group(0)
                 return '\\[' + block_inner + '\\]'
 
             # $...$ → \(...\) (inline MathJax)
@@ -182,13 +267,21 @@ def _convert_dollar_to_mathjax(html_str):
             if _is_purely_numeric(inner):
                 return m.group(0)  # return unchanged
 
-            # Currency pair, not math: both $ immediately followed by a
-            # digit (e.g. "$1.67 ... for every $1 of ...")
-            if inner[0].isdigit() and m.end() < len(m.string) and m.string[m.end()].isdigit():
+            # A real closing $ is never immediately followed by a letter or
+            # digit: that $ is the prefix of the next cashtag ($JD $BABA,
+            # $ORCL/$MSFT), a currency amount ("for every $1 of ..."), or
+            # part of an identifier (5npiei$lrn$1@thor.atcon.com).
+            nxt = m.string[m.end()] if m.end() < len(m.string) else ''
+            if nxt.isascii() and nxt.isalnum():
                 return m.group(0)  # return unchanged
 
             # Skip whitespace-only content
             if _is_whitespace_only(inner):
+                return m.group(0)  # return unchanged
+
+            # Stock cashtags ($INTC ... $SOI) and other prose between two
+            # $ signs regex-match as a pair but are not math.
+            if not _looks_like_math_content(inner):
                 return m.group(0)  # return unchanged
 
             # Convert to MathJax inline
