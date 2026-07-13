@@ -438,6 +438,13 @@ fetch-prompt:
 # way since they were already started.
 # Depends on the stamped install targets (not `install`), so an unchanged
 # lockfile/requirements.txt skips npm ci/pip install on every invocation.
+#
+# CAUTION: the commit step below runs `git add -A`, which stages EVERYTHING
+# in the working tree, not just what this invocation touched. If another
+# process (a concurrent agent session sharing this checkout, a background
+# task without worktree isolation) has unrelated uncommitted changes sitting
+# here when YOLO=1/MSG= runs, they get swept into this commit under this
+# commit's message. Check `git status` first. See CLAUDE.md Gotchas.
 precommit-fix: .make/pip.stamp .make/npm-ci.stamp $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt-fix)
 	@mkdir -p .make; \
 	BG_GRAPHLOCAL_PID=; BG_R2_PID=; BG_GRAPHPUSH_PID=; \

@@ -62,3 +62,16 @@ Writing a design spec for another agent to implement? See
   `.venv/bin/python3` before debugging. And never spawn a real `ProcessPoolExecutor`
   in a test (spawn children re-import the module and drop your mocks — patch it to
   `ThreadPoolExecutor`). Both detailed in `docs/creating-an-addon.md`.
+- **This repo's absolute path contains a space** (`.../Application Support/Anki2/
+addons21`). A Makefile recipe that builds `VAR=$(CURDIR)/...` (or any other
+  space-containing value) as an env-var prefix MUST quote it
+  (`VAR="$(CURDIR)/..."`) — unquoted, `/bin/sh` word-splits at the space and
+  tries to _execute_ the tail of the path as a command instead of setting the
+  var. Pinned by `tests/test_makefile_curdir_quoting.py`.
+- **`precommit-fix`'s `YOLO=1`/`MSG=` commit step runs `git add -A`.** If another
+  process has unrelated uncommitted changes sitting in this working tree when it
+  runs — a concurrent agent session sharing the checkout, a background
+  `spawn_task` not given worktree isolation — they get swept into that commit
+  under an unrelated message (this happened: 2026-07-13, commit `e3800278`).
+  Check `git status` before running `precommit-fix` with `YOLO=1`/`MSG=`, and
+  prefer worktree isolation for any spawned session that might invoke it.
