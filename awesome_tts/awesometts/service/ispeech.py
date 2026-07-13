@@ -143,7 +143,7 @@ class ISpeech(Service):
                 path,
                 [
                     (
-                        'http://api.ispeech.org/api/rest',
+                        'https://api.ispeech.org/api/rest',
                         dict(
                             apikey=options['key'],
                             action='convert',
