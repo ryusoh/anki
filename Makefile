@@ -241,6 +241,16 @@ audit:
 check: check-node check-py
 
 check-node:
+	@node -e ' \
+		const pinned = require("./package.json").dependencies.jsdom; \
+		if (pinned !== "27.0.0") { \
+			console.error("jsdom is " + JSON.stringify(pinned) + ", expected exactly \"27.0.0\"."); \
+			console.error("Any newer jsdom (even a patch bump) pulls ESM-only transitive deps"); \
+			console.error("that Jest cannot require() on Node < 24.9 - see docs/js-testing.md"); \
+			console.error("(jsdom version constraint section) before changing this."); \
+			process.exit(1); \
+		} \
+	'
 	@COVDIR=$$(mktemp -d 2>/dev/null || mktemp -d -t c8cov); \
 	NODE_V8_COVERAGE="$$COVDIR" node tools/node_test_runner.mjs; \
 	STATUS=$$?; \
@@ -413,27 +423,48 @@ fetch-prompt:
 
 # Fix-then-verify: auto-fix everything (fmt, lint-fix, fmt-py) and THEN run the exact
 # same $(VERIFY_GATE) (via `verify`) as `precommit`, so a green precommit-fix means
-# CI is green too. Prereqs run left-to-right, so all fixers complete before the gate.
+# CI is green too.
+#
+# YOLO=1 overlaps the slow, tracked-file-independent steps (R2 sync, graph
+# exports — see docs/precommit-speed.md §4: their outputs are all gitignored
+# or network-only, git add -A never picks them up) with the fixers+gate
+# instead of running everything serially: they're kicked off in the
+# background right after fetch, fixers+gate run in the foreground, commit
+# +push fires as soon as the gate+security scan are green (not waiting on
+# the background jobs — approved policy, docs/precommit-speed.md §9), and
+# the background jobs are wait-ed on and their logs printed last. A failed
+# gate skips security-check/commit entirely, matching the old prerequisite-
+# failure hard-stop; background jobs are still waited on and reported either
+# way since they were already started.
 # Depends on the stamped install targets (not `install`), so an unchanged
 # lockfile/requirements.txt skips npm ci/pip install on every invocation.
-precommit-fix: .make/pip.stamp .make/npm-ci.stamp $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt-fix) fmt lint-fix fmt-py verify $(if $(filter 1,$(SKIP)),,graph-local-prompt)
-	@echo ""
-	@echo "🔒 Running EXTREMELY RIGOROUS security check..."
-	@echo "   Scanning ALL files for private Anki data..."
-	@python3 data/anki/security_check.py
-	@echo ""
-	@echo "✅ Pre-commit fix complete"
-	@echo "Review changes with: git diff"
-	@echo "Then commit with: git commit -m 'your message'"
-	@if [ -z "$(SKIP_R2)" ] && [ -z "$(SKIP)" ]; then \
-		if [ "$(YOLO)" = "1" ]; then \
-			echo ""; \
-			echo "📤 Upload private content to R2? auto-yes (YOLO)"; \
-			$(MAKE) fetch-r2-skip-fetch; \
-			echo ""; \
-			echo "🌐 Push public Knowledge Graph data to R2? auto-yes (YOLO)"; \
-			$(MAKE) graph-push; \
-		else \
+precommit-fix: .make/pip.stamp .make/npm-ci.stamp $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt-fix)
+	@mkdir -p .make; \
+	BG_GRAPHLOCAL_PID=; BG_R2_PID=; BG_GRAPHPUSH_PID=; \
+	if [ "$(YOLO)" = "1" ] && [ -z "$(SKIP)" ]; then \
+		echo ""; \
+		echo "📊 Export local private Knowledge Graph data? auto-yes (YOLO, backgrounded)"; \
+		$(MAKE) graph-local > .make/graph-local.log 2>&1 & BG_GRAPHLOCAL_PID=$$!; \
+	fi; \
+	if [ "$(YOLO)" = "1" ] && [ -z "$(SKIP_R2)" ] && [ -z "$(SKIP)" ]; then \
+		echo "📤 Upload private content to R2? auto-yes (YOLO, backgrounded)"; \
+		$(MAKE) fetch-r2-skip-fetch > .make/r2-upload.log 2>&1 & BG_R2_PID=$$!; \
+		echo "🌐 Push public Knowledge Graph data to R2? auto-yes (YOLO, backgrounded)"; \
+		$(MAKE) graph-push > .make/graph-push.log 2>&1 & BG_GRAPHPUSH_PID=$$!; \
+	fi; \
+	GATE_OK=1; SEC_OK=1; \
+	$(MAKE) fmt lint-fix fmt-py verify || GATE_OK=0; \
+	if [ "$$GATE_OK" = "1" ]; then \
+		if [ "$(YOLO)" != "1" ] && [ -z "$(SKIP)" ]; then $(MAKE) graph-local-prompt; fi; \
+		echo ""; \
+		echo "🔒 Running EXTREMELY RIGOROUS security check..."; \
+		echo "   Scanning ALL files for private Anki data..."; \
+		python3 data/anki/security_check.py || SEC_OK=0; \
+		echo ""; \
+		echo "✅ Pre-commit fix complete"; \
+		echo "Review changes with: git diff"; \
+		echo "Then commit with: git commit -m 'your message'"; \
+		if [ "$(YOLO)" != "1" ] && [ -z "$(SKIP_R2)" ] && [ -z "$(SKIP)" ]; then \
 			echo ""; \
 			echo "📤 Upload private content to R2? (y/n)"; \
 			read -r response && \
@@ -447,19 +478,39 @@ precommit-fix: .make/pip.stamp .make/npm-ci.stamp $(if $(filter 1,$(SKIP_FETCH) 
 				$(MAKE) graph-push; \
 			fi; \
 		fi; \
-	fi
-	@_msg="$(MSG)"; \
-	if [ -z "$$_msg" ]; then _msg="chore: データ取得・整形・リント修正・テスト・グラフ更新"; fi; \
-	if [ "$(YOLO)" = "1" ] || [ -n "$(MSG)" ]; then \
+		if [ "$$SEC_OK" = "1" ]; then \
+			_msg="$(MSG)"; \
+			if [ -z "$$_msg" ]; then _msg="chore: データ取得・整形・リント修正・テスト・グラフ更新"; fi; \
+			if [ "$(YOLO)" = "1" ] || [ -n "$(MSG)" ]; then \
+				echo ""; \
+				echo "📝 Committing: $$_msg"; \
+				git add -A && \
+				git commit -m "$$_msg" && \
+				echo "" && \
+				echo "🚀 Pushing to remote..." && \
+				git push && \
+				echo "✅ Committed and pushed."; \
+			fi; \
+		fi; \
+	else \
 		echo ""; \
-		echo "📝 Committing: $$_msg"; \
-		git add -A && \
-		git commit -m "$$_msg" && \
-		echo "" && \
-		echo "🚀 Pushing to remote..." && \
-		git push && \
-		echo "✅ Committed and pushed."; \
-	fi
+		echo "❌ Pre-commit checks failed — skipping security check and commit"; \
+	fi; \
+	BG_FAIL=0; \
+	if [ -n "$$BG_GRAPHLOCAL_PID" ]; then \
+		wait $$BG_GRAPHLOCAL_PID || BG_FAIL=1; \
+		echo ""; echo "📊 Local graph export log:"; cat .make/graph-local.log; \
+	fi; \
+	if [ -n "$$BG_R2_PID" ]; then \
+		wait $$BG_R2_PID || BG_FAIL=1; \
+		echo ""; echo "📤 R2 upload log:"; cat .make/r2-upload.log; \
+	fi; \
+	if [ -n "$$BG_GRAPHPUSH_PID" ]; then \
+		wait $$BG_GRAPHPUSH_PID || BG_FAIL=1; \
+		echo ""; echo "🌐 Graph push log:"; cat .make/graph-push.log; \
+	fi; \
+	if [ "$$GATE_OK" != "1" ] || [ "$$SEC_OK" != "1" ]; then exit 1; fi; \
+	if [ "$$BG_FAIL" != "0" ]; then echo "❌ Background R2/graph job(s) failed — see logs above"; exit 1; fi
 
 fetch-prompt-fix:
 	@echo ""
