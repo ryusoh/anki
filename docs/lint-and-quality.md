@@ -76,6 +76,14 @@ re-installs this venv when `requirements-dev.txt` changes — it can silently dr
 as the fix, so a stale local tool can no longer format/lint with the wrong version
 and produce a result that silently diverges from CI.
 
+**Fresh git worktrees have no `.venv`** — and without one, `$(PYTHON)` falls back
+to the system python3, whose bundled pip is too old to even resolve the pinned
+tools (`make install-dev` used to fail with "No matching distribution found for
+black==…"). `make install-dev` (and `make install`) now bootstrap `.venv` first:
+in a linked worktree they symlink the main checkout's `.venv` (instant, shares
+the pins), otherwise they create a fresh one. So the fix in a new worktree is
+still just `make install-dev`.
+
 ### Makefile Execution Gotchas
 
 - **Spaces in paths:** The repo path `$(CURDIR)` contains spaces (e.g., `/Application Support/`). Always quote commands that interpolate `$(CURDIR)`, and avoid using `$(wildcard)` with absolute paths since it splits on spaces. Use relative paths with `$(wildcard)` (e.g., `$(wildcard .venv/bin/python3)`).

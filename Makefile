@@ -68,16 +68,33 @@ help:
 # Setup
 # -----------------------------------------------------------------------------
 
-install:
+# Bootstrap .venv when missing. In a linked git worktree, symlink the main
+# checkout's .venv (instant, and shares the pinned tools); otherwise create a
+# fresh one. Without this, a fresh worktree's install targets fell back to the
+# system python3 (whose ancient pip can't even resolve the pinned tools).
+# Note: $(PYTHON) resolves at Makefile parse time — before this target has
+# run — so the install recipes below invoke .venv/bin/python3 directly.
+.venv:
+	@common_dir=$$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null); \
+	main_root=$$(dirname "$$common_dir"); \
+	if [ -n "$$common_dir" ] && [ "$$main_root" != "$(CURDIR)" ] && [ -d "$$main_root/.venv" ]; then \
+		echo "🔗 Linking .venv from main checkout ($$main_root/.venv)..."; \
+		ln -s "$$main_root/.venv" .venv; \
+	else \
+		echo "🐍 Creating .venv..."; \
+		python3 -m venv .venv; \
+	fi
+
+install: | .venv
 	@echo "📦 Installing Python dependencies..."
-	@$(PYTHON) -m pip install -q -r requirements.txt
+	@.venv/bin/python3 -m pip install -q -r requirements.txt
 	@echo "📦 Syncing JS dependencies (npm ci, respects package-lock.json exactly)..."
 	@npm ci
 	@echo "✅ Dependencies installed"
 
-install-dev:
+install-dev: | .venv
 	@echo "📦 Installing Python dev/lint dependencies..."
-	@$(PYTHON) -m pip install -q -r requirements-dev.txt
+	@.venv/bin/python3 -m pip install -q -r requirements-dev.txt
 	@echo "✅ Dev dependencies installed"
 
 # -----------------------------------------------------------------------------
