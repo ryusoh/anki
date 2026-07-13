@@ -68,9 +68,19 @@ under `.claude/`.
 once already: `^27.3.0` resolved to `27.4.0`, which is broken). **Do not
 change the jsdom version, and do not add a `^`/`~`, without re-running
 `NODE_OPTIONS="--experimental-vm-modules --no-warnings" npx jest
-review_heatmap/tests/` and confirming both suites still pass** — nothing in
-`make check-node`/`make precommit` catches jsdom drift on its own; see the
-"why `precommit-fix` can't catch this" note below.
+review_heatmap/tests/` and confirming both suites still pass.**
+
+As of 2026-07-13, `check-node`'s Makefile target asserts `package.json`'s
+`dependencies.jsdom` is exactly `"27.0.0"` before running anything else, and
+fails loudly with a pointer back to this section if not — this catches the
+jsdom-field-drift case (a bad dependabot/auto-resolver PR, a stray `^`)
+regardless of CI's Node version (all four `.github/workflows/*.yml` pin
+Node 24, which is why the original `ce967f67` bump's CI stayed green while
+local `make check-node` on Node 22 broke — see "why `precommit-fix` can't
+catch this" note below). It does **not** verify the `@asamuzakjp/css-color`
+override or the actual resolved `node_modules` tree, so re-running the jest
+suite above is still the only full confirmation after any dependency change
+in this area.
 
 **Why**: Node's native ESM `import()` handles real ESM packages fine (which
 is why the many `tests/*.test.mjs` files that `import { JSDOM } from
@@ -99,16 +109,19 @@ So the fix is **both** "pin jsdom to exactly `27.0.0`" (avoids the first two)
 **and** the `@asamuzakjp/css-color` override in `package.json` (avoids the
 third) — pinning jsdom alone is not sufficient.
 
-**Why `make precommit-fix SKIP=1` can't catch or fix this**: the Makefile's
-`install` target now runs `npm ci` (added 2026-07-11 for exactly this
-reason), so a fresh `make install` / `make precommit-fix` will resync
+**Why `make precommit-fix SKIP=1` can't fully catch or fix this**: the
+Makefile's `install` target now runs `npm ci` (added 2026-07-11 for exactly
+this reason), so a fresh `make install` / `make precommit-fix` will resync
 `node_modules` to whatever `package.json`/`package-lock.json` currently say —
-but it cannot know if package.json's declared version is _itself_ wrong
-(e.g. reverted to a caret range, or the override removed). Verifying the
-actual jsdom/css-color/parse5 versions landed correctly requires re-running
-the jest suite (above), not just `make check-node`'s exit code, since a
-broken `node_modules` state fails loudly and a merely-different-but-still-
-broken one can look identical from the outside without careful diffing.
+and `check-node`'s jsdom-field guard (above) now catches the common case of
+that declared version drifting. But the guard only checks the `jsdom` field
+itself; it cannot know if the `@asamuzakjp/css-color` override was removed or
+if `package-lock.json` resolved a bad transitive version despite a correct
+`jsdom` field. Verifying the actual jsdom/css-color/parse5 versions landed
+correctly still requires re-running the jest suite (above), not just
+`make check-node`'s exit code, since a broken `node_modules` state fails
+loudly and a merely-different-but-still-broken one can look identical from
+the outside without careful diffing.
 
 **Known behavioral gaps vs. jsdom 28+** (both still apply at 27.0.0):
 
