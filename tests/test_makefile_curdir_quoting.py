@@ -11,19 +11,29 @@ the env var. pytest never ran; the recipe failed with a cryptic
 This runs the real pysuite/% recipe against the real repo path (a tmp_path
 copy wouldn't reproduce the space), so it fails the same way the original bug
 did if the quoting regresses.
+
+On a checkout whose path has no space (CI: /home/runner/work/anki/anki) the
+bug is unreproducible by construction, so the test SKIPS there — it used to
+hard-assert the precondition instead, which failed CI the first time this
+file ever reached it (2026-07-14; local runs always passed because this
+machine's path does contain the space).
 """
 
 import subprocess
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
+@pytest.mark.skipif(
+    " " not in str(REPO_ROOT),
+    reason="repo path has no space, so unquoted-$(CURDIR) breakage cannot "
+    "manifest here (guard is meaningful only on space-containing checkouts "
+    "like the primary '.../Application Support/...' one)",
+)
 def test_pysuite_target_writes_coverage_file():
-    assert " " in str(REPO_ROOT), (
-        "expected this repo's path to contain a space (the condition that "
-        "exposes unquoted $(CURDIR) breakage) — checkout location changed?"
-    )
     cov_dir = REPO_ROOT / "coverage" / "py-data"
     cov_dir.mkdir(parents=True, exist_ok=True)
     cov_file = cov_dir / ".coverage.tools"
