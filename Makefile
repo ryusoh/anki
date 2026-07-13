@@ -483,7 +483,7 @@ fetch-prompt-fix:
 fmt:
 	@if command -v npx >/dev/null 2>&1 && [ -n "$(strip $(PRETTIER_FILES))" ]; then \
 		echo "Formatting files with Prettier..."; \
-		NODE_OPTIONS="--max-old-space-size=4096" npx prettier --write --log-level warn --ignore-path .gitignore $(PRETTIER_FILES); \
+		NODE_OPTIONS="--max-old-space-size=4096" npx prettier --write --cache --log-level warn --ignore-path .gitignore $(PRETTIER_FILES); \
 	else \
 		echo "No Prettier or no files to format"; \
 	fi
@@ -491,7 +491,7 @@ fmt:
 fmt-check:
 	@if command -v npx >/dev/null 2>&1 && [ -n "$(strip $(PRETTIER_FILES))" ]; then \
 		echo "Checking formatting..."; \
-		NODE_OPTIONS="--max-old-space-size=4096" npx prettier --check --log-level warn --ignore-path .gitignore $(PRETTIER_FILES); \
+		NODE_OPTIONS="--max-old-space-size=4096" npx prettier --check --cache --log-level warn --ignore-path .gitignore $(PRETTIER_FILES); \
 	else \
 		echo "No Prettier or no files to check"; \
 	fi
@@ -503,34 +503,37 @@ fmt-check:
 lint: lint-js lint-css lint-md
 
 lint-js:
+	@mkdir -p .make
 	@if command -v npx >/dev/null 2>&1; then \
 		if ls eslint.config.* .eslintrc* 2>/dev/null | grep -q .; then \
 			echo "Linting JavaScript (ESLint, first-party only)..."; \
-			npx eslint .; \
+			npx eslint --cache --cache-location .make/eslintcache .; \
 		else \
 			echo "⊘ No ESLint config found — skipping JS lint"; \
 		fi; \
 	fi
 
 lint-css:
+	@mkdir -p .make
 	@if command -v npx >/dev/null 2>&1; then \
 		if ls .stylelintrc* stylelint.config.* 2>/dev/null | grep -q .; then \
 			echo "Linting CSS (Stylelint, first-party only)..."; \
-			npx stylelint "**/*.css"; \
+			npx stylelint --cache --cache-location .make/stylelintcache "**/*.css"; \
 		else \
 			echo "⊘ No Stylelint config found — skipping CSS lint"; \
 		fi; \
 	fi
 
 lint-fix:
+	@mkdir -p .make
 	@if command -v npx >/dev/null 2>&1; then \
 		if ls eslint.config.* .eslintrc* 2>/dev/null | grep -q .; then \
 			echo "Fixing JS lint issues (ESLint)..."; \
-			npx eslint . --fix || true; \
+			npx eslint --cache --cache-location .make/eslintcache . --fix || true; \
 		fi; \
 		if ls .stylelintrc* stylelint.config.* 2>/dev/null | grep -q .; then \
 			echo "Fixing CSS lint issues (Stylelint)..."; \
-			npx stylelint "**/*.css" --fix || true; \
+			npx stylelint --cache --cache-location .make/stylelintcache "**/*.css" --fix || true; \
 		fi; \
 	fi
 	@$(MAKE) lint-md-fix
