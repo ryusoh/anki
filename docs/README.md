@@ -19,6 +19,7 @@
 - [lint-and-quality.md](lint-and-quality.md) — formatting/lint/type/security gate
 - [limited-network.md](limited-network.md) — slow-uplink survival: push retry/chunking, NET_DEADLINE upload caps, `make -n` refusal
 - [delegation-specs.md](delegation-specs.md) — how to write a design spec for another agent to implement
+- [anki-editor-mathjax-undo.md](anki-editor-mathjax-undo.md) — why Cmd+Z can't restore deleted MathJax in the editor; workarounds
 
 ## Historical records
 
@@ -33,3 +34,4 @@ verify against current code/Makefile before trusting specifics.
 
 - [terminal-calendar-ranges.md](terminal-calendar-ranges.md) — year/quarter calendar time filters for the stats terminal
 - [precommit-speed.md](precommit-speed.md) — measured baseline + parallelization plan for `make precommit-fix` (SKIP/YOLO)
+- [field-snapshot-undo.md](field-snapshot-undo.md) — `field_snapshot_undo` addon spec: field revision ring to recover deleted MathJax
