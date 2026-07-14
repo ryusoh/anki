@@ -280,6 +280,55 @@ def test_selection_strip_replaces_enclosed_block_pairs_with_line_breaks():
     assert res == expected
 
 
+# The editor renders \(...\) / \[...\] as an atomic <anki-mathjax> element, so
+# getSelection().toString() yields a lone space where the field stores the
+# literal MathJax source. The selection must still map, and the MathJax source
+# must survive the strip untouched.
+def test_mathjax_inline_selection_maps_to_space():
+    html = '<div><b>value (</b>\\(x^*\\)<b>) here</b></div>'
+    selected = 'value ( ) here'
+
+    res = _strip_selection(html, selected)
+    assert res == '<div>value (\\(x^*\\)) here</div>'
+
+
+def test_mathjax_display_selection_maps_to_space():
+    html = '<div><i>before</i> \\[\\sum_i x_i\\] <i>after</i></div>'
+    selected = 'before after'
+
+    res = _strip_selection(html, selected)
+    assert res == '<div>before \\[\\sum_i x_i\\] after</div>'
+
+
+def test_mathjax_selection_real_card_repro():
+    # Real card 1766288135492 — selecting the first <h3> line (which contains
+    # two inline MathJax expressions) used to fail the selection mapping and
+    # fall back to stripping the whole field.
+    html = (
+        '<h3><span style="font-size: 20px;">训练数据里每个位置只给你一个“真 token” (</span>'
+        '\\(x^*\\)'
+        '<span style="font-size: 20px;">)。把它看成 one-hot 的经验分布（在那个样本上 (P) 全压在 (</span>'
+        '\\(x^*\\)'
+        '<span style="font-size: 20px;">) 上），那么：</span></h3>'
+        '<div>\\(\\text{loss} = -\\log Q_\\theta(x^*\\mid c)\\)<br><br></div>'
+        '<div>这就是你在代码里看到的&nbsp;<strong>NLL / CrossEntropyLoss</strong>&nbsp;的核心。</div>'
+    )
+    selected = (
+        '训练数据里每个位置只给你一个“真 token” ( )。把它看成 one-hot 的经验分布'
+        '（在那个样本上 (P) 全压在 ( ) 上），那么：'
+    )
+
+    res = _strip_selection(html, selected)
+    assert res is not None
+    assert res.count('\\(x^*\\)') == 2  # MathJax source survives
+    assert res.startswith('<div>训练数据里每个位置只给你一个')
+    # The untouched tail of the field is preserved verbatim
+    assert res.endswith(
+        '<div>\\(\\text{loss} = -\\log Q_\\theta(x^*\\mid c)\\)<br><br></div>'
+        '<div>这就是你在代码里看到的&nbsp;<strong>NLL / CrossEntropyLoss</strong>&nbsp;的核心。</div>'
+    )
+
+
 def test_find_mismatches_none():
     import sys
     from io import StringIO

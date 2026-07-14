@@ -279,6 +279,21 @@ def _strip_slice_balanced(html_slice, strip_trailing_voids):
     return ''.join(output_parts)
 
 
+# The editor shows \(...\) / \[...\] as an atomic <anki-mathjax> element, so a
+# browser selection contributes only whitespace for it — never the source text.
+_MATHJAX_DELIMS = (('\\(', '\\)'), ('\\[', '\\]'))
+
+
+def _match_mathjax(html_str, i):
+    """Return the end index (exclusive) of a MathJax span starting at i, else None."""
+    for opener, closer in _MATHJAX_DELIMS:
+        if html_str.startswith(opener, i):
+            end = html_str.find(closer, i + len(opener))
+            if end != -1:
+                return end + len(closer)
+    return None
+
+
 def _map_html_to_text(html_str):
     BLOCK_TAGS = {
         'p',
@@ -310,6 +325,7 @@ def _map_html_to_text(html_str):
 
     text_pos = 0
     text_to_html = {}
+    mathjax_spans = {}
     in_tag = False
     tag_buf = ''
     i = 0
@@ -337,6 +353,16 @@ def _map_html_to_text(html_str):
             i += 1
             continue
 
+        mathjax_end = _match_mathjax(html_str, i)
+        if mathjax_end is not None:
+            # Selections render the whole expression as a single space
+            text_to_html[text_pos] = i
+            rendered_chars.append(' ')
+            text_pos += 1
+            mathjax_spans[i] = mathjax_end
+            i = mathjax_end
+            continue
+
         if html_str[i] == '&':
             end_idx = html_str.find(';', i)
             if end_idx != -1 and end_idx - i < 10:
@@ -356,7 +382,7 @@ def _map_html_to_text(html_str):
             text_pos += 1
         i += 1
 
-    return text_to_html, rendered_chars
+    return text_to_html, rendered_chars, mathjax_spans
 
 
 def _normalize_rendered_chars(rendered_chars):
@@ -395,7 +421,7 @@ def _strip_selection(html_str, selected_text):
     if not sel_normalized:
         return None
 
-    text_to_html, rendered_chars = _map_html_to_text(html_str)
+    text_to_html, rendered_chars, mathjax_spans = _map_html_to_text(html_str)
     rendered_normalized, norm_to_text = _normalize_rendered_chars(rendered_chars)
 
     idx = _find_mismatches(sel_normalized, rendered_normalized)
@@ -418,7 +444,9 @@ def _strip_selection(html_str, selected_text):
         return None
 
     html_end = last_html_start
-    if html_str[html_end] == '&':
+    if html_end in mathjax_spans:
+        html_end = mathjax_spans[html_end]
+    elif html_str[html_end] == '&':
         end_idx = html_str.find(';', html_end)
         if end_idx != -1 and end_idx - html_end < 10:
             html_end = end_idx + 1
