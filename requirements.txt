@@ -7,7 +7,6 @@ scipy>=1.10
 # For running TDD test suite
 pytest>=8.0
 pytest-cov>=4.0
-pytest-mock>=3.0
 beautifulsoup4>=4.0
 
 # Optional: Better progress bars
