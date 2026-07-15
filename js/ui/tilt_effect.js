@@ -43,26 +43,33 @@ export function initTiltEffect() {
       };
     });
 
+    let ticking = false;
     container.addEventListener("mousemove", (e) => {
-      if (!rect) {
-        const r = container.getBoundingClientRect();
-        rect = {
-          left: r.left + window.scrollX,
-          top: r.top + window.scrollY,
-          width: r.width,
-          height: r.height,
-        };
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          if (!rect) {
+            const r = container.getBoundingClientRect();
+            rect = {
+              left: r.left + window.scrollX,
+              top: r.top + window.scrollY,
+              width: r.width,
+              height: r.height,
+            };
+          }
+
+          const x = e.pageX - rect.left;
+          const y = e.pageY - rect.top;
+          const centerX = rect.width / 2;
+          const centerY = rect.height / 2;
+          const rotateX = ((y - centerY) / centerY) * -10;
+          const rotateY = ((x - centerX) / centerX) * 10;
+
+          rotateXTo(rotateX);
+          rotateYTo(rotateY);
+          ticking = false;
+        });
+        ticking = true;
       }
-
-      const x = e.pageX - rect.left;
-      const y = e.pageY - rect.top;
-      const centerX = rect.width / 2;
-      const centerY = rect.height / 2;
-      const rotateX = ((y - centerY) / centerY) * -10;
-      const rotateY = ((x - centerX) / centerX) * 10;
-
-      rotateXTo(rotateX);
-      rotateYTo(rotateY);
     });
     container.addEventListener("mouseleave", () => {
       rect = null;
