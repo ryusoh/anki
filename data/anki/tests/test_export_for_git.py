@@ -112,3 +112,37 @@ def test_main_coverage():
                 runpy.run_path(script_path, run_name="__main__")
             except Exception as e:
                 print(f"Ignored exception: {e}")
+
+def test_export_for_git_same_month():
+    import gzip
+    import json
+    import sqlite3
+    import tempfile
+    from pathlib import Path
+    from unittest.mock import patch
+
+    from data.anki.export_for_git import export_for_git
+
+    with tempfile.TemporaryDirectory() as tempdir:
+        temp_path = Path(tempdir)
+        db_path = temp_path / "collection.anki2"
+
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        cur.execute("CREATE TABLE cards (id INTEGER, nid INTEGER, did INTEGER, ord INTEGER, type INTEGER, queue INTEGER, due INTEGER, ivl INTEGER, factor INTEGER, reps INTEGER, lapses INTEGER, flags INTEGER)")
+        cur.execute("CREATE TABLE revlog (id INTEGER, cid INTEGER, ease INTEGER, ivl INTEGER, lastIvl INTEGER, factor INTEGER, time INTEGER, type INTEGER)")
+        cur.execute("CREATE TABLE decks (id INTEGER, name TEXT)")
+        cur.execute("CREATE TABLE notetypes (id INTEGER, name TEXT)")
+        cur.execute("CREATE TABLE notes (id INTEGER, mid INTEGER, mod INTEGER, usn INTEGER, sfld TEXT, csum INTEGER, flags INTEGER)")
+        cur.execute("INSERT INTO decks VALUES (1, 'Default')")
+        cur.execute("INSERT INTO notetypes VALUES (1, 'Basic')")
+        cur.execute("INSERT INTO cards VALUES (1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0)")
+        cur.execute("INSERT INTO revlog VALUES (1610712000000, 1, 3, 1, 0, 0, 1000, 1)") # 2021-01-15 12:00:00 UTC
+        cur.execute("INSERT INTO revlog VALUES (1610712000001, 1, 3, 1, 0, 0, 1000, 1)") # Also 2021-01
+        cur.execute("INSERT INTO notes VALUES (1, 1, 0, 0, 'dummy', 0, 0)")
+        conn.commit()
+        conn.close()
+
+        with patch('data.anki.export_for_git.SOURCE_DB', db_path), \
+             patch('data.anki.export_for_git.OUTPUT_DIR', temp_path):
+            export_for_git()

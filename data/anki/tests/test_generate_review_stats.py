@@ -277,3 +277,30 @@ def test_main_exec():
             runpy.run_path(generate_review_stats.__file__, run_name='__main__')
         except SystemExit:
             pass
+def test_aggregate_reviews_missing_deck_name():
+    import gzip
+    import json
+    import tempfile
+    from pathlib import Path
+    from unittest.mock import patch
+
+    from data.anki.generate_review_stats import aggregate_reviews
+
+    review_data = [{"id": 1609459200000, "cid": 1, "type": 1, "lastIvl": 21, "ivl": 30, "ease": 3, "time": 1000}]
+
+    with tempfile.TemporaryDirectory() as tempdir:
+        temp_path = Path(tempdir)
+        reviews_dir = temp_path / "reviews"
+        reviews_dir.mkdir()
+
+        with gzip.open(reviews_dir / "2021-01.json.gz", 'wt') as f:
+            json.dump(review_data, f)
+
+        cards_file = temp_path / "cards.json.gz"
+        with gzip.open(cards_file, 'wt') as f:
+            json.dump([{"id": 1}], f) # Missing deck_name, but has id
+
+        with patch('data.anki.generate_review_stats.REVIEWS_DIR', reviews_dir), \
+             patch('data.anki.generate_review_stats.CARDS_FILE', cards_file):
+            global_stats, deck_stats = aggregate_reviews()
+            assert "Unknown" in deck_stats
