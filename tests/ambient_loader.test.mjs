@@ -70,6 +70,34 @@ describe("Ambient Loader", () => {
     assert.strictEqual(script.src, "http://localhost/js/ambient/sketch.js");
   });
 
+  test("should catch and warn on script load error", async () => {
+    let warnArgs = null;
+    globalThis.console.warn = (...args) => {
+      warnArgs = args;
+    };
+
+    // Override appendChild to fire onerror immediately for scripts
+    const originalAppend = dom.window.document.head.appendChild;
+    dom.window.document.head.appendChild = (el) => {
+      originalAppend.call(dom.window.document.head, el);
+      if (el.tagName === "SCRIPT") {
+        setTimeout(() => {
+          if (el.onerror) el.onerror(new Error("Network Error"));
+        }, 0);
+      }
+    };
+
+    await import(`../js/ambient/loader.js?t=${Date.now()}`);
+
+    // Wait for the async promise rejection to be caught
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    assert.ok(warnArgs);
+    assert.strictEqual(warnArgs[0], "Caught exception loading ambient scripts:");
+    assert.ok(warnArgs[1] instanceof Error);
+    assert.strictEqual(warnArgs[1].message, "Network Error");
+  });
+
   test("should handle document head append error", async () => {
     let warnArgs = null;
     globalThis.console.warn = (...args) => {
