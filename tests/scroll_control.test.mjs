@@ -41,6 +41,22 @@ describe("scroll_control.js", () => {
     await import(`../js/ui/scroll_control.js?t=${Date.now()}`);
   }
 
+  test("should use document.documentElement.scrollTop when pageYOffset is undefined", async () => {
+    await loadScript();
+
+    // Simulate initial scroll position using documentElement.scrollTop
+    Object.defineProperty(dom.window, "pageYOffset", { writable: true, value: undefined });
+    Object.defineProperty(dom.window.document.documentElement, "scrollTop", { writable: true, value: 100 });
+    dom.window.dispatchEvent(new dom.window.Event("scroll"));
+
+    // Simulate scrolling up to the top
+    Object.defineProperty(dom.window.document.documentElement, "scrollTop", { writable: true, value: 0 });
+    dom.window.dispatchEvent(new dom.window.Event("scroll"));
+
+    assert.strictEqual(scrollToCalled.length, 1);
+    assert.deepStrictEqual(scrollToCalled[0], { x: 0, y: 0 });
+  });
+
   test("should call window.scrollTo(0,0) when scrolling up at the very top", async () => {
     await loadScript();
 
