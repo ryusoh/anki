@@ -385,3 +385,75 @@ def test_main_status_with_data_file():
         patch("graph.incremental_export.DATA_FILE", data_file_mock),
     ):
         main()
+
+
+def test_export_graph_truncates():
+    from unittest.mock import patch
+
+    import networkx as nx
+
+    from graph.incremental_export import export_graph
+
+    with (
+        patch('graph.incremental_export.json.dump'),
+        patch('graph.incremental_export.open'),
+        patch('graph.incremental_export.build_graph') as mock_build_graph,
+        patch('graph.incremental_export.json.load') as mock_json_load,
+        patch('graph.incremental_export.gzip.open'),
+        patch('builtins.print') as mock_print,
+    ):
+
+        mock_json_load.return_value = [
+            {'id': '1', 'front': 'Card 1', 'deck': 'Deck A'},
+            {'id': '2', 'front': 'Card 2', 'deck': 'Deck B'},
+        ]
+
+        G = nx.DiGraph()
+        G.add_node('1', front='Card 1', deck='Deck A', pagerank=0.5)
+        mock_build_graph.return_value = G
+
+        # Test where sample_size <= total_available
+        num_nodes = export_graph(2)
+        assert num_nodes == 1
+
+        found_warning = False
+        for call in mock_print.call_args_list:
+            if "⚠️  Requested" in call[0][0]:
+                found_warning = True
+        assert not found_warning
+
+
+def test_export_graph_truncates_warning():
+    from unittest.mock import patch
+
+    import networkx as nx
+
+    from graph.incremental_export import export_graph
+
+    with (
+        patch('graph.incremental_export.json.dump'),
+        patch('graph.incremental_export.open'),
+        patch('graph.incremental_export.build_graph') as mock_build_graph,
+        patch('graph.incremental_export.json.load') as mock_json_load,
+        patch('graph.incremental_export.gzip.open'),
+        patch('builtins.print') as mock_print,
+    ):
+
+        mock_json_load.return_value = [
+            {'id': '1', 'front': 'Card 1', 'deck': 'Deck A'},
+            {'id': '2', 'front': 'Card 2', 'deck': 'Deck B'},
+        ]
+
+        G = nx.DiGraph()
+        G.add_node('1', front='Card 1', deck='Deck A', pagerank=0.5)
+        mock_build_graph.return_value = G
+
+        # Test where sample_size > total_available
+        num_nodes = export_graph(5)
+        assert num_nodes == 1
+
+        found_warning = False
+        for call in mock_print.call_args_list:
+            if "⚠️  Requested" in call[0][0]:
+                found_warning = True
+        assert found_warning
