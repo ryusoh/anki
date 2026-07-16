@@ -76,11 +76,13 @@ def note_has_real_match(field_texts: list[str], terms: list[str]) -> bool:
     """
     True if any term appears in the *visible* text of any field.
 
-    Anki's search runs over field text with tags stripped but entities kept,
-    so searching "BSP" false-positives on "&nbsp;". Here we strip tags AND
-    decode entities before matching, so entity-only hits count as no match.
-    Media filenames are kept, matching Anki (searching "bsp" finds
-    <img src="bsp.jpg">). Conservative by design: a note is only "unmatched"
+    Anki's unqualified search is a raw SQL LIKE over the stored field HTML —
+    tags, attributes, and entities included (rslib sqlwriter.rs,
+    write_unqualified) — so searching "BSP" false-positives on "&nbsp;".
+    Here we match against *visible* text instead: tags stripped, entities
+    decoded. Media filenames are kept searchable (like Anki's field:value
+    stripper, strip_html_preserving_media_filenames), so "bsp" still finds
+    <img src="bsp.jpg">. Conservative by design: a note is only "unmatched"
     when none of the terms appear anywhere visibly.
     """
     lowered_terms = [term.lower() for term in terms]

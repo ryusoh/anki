@@ -136,6 +136,38 @@ What real fields look like (each of these was found in production cards, and
   such capture files away from paths the test suite writes to).
 - Test fixtures: pin **structure-faithful synthetic fields**, not raw card
   dumps — card content stays out of the public repo.
+- **Anki's browser search matches the RAW field HTML, not visible text.** An
+  unqualified term compiles to a SQL `LIKE '%term%'` over `n.flds` verbatim —
+  tags, attributes, and entities included (`rslib/src/search/sqlwriter.rs`,
+  `write_unqualified`; verified in 25.02.5). So searching `BSP` matches every
+  note containing `&nbsp;`, and `div` matches every `<div>`. Only exact
+  `field:value` comparisons strip HTML (via
+  `strip_html_preserving_media_filenames`, which keeps `<img src="...">`
+  filenames searchable). An addon cannot change what core search returns, but
+  it can prune false positives afterwards: `browser_did_search` fires after
+  `context.ids` is populated and before the table consumes it, so reassigning
+  `context.ids` filters the result rows. `highlight_search_matches/`
+  implements this (see `note_has_real_match` in its `core.py` and the
+  conservative skip rules in its `anki_integration.py`).
+
+## Verifying aqt/anki APIs (source is not on disk)
+
+The installed Anki is PyOxidizer-compiled — there is **no `aqt`/`anki` Python
+source anywhere under `/Applications/Anki.app`**, and no venv in this repo has
+them installed. Don't burn time searching the bundle; go straight to the
+pinned source on GitHub:
+
+```bash
+defaults read /Applications/Anki.app/Contents/Info.plist CFBundleShortVersionString  # e.g. 25.02.5
+curl -sL https://raw.githubusercontent.com/ankitects/anki/<version>/qt/aqt/browser/table/__init__.py
+```
+
+Useful landmarks: hook signatures live in `qt/aqt/gui_hooks.py` (generated),
+browser `SearchContext` in `qt/aqt/browser/table/__init__.py`, search SQL
+compilation in `rslib/src/search/sqlwriter.rs`. Verify a hook's dataclass
+fields against the user's installed version before building on them — the
+repo's `conftest.py` mocks `aqt`, so tests will happily pass against an API
+that doesn't exist.
 
 ## Offline SQLite database queries
 
