@@ -163,3 +163,15 @@ def test_js_and_py_merge_and_rank_together(capsys, tmp_path):
     out = capsys.readouterr().out
     a_idx, b_idx = out.index("a.py"), out.index("b.js")
     assert b_idx < a_idx
+
+
+def test_main_raises_system_exit(capsys, tmp_path):
+    import runpy
+    from unittest.mock import patch
+
+    import pytest
+
+    with patch('sys.argv', ['coverage_rank.py', '--lang', 'unknown']):
+        with pytest.raises(SystemExit) as exc:
+            runpy.run_module('tools.coverage_rank', run_name='__main__')
+        assert exc.value.code != 0

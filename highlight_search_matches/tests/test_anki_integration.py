@@ -102,3 +102,17 @@ def test_init_addon_registers_hook():
     with patch('highlight_search_matches.anki_integration.browser_did_search', MagicMock()) as hook:
         init_addon()
         hook.append.assert_called_once_with(on_browser_did_search_filter)
+
+
+def test_filter_no_changes_when_kept_equals_ids():
+    # If all items match exactly, the context ids list should remain unchanged
+    ctx = _make_context(
+        "BSP",
+        ids=[11],
+        notes_by_item={
+            11: _note(1, ["BSP tree"]),
+        },
+    )
+    original_ids = list(ctx.ids)
+    on_browser_did_search_filter(ctx)
+    assert ctx.ids == original_ids
