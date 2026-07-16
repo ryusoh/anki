@@ -4,7 +4,7 @@ from aqt.browser import Browser
 from aqt.editor import Editor
 from aqt.gui_hooks import browser_did_search, editor_did_load_note
 
-from .core import extract_search_terms
+from .core import ENTITY_PATTERN, extract_search_terms
 
 _last_search_query = ""
 
@@ -52,8 +52,10 @@ def on_editor_did_load_note(editor: Editor) -> None:
     document.getElementById('hsm-style')?.remove();
     
     const escapeRegex = (s) => s.replace(/[.*+?^${{}}()|[\\]\\\\]/g, '\\\\$&');
-    const regex = new RegExp('(' + terms.map(escapeRegex).join('|') + ')', 'gi');
-    
+    // Group 1 consumes HTML entities so terms never match inside them
+    // (e.g. searching "BSP" must not hit "&nbsp;" in the HTML source view).
+    const regex = new RegExp('({ENTITY_PATTERN})|(' + terms.map(escapeRegex).join('|') + ')', 'gi');
+
     function findRanges(root) {{
         const ranges = [];
         const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
@@ -64,6 +66,7 @@ def on_editor_did_load_note(editor: Editor) -> None:
             regex.lastIndex = 0;
             let match;
             while ((match = regex.exec(text)) !== null) {{
+                if (match[1]) continue;
                 const range = new Range();
                 range.setStart(node, match.index);
                 range.setEnd(node, match.index + match[0].length);

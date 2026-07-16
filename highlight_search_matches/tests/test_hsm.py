@@ -93,6 +93,25 @@ def test_on_editor_did_load_note_js_exception():
     assert editor.web.eval.called
 
 
+def test_injected_js_skips_html_entities():
+    # Source-level pin: the injected highlight regex must consume HTML
+    # entities in a skip-group so "BSP" never matches inside "&nbsp;"
+    # (text nodes in the HTML-source editing view contain literal entities).
+    from highlight_search_matches.core import ENTITY_PATTERN
+
+    editor = MagicMock()
+    editor.parentWindow.form.searchEdit.currentText.return_value = "BSP"
+
+    with patch(
+        'highlight_search_matches.editor_integration.isinstance', return_value=True, create=True
+    ):
+        editor_int.on_editor_did_load_note(editor)
+
+    script = editor.web.eval.call_args[0][0]
+    assert f"({ENTITY_PATTERN})|(" in script
+    assert "if (match[1]) continue;" in script
+
+
 def test_init_editor():
     with (
         patch('highlight_search_matches.editor_integration.browser_did_search', MagicMock()) as b,
