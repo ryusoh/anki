@@ -54,36 +54,43 @@ export function initMagneticNav() {
       };
     });
 
+    let ticking = false;
     el.addEventListener("mousemove", (e) => {
-      if (!rect) {
-        const r = el.getBoundingClientRect();
-        rect = {
-          left: r.left + window.scrollX,
-          top: r.top + window.scrollY,
-          width: r.width,
-          height: r.height,
-        };
-      }
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          if (!rect) {
+            const r = el.getBoundingClientRect();
+            rect = {
+              left: r.left + window.scrollX,
+              top: r.top + window.scrollY,
+              width: r.width,
+              height: r.height,
+            };
+          }
 
-      // Calculate absolute center of element
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
+          // Calculate absolute center of element
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
 
-      // Calculate distance from center to cursor using absolute page coordinates
-      const distX = e.pageX - centerX;
-      const distY = e.pageY - centerY;
+          // Calculate distance from center to cursor using absolute page coordinates
+          const distX = e.pageX - centerX;
+          const distY = e.pageY - centerY;
 
-      // Apply magnetic pull using GSAP
-      // Strength of pull factor (lower = less pull)
-      const strength = 0.4;
+          // Apply magnetic pull using GSAP
+          // Strength of pull factor (lower = less pull)
+          const strength = 0.4;
 
-      xTo(distX * strength);
-      yTo(distY * strength);
+          xTo(distX * strength);
+          yTo(distY * strength);
 
-      // Pull the child element (e.g. <a> or <i>) slightly more for a parallax effect
-      if (child && childXTo && childYTo) {
-        childXTo(distX * (strength * 1.5));
-        childYTo(distY * (strength * 1.5));
+          // Pull the child element (e.g. <a> or <i>) slightly more for a parallax effect
+          if (child && childXTo && childYTo) {
+            childXTo(distX * (strength * 1.5));
+            childYTo(distY * (strength * 1.5));
+          }
+          ticking = false;
+        });
+        ticking = true;
       }
     });
 

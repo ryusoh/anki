@@ -47,6 +47,10 @@ describe("Magnetic Nav", () => {
     };
     globalThis.window.gsap = dom.window.gsap;
 
+    // Mock requestAnimationFrame
+    dom.window.requestAnimationFrame = (cb) => cb();
+    globalThis.window.requestAnimationFrame = dom.window.requestAnimationFrame;
+
     delete dom.window.ontouchstart;
     Object.defineProperty(globalThis.navigator, "maxTouchPoints", {
       value: 0,
