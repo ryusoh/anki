@@ -317,3 +317,13 @@ def test_user_reported_short_paragraph_with_sentence_break_reflows():
         "She was a village girl and liked a good natter."
     )
     assert reflow_text(text) == expected
+def test_open_junction_terminal_char_bypass():
+    # If visible length is < MIN_FILL_LEN (e.g. 10) but it ends with a terminal char,
+    # it shouldn't be counted as an open junction.
+    text = "Short end.\nNext starts uppercase."
+    from reflow_paragraphs.core import _is_wrapped_prose
+    assert not _is_wrapped_prose(text.split("\n"))
+def test_open_junction_short_ends_in_terminal_char():
+    # If a short line ends in a terminal char, it's not an open junction.
+    from reflow_paragraphs.core import _open_junction
+    assert not _open_junction("Short.", "next starts lowercase.")

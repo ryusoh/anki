@@ -193,3 +193,26 @@ class TestEmptyTokenize:
         from graph.parser import tokenize
 
         assert tokenize("") == []
+
+    def test_tokenize_no_stop_words(self):
+        """Test tokenization without filtering stop words."""
+        from graph.parser import tokenize
+
+        text = "the flamboyant style is very fancy"
+        tokens = tokenize(text, min_length=2, use_stop_words=False)
+        assert 'the' in tokens
+        assert 'is' in tokens
+        assert 'very' in tokens
+        assert 'flamboyant' in tokens
+        assert 'style' in tokens
+        assert 'fancy' in tokens
+
+    def test_group_by_deck_none(self):
+        """Test grouping notes where some have no deck."""
+        from graph.parser import group_by_deck
+
+        notes = [{'deck': 'Math'}, {'deck': None}, {'flds': 'no deck at all'}]
+        grouped = group_by_deck(notes)
+        assert 'Math' in grouped
+        assert len(grouped['Math']) == 1
+        assert None not in grouped

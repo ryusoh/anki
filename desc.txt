@@ -1,0 +1,10 @@
+- `graph/parser.py`: Covered no stop words tokenize, and `group_by_deck` with `None` deck.
+- `highlight_search_matches/anki_integration.py`: Covered unchanged items path.
+- `reflow_paragraphs/core.py`: Covered `_open_junction` logic.
+- `tools/coverage_rank.py`: Covered `SystemExit` for unknown args in `main()`.
+- `js/ui/scroll_control.js`: Covered `metaKey`, `gesturechange`, and negative paths for `wheel` and `keydown`.
+
+No production code changed.
+
+Verified by:
+`make precommit SKIP=1` (Green)

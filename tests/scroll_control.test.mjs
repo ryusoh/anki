@@ -202,4 +202,46 @@ describe("scroll_control.js", () => {
     document.dispatchEvent(gestureEvent);
     assert.strictEqual(preventDefaultCalls, 3);
   });
+
+  test("should prevent wheel zoom with metaKey", async () => {
+    await loadScript();
+    const wheelEvent = new dom.window.WheelEvent("wheel", {
+      metaKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    document.dispatchEvent(wheelEvent);
+    assert.strictEqual(preventDefaultCalls, 1);
+  });
+
+  test("should not prevent wheel if no ctrl/meta key is pressed", async () => {
+    await loadScript();
+    const wheelEvent = new dom.window.WheelEvent("wheel", {
+      bubbles: true,
+      cancelable: true,
+    });
+    document.dispatchEvent(wheelEvent);
+    assert.strictEqual(preventDefaultCalls, 0);
+  });
+
+  test("should not prevent keydown if no ctrl/meta key is pressed", async () => {
+    await loadScript();
+    const keydownEvent = new dom.window.KeyboardEvent("keydown", {
+      key: "+",
+      bubbles: true,
+      cancelable: true,
+    });
+    document.dispatchEvent(keydownEvent);
+    assert.strictEqual(preventDefaultCalls, 0);
+  });
+
+  test("should prevent gesturechange", async () => {
+    await loadScript();
+    const gestureEvent = new dom.window.Event("gesturechange", {
+      bubbles: true,
+      cancelable: true,
+    });
+    document.dispatchEvent(gestureEvent);
+    assert.strictEqual(preventDefaultCalls, 1);
+  });
 });
