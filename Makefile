@@ -1,4 +1,4 @@
-.PHONY: help fetch fetch-r2 verify-r2 check precommit precommit-fix fmt fmt-check sync-check lint lint-js lint-css lint-fix hooks \
+.PHONY: help fetch fetch-r2 verify-r2 check precommit precommit-fix fmt fmt-check sync-check lint lint-js lint-css lint-fix typecheck-js hooks \
 	quality-py lint-py fmt-py fmt-py-check typecheck security-py install-dev coverage-rank verify
 
 PYTHON := $(if $(wildcard .venv/bin/python3),"$(CURDIR)/.venv/bin/python3",python3)
@@ -65,6 +65,7 @@ help:
 	@echo "  fmt-check      Check formatting (dry-run)"
 	@echo "  lint           Run JS+CSS+Markdown linters (ESLint/Stylelint/markdownlint)"
 	@echo "  lint-fix       Auto-fix JS/CSS/Markdown lint issues"
+	@echo "  typecheck-js   JS strict type check (tsc --checkJs on whitelist)"
 	@echo "  quality-py     Python lint/format/type/security (ruff/black/mypy/bandit)"
 	@echo "  fmt-py         Auto-format Python (black + ruff --fix)"
 	@echo "  hooks          Install git pre-commit hook"
@@ -419,7 +420,7 @@ security-py:
 # BOTH `precommit` (verify-only, what CI runs) and `precommit-fix` (fix-then-verify)
 # reference this, so they can never silently diverge. Add a gate here once and it
 # applies everywhere; CI runs `make precommit SKIP=1`.
-VERIFY_GATE := fmt-check lint quality-py check sync-check
+VERIFY_GATE := fmt-check lint typecheck-js quality-py check sync-check
 
 # Output buffering for the parallel verify gate: macOS ships GNU Make 3.81 which
 # lacks --output-sync, so each gate member's output is captured in a log file
@@ -698,6 +699,20 @@ sync-check:
 # -----------------------------------------------------------------------------
 
 lint: lint-js lint-css lint-md
+
+# JS strict type check (tsc --checkJs on a small, incrementally-growing
+# `include` whitelist in jsconfig.json; blocking — see
+# docs/js-typing-strategy.md). Named typecheck-js, not type-js, to mirror the
+# existing Python `typecheck` target.
+typecheck-js:
+	@if command -v npx >/dev/null 2>&1; then \
+		if [ -f jsconfig.json ]; then \
+			echo "JS type check (tsc --checkJs on whitelist)..."; \
+			npx tsc -p jsconfig.json; \
+		else \
+			echo "⊘ No jsconfig.json found — skipping JS type check"; \
+		fi; \
+	fi
 
 lint-js:
 	@mkdir -p .make

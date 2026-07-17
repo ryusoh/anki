@@ -10,16 +10,17 @@ configs, not in the `Makefile` scope.
 
 ## Toolchain
 
-| Layer                        | Tool             | Config                                  | Scope                             |
-| ---------------------------- | ---------------- | --------------------------------------- | --------------------------------- |
-| JS lint                      | ESLint (flat)    | `eslint.config.cjs`                     | addon `*.js` (vendored excluded)  |
-| CSS lint                     | Stylelint        | `.stylelintrc.cjs` + `.stylelintignore` | addon `*.css` (vendored excluded) |
-| Markdown lint                | markdownlint-cli | `.markdownlint.json`                    | tracked `*.md`                    |
-| Format (JS/CSS/MD/JSON/HTML) | Prettier         | _defaults_ (no `.prettierrc`)           | `make fmt` glob                   |
-| Python lint                  | Ruff             | `[tool.ruff]` in `pyproject.toml`       | `PY_ALL`                          |
-| Python format                | Black            | `[tool.black]` in `pyproject.toml`      | `PY_ALL`                          |
-| Python types                 | mypy             | `mypy.ini`                              | `PY_SRC`                          |
-| Python security              | Bandit           | `.bandit` (INI, via `--ini`)            | `PY_SRC`                          |
+| Layer                        | Tool             | Config                                  | Scope                                                         |
+| ---------------------------- | ---------------- | --------------------------------------- | ------------------------------------------------------------- |
+| JS lint                      | ESLint (flat)    | `eslint.config.cjs`                     | addon `*.js` (vendored excluded)                              |
+| CSS lint                     | Stylelint        | `.stylelintrc.cjs` + `.stylelintignore` | addon `*.css` (vendored excluded)                             |
+| Markdown lint                | markdownlint-cli | `.markdownlint.json`                    | tracked `*.md`                                                |
+| Format (JS/CSS/MD/JSON/HTML) | Prettier         | _defaults_ (no `.prettierrc`)           | `make fmt` glob                                               |
+| JS types                     | tsc `--checkJs`  | `jsconfig.json`                         | strict-mode whitelist only (see `docs/js-typing-strategy.md`) |
+| Python lint                  | Ruff             | `[tool.ruff]` in `pyproject.toml`       | `PY_ALL`                                                      |
+| Python format                | Black            | `[tool.black]` in `pyproject.toml`      | `PY_ALL`                                                      |
+| Python types                 | mypy             | `mypy.ini`                              | `PY_SRC`                                                      |
+| Python security              | Bandit           | `.bandit` (INI, via `--ini`)            | `PY_SRC`                                                      |
 
 `PY_SRC` / `PY_ALL` are defined in the `Makefile`: the addon source we maintain
 (broader than `PY_TEST_SUITES`), with vendored code excluded via the tool configs.
@@ -29,6 +30,7 @@ configs, not in the `Makefile` scope.
 ```bash
 make install-dev          # one-time: pin'd ruff/black/mypy/bandit into a venv
 make lint                 # ESLint + Stylelint + markdownlint
+make typecheck-js         # tsc --checkJs on the jsconfig.json whitelist
 make quality-py           # ruff + black --check + mypy + bandit
 make precommit SKIP=1     # the whole gate (what CI runs)
 ```
@@ -47,8 +49,9 @@ the whole repo before you find out.
 
 ## `precommit` vs `precommit-fix`
 
-Both end with the **same** `$(VERIFY_GATE)` (`fmt-check lint quality-py check`),
-defined once in the `Makefile` so they cannot drift:
+Both end with the **same** `$(VERIFY_GATE)` (`fmt-check lint typecheck-js
+quality-py check sync-check`), defined once in the `Makefile` so they cannot
+drift:
 
 - `make precommit` — **verify only.** Exactly what CI runs (`make precommit SKIP=1`).
 - `make precommit-fix` — **fix then verify.** Auto-fixes first (`fmt`, `lint-fix`,

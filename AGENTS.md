@@ -33,7 +33,8 @@ Writing a design spec for another agent to implement? See
 ## Non-negotiables (a PR that violates any of these will be closed)
 
 1. **Open a PR only if `make precommit SKIP=1` is green.** It is the CI gate
-   (`fmt-check` + `lint` + `quality-py` + `check`). Red = don't open it.
+   (`fmt-check` + `lint` + `typecheck-js` + `quality-py` + `check`). Red = don't
+   open it.
 2. **One concern, smallest possible diff.** No drive-by edits, no scope creep.
    Diff size is inversely proportional to approval — keep it tiny.
 3. **Stay in your lane** (see "Lanes" below). If two routines touch the same files,
@@ -119,6 +120,7 @@ a valid Conventional Commit subject**.
 | Scoped test for one add-on (`test-py SUITE=<dir>/tests`)  | `make test-addon ADDON=<dir>`      |
 | Scoped mypy for one add-on                                | `make typecheck-addon ADDON=<dir>` |
 | JS test suite (c8 coverage)                               | `make check-node`                  |
+| JS strict type check (whitelist)                          | `make typecheck-js`                |
 
 - **Run everything from the repo ROOT.** The root `conftest.py` mocks `aqt`/`anki`;
   running `pytest` inside an add-on subdir fails to import them. Use **`python3`**,
@@ -156,12 +158,17 @@ is false. Confirm both pytest **and** the JS runner execute.
 
 - `js/` — frontend ES modules: `js/commands/` (terminal commands), `js/graph/`,
   `js/transactions/`, `js/ui/`, `js/utils/`, `js/config.js`. No build step.
+  `js/types/*.d.ts` — type-only ambient declarations for `tsc --checkJs`
+  (never shipped).
+- `jsconfig.json` — the `tsc --checkJs` strict-mode whitelist; see
+  `docs/js-typing-strategy.md` before touching it.
 - `<addon>/` — each Anki add-on (Python) with its own `__init__.py`, hooks, and
   `tests/`. New add-on? See `docs/creating-an-addon.md`.
 - `graph/` — Python graph pipeline (networkx). `data/anki/` — stats generators.
 - `tests/` — root-level node tests (`*.test.cjs` / `*.test.mjs`).
 - `docs/` — cross-cutting how-tos and gotchas. **Read the relevant doc before deep
-  work**: `docs/creating-an-addon.md`, `docs/lint-and-quality.md`.
+  work**: `docs/creating-an-addon.md`, `docs/lint-and-quality.md`,
+  `docs/js-typing-strategy.md`.
 
 ## Gotchas
 
@@ -274,6 +281,7 @@ and verification commands.
 | Palette     | accessibility (ARIA, keyboard, focus) in `js/` + CSS       | security, perf, complexity                |
 | Janitor     | dead code, stale deps, real TODOs only                     | complexity, error-handling, tests         |
 | Bolt        | measurable performance/efficiency on a real hot path       | anything another lane owns in the same PR |
+| Typist      | JS strict-type annotations (JSDoc) + whitelist expansion   | runtime behaviour                         |
 
 If your finding belongs to another lane, **skip it** — that lane will get it. If a
 scan finds nothing actionable in your lane, **open no PR**; an empty pass is a
