@@ -260,7 +260,7 @@ check-node:
 	STATUS=$$?; \
 	rm -rf "$$COVDIR"; \
 	if [ $$STATUS -eq 0 ]; then \
-		NODE_OPTIONS="--experimental-vm-modules --no-warnings" npx jest review_heatmap/tests/; \
+		NODE_OPTIONS="--experimental-vm-modules --no-warnings" npx jest --ci review_heatmap/tests/; \
 		STATUS=$$?; \
 	fi; \
 	exit $$STATUS
@@ -341,14 +341,8 @@ check-py:
 	@mkdir -p $(PY_COV_DIR)
 	@rm -f $(PY_COV_DIR)/.coverage.* $(PY_COV_DIR)/log.* $(PY_COV_DIR)/rc.*
 	@$(MAKE) -j$(JOBS) -k $(PY_SUITE_BUF_TARGETS) 2>/dev/null; \
-	FAIL=0; \
-	for suite in $(PY_TEST_SUITES); do \
-		tag=$$(echo "$$suite" | tr '/' '_'); \
-		logf="$(CURDIR)/$(PY_COV_DIR)/log.$$tag"; \
-		rcf="$(CURDIR)/$(PY_COV_DIR)/rc.$$tag"; \
-		if [ -f "$$logf" ]; then cat "$$logf"; fi; \
-		if [ -f "$$rcf" ] && [ "$$(cat "$$rcf")" != "0" ]; then FAIL=1; fi; \
-	done; \
+	$(PYTHON) tools/format_pytest_output.py $(PY_COV_DIR) "$(PY_TEST_SUITES)"; \
+	FAIL=$$?; \
 	echo ""; \
 	echo "📊 Combined Python coverage:"; \
 	$(PYTHON) -m coverage combine $(PY_COV_DIR); \

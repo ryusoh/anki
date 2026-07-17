@@ -94,6 +94,15 @@ def test_verify_replays_logs_with_section_headers():
     )
 
 
+def test_check_py_uses_formatter():
+    """check-py target must call format_pytest_output.py to render clean output."""
+    text = _makefile_text()
+    assert "format_pytest_output.py" in text, (
+        "check-py target does not call format_pytest_output.py — "
+        "test output will be cluttered and unaligned"
+    )
+
+
 # ---------------------------------------------------------------------------
 # 2. MAKEFLAGS jobserver FD isolation — scan test files
 # ---------------------------------------------------------------------------
