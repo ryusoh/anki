@@ -404,12 +404,35 @@ security-py:
 # applies everywhere; CI runs `make precommit SKIP=1`.
 VERIFY_GATE := fmt-check lint quality-py check sync-check
 
-# Every VERIFY_GATE member (and its own sub-prerequisites, e.g. quality-py's
-# lint-py/fmt-py-check/typecheck/security-py) is read-only, so the whole gate
-# can run under one `-j`. Recursive make (not a bare top-level -j) so
-# precommit-fix's left-to-right "fixers before gate" ordering can't break.
+# Output buffering for the parallel verify gate: macOS ships GNU Make 3.81 which
+# lacks --output-sync, so each gate member's output is captured in a log file
+# under $(VERIFY_LOG_DIR). After all members finish (in parallel), `verify`
+# replays them sequentially with pass/fail section headers. This eliminates
+# interleaved output while preserving full parallelism.
+VERIFY_LOG_DIR := .make/verify-logs
+VERIFY_GATE_BUFFERED := $(addprefix vgate/,$(VERIFY_GATE))
+.PHONY: $(VERIFY_GATE_BUFFERED)
+$(VERIFY_GATE_BUFFERED): vgate/%:
+	@mkdir -p $(VERIFY_LOG_DIR)
+	@MAKEFLAGS= $(MAKE) $* > "$(VERIFY_LOG_DIR)/$*.log" 2>&1; \
+	echo "$$?" > "$(VERIFY_LOG_DIR)/$*.rc"
+
 verify:
-	@$(MAKE) -j$(JOBS) $(VERIFY_GATE)
+	@rm -rf $(VERIFY_LOG_DIR) && mkdir -p $(VERIFY_LOG_DIR)
+	@$(MAKE) -j$(JOBS) $(VERIFY_GATE_BUFFERED) 2>/dev/null; \
+	FAIL=0; \
+	for gate in $(VERIFY_GATE); do \
+		rc=0; \
+		if [ -f "$(VERIFY_LOG_DIR)/$$gate.rc" ]; then rc=$$(cat "$(VERIFY_LOG_DIR)/$$gate.rc"); fi; \
+		if [ "$$rc" = "0" ]; then \
+			printf '\n\033[32m━━━ ✅ %s ━━━\033[0m\n' "$$gate"; \
+		else \
+			printf '\n\033[31m━━━ ❌ %s ━━━\033[0m\n' "$$gate"; \
+			FAIL=1; \
+		fi; \
+		if [ -f "$(VERIFY_LOG_DIR)/$$gate.log" ]; then cat "$(VERIFY_LOG_DIR)/$$gate.log"; fi; \
+	done; \
+	if [ "$$FAIL" != "0" ]; then exit 1; fi
 
 precommit: $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt) verify
 	@echo ""

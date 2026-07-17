@@ -10,6 +10,7 @@ the guard regresses, the run is still harmless here (no YOLO/MSG → the commit
 step is skipped; SKIP=1 → no fetch/network), but the assertions go red.
 """
 
+import os
 import subprocess
 from pathlib import Path
 
@@ -24,12 +25,16 @@ def _head() -> str:
 
 def test_dry_run_of_precommit_fix_is_refused():
     before = _head()
+    # Strip MAKEFLAGS so the child make doesn't try to use inherited jobserver
+    # FDs that Python's close_fds=True (default) has already closed.
+    env = {k: v for k, v in os.environ.items() if k != "MAKEFLAGS"}
     result = subprocess.run(
         ["make", "-n", "precommit-fix", "SKIP=1"],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
         timeout=120,
+        env=env,
     )
     assert result.returncode != 0, (
         "make -n precommit-fix did not refuse — the $(MAKE)-bearing recipe "
@@ -40,11 +45,13 @@ def test_dry_run_of_precommit_fix_is_refused():
 
 
 def test_dry_run_of_other_targets_still_works():
+    env = {k: v for k, v in os.environ.items() if k != "MAKEFLAGS"}
     result = subprocess.run(
         ["make", "-n", "help"],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
         timeout=60,
+        env=env,
     )
     assert result.returncode == 0, f"guard misfires on unrelated goals: {result.stderr!r}"

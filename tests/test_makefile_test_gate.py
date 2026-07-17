@@ -12,6 +12,7 @@ no-op'd gate fails loudly no matter how discovery is rewritten. Only `make`
 and `git` are needed.
 """
 
+import os
 import subprocess
 from pathlib import Path
 
@@ -20,12 +21,18 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 def _make_py_test_suites():
     """Expand $(PY_TEST_SUITES) via make, so we test what the gate really runs."""
+    # Strip MAKEFLAGS so the child make doesn't try to use inherited jobserver
+    # FDs that Python's close_fds=True (default) has already closed — otherwise
+    # this test fails with "Bad file descriptor" when run at sufficient nesting
+    # depth (inside check-py's parallel fan-out).
+    env = {k: v for k, v in os.environ.items() if k != "MAKEFLAGS"}
     result = subprocess.run(
         ["make", "-s", "-f", "Makefile", "-f", "-", "__print_py_suites__"],
         cwd=REPO_ROOT,
         input="__print_py_suites__:\n\t@echo $(PY_TEST_SUITES)\n",
         capture_output=True,
         text=True,
+        env=env,
     )
     assert result.returncode == 0, f"make failed to expand PY_TEST_SUITES: {result.stderr!r}"
     return set(result.stdout.split())

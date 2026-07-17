@@ -19,6 +19,7 @@ file ever reached it (2026-07-14; local runs always passed because this
 machine's path does contain the space).
 """
 
+import os
 import subprocess
 from pathlib import Path
 
@@ -39,11 +40,17 @@ def test_pysuite_target_writes_coverage_file():
     cov_file = cov_dir / ".coverage.tools"
     cov_file.unlink(missing_ok=True)
 
+    # Strip MAKEFLAGS so the child make doesn't try to use inherited jobserver
+    # FDs that Python's close_fds=True (default) has already closed — otherwise
+    # this test fails with "Bad file descriptor" when run at sufficient nesting
+    # depth (inside check-py's parallel fan-out).
+    env = {k: v for k, v in os.environ.items() if k != "MAKEFLAGS"}
     result = subprocess.run(
         ["make", "-s", "pysuite/tools"],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
+        env=env,
     )
 
     assert result.returncode == 0, f"pysuite/tools failed: {result.stderr!r}"
