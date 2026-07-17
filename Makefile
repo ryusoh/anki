@@ -338,15 +338,15 @@ $(PY_SUITE_BUF_TARGETS): pysuite-buf/%:
 
 check-py:
 	@echo "🐍 Running Python Test Suite (with coverage, parallel)..."
-	@mkdir -p $(PY_COV_DIR)
-	@rm -f $(PY_COV_DIR)/.coverage.* $(PY_COV_DIR)/log.* $(PY_COV_DIR)/rc.*
-	@$(MAKE) -j$(JOBS) -k $(PY_SUITE_BUF_TARGETS) 2>/dev/null; \
-	$(PYTHON) tools/format_pytest_output.py $(PY_COV_DIR) "$(PY_TEST_SUITES)"; \
+	@COVDIR=$$(mktemp -d .coverage-tmp.XXXXXX); \
+	$(MAKE) -j$(JOBS) -k $(PY_SUITE_BUF_TARGETS) PY_COV_DIR="$$COVDIR" 2>/dev/null; \
+	$(PYTHON) tools/format_pytest_output.py "$$COVDIR" "$(PY_TEST_SUITES)"; \
 	FAIL=$$?; \
 	echo ""; \
 	echo "📊 Combined Python coverage:"; \
-	$(PYTHON) -m coverage combine $(PY_COV_DIR); \
+	$(PYTHON) -m coverage combine "$$COVDIR"; \
 	$(PYTHON) -m coverage report -m; \
+	rm -rf "$$COVDIR"; \
 	if [ "$$FAIL" != "0" ]; then echo "❌ Python tests failed"; exit 1; fi; \
 	echo "✅ Python tests complete"
 
