@@ -278,6 +278,42 @@ def create_aws_signature(method, bucket, key, date, access_key, secret_key, cont
     return f'{algorithm} Credential={access_key}/{credential_scope}, SignedHeaders={signed_headers}, Signature={signature}'
 
 
+_s3_client = None
+_s3_client_key = None
+
+
+def get_s3_client(creds):
+    """Return a cached boto3 S3 client for these creds and proxy settings.
+
+    A fresh client per upload means a new connection pool — DNS + TCP + TLS
+    per file, which dominated per-note upload time on a slow link. The cache
+    key includes the proxy env vars because botocore only reads them at
+    client creation, so enable_proxy_fallback()'s env change transparently
+    invalidates the cache and the next call builds a rerouted client.
+    """
+    global _s3_client, _s3_client_key
+    key = (
+        creds['account_id'],
+        creds['access_key'],
+        os.environ.get('HTTPS_PROXY') or os.environ.get('https_proxy'),
+    )
+    if _s3_client is None or _s3_client_key != key:
+        _s3_client = boto3.client(
+            's3',
+            endpoint_url=f"https://{creds['account_id']}.r2.cloudflarestorage.com",
+            aws_access_key_id=creds['access_key'],
+            aws_secret_access_key=creds['secret_key'],
+            config=Config(
+                signature_version='s3v4',
+                retries={'max_attempts': 3, 'mode': 'standard'},
+                connect_timeout=120,
+                read_timeout=120
+            )
+        )
+        _s3_client_key = key
+    return _s3_client
+
+
 def upload_to_r2(bucket, key, data, creds, verbose=False, max_retries=3, quiet=False):
     """Upload data to R2 bucket using boto3 (preferred) or urllib."""
     account_id = creds['account_id']
@@ -299,18 +335,7 @@ def upload_to_r2(bucket, key, data, creds, verbose=False, max_retries=3, quiet=F
         # enable_proxy_fallback() applies to the retry and all later clients.
         for retry_with_proxy in (False, True):
             try:
-                s3_client = boto3.client(
-                    's3',
-                    endpoint_url=f'https://{account_id}.r2.cloudflarestorage.com',
-                    aws_access_key_id=access_key,
-                    aws_secret_access_key=secret_key,
-                    config=Config(
-                        signature_version='s3v4',
-                        retries={'max_attempts': 3, 'mode': 'standard'},
-                        connect_timeout=120,
-                        read_timeout=120
-                    )
-                )
+                s3_client = get_s3_client(creds)
 
                 s3_client.put_object(
                     Bucket=bucket,
@@ -486,23 +511,10 @@ def sync_r2_notes(creds, local_notes, verbose=False):
     """Delete notes from R2 that don't exist locally."""
     if not HAS_BOTO3:
         return 0
-    
-    account_id = creds['account_id']
-    access_key = creds['access_key']
-    secret_key = creds['secret_key']
-    
+
     try:
-        s3_client = boto3.client(
-            's3',
-            endpoint_url=f'https://{account_id}.r2.cloudflarestorage.com',
-            aws_access_key_id=access_key,
-            aws_secret_access_key=secret_key,
-            config=Config(
-                signature_version='s3v4',
-                retries={'max_attempts': 3, 'mode': 'standard'}
-            )
-        )
-        
+        s3_client = get_s3_client(creds)
+
         # List all objects in notes/ prefix
         paginator = s3_client.get_paginator('list_objects_v2')
         pages = paginator.paginate(Bucket=creds['bucket'], Prefix='notes/')

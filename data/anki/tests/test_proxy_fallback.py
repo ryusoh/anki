@@ -27,12 +27,17 @@ PROXY = 'http://127.0.0.1:7897'
 
 @pytest.fixture(autouse=True)
 def clean_proxy_env(monkeypatch):
-    """Start each test with no proxy env vars and leak none afterwards."""
+    """Start each test with no proxy env vars, no cached S3 client, and
+    leak neither afterwards."""
     for var in ('HTTPS_PROXY', 'https_proxy', 'HTTP_PROXY', 'http_proxy'):
         monkeypatch.delenv(var, raising=False)
+    r2._s3_client = None
+    r2._s3_client_key = None
     yield
     for var in ('HTTPS_PROXY', 'HTTP_PROXY'):
         os.environ.pop(var, None)
+    r2._s3_client = None
+    r2._s3_client_key = None
 
 
 def test_enable_keeps_live_explicit_proxy(monkeypatch):
@@ -136,6 +141,39 @@ def test_boto3_falls_through_to_urllib_when_no_proxy(monkeypatch):
     assert client.put_object.call_count == 1  # no proxy found -> no boto3 retry
     urlopen.assert_called_once()
     assert 'HTTPS_PROXY' not in os.environ
+
+
+def test_s3_client_reused_across_uploads(monkeypatch):
+    """One client (one connection pool) serves the whole run — a client per
+    file meant a fresh TLS handshake per note, which dominated upload time."""
+    client = MagicMock()
+    boto3_mock = MagicMock(client=MagicMock(return_value=client))
+    monkeypatch.setattr(r2, 'HAS_BOTO3', True)
+    monkeypatch.setattr(r2, 'boto3', boto3_mock)
+    monkeypatch.setattr(r2, 'Config', MagicMock())
+
+    ok1, _ = r2.upload_to_r2('b', 'k1', b'a', CREDS)
+    ok2, _ = r2.upload_to_r2('b', 'k2', b'b', CREDS)
+
+    assert ok1 and ok2
+    assert client.put_object.call_count == 2
+    assert boto3_mock.client.call_count == 1
+
+
+def test_s3_client_rebuilt_when_proxy_env_changes(monkeypatch):
+    """botocore reads proxy env only at client creation, so a proxy enabled
+    mid-run must invalidate the cached client."""
+    boto3_mock = MagicMock()
+    monkeypatch.setattr(r2, 'boto3', boto3_mock)
+    monkeypatch.setattr(r2, 'Config', MagicMock())
+
+    r2.get_s3_client(CREDS)
+    r2.get_s3_client(CREDS)
+    assert boto3_mock.client.call_count == 1
+
+    monkeypatch.setenv('HTTPS_PROXY', PROXY)
+    r2.get_s3_client(CREDS)
+    assert boto3_mock.client.call_count == 2
 
 
 def test_urllib_retry_enables_proxy_and_rebuilds_opener(monkeypatch):
