@@ -16,6 +16,8 @@ Two audiences:
 - **Interactive agents** (Claude Code, Kimi, Antigravity, …): the repo guide
   (commands, gotchas, coding standards) applies to you. The PR/lane contract
   applies when you open PRs unattended; per-rule carve-outs are marked inline.
+  When options are close, pick the best one and proceed — the human wants a
+  recommendation, not a menu of questions.
 
 This repo is a **monorepo of Anki add-ons (Python)** plus a JS/graph data pipeline.
 Each top-level directory (`auto_wiktionary/`, `awesome_tts/`, `graph/`, `js/`,
@@ -204,6 +206,10 @@ is false. Confirm both pytest **and** the JS runner execute.
   `$(MAKE)`-bearing recipe lines under `-n`, so it used to really commit. The
   Makefile now refuses `-n`/`-q`/`-t` for this target at parse time (pinned by
   `tests/test_makefile_dryrun_guard.py`); don't try to "syntax check" it that way.
+- **A running agent session sees skills as of session start.** Editing or
+  syncing `.agents/skills/` mid-session does not change what the running session
+  has loaded — an invoked skill still uses the pre-edit text (observed: `/retro`
+  loading a pre-consolidation copy). Start a new session to pick up skill edits.
 
 ## Coding standards
 
