@@ -321,11 +321,34 @@ $(PY_SUITE_TARGETS): pysuite/%:
 	@COVERAGE_FILE="$(CURDIR)/$(PY_COV_DIR)/.coverage.$(subst /,_,$*)" \
 		$(PYTHON) -m pytest -q -p no:cacheprovider --cov --cov-report= "$*"
 
+# Buffered wrappers for check-py: each suite's output is captured in a per-suite
+# log file under $(PY_COV_DIR); exit codes land in a matching .rc file. check-py
+# replays the logs sequentially after all suites finish, so parallel pytest
+# output never interleaves. pysuite/% is kept unbuffered for direct invocation
+# (e.g. `make pysuite/tools`) and pin tests.
+PY_SUITE_BUF_TARGETS := $(addprefix pysuite-buf/,$(PY_TEST_SUITES))
+.PHONY: $(PY_SUITE_BUF_TARGETS)
+$(PY_SUITE_BUF_TARGETS): pysuite-buf/%:
+	@mkdir -p "$(CURDIR)/$(PY_COV_DIR)"
+	@{ echo "  → $*"; \
+	   COVERAGE_FILE="$(CURDIR)/$(PY_COV_DIR)/.coverage.$(subst /,_,$*)" \
+	     $(PYTHON) -m pytest -q -p no:cacheprovider --cov --cov-report= "$*"; \
+	} > "$(CURDIR)/$(PY_COV_DIR)/log.$(subst /,_,$*)" 2>&1; \
+	echo "$$?" > "$(CURDIR)/$(PY_COV_DIR)/rc.$(subst /,_,$*)"
+
 check-py:
 	@echo "🐍 Running Python Test Suite (with coverage, parallel)..."
 	@mkdir -p $(PY_COV_DIR)
-	@rm -f $(PY_COV_DIR)/.coverage.*
-	@FAIL=0; $(MAKE) -j$(JOBS) -k $(PY_SUITE_TARGETS) || FAIL=1; \
+	@rm -f $(PY_COV_DIR)/.coverage.* $(PY_COV_DIR)/log.* $(PY_COV_DIR)/rc.*
+	@$(MAKE) -j$(JOBS) -k $(PY_SUITE_BUF_TARGETS) 2>/dev/null; \
+	FAIL=0; \
+	for suite in $(PY_TEST_SUITES); do \
+		tag=$$(echo "$$suite" | tr '/' '_'); \
+		logf="$(CURDIR)/$(PY_COV_DIR)/log.$$tag"; \
+		rcf="$(CURDIR)/$(PY_COV_DIR)/rc.$$tag"; \
+		if [ -f "$$logf" ]; then cat "$$logf"; fi; \
+		if [ -f "$$rcf" ] && [ "$$(cat "$$rcf")" != "0" ]; then FAIL=1; fi; \
+	done; \
 	echo ""; \
 	echo "📊 Combined Python coverage:"; \
 	$(PYTHON) -m coverage combine $(PY_COV_DIR); \
@@ -409,15 +432,27 @@ VERIFY_GATE := fmt-check lint quality-py check sync-check
 # under $(VERIFY_LOG_DIR). After all members finish (in parallel), `verify`
 # replays them sequentially with pass/fail section headers. This eliminates
 # interleaved output while preserving full parallelism.
+#
+# Real-time progress: each gate prints a one-line start/done indicator directly
+# to the terminal (outside the redirected log), so the user sees live progress
+# during the parallel run instead of a long silence.
 VERIFY_LOG_DIR := .make/verify-logs
 VERIFY_GATE_BUFFERED := $(addprefix vgate/,$(VERIFY_GATE))
 .PHONY: $(VERIFY_GATE_BUFFERED)
 $(VERIFY_GATE_BUFFERED): vgate/%:
 	@mkdir -p $(VERIFY_LOG_DIR)
+	@printf '  \033[2m⏳ %s ...\033[0m\n' "$*"
 	@MAKEFLAGS= $(MAKE) $* > "$(VERIFY_LOG_DIR)/$*.log" 2>&1; \
-	echo "$$?" > "$(VERIFY_LOG_DIR)/$*.rc"
+	RC=$$?; echo "$$RC" > "$(VERIFY_LOG_DIR)/$*.rc"; \
+	if [ "$$RC" = "0" ]; then \
+		printf '  \033[32m✅ %s\033[0m\n' "$*"; \
+	else \
+		printf '  \033[31m❌ %s\033[0m\n' "$*"; \
+	fi
 
 verify:
+	@echo ""
+	@echo "⏳ Running verification gate (parallel)..."
 	@rm -rf $(VERIFY_LOG_DIR) && mkdir -p $(VERIFY_LOG_DIR)
 	@$(MAKE) -j$(JOBS) $(VERIFY_GATE_BUFFERED) 2>/dev/null; \
 	FAIL=0; \
