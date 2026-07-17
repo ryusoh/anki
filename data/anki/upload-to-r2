@@ -78,6 +78,72 @@ def load_credentials():
     return creds
 
 
+# Well-known localhost HTTP-proxy ports probed when a direct upload fails:
+# Clash Verge mixed port, Clash mixed port, ShadowsocksX-NG HTTP, Privoxy.
+LOCAL_PROXY_PORTS = (7897, 7890, 1087, 8118)
+
+PROXY_ENV_VARS = ('HTTPS_PROXY', 'https_proxy', 'HTTP_PROXY', 'http_proxy')
+
+
+def _probe_proxy(proxy_url):
+    """Return True if the proxy URL accepts TCP connections."""
+    import socket
+    from urllib.parse import urlparse
+    parsed = urlparse(proxy_url if '://' in proxy_url else f'http://{proxy_url}')
+    if not parsed.hostname:
+        return False
+    try:
+        with socket.create_connection((parsed.hostname, parsed.port or 80), timeout=0.3):
+            return True
+    except OSError:
+        return False
+
+
+def detect_local_proxy(ports=LOCAL_PROXY_PORTS):
+    """Return a live local HTTP proxy URL worth falling back to, or None."""
+    import socket
+    for port in ports:
+        try:
+            with socket.create_connection(('127.0.0.1', port), timeout=0.3):
+                return f'http://127.0.0.1:{port}'
+        except OSError:
+            continue
+    return None
+
+
+def enable_proxy_fallback():
+    """Repair the proxy environment after a failed upload attempt.
+
+    - No proxy configured: probe for a live local proxy and export it.
+    - Configured proxy dead (e.g. a stale HTTPS_PROXY export pointing at a
+      stopped Clash): drop it, switch to a live local proxy if one exists,
+      otherwise retry with a direct connection.
+
+    Returns a truthy value if the environment changed (caller should retry
+    with a fresh client/opener), else None.
+    """
+    current = os.environ.get('HTTPS_PROXY') or os.environ.get('https_proxy')
+    if current:
+        if _probe_proxy(current):
+            return None  # proxy is alive; the failure lies elsewhere
+        for var in PROXY_ENV_VARS:
+            os.environ.pop(var, None)
+        proxy = detect_local_proxy()
+        if proxy:
+            os.environ['HTTPS_PROXY'] = proxy
+            os.environ['HTTP_PROXY'] = proxy
+            print(f"  🔀 Proxy {current} unreachable — switching to local proxy {proxy}")
+        else:
+            print(f"  🔀 Proxy {current} unreachable — retrying with a direct connection")
+        return proxy or 'direct'
+    proxy = detect_local_proxy()
+    if proxy:
+        os.environ['HTTPS_PROXY'] = proxy
+        os.environ['HTTP_PROXY'] = proxy
+        print(f"  🔀 Direct connection failed — retrying via local proxy {proxy}")
+    return proxy
+
+
 def find_anki_db():
     """Find Anki collection database."""
     ankis = list(Path("/Users/lz/Library/Application Support/Anki2").glob("*/collection.anki2"))
@@ -228,39 +294,44 @@ def upload_to_r2(bucket, key, data, creds, verbose=False, max_retries=3, quiet=F
     content_gz = gzip.compress(content)
     
     if HAS_BOTO3:
-        # Use boto3 for better reliability
-        try:
-            s3_client = boto3.client(
-                's3',
-                endpoint_url=f'https://{account_id}.r2.cloudflarestorage.com',
-                aws_access_key_id=access_key,
-                aws_secret_access_key=secret_key,
-                config=Config(
-                    signature_version='s3v4',
-                    retries={'max_attempts': 3, 'mode': 'standard'},
-                    connect_timeout=120,
-                    read_timeout=120
+        # Use boto3 for better reliability. botocore reads HTTPS_PROXY from
+        # the env when the client is created, so a proxy enabled mid-run by
+        # enable_proxy_fallback() applies to the retry and all later clients.
+        for retry_with_proxy in (False, True):
+            try:
+                s3_client = boto3.client(
+                    's3',
+                    endpoint_url=f'https://{account_id}.r2.cloudflarestorage.com',
+                    aws_access_key_id=access_key,
+                    aws_secret_access_key=secret_key,
+                    config=Config(
+                        signature_version='s3v4',
+                        retries={'max_attempts': 3, 'mode': 'standard'},
+                        connect_timeout=120,
+                        read_timeout=120
+                    )
                 )
-            )
-            
-            s3_client.put_object(
-                Bucket=bucket,
-                Key=key,
-                Body=content_gz,
-                ContentEncoding='gzip'
-            )
-            
-            if verbose and not quiet:
-                print(f"  ✓ Uploaded {key} ({len(content_gz):,} bytes)")
-            return True, len(content_gz)
-        except Exception as e:
-            if verbose and not quiet:
-                print(f"  ⚠ boto3 failed for {key}: {e}, trying urllib...")
-            # Fall through to urllib method
+
+                s3_client.put_object(
+                    Bucket=bucket,
+                    Key=key,
+                    Body=content_gz,
+                    ContentEncoding='gzip'
+                )
+
+                if verbose and not quiet:
+                    print(f"  ✓ Uploaded {key} ({len(content_gz):,} bytes)")
+                return True, len(content_gz)
+            except Exception as e:
+                if not retry_with_proxy and enable_proxy_fallback():
+                    continue
+                if verbose and not quiet:
+                    print(f"  ⚠ boto3 failed for {key}: {e}, trying urllib...")
+                break
         # Don't return False here, let urllib try
-    
+
     # Fallback to urllib
-    from urllib.request import Request, urlopen
+    from urllib.request import Request, urlopen, ProxyHandler, build_opener, install_opener
     endpoint = f'https://{account_id}.r2.cloudflarestorage.com/{bucket}/{key}'
     content_hash = hashlib.sha256(content_gz).hexdigest()
     amz_date = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
@@ -289,6 +360,10 @@ def upload_to_r2(bucket, key, data, creds, verbose=False, max_retries=3, quiet=F
                 print(f"  ✓ Uploaded {key} ({len(content_gz):,} bytes)")
             return True, len(content_gz)
         except Exception as e:
+            if enable_proxy_fallback():
+                # urlopen caches its opener at first use; rebuild it so the
+                # freshly exported HTTPS_PROXY takes effect on the retry.
+                install_opener(build_opener(ProxyHandler()))
             if attempt < max_retries - 1:
                 if verbose and not quiet:
                     print(f"  ⚠ Retry {key} (attempt {attempt + 2}/{max_retries}): {e}")
@@ -303,9 +378,11 @@ def upload_to_r2(bucket, key, data, creds, verbose=False, max_retries=3, quiet=F
 
 
 def upload_from_staging(staging_dir, creds, verbose, notes_count, sync=False):
-    """Upload already staged files to R2."""
+    """Upload already staged files to R2. Returns the set of keys that
+    failed to upload, so callers keep them out of the hash map."""
     uploaded_count = 0
     failed_count = 0
+    failed_keys = set()
     total_bytes = 0
     total_files = 0
     
@@ -344,7 +421,8 @@ def upload_from_staging(staging_dir, creds, verbose, notes_count, sync=False):
             total_bytes += size
         else:
             failed_count += 1
-        
+            failed_keys.add(key)
+
         # Progress for collection files
         if verbose:
             progress = (i / total_files) * 100 if total_files > 0 else 0
@@ -381,7 +459,8 @@ def upload_from_staging(staging_dir, creds, verbose, notes_count, sync=False):
             total_bytes += size
         else:
             failed_count += 1
-        
+            failed_keys.add(key)
+
         # Show progress every 100 files (fast enough to not slow down, frequent enough to see movement)
         if i % 100 == 0 or i == notes_count:
             progress = (i / notes_count) * 100 if notes_count > 0 else 0
@@ -397,9 +476,10 @@ def upload_from_staging(staging_dir, creds, verbose, notes_count, sync=False):
     print()
     print(f"✅ Done! {uploaded_count:,}/{total_files:,} files uploaded ({total_bytes/1024/1024:.1f} MB)")
     if failed_count > 0:
-        print(f"   ⚠️  {failed_count} failed")
+        print(f"   ⚠️  {failed_count} failed — kept out of the hash map; rerun to retry them")
     print(f"\n   Staged files kept in: {staging_dir}")
     print("   (You can delete this folder after verifying upload)")
+    return failed_keys
 
 
 def sync_r2_notes(creds, local_notes, verbose=False):
@@ -614,13 +694,16 @@ R2 Directory Structure:
             return
         
         print(f"\n📤 Uploading {total_to_upload:,} changed/new files to R2...")
-        
+
+        failed_keys = set()
+
         # Upload collection files
         for file_type, key, file_path in files_to_upload:
             with open(file_path, 'rb') as f:
                 content = f.read()
             success, size = upload_to_r2(creds['bucket'], key, content, creds, args.verbose)
             if not success:
+                failed_keys.add(key)
                 print(f"   ✗ Failed to upload {key}")
 
         # Upload individual notes
@@ -629,7 +712,9 @@ R2 Directory Structure:
             with open(note_file, 'rb') as f:
                 content = f.read()
             success, size = upload_to_r2(creds['bucket'], key, content, creds, args.verbose, quiet=True)
-            
+            if not success:
+                failed_keys.add(guid)
+
             # Progress
             if i % 100 == 0 or i == len(notes_to_upload):
                 progress = (i / len(notes_to_upload)) * 100 if notes_to_upload else 0
@@ -641,17 +726,23 @@ R2 Directory Structure:
         if notes_to_upload:
             print()  # Newline after progress
 
-        # Update hash map after successful upload
+        # Update hash map with successful uploads only, so failed files are
+        # retried on the next run instead of being silently skipped.
         new_hash_map = dict(old_hash_map)
-        new_hash_map.update(new_collection_hashes)
+        new_hash_map.update(
+            {k: v for k, v in new_collection_hashes.items() if k not in failed_keys}
+        )
         for guid, _, current_hash in notes_to_upload:
-            new_hash_map[guid] = current_hash
+            if guid not in failed_keys:
+                new_hash_map[guid] = current_hash
         save_hash_map(new_hash_map, hash_map_file)
-        
+
         if args.verbose:
             print(f"\n   ✓ Updated hash map ({len(new_hash_map):,} entries)")
-        
-        print(f"\n✅ Done! Uploaded {total_to_upload:,} files")
+
+        print(f"\n✅ Done! Uploaded {total_to_upload - len(failed_keys):,}/{total_to_upload:,} files")
+        if failed_keys:
+            print(f"⚠️  {len(failed_keys)} upload(s) failed — kept out of the hash map; rerun to retry them")
         return
 
     if not args.dry_run:
@@ -883,19 +974,30 @@ R2 Directory Structure:
 
     # Upload from staging (only changed notes)
     print(f"\n📤 Uploading from staging directory...")
-    upload_from_staging(staging_dir, creds, args.verbose, len(notes_to_upload), sync=args.sync)
+    failed_keys = upload_from_staging(
+        staging_dir, creds, args.verbose, len(notes_to_upload), sync=args.sync
+    )
 
-    # Update hash map after successful upload
+    # Update hash map with successful uploads only, so failed files are
+    # retried on the next run instead of being silently skipped.
     if not args.full:
+        failed_guids = {
+            k[len('notes/'):-len('.json.gz')] for k in failed_keys if k.startswith('notes/')
+        }
+
         # Start with old hash map
         new_hash_map = dict(old_hash_map)
-        
+
         # Update note hashes
-        new_hash_map = update_hash_map(new_hash_map, data['notes'])
-        
+        new_hash_map = update_hash_map(
+            new_hash_map, [n for n in data['notes'] if n.get('guid') not in failed_guids]
+        )
+
         # Update collection file hashes
-        new_hash_map.update(collection_hashes)
-        
+        new_hash_map.update(
+            {k: v for k, v in collection_hashes.items() if k not in failed_keys}
+        )
+
         save_hash_map(new_hash_map, hash_map_file)
         if args.verbose:
             print(f"\n   ✓ Updated hash map ({len(new_hash_map):,} entries)")
