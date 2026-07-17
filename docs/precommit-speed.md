@@ -478,3 +478,103 @@ check-node`; identical test counts.
    will make `typecheck` a temporary critical-path item but changes no
    ordering decision.
 6. Timings are single-run on one machine; treat ±20% as noise.
+
+## 11. Network/upload-side audit (2026-07-17)
+
+§1–§9 optimized the _orchestration_ (what overlaps what). This section audits
+the _inside_ of the network jobs themselves, in the spirit of the boto3
+client-reuse fix (one client per run instead of per file — a fresh
+DNS+TCP+TLS handshake per note had dominated per-note upload time; see
+`get_s3_client()` in `data/anki/upload-to-r2`). Assumed typical run: ~500
+changed notes, both graph exports regenerated, 53 KiB/s uplink
+(`docs/limited-network.md`).
+
+**Cost framing (verified):** request _dollars_ are a non-issue — R2 Class A
+(PutObject, ListObjects) costs $4.50/M with 1M/month free, Class B $0.36/M
+with 10M free, DeleteObject free, egress free
+(<https://developers.cloudflare.com/r2/pricing/>). A run issues ~700 Class A
+ops; even several runs/day stay ~50× under the free tier. The only real
+currencies are **wall-clock and bytes over the thin uplink**.
+
+Ranked findings (impact at 53 KiB/s → effort/risk):
+
+1. **The collection monoliths upload ~58 MB/run that nothing downloads**
+   (~19 min — the single largest cost). `collection/notes.json.gz` (35 MB)
+   changes whenever any note changes; `reviews.json.gz` (23.5 MB) changes on
+   any real run. Verified consumers: `data/anki/download-from-r2` fetches
+   only `notes/{guid}.json.gz` (line 148); the graph tools
+   (`graph/analyze.py:117`, `create_viz.py`, `quick_3d.py`) read the **local
+   staging copies**, never the bucket. So bucket-side `collection/*` is
+   write-only from this repo — plausibly disaster-recovery. Options:
+   (a) skip by default behind `UPLOAD_MONOLITHS=1`; (b) partition reviews
+   by month like the tracked `data/anki/reviews/*.json.gz` (78 files, only
+   the current month changes → ~few hundred KB/run). **Policy decision —
+   needs user sign-off** on whether the off-site monolith backup is wanted.
+2. **`graph/upload_public.py` uploads unconditionally — no incremental
+   check** (`graph/upload_public.py:28-45` reads and PUTs both files every
+   run): ~34 MB gz/run (~11 min). The exports embed **no wall-clock
+   timestamps** (verified: `export_data.py`/`export_history.py` only print
+   elapsed times; all data times derive from review timestamps), so
+   `graph_data_public.json` (23.5 MB gz) is byte-identical on days when
+   notes/links didn't change — the private path's hash-map pattern applies
+   directly. **Caveat:** hash the _raw_ JSON bytes and store it in
+   `hash_map.json`; do NOT compare compressed bytes or R2 ETags —
+   `gzip.compress()` stamps the current time into the gzip header, so gz
+   bytes differ every run even for identical content. Effort low, risk low;
+   `history_data_public.json` changes daily (new reviews) and will still
+   upload.
+3. **Per-note PUTs are strictly sequential** (`upload_from_staging` loop at
+   `data/anki/upload-to-r2:474`, `--upload-only` loop at `:722`). After
+   client reuse each PUT is ~1 round-trip; 500 notes × high-RTT link ≈
+   minutes, though total bytes are trivial (~1 MB) — it's latency-bound, so
+   a bounded thread pool (~8 workers) cuts it roughly by the concurrency
+   factor. boto3: "Unlike Resources and Sessions, clients are generally
+   thread-safe", but do not call `boto3.client()` concurrently — create one
+   client up-front via an explicit `boto3.session.Session()` and share it
+   (<https://docs.aws.amazon.com/boto3/latest/guide/clients.html>).
+   `get_s3_client()` already creates it up-front. Keep `failed_keys`
+   accounting under a lock, update the hash map only after all futures
+   resolve, and in tests never spawn a real ProcessPoolExecutor (AGENTS.md
+   gotcha; patch to threads). Effort medium, risk medium.
+4. **`--sync` lists the whole `notes/` prefix every run**
+   (`sync_r2_notes`, ~164 sequential ListObjectsV2 pages for 163k objects;
+   `docs/r2-sync-guide.md` documents 3–5 min). Both `fetch-r2` and
+   `fetch-r2-skip-fetch` hard-code `--sync` (Makefile:140,144). Deletions
+   are rare; options: default the Makefile targets to no `--sync` with a
+   `SYNC=1` opt-in, or a periodic (weekly) sync. Trade-off to flag: orphaned
+   _private_ notes then linger on R2 longer after deletion — retention
+   preference is the user's call. Saves ~1–3+ min/run. Effort trivial.
+5. **The `--upload-only` GUID check gzip-decompresses all 163k staged files
+   every run** (`data/anki/upload-to-r2:677`) just to map file → guid →
+   hash-map entry, because staged filenames are `md5(guid)[:16]`
+   (`data/anki/fetch:180-181`), not the guid. Measured: 500-file sample →
+   **~40 s** full-scan CPU/IO per run. `fetch` already computes the changed
+   set (`find_changed_notes`, `data/anki/fetch:285`) — writing a small
+   changed-guids manifest at stage time would let the upload skip the scan
+   (keep the full scan as fallback when the manifest is absent). Off the
+   critical path (backgrounded job), so rank it below the bytes wins.
+6. **The two background network jobs contend for the same thin uplink**
+   (R2 upload and graph-push are launched concurrently in the
+   `precommit-fix` recipe). At 53 KiB/s they halve each other's throughput,
+   so _both_ risk the per-job 900 s NET_DEADLINE where serial execution
+   would finish the first and often the second. Chaining them into one
+   background pipeline (R2 → graph-push) keeps §7.4's overlap with the gate
+   while removing mutual starvation; with #2 implemented, graph-push often
+   becomes a no-op anyway. Effort trivial, risk none identified.
+
+**Measured non-findings (do not churn on these):**
+
+- `hash_map.json` (13 MB, 163k entries) parses in **0.06 s** — the 2–3
+  loads/run are noise.
+- boto3 client reuse — already implemented (`get_s3_client()`).
+- The NET_DEADLINE kill design, the successes-only hash-map invariant, the
+  per-note file scheme (it _is_ consumed, by `download-from-r2`), and
+  tracking `hash_map.json` in git (§4) are all correct — leave them.
+
+**Open questions:** whether anything _outside_ this repo (personal site,
+manual disaster-recovery habit) consumes bucket-side `collection/*` — must
+be answered before #1; whether the bucket's public `/graph/` endpoint can
+also expose `collection/*` (bucket ACL not inspectable from the repo);
+actual per-PUT RTT through the proxy (bounds #3's win — read timestamps
+from a real run's `.make/r2-upload.log`); how often `graph_data_public.json`
+is actually byte-identical between runs (bounds #2's win).
