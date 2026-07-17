@@ -1,4 +1,4 @@
-.PHONY: help fetch fetch-r2 check precommit precommit-fix fmt fmt-check sync-check lint lint-js lint-css lint-fix hooks \
+.PHONY: help fetch fetch-r2 verify-r2 check precommit precommit-fix fmt fmt-check sync-check lint lint-js lint-css lint-fix hooks \
 	quality-py lint-py fmt-py fmt-py-check typecheck security-py install-dev coverage-rank verify
 
 PYTHON := $(if $(wildcard .venv/bin/python3),"$(CURDIR)/.venv/bin/python3",python3)
@@ -49,6 +49,7 @@ help:
 	@echo "  install        Install Python dependencies"
 	@echo "  fetch          Fetch Anki stats to Git-friendly format"
 	@echo "  fetch-r2       Upload private Anki content to Cloudflare R2"
+	@echo "  verify-r2      Audit hash map vs live R2 bucket (read-only)"
 	@echo "  graph-analyze  Analyze all decks with PageRank"
 	@echo "  graph-deck     Analyze specific deck (DECK='name')"
 	@echo "  graph-export   Export graphs to graph_output/"
@@ -140,6 +141,10 @@ fetch-r2-skip-fetch:
 fetch-r2:
 	@echo "📤 Uploading private Anki content to Cloudflare R2..."
 	@python3 data/anki/upload-to-r2 --sync --verbose
+
+verify-r2:
+	@echo "🔎 Auditing hash map against live R2 bucket (read-only)..."
+	@$(PYTHON) data/anki/verify-hash-map.py
 
 # -----------------------------------------------------------------------------
 # Graph Analysis

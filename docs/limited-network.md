@@ -57,6 +57,46 @@ make precommit-fix YOLO=1 NET_DEADLINE=3600
 Pinned by `tests/test_run_with_deadline.py` and
 `tests/test_makefile_net_deadline.py`.
 
+## Failure mode 3: direct connections blocked — local proxy fallback
+
+Sometimes the uplink only works through a local proxy client
+(Clash Verge et al.), and sometimes a stale `HTTPS_PROXY` export points at a
+proxy that is no longer listening — observed 2026-07-17, when a dead proxy
+env var failed **every** upload in a run with
+`Failed to connect to proxy URL`. Network callers in this repo therefore
+self-heal in **both** directions: try the configured route first, and on
+failure probe well-known localhost proxy ports (`7897`, `7890`, `1087`,
+`8118` — Clash Verge/Clash mixed, ShadowsocksX-NG HTTP, Privoxy) or fall
+back to a direct connection.
+
+Three implementations exist on purpose (update the port list in all three):
+
+- `data/anki/upload-to-r2` — `enable_proxy_fallback()` exports the detected
+  proxy into `HTTPS_PROXY`/`HTTP_PROXY` for the rest of the process (botocore
+  reads env at client creation; the urllib fallback rebuilds its opener). A
+  configured-but-dead proxy is dropped and the run retries direct. Also used
+  by `graph/upload_public.py`. Pinned by
+  `data/anki/tests/test_proxy_fallback.py`.
+- `auto_wiktionary/utils.py` and `auto_image/utils.py` —
+  `urlopen_with_proxy_fallback()` runs **inside Anki**, so the proxy is
+  scoped to a cached urllib opener instead of `os.environ` (never leak a
+  proxy to the whole Anki process). HTTP 4xx/5xx bypass the fallback (they
+  reached the server); a dead cached proxy heals back to direct. Pinned by
+  each addon's `tests/test_proxy_fallback.py`.
+
+Related invariant, pinned by `data/anki/tests/test_failed_upload_hash_map.py`:
+**failed uploads never enter the hash map**, so an interrupted or partly
+failed run retries exactly the missing files on rerun. Audit the ledger
+against the live bucket any time with:
+
+```sh
+make verify-r2    # read-only; exit 2 lists poisoned entries + fix advice
+```
+
+(`.make/r2-upload.log` is overwritten by each `precommit-fix` run — when
+diagnosing an _older_ run, the bucket audit above is the reliable source,
+not the log.)
+
 ## Related gotchas
 
 - **`make -n precommit-fix` is NOT a dry run.** GNU make executes
