@@ -88,6 +88,8 @@ still just `make install-dev`.
 
 - **Spaces in paths:** The repo path `$(CURDIR)` contains spaces (e.g., `/Application Support/`). Always quote commands that interpolate `$(CURDIR)`, and avoid using `$(wildcard)` with absolute paths since it splits on spaces. Use relative paths with `$(wildcard)` (e.g., `$(wildcard .venv/bin/python3)`).
 - **Python tool invocation:** Python CLIs (like `ruff`, `pytest`, `mypy`) installed in the virtual environment should always be invoked via `$(PYTHON) -m <tool>` in the `Makefile`. This ensures the exact local virtual environment is respected, preventing system PATH leaks and `ImportError`s (e.g., missing `networkx`).
+- **Background vs Foreground Concurrency:** The user's terminal and background agent tasks share the same filesystem. When writing `Makefile` targets that generate files, always use a uniquely generated temporary directory (e.g., `mktemp -d`) rather than a hardcoded static path (like `coverage/py-data`) to completely prevent filesystem race conditions if the target is invoked concurrently.
+- **mktemp Path Gotcha:** By default, `mktemp -d` on macOS generates an absolute path (e.g., `/var/folders/...`). If your `Makefile` recipes prefix variables with `$(CURDIR)/`, this will create invalid double-paths (e.g., `$(CURDIR)//var/folders/...`) that fail silently. When creating temporary directories that will be prefixed with `$(CURDIR)`, force `mktemp` to generate a relative path by passing a template in the current directory, for example: `mktemp -d .tmp.XXXXXX`.
 
 ## Conventions baked into the configs
 
