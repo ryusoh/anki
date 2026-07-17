@@ -71,8 +71,8 @@ def test_boto3_dead_env_proxy_retries_direct(monkeypatch):
     client = MagicMock()
     client.put_object.side_effect = [ConnectionError('proxy refused'), None]
     monkeypatch.setattr(r2, 'HAS_BOTO3', True)
-    monkeypatch.setattr(r2, 'boto3', MagicMock(client=MagicMock(return_value=client)))
-    monkeypatch.setattr(r2, 'Config', MagicMock())
+    monkeypatch.setattr(r2, 'boto3', MagicMock(client=MagicMock(return_value=client)), raising=False)
+    monkeypatch.setattr(r2, 'Config', MagicMock(), raising=False)
     monkeypatch.setattr(r2, '_probe_proxy', lambda url: False)
     monkeypatch.setattr(r2, 'detect_local_proxy', lambda ports=None: None)
 
@@ -114,8 +114,8 @@ def test_boto3_retries_via_detected_proxy(monkeypatch):
     client = MagicMock()
     client.put_object.side_effect = [ConnectionError('direct blocked'), None]
     monkeypatch.setattr(r2, 'HAS_BOTO3', True)
-    monkeypatch.setattr(r2, 'boto3', MagicMock(client=MagicMock(return_value=client)))
-    monkeypatch.setattr(r2, 'Config', MagicMock())
+    monkeypatch.setattr(r2, 'boto3', MagicMock(client=MagicMock(return_value=client)), raising=False)
+    monkeypatch.setattr(r2, 'Config', MagicMock(), raising=False)
     monkeypatch.setattr(r2, 'detect_local_proxy', lambda ports=None: PROXY)
 
     ok, size = r2.upload_to_r2('b', 'k', b'data', CREDS)
@@ -130,8 +130,8 @@ def test_boto3_falls_through_to_urllib_when_no_proxy(monkeypatch):
     client = MagicMock()
     client.put_object.side_effect = OSError('network down')
     monkeypatch.setattr(r2, 'HAS_BOTO3', True)
-    monkeypatch.setattr(r2, 'boto3', MagicMock(client=MagicMock(return_value=client)))
-    monkeypatch.setattr(r2, 'Config', MagicMock())
+    monkeypatch.setattr(r2, 'boto3', MagicMock(client=MagicMock(return_value=client)), raising=False)
+    monkeypatch.setattr(r2, 'Config', MagicMock(), raising=False)
     monkeypatch.setattr(r2, 'detect_local_proxy', lambda ports=None: None)
 
     with patch('urllib.request.urlopen', return_value=MagicMock(status=200)) as urlopen:
@@ -149,8 +149,8 @@ def test_s3_client_reused_across_uploads(monkeypatch):
     client = MagicMock()
     boto3_mock = MagicMock(client=MagicMock(return_value=client))
     monkeypatch.setattr(r2, 'HAS_BOTO3', True)
-    monkeypatch.setattr(r2, 'boto3', boto3_mock)
-    monkeypatch.setattr(r2, 'Config', MagicMock())
+    monkeypatch.setattr(r2, 'boto3', boto3_mock, raising=False)
+    monkeypatch.setattr(r2, 'Config', MagicMock(), raising=False)
 
     ok1, _ = r2.upload_to_r2('b', 'k1', b'a', CREDS)
     ok2, _ = r2.upload_to_r2('b', 'k2', b'b', CREDS)
@@ -164,8 +164,8 @@ def test_s3_client_rebuilt_when_proxy_env_changes(monkeypatch):
     """botocore reads proxy env only at client creation, so a proxy enabled
     mid-run must invalidate the cached client."""
     boto3_mock = MagicMock()
-    monkeypatch.setattr(r2, 'boto3', boto3_mock)
-    monkeypatch.setattr(r2, 'Config', MagicMock())
+    monkeypatch.setattr(r2, 'boto3', boto3_mock, raising=False)
+    monkeypatch.setattr(r2, 'Config', MagicMock(), raising=False)
 
     r2.get_s3_client(CREDS)
     r2.get_s3_client(CREDS)
