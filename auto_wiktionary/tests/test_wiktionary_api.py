@@ -54,7 +54,11 @@ def test_get_wiktionary_candidates_network_error():
     from unittest.mock import patch
     from urllib.error import URLError
 
-    with patch("urllib.request.urlopen", side_effect=URLError("offline")):
+    with (
+        patch("urllib.request.urlopen", side_effect=URLError("offline")),
+        # Keep the proxy fallback from probing real localhost ports in tests.
+        patch("utils._detect_local_proxy", return_value=None),
+    ):
         # Failures are swallowed and yield an empty list, never raise.
         assert get_wiktionary_candidates("applz", "en") == []
 

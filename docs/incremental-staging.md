@@ -13,7 +13,7 @@ Instead of re-staging all 161K+ notes every time, the system now uses **content-
    Staging 161,176 individual notes...
    [████████████████████████████████████] 161,176/161,176 (100.0%)
    ✅ Staged 161,176 notes
-   💾 Hash map saved to: .hash_map.json
+   💾 Hash map saved to: data/cloudflare/hash_map.json
 ```
 
 ### Subsequent Runs (Only Changed Notes)
@@ -57,15 +57,21 @@ Instead of re-staging all 161K+ notes every time, the system now uses **content-
 
 **You CANNOT reverse a hash to get the original content.**
 
-### Why Keep It Local by Default?
+### It Is Tracked and Auto-Committed
 
-Even though it's safe, `.hash_map.json` is in `.gitignore` because:
+`data/cloudflare/hash_map.json` **is committed** — `make precommit-fix`
+commits it after a successful R2 sync (`chore: update R2 hash map after
+sync`). Losing it is not harmless: `upload-to-r2` would treat every note as
+unseen and re-upload all 161K+ files, so git history doubles as its backup —
+restore a known-good version with `git checkout` if it's ever damaged.
 
-1. **It's a cache** - Can be regenerated anytime
-2. **Personal workflow** - Others may have different staging
-3. **No harm if lost** - Just means full staging next time
+Two invariants keep the map trustworthy:
 
-**You CAN commit it if you want** (e.g., for team collaboration).
+- **Only successful uploads are recorded.** A failed or interrupted run
+  leaves its files out of the map, so the next run retries exactly those
+  (pinned by `data/anki/tests/test_failed_upload_hash_map.py`).
+- **`make verify-r2`** audits the map against the live bucket (read-only)
+  and lists any entry the bucket cannot back.
 
 ## Benefits
 
@@ -108,7 +114,7 @@ If you want to re-stage everything:
 
 ```bash
 # Delete hash map
-rm .hash_map.json
+rm data/cloudflare/hash_map.json
 
 # Next run will stage all notes
 make fetch-and-stage-r2
@@ -146,7 +152,7 @@ def compute_note_hash(note):
 
 ```python
 # Load old hash map
-old_map = load_hash_map('.hash_map.json')
+old_map = load_hash_map('data/cloudflare/hash_map.json')
 
 # Compare with current notes
 changed, unchanged = find_changed_notes(notes, old_map)
@@ -157,7 +163,7 @@ for note in changed:
 
 # Update hash map
 new_map = update_hash_map(old_map, notes)
-save_hash_map(new_map, '.hash_map.json')
+save_hash_map(new_map, 'data/cloudflare/hash_map.json')
 ```
 
 ## Testing
@@ -177,34 +183,28 @@ python3 -m pytest graph/tests/test_hash_map.py -v
 
 ### "Staging all notes every time"
 
-Check if `.hash_map.json` exists:
+Check if `data/cloudflare/hash_map.json` exists:
 
 ```bash
-ls -la .hash_map.json
+ls -la data/cloudflare/hash_map.json
 ```
 
 If missing, it will always stage all notes. This is normal for first run.
 
 ### "Hash map corrupted"
 
-Delete and regenerate:
+Restore the last committed version (the file is tracked), or delete it to
+force a full re-stage and re-upload of everything:
 
 ```bash
-rm .hash_map.json
-make fetch-and-stage-r2
+git checkout -- data/cloudflare/hash_map.json   # preferred: restore
+# or: rm data/cloudflare/hash_map.json && make fetch-and-stage-r2  # full restage
 ```
 
-### "Want to commit hash map to GitHub"
-
-Remove from `.gitignore`:
+### "Did the map drift from what's actually on R2?"
 
 ```bash
-# Edit .gitignore, remove or comment out:
-# .hash_map.json
-
-# Then commit
-git add .hash_map.json
-git commit -m "Add hash map for incremental staging"
+make verify-r2   # read-only audit; exit 2 lists unbacked entries + fix advice
 ```
 
 ## Future Enhancements
