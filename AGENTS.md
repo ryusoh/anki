@@ -1,16 +1,32 @@
 # AGENTS.md
 
-Shared operating contract for **automated agents** (Jules scheduled routines) on
-this repo. You run unattended and open PRs. A human only does a binary
-approve/close on the result — they will **not** leave review comments or iterate
-with you. So every PR must be self-evidently correct and approvable at a glance.
-Optimize for **approve rate**, not for volume.
+Single source of truth for agent guidance on this repo — **edit this file, not
+`CLAUDE.md`** (that is a stub that imports this one). Deeper how-tos live in
+`docs/`; slash-command workflows live in `.agents/skills/` (canonical — the
+open Agent Skills format; `.claude/commands/` is generated from it by
+`tools/sync_commands.py`, and the gate drift-checks it via `make sync-check`).
+
+Two audiences:
+
+- **Unattended Jules routines** (`.jules/` personas): you run unattended and open
+  PRs. A human only does a binary approve/close on the result — they will **not**
+  leave review comments or iterate with you. So every PR must be self-evidently
+  correct and approvable at a glance. Optimize for **approve rate**, not for
+  volume. The sections from "Non-negotiables" through "Lanes" are binding on you.
+- **Interactive agents** (Claude Code, Kimi, Antigravity, …): the repo guide
+  (commands, gotchas, coding standards) applies to you. The PR/lane contract
+  applies when you open PRs unattended; per-rule carve-outs are marked inline.
 
 This repo is a **monorepo of Anki add-ons (Python)** plus a JS/graph data pipeline.
 Each top-level directory (`auto_wiktionary/`, `awesome_tts/`, `graph/`, `js/`,
 `data/anki/`, …) is a self-contained add-on or tool with its own `tests/`. Add-ons
 render into Anki's Qt **WebView**; there is no frontend build step (ES modules via
-import map). Human-facing detail lives in `CLAUDE.md` and `docs/`.
+import map). New add-on? See `docs/creating-an-addon.md` (layout, hook/test
+patterns). Debugging a field-transform add-on against a real card? Same doc's
+"Field HTML reality" section — start with
+`python3 tools/dump_field.py --contains '<text>'`, don't hand-roll sqlite3.
+Writing a design spec for another agent to implement? See
+`docs/delegation-specs.md` first (parity sign-off, anchor citations, doc gotchas).
 
 ## Non-negotiables (a PR that violates any of these will be closed)
 
@@ -95,7 +111,11 @@ a valid Conventional Commit subject**.
 | Python lint/format/type/security (ruff/black/mypy/bandit) | `make quality-py`                  |
 | Auto-fix Python format                                    | `make fmt-py`                      |
 | Lint (JS + CSS + Markdown)                                | `make lint`                        |
+| Auto-fix lint findings                                    | `make lint-fix`                    |
+| Format JS/CSS/**MD**/JSON/HTML (Prettier)                 | `make fmt`                         |
 | Scoped, fast Python test (tight loop, no coverage)        | `make test-py SUITE=<addon>/tests` |
+| Scoped test for one add-on (`test-py SUITE=<dir>/tests`)  | `make test-addon ADDON=<dir>`      |
+| Scoped mypy for one add-on                                | `make typecheck-addon ADDON=<dir>` |
 | JS test suite (c8 coverage)                               | `make check-node`                  |
 
 - **Run everything from the repo ROOT.** The root `conftest.py` mocks `aqt`/`anki`;
@@ -113,6 +133,12 @@ a valid Conventional Commit subject**.
   passed, not a hand-run pytest. (Also: never spawn a real `ProcessPoolExecutor`
   in a test — spawn children re-import the module and drop your mocks; patch it to
   `ThreadPoolExecutor`. See `docs/creating-an-addon.md`.)
+- **Run `make fmt` after hand-authoring any `docs/*.md`** — Prettier owns Markdown
+  table/list formatting and `fmt-check` fails otherwise.
+- **JS tests: only root `tests/` (node runner, `node:test`) and
+  `review_heatmap/tests/` (jest) are executed** — a `*.test.js` anywhere else
+  silently never runs. Browser-side scripts are pinned with source-level regression
+  tests. See `docs/js-testing.md`.
 
 ## Environment setup (run once in the VM before working)
 
@@ -134,6 +160,103 @@ is false. Confirm both pytest **and** the JS runner execute.
 - `tests/` — root-level node tests (`*.test.cjs` / `*.test.mjs`).
 - `docs/` — cross-cutting how-tos and gotchas. **Read the relevant doc before deep
   work**: `docs/creating-an-addon.md`, `docs/lint-and-quality.md`.
+
+## Gotchas
+
+- `check-py` needs `pytest-cov` (in `requirements.txt`; `make install` first) and,
+  for `graph/tests`, `networkx`.
+- **`make install` also runs `npm ci`**, syncing `node_modules` exactly to
+  `package-lock.json`. `make check-node`/`precommit` never install JS deps
+  themselves — a stale `node_modules` can silently drift from a changed
+  `package.json` and nothing in the gate will catch it except re-running the
+  affected suite. See `docs/js-testing.md`'s jsdom pin note for a case where
+  this bit us.
+- **Python dev/lint tools need a venv.** System `python3` is Homebrew and
+  externally-managed (PEP 668), so a bare `pip3 install` of ruff/black/mypy/bandit
+  is blocked. Install the pinned tools into a venv: `make install-dev` (or
+  `pip install -r requirements-dev.txt`). CI installs them fresh, so no venv there.
+  Nothing auto-syncs this venv, but `quality-py`'s targets fail loudly on a version
+  mismatch against the `requirements-dev.txt` pin (formerly a stale local tool
+  silently passed and only broke in CI); the fix is always `make install-dev`.
+- TDD-style corner-case tests live next to each add-on (e.g.
+  `auto_wiktionary/tests/` pins Wiktionary redirect cases). Add a failing test
+  there first, then fix.
+- **This repo's absolute path contains a space** (`.../Application Support/Anki2/addons21`).
+  A Makefile recipe that builds `VAR=$(CURDIR)/...` (or any other space-containing
+  value) as an env-var prefix MUST quote it (`VAR="$(CURDIR)/..."`) — unquoted,
+  `/bin/sh` word-splits at the space and tries to _execute_ the tail of the path
+  as a command instead of setting the var. Pinned by
+  `tests/test_makefile_curdir_quoting.py`.
+- **`precommit-fix`'s `YOLO=1`/`MSG=` commit step runs `git add -A`.** If another
+  process has unrelated uncommitted changes sitting in this working tree when it
+  runs — a concurrent agent session sharing the checkout, a background task not
+  given worktree isolation — they get swept into that commit under an unrelated
+  message (this happened: 2026-07-13, commit `e3800278`). Check `git status`
+  before running `precommit-fix` with `YOLO=1`/`MSG=`, and prefer worktree
+  isolation for any spawned session that might invoke it.
+- **Limited/slow network:** `precommit-fix` pushes via `tools/git_push_retry.py`
+  (backoff retries + per-commit chunking; run it directly to drain unpushed
+  commits) and caps its backgrounded R2/graph uploads at `NET_DEADLINE` seconds
+  (default 900; raise with `NET_DEADLINE=3600` to let a slow upload finish).
+  Failures are loud, never silent, and reruns resume incrementally. Full map:
+  `docs/limited-network.md`.
+- **`make -n precommit-fix` is NOT a dry run** — GNU make executes
+  `$(MAKE)`-bearing recipe lines under `-n`, so it used to really commit. The
+  Makefile now refuses `-n`/`-q`/`-t` for this target at parse time (pinned by
+  `tests/test_makefile_dryrun_guard.py`); don't try to "syntax check" it that way.
+
+## Coding standards
+
+### Anki imports
+
+- **Explicit imports:** avoid wildcard imports (`from aqt.qt import *`). Use
+  explicit imports: `from aqt.qt import Qt, QAction, QDialog, ...`.
+- `anki` and `aqt` modules are provided by the Anki runtime and are not available
+  in the local dev environment; use `# type: ignore` on those imports to suppress
+  unresolved-import warnings in editors.
+- **Never bind `mw` at module top level** (`from aqt import mw` at module root):
+  when the module is first imported by Anki, `aqt.mw` is `None`, so the local
+  reference stays bound to `None` permanently. Look up `mw` dynamically inside
+  functions or methods (`import aqt; mw = aqt.mw`, or `from aqt import mw` inside
+  the function).
+
+### Configuration pattern
+
+- **Dictionary-first:** always ensure config objects are initialized to a dict,
+  even if `getUserOption()` returns `None`:
+  `conf = getUserOption() or getDefaultConfig()` or `conf = getUserOption() or {}`.
+- Use `Dict[str, Any]` for config objects to avoid "None type is not
+  subscriptable" errors.
+
+### Python version & dependencies
+
+- The CI workflow (`.github/workflows/ci.yml`) is pinned to Python **3.13** to
+  match the local development venv and avoid issues with newer/pre-release Python
+  (e.g. Bandit crashing on 3.14 due to AST deprecations).
+- Any third-party package used in add-on code or tests that is not in the standard
+  library (e.g. `beautifulsoup4`) must be listed in `requirements.txt`. Anki
+  bundles packages like `beautifulsoup4` and `requests` at runtime, but they are
+  not available in local/CI test runs outside Anki unless declared.
+
+## Sibling repositories
+
+This project is part of a cluster of repositories. Note the primary branch names
+and verification commands.
+
+| Repository        | Path                  | Primary Branch | Verification     |
+| ----------------- | --------------------- | -------------- | ---------------- |
+| **Anki Addons**   | `.`                   | `main`         | `make precommit` |
+| **Fund**          | `../fund`             | `main`         | `make precommit` |
+| **Networking**    | `../networking`       | `main`         | `make precommit` |
+| **Personal Site** | `../ryusoh.github.io` | **`master`**   | `make check`     |
+
+### Multi-repo workflow
+
+- **Automation:** use the `/ship <branch>` command in any repo to fix quality
+  failures, merge to the primary branch, and clean up.
+- **Git hooks:** all repos use pre-commit hooks (e.g., `prettier`). If a push
+  fails, run the repo's fix command (e.g., `make fmt-py`, `make fmt`, or
+  `make precommit-fix`) before retrying.
 
 ## Lanes (keep PRs disjoint to avoid collisions)
 
@@ -157,4 +280,3 @@ and constraints, which you read at the start of a run. They are **not logs**.
 **Never append to, modify, or create files under `.jules/`.** A PR that changes a
 `.jules/` file is out of scope and will be closed — those files are edited by a
 human, not by routines.
-</content>

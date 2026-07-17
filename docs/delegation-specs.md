@@ -60,7 +60,7 @@ and zero source edits outside the predicted files.
 ## Mechanical checklist for the doc itself
 
 - Run `make fmt` after hand-authoring — Prettier owns markdown table/list
-  formatting and `make fmt-check` will fail otherwise (see CLAUDE.md).
+  formatting and `make fmt-check` will fail otherwise (see AGENTS.md).
 - **No bare double-open-braces anywhere in the file** — not even inside code
   fences or inline code. GitHub Pages builds every non-dot-directory
   markdown file with Jekyll **3.10**, whose Liquid pass either crashes the

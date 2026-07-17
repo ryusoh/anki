@@ -535,7 +535,7 @@ computation with `formatRange(rangeLabel)` as in §5.3.
    `make check-node` (root `tests/` only — a `*.test.js` anywhere else
    silently never runs; see `docs/js-testing.md`).
 7. Run everything **from the repo root**; use `python3` if Python is ever
-   needed (CLAUDE.md).
+   needed (AGENTS.md).
 
 ---
 

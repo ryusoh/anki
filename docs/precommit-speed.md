@@ -235,7 +235,7 @@ check-py:
   First implementation action: confirm pytest-cov honors `COVERAGE_FILE`
   with a 2-suite smoke run before converting the whole loop (§10 item 3).
 - Keep invoking coverage as `$(PYTHON) -m coverage` — the repo-root
-  `coverage/` directory shadows the bare command (CLAUDE.md gotcha).
+  `coverage/` directory shadows the bare command (AGENTS.md gotcha).
 - Do NOT reach for pytest-xdist here — cross-suite fan-out already saturates
   8 cores with 22 suites, without touching test code.
 - Interleaved suite output is acceptable for v1; if it bothers, redirect each
@@ -257,7 +257,7 @@ check-py:
 plus an analogous `.make/pip.stamp: requirements.txt`. `install` keeps its
 current behavior; `precommit-fix` depends on the stamps instead. Add
 `FORCE_INSTALL=1` escape hatch (delete stamps first). Reason this is safe:
-the CLAUDE.md drift gotcha is about `package.json` changing without `npm ci`
+the AGENTS.md drift gotcha is about `package.json` changing without `npm ci`
 rerunning — the stamp reruns `npm ci` exactly when `package-lock.json`
 changes, which is the same trigger CI's cache uses. `.make/` MUST be added
 to `.gitignore`.
@@ -399,7 +399,7 @@ check-node`; identical test counts.
   has no `.WAIT`; parallelism must stay inside the explicit
   `$(MAKE) -j$(JOBS)` sub-invocations.
 - **DO NOT invoke bare `coverage`** — shadowed by the repo-root `coverage/`
-  directory (CLAUDE.md).
+  directory (AGENTS.md).
 - **DO NOT time or test `fetch-and-stage-r2` casually** — it rewrites
   tracked data files from the live Anki DB; a stale WAL state can make the
   diff misleading (`docs/fetch-data-lag.md`).

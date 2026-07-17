@@ -1,4 +1,4 @@
-.PHONY: help fetch fetch-r2 check precommit precommit-fix fmt fmt-check lint lint-js lint-css lint-fix hooks \
+.PHONY: help fetch fetch-r2 check precommit precommit-fix fmt fmt-check sync-check lint lint-js lint-css lint-fix hooks \
 	quality-py lint-py fmt-py fmt-py-check typecheck security-py install-dev coverage-rank verify
 
 PYTHON := $(if $(wildcard .venv/bin/python3),"$(CURDIR)/.venv/bin/python3",python3)
@@ -397,7 +397,7 @@ security-py:
 # BOTH `precommit` (verify-only, what CI runs) and `precommit-fix` (fix-then-verify)
 # reference this, so they can never silently diverge. Add a gate here once and it
 # applies everywhere; CI runs `make precommit SKIP=1`.
-VERIFY_GATE := fmt-check lint quality-py check
+VERIFY_GATE := fmt-check lint quality-py check sync-check
 
 # Every VERIFY_GATE member (and its own sub-prerequisites, e.g. quality-py's
 # lint-py/fmt-py-check/typecheck/security-py) is read-only, so the whole gate
@@ -491,7 +491,7 @@ endif
 # process (a concurrent agent session sharing this checkout, a background
 # task without worktree isolation) has unrelated uncommitted changes sitting
 # here when YOLO=1/MSG= runs, they get swept into this commit under this
-# commit's message. Check `git status` first. See CLAUDE.md Gotchas.
+# commit's message. Check `git status` first. See AGENTS.md Gotchas.
 precommit-fix: .make/pip.stamp .make/npm-ci.stamp $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt-fix)
 	@mkdir -p .make; \
 	BG_GRAPHLOCAL_PID=; BG_R2_PID=; BG_GRAPHPUSH_PID=; \
@@ -619,6 +619,21 @@ fmt-check:
 		NODE_OPTIONS="--max-old-space-size=4096" npx prettier --check --cache --log-level warn --ignore-path .gitignore $(PRETTIER_FILES); \
 	else \
 		echo "No Prettier or no files to check"; \
+	fi
+
+# .claude/commands/ is generated from .agents/skills/ (the canonical source) by
+# tools/sync_commands.py. Fail if regeneration is not a no-op (content hash of
+# the tree before vs after), so the generated copy can never silently go stale.
+# Comparing against git HEAD would false-fail on legitimate uncommitted syncs.
+sync-check:
+	@before=$$(find .claude/commands -type f | LC_ALL=C sort | xargs shasum | shasum | cut -d' ' -f1); \
+	$(PYTHON) tools/sync_commands.py >/dev/null; \
+	after=$$(find .claude/commands -type f | LC_ALL=C sort | xargs shasum | shasum | cut -d' ' -f1); \
+	if [ "$$before" = "$$after" ]; then \
+		echo "sync-check: .claude/commands is up to date"; \
+	else \
+		echo "sync-check FAIL: .claude/commands was stale and has been regenerated — commit the updated files (python3 tools/sync_commands.py)."; \
+		exit 1; \
 	fi
 
 # -----------------------------------------------------------------------------

@@ -1,6 +1,7 @@
 ---
 name: sync-commands
-description: Regenerate .agents/skills (Antigravity CLI) from the canonical .claude/commands sources
+description: Regenerate .claude/commands (Claude Code) from the canonical .agents/skills sources
 ---
 
-Execute the sync script to synchronize commands: `python3 tools/sync_commands.py`.
+`.agents/skills/` is canonical — edit skills there, never `.claude/commands/`.
+Then execute the sync script: `python3 tools/sync_commands.py`.

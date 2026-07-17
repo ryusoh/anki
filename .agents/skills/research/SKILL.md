@@ -21,7 +21,7 @@ primary sources to prefer, and the output location decided below.
   APIs** — not secondary interpretations, blog posts, or Q&A sites. Trace every
   claim to its authoritative origin.
 - For questions about this repo's own subsystems, the primary source is the
-  addon source itself plus the governing doc under `docs/` (see CLAUDE.md).
+  addon source itself plus the governing doc under `docs/` (see AGENTS.md).
 - For Anki behavior (hooks, collection schema, webviews), the primary sources
   are the Anki source (`anki`/`aqt`) and the official addon docs at
   <https://addon-docs.ankiweb.net> — not forum posts.

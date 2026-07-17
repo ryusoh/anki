@@ -125,5 +125,5 @@ green mocked test proves the logic, not the integration.
 - [ ] `make precommit SKIP=1` (or a scoped `make test-py SUITE=...` + lint) is green
 
 **Then ask: what would have prevented this bug?** If the answer is a durable repo
-improvement — a knowledge doc, a `Makefile` target, a lint/CI gate, a CLAUDE.md
+improvement — a knowledge doc, a `Makefile` target, a lint/CI gate, an AGENTS.md
 line — hand off to `/retro` with the specifics, **after** the fix is in.

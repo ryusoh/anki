@@ -174,7 +174,7 @@ on every `editor_did_load_note`).
 
 - **Do NOT run pytest from inside the addon dir** — the root `conftest.py`
   provides the `aqt`/`anki` mocks; per-addon runs fail with
-  `ModuleNotFoundError` (CLAUDE.md).
+  `ModuleNotFoundError` (AGENTS.md).
 - **Do NOT key the store by the editor object** — it leaks Qt references
   across window closes. `(note_id, field_idx)` + LRU cap only.
 - **Do NOT dedupe against the whole ring** — only against the top entry;
@@ -187,7 +187,7 @@ on every `editor_did_load_note`).
 - **Do NOT edit any existing addon, `conftest.py`, `Makefile`, or the research
   doc** — the predicted diff (§8) is an acceptance criterion.
 - **Do NOT verify with `make -n precommit-fix`** — it is not a dry run and the
-  Makefile refuses it (CLAUDE.md).
+  Makefile refuses it (AGENTS.md).
 
 ## §8 Red-green plan (each step ends with its verify command, run from repo root)
 

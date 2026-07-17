@@ -51,7 +51,12 @@ def _pages_visible_markdown():
 def test_pages_markdown_has_no_bare_liquid_braces():
     offenders = []
     for rel in _pages_visible_markdown():
-        text = (REPO_ROOT / rel).read_text(encoding="utf-8")
+        path = REPO_ROOT / rel
+        # git ls-files reads the index, which can still list a file whose
+        # deletion isn't staged yet; skip anything not on disk.
+        if not path.exists():
+            continue
+        text = path.read_text(encoding="utf-8")
         if "{{" in RAW_REGION.sub("", text):
             offenders.append(rel)
     assert not offenders, (
