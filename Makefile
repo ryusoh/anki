@@ -260,7 +260,7 @@ check-node:
 	STATUS=$$?; \
 	rm -rf "$$COVDIR"; \
 	if [ $$STATUS -eq 0 ]; then \
-		NODE_OPTIONS="--experimental-vm-modules --no-warnings" npx jest --ci review_heatmap/tests/; \
+		NODE_OPTIONS="--experimental-vm-modules --no-warnings" npx jest --ci --colors review_heatmap/tests/; \
 		STATUS=$$?; \
 	fi; \
 	exit $$STATUS
@@ -319,7 +319,7 @@ PY_SUITE_TARGETS := $(addprefix pysuite/,$(PY_TEST_SUITES))
 $(PY_SUITE_TARGETS): pysuite/%:
 	@echo "  → $*"
 	@COVERAGE_FILE="$(CURDIR)/$(PY_COV_DIR)/.coverage.$(subst /,_,$*)" \
-		$(PYTHON) -m pytest -q -p no:cacheprovider --cov --cov-report= "$*"
+		$(PYTHON) -m pytest -q -p no:cacheprovider --color=yes --cov --cov-report= "$*"
 
 # Buffered wrappers for check-py: each suite's output is captured in a per-suite
 # log file under $(PY_COV_DIR); exit codes land in a matching .rc file. check-py
@@ -332,7 +332,7 @@ $(PY_SUITE_BUF_TARGETS): pysuite-buf/%:
 	@mkdir -p "$(CURDIR)/$(PY_COV_DIR)"
 	@{ echo "  → $*"; \
 	   COVERAGE_FILE="$(CURDIR)/$(PY_COV_DIR)/.coverage.$(subst /,_,$*)" \
-	     $(PYTHON) -m pytest -q -p no:cacheprovider --cov --cov-report= "$*"; \
+	     $(PYTHON) -m pytest -q -p no:cacheprovider --color=yes --cov --cov-report= "$*"; \
 	} > "$(CURDIR)/$(PY_COV_DIR)/log.$(subst /,_,$*)" 2>&1; \
 	echo "$$?" > "$(CURDIR)/$(PY_COV_DIR)/rc.$(subst /,_,$*)"
 
@@ -436,7 +436,7 @@ VERIFY_GATE_BUFFERED := $(addprefix vgate/,$(VERIFY_GATE))
 $(VERIFY_GATE_BUFFERED): vgate/%:
 	@mkdir -p $(VERIFY_LOG_DIR)
 	@printf '  \033[2m⏳ %s ...\033[0m\n' "$*"
-	@MAKEFLAGS= $(MAKE) $* > "$(VERIFY_LOG_DIR)/$*.log" 2>&1; \
+	@MAKEFLAGS= FORCE_COLOR=1 $(MAKE) $* > "$(VERIFY_LOG_DIR)/$*.log" 2>&1; \
 	RC=$$?; echo "$$RC" > "$(VERIFY_LOG_DIR)/$*.rc"; \
 	if [ "$$RC" = "0" ]; then \
 		printf '  \033[32m✅ %s\033[0m\n' "$*"; \
