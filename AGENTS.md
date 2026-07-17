@@ -243,12 +243,12 @@ is false. Confirm both pytest **and** the JS runner execute.
 This project is part of a cluster of repositories. Note the primary branch names
 and verification commands.
 
-| Repository        | Path                  | Primary Branch | Verification     |
-| ----------------- | --------------------- | -------------- | ---------------- |
-| **Anki Addons**   | `.`                   | `main`         | `make precommit` |
-| **Fund**          | `../fund`             | `main`         | `make precommit` |
-| **Networking**    | `../networking`       | `main`         | `make precommit` |
-| **Personal Site** | `../ryusoh.github.io` | **`master`**   | `make check`     |
+| Repository        | Path                     | Primary Branch | Verification     |
+| ----------------- | ------------------------ | -------------- | ---------------- |
+| **Anki Addons**   | `.`                      | `main`         | `make precommit` |
+| **Fund**          | `~/dev/fund`             | `main`         | `make precommit` |
+| **Networking**    | `~/dev/networking`       | `main`         | `make precommit` |
+| **Personal Site** | `~/dev/ryusoh.github.io` | **`master`**   | `make check`     |
 
 ### Multi-repo workflow
 
