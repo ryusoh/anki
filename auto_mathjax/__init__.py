@@ -97,6 +97,16 @@ CUSTOM_MACROS = {
     'lambdabar': r'\unicode{x019B}',
 }
 
+# Matches <anki-mathjax ...>content</anki-mathjax> blocks (inline and display)
+ANKI_MATHJAX_RE = re.compile(
+    r'(<anki-mathjax[^>]*>)(.*?)(</anki-mathjax>)', re.DOTALL | re.IGNORECASE
+)
+
+# Matches \[...\] and \(...\) MathJax delimiter blocks
+MATHJAX_DELIM_RE = re.compile(
+    r'(\\\[)(.*?)(\\\])|(\\\()(.*?)(\\\))', re.DOTALL
+)
+
 
 def _is_purely_numeric(s):
     """Check if the text content (tags stripped) is purely numeric/currency-like.
@@ -238,6 +248,35 @@ def _inject_macro_defs(html_str):
     return preamble + html_str
 
 
+def _clean_mathjax_nbsp(html_str):
+    """Remove ``&nbsp;`` noise from inside MathJax blocks.
+
+    Covers all three delimiter styles: ``<anki-mathjax>``, ``\\[...\\]``,
+    and ``\\(...\\)``.  Handles ``&amp;nbsp;`` (double-encoded), ``&nbsp;``
+    (HTML entity), and the Unicode non-breaking space U+00A0.
+    Content outside math blocks is left untouched.
+    """
+    def _scrub_content(content):
+        content = content.replace('&amp;nbsp;', '')
+        content = content.replace('&nbsp;', '')
+        content = content.replace('\xa0', '')
+        return content.strip()
+
+    def _scrub_anki(m):
+        return m.group(1) + _scrub_content(m.group(2)) + m.group(3)
+
+    def _scrub_delim(m):
+        # Groups 1-3 for \[...\], groups 4-6 for \(...\)
+        if m.group(1) is not None:
+            opener, content, closer = m.group(1), m.group(2), m.group(3)
+        else:
+            opener, content, closer = m.group(4), m.group(5), m.group(6)
+        return opener + _scrub_content(content) + closer
+
+    html_str = ANKI_MATHJAX_RE.sub(_scrub_anki, html_str)
+    return MATHJAX_DELIM_RE.sub(_scrub_delim, html_str)
+
+
 def _convert_dollar_to_mathjax(html_str):
     """Convert $...$ patterns to \\(...\\) MathJax inline notation.
 
@@ -339,6 +378,7 @@ def _convert_dollar_to_mathjax(html_str):
         result_parts.append(converted)
 
     converted_html = ''.join(result_parts)
+    converted_html = _clean_mathjax_nbsp(converted_html)
     return _inject_macro_defs(converted_html)
 
 

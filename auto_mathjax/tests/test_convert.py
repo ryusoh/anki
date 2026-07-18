@@ -700,3 +700,79 @@ def test_lambdabar_def_not_duplicated_on_rerun():
     second = _convert_dollar_to_mathjax(first)
     assert second.count(r'\def\lambdabar') == 1
 
+
+# --- &nbsp; cleaning inside <anki-mathjax> blocks ---
+
+
+def test_amp_nbsp_stripped_from_anki_mathjax_block():
+    r"""&amp;nbsp; padding inside a block <anki-mathjax> is removed."""
+    html = (
+        '<anki-mathjax block="true">'
+        '&amp;nbsp;&amp;nbsp; U(P_0) = \\frac{1}{4\\pi}'
+        '\n&amp;nbsp;&amp;nbsp; </anki-mathjax>'
+    )
+    result = _convert_dollar_to_mathjax(html)
+    assert '&amp;nbsp;' not in result
+    assert 'U(P_0) = \\frac{1}{4\\pi}' in result
+
+
+def test_amp_nbsp_stripped_from_anki_mathjax_inline():
+    r"""&amp;nbsp; inside an inline <anki-mathjax> is removed."""
+    html = '<anki-mathjax>&amp;nbsp;x^2&amp;nbsp;</anki-mathjax>'
+    result = _convert_dollar_to_mathjax(html)
+    assert '&amp;nbsp;' not in result
+    assert 'x^2' in result
+
+
+def test_plain_nbsp_entity_stripped_from_anki_mathjax():
+    r"""Plain &nbsp; entity inside <anki-mathjax> is also removed."""
+    html = '<anki-mathjax>&nbsp;\\alpha&nbsp;</anki-mathjax>'
+    result = _convert_dollar_to_mathjax(html)
+    assert '&nbsp;' not in result
+    assert '\\alpha' in result
+
+
+def test_unicode_nbsp_stripped_from_anki_mathjax():
+    r"""Unicode NBSP (U+00A0) inside <anki-mathjax> is removed."""
+    html = '<anki-mathjax>\u00a0\\beta\u00a0</anki-mathjax>'
+    result = _convert_dollar_to_mathjax(html)
+    assert '\u00a0' not in result
+    assert '\\beta' in result
+
+
+def test_nbsp_outside_anki_mathjax_preserved():
+    r"""&nbsp; outside <anki-mathjax> is not touched."""
+    html = 'hello&nbsp;<anki-mathjax>x</anki-mathjax>&nbsp;world'
+    result = _convert_dollar_to_mathjax(html)
+    assert result.startswith('hello&nbsp;')
+    assert result.endswith('&nbsp;world')
+
+
+def test_amp_nbsp_stripped_from_display_math_block():
+    r"""&amp;nbsp; inside \\[...\\] display math is cleaned."""
+    html = '\\[&amp;nbsp;&amp;nbsp; U(P_0) = \\frac{1}{4\\pi}\\]'
+    result = _convert_dollar_to_mathjax(html)
+    assert '&amp;nbsp;' not in result
+    assert '\\[U(P_0) = \\frac{1}{4\\pi}\\]' in result
+
+
+def test_amp_nbsp_stripped_from_inline_math():
+    r"""&amp;nbsp; inside \\(...\\) inline math is cleaned."""
+    html = '\\(&amp;nbsp;x^2&amp;nbsp;\\)'
+    result = _convert_dollar_to_mathjax(html)
+    assert '&amp;nbsp;' not in result
+    assert '\\(x^2\\)' in result
+
+
+def test_real_kirchhoff_field_cleaned():
+    r"""Real card: &amp;nbsp; padding inside \\[...\\] display math with newline."""
+    html = (
+        '&nbsp;&nbsp;&nbsp;&nbsp;'
+        '\\[&amp;nbsp;&amp;nbsp;&amp;nbsp; U(P_0) = \\frac{1}{4\\pi}'
+        '\n&amp;nbsp;&amp;nbsp;&amp;nbsp; \\]'
+    )
+    result = _convert_dollar_to_mathjax(html)
+    assert '&amp;nbsp;' not in result
+    assert 'U(P_0) = \\frac{1}{4\\pi}' in result
+    # nbsp OUTSIDE the math block is preserved
+    assert result.startswith('&nbsp;')
