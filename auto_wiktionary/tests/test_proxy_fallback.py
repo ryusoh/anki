@@ -2,32 +2,29 @@
 first, one retry through a detected local proxy (Clash/Shadowsocks/Astrill-style
 localhost listener), HTTP errors passed through untouched."""
 
-import os
-import sys
 from unittest.mock import MagicMock, patch
 from urllib.error import HTTPError, URLError
 
 import pytest
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-import utils
-from utils import urlopen_with_proxy_fallback
+from auto_wiktionary import proxy_fallback, utils
+from auto_wiktionary.proxy_fallback import urlopen_with_proxy_fallback
 
 PROXY = 'http://127.0.0.1:7897'
 
 
 @pytest.fixture(autouse=True)
 def reset_cached_opener():
-    utils._proxy_opener = None
+    proxy_fallback._proxy_opener = None
     yield
-    utils._proxy_opener = None
+    proxy_fallback._proxy_opener = None
 
 
 def test_direct_success_never_probes():
     response = MagicMock()
     with (
         patch('urllib.request.urlopen', return_value=response),
-        patch.object(utils, '_detect_local_proxy') as detect,
+        patch.object(proxy_fallback, '_detect_local_proxy') as detect,
     ):
         assert urlopen_with_proxy_fallback('req', timeout=5) is response
         detect.assert_not_called()
@@ -37,7 +34,7 @@ def test_http_error_passes_through_without_fallback():
     err = HTTPError('url', 404, 'not found', None, None)
     with (
         patch('urllib.request.urlopen', side_effect=err),
-        patch.object(utils, '_detect_local_proxy') as detect,
+        patch.object(proxy_fallback, '_detect_local_proxy') as detect,
     ):
         with pytest.raises(HTTPError):
             urlopen_with_proxy_fallback('req', timeout=5)
@@ -50,13 +47,13 @@ def test_network_failure_retries_via_local_proxy_and_caches_it():
     opener.open.return_value = response
     with (
         patch('urllib.request.urlopen', side_effect=URLError('offline')),
-        patch.object(utils, '_detect_local_proxy', return_value=PROXY),
+        patch.object(proxy_fallback, '_detect_local_proxy', return_value=PROXY),
         patch('urllib.request.build_opener', return_value=opener) as build,
     ):
         assert urlopen_with_proxy_fallback('req', timeout=5) is response
     proxies = build.call_args[0][0].proxies
     assert proxies == {'http': PROXY, 'https': PROXY}
-    assert utils._proxy_opener is opener
+    assert proxy_fallback._proxy_opener is opener
 
     # Cached: the next call goes straight through the proxy opener.
     with patch('urllib.request.urlopen', side_effect=AssertionError('dialed direct')):
@@ -67,7 +64,7 @@ def test_network_failure_retries_via_local_proxy_and_caches_it():
 def test_network_failure_without_proxy_raises_original_error():
     with (
         patch('urllib.request.urlopen', side_effect=URLError('offline')),
-        patch.object(utils, '_detect_local_proxy', return_value=None),
+        patch.object(proxy_fallback, '_detect_local_proxy', return_value=None),
     ):
         with pytest.raises(URLError):
             urlopen_with_proxy_fallback('req', timeout=5)
@@ -83,17 +80,17 @@ def test_detect_local_proxy_finds_astrill_openweb_port():
         return MagicMock()
 
     with patch('socket.create_connection', side_effect=fake_connect):
-        assert utils._detect_local_proxy() == 'http://127.0.0.1:3213'
+        assert proxy_fallback._detect_local_proxy() == 'http://127.0.0.1:3213'
 
 
 def test_dead_cached_proxy_heals_back_to_direct():
     dead = MagicMock()
     dead.open.side_effect = OSError('proxy gone')
-    utils._proxy_opener = dead
+    proxy_fallback._proxy_opener = dead
     response = MagicMock()
     with patch('urllib.request.urlopen', return_value=response):
         assert urlopen_with_proxy_fallback('req', timeout=5) is response
-    assert utils._proxy_opener is None
+    assert proxy_fallback._proxy_opener is None
 
 
 def test_fetch_wiktionary_html_falls_back_to_proxy():
@@ -104,7 +101,7 @@ def test_fetch_wiktionary_html_falls_back_to_proxy():
     opener.open.return_value = response
     with (
         patch('urllib.request.urlopen', side_effect=URLError('offline')),
-        patch.object(utils, '_detect_local_proxy', return_value=PROXY),
+        patch.object(proxy_fallback, '_detect_local_proxy', return_value=PROXY),
         patch('urllib.request.build_opener', return_value=opener),
     ):
         assert utils.fetch_wiktionary_html('word', 'en') == '<p>definition</p>'

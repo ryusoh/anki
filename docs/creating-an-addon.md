@@ -215,6 +215,24 @@ Factor the real logic into plain functions that take `col`/`card` so they can be
 unit-tested directly without touching `mw`. See
 `no_leech_suspend/tests/` and `hide_window_title/tests/` for full examples.
 
+## Making HTTP requests from an addon
+
+Don't hand-roll network calls — vendor the shared proxy-fallback helper so the
+addon keeps working when the user's uplink only reaches the internet through a
+local proxy client (Clash Verge, Astrill OpenWeb, …):
+
+1. Copy `shared/proxy_fallback.py` verbatim to `<addon>/proxy_fallback.py`.
+2. In your module: `from .proxy_fallback import urlopen_with_proxy_fallback`,
+   then use it anywhere you would call `urllib.request.urlopen`.
+3. Import it in tests via the package (`from <addon> import proxy_fallback`),
+   not `sys.path` hacks — the relative import in step 2 only resolves in
+   package context, which the root `conftest.py` mocks make possible.
+
+The vendored copy must stay byte-identical to the canonical file —
+`tests/test_proxy_fallback_sync.py` enforces it, so improvements to the helper
+are re-copied to every addon. Background and port list:
+`docs/limited-network.md`, failure mode 3.
+
 ## Verify (from the repo root, with `python3`)
 
 ```bash

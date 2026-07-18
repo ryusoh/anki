@@ -69,23 +69,29 @@ failure probe well-known localhost proxy ports (`7897`, `7890` — Clash
 Verge/Clash mixed; `1087` — ShadowsocksX-NG HTTP; `8118` — Privoxy; `3213` —
 Astrill OpenWeb) or fall back to a direct connection.
 
-Three implementations exist on purpose (each add-on dir must be
-self-contained for Anki; the R2 script is standalone). Their port lists are
-pinned identical by `tests/test_proxy_port_list_sync.py` — adding a port
-means editing all three, and the test fails if you miss one:
+`shared/proxy_fallback.py` is the canonical implementation. Anki add-ons
+must be self-contained (AnkiWeb packages ship a single add-on dir), so each
+consuming add-on keeps a byte-identical vendored copy at
+`<addon>/proxy_fallback.py` and imports it with
+`from .proxy_fallback import urlopen_with_proxy_fallback`.
+`tests/test_proxy_fallback_sync.py` pins the vendored copies byte-identical
+to the canonical file and the port lists everywhere identical — edit the
+canonical file, re-copy it to every add-on, and sync the port list in
+`data/anki/upload-to-r2`:
 
-- `data/anki/upload-to-r2` — `enable_proxy_fallback()` exports the detected
-  proxy into `HTTPS_PROXY`/`HTTP_PROXY` for the rest of the process (botocore
-  reads env at client creation; the urllib fallback rebuilds its opener). A
+- `shared/proxy_fallback.py` (+ vendored copies in `auto_wiktionary/` and
+  `auto_image/`) — `urlopen_with_proxy_fallback()` runs **inside Anki**, so
+  the proxy is scoped to a cached urllib opener instead of `os.environ`
+  (never leak a proxy to the whole Anki process). HTTP 4xx/5xx bypass the
+  fallback (they reached the server); a dead cached proxy heals back to
+  direct. Pinned by each addon's `tests/test_proxy_fallback.py`.
+- `data/anki/upload-to-r2` — standalone script with its own inline helper:
+  `enable_proxy_fallback()` exports the detected proxy into
+  `HTTPS_PROXY`/`HTTP_PROXY` for the rest of the process (botocore reads env
+  at client creation; the urllib fallback rebuilds its opener). A
   configured-but-dead proxy is dropped and the run retries direct. Also used
   by `graph/upload_public.py`. Pinned by
   `data/anki/tests/test_proxy_fallback.py`.
-- `auto_wiktionary/utils.py` and `auto_image/utils.py` —
-  `urlopen_with_proxy_fallback()` runs **inside Anki**, so the proxy is
-  scoped to a cached urllib opener instead of `os.environ` (never leak a
-  proxy to the whole Anki process). HTTP 4xx/5xx bypass the fallback (they
-  reached the server); a dead cached proxy heals back to direct. Pinned by
-  each addon's `tests/test_proxy_fallback.py`.
 
 ### Which VPN mode needs what (observed 2026-07-18)
 

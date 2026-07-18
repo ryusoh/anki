@@ -1,10 +1,7 @@
 import json
-import os
-import sys
 from unittest.mock import MagicMock, patch
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from utils import (
+from auto_image.utils import (
     _get_vqd_token,
     build_image_html,
     clean_html_text,
@@ -42,12 +39,16 @@ class TestCleanHtmlText:
 class TestGetVqdToken:
     def test_extracts_vqd_from_html(self):
         fake_html = b'<html>some stuff vqd="abc123def" more stuff</html>'
-        with patch("utils.urllib.request.urlopen", return_value=_mock_response(fake_html)):
+        with patch(
+            "auto_image.utils.urllib.request.urlopen", return_value=_mock_response(fake_html)
+        ):
             assert _get_vqd_token("cat") == "abc123def"
 
     def test_returns_none_on_no_token(self):
         fake_html = b'<html>no token here</html>'
-        with patch("utils.urllib.request.urlopen", return_value=_mock_response(fake_html)):
+        with patch(
+            "auto_image.utils.urllib.request.urlopen", return_value=_mock_response(fake_html)
+        ):
             assert _get_vqd_token("cat") is None
 
 
@@ -82,7 +83,7 @@ class TestFetchImageResults:
             else:
                 return _mock_response(api_response.encode('utf-8'))
 
-        with patch("utils.urllib.request.urlopen", side_effect=fake_urlopen):
+        with patch("auto_image.utils.urllib.request.urlopen", side_effect=fake_urlopen):
             urls = fetch_image_results("cat")
             assert urls == ["https://tse1.mm.bing.net/th?id=1", "https://tse2.mm.bing.net/th?id=2"]
             assert call_count[0] == 2
@@ -98,13 +99,13 @@ class TestFetchImageResults:
             else:
                 return _mock_response(api_response.encode('utf-8'))
 
-        with patch("utils.urllib.request.urlopen", side_effect=fake_urlopen):
+        with patch("auto_image.utils.urllib.request.urlopen", side_effect=fake_urlopen):
             assert fetch_image_results("asjdflkajsdflkajsdf") == []
 
     def test_returns_empty_list_on_network_error(self):
         with (
-            patch("utils.urllib.request.urlopen", side_effect=Exception("timeout")),
-            patch("utils.logger.warning") as mock_warning,
+            patch("auto_image.utils.urllib.request.urlopen", side_effect=Exception("timeout")),
+            patch("auto_image.utils.logger.warning") as mock_warning,
         ):
             assert fetch_image_results("cat") == []
             mock_warning.assert_called_once()
@@ -112,7 +113,8 @@ class TestFetchImageResults:
 
     def test_returns_empty_list_when_no_vqd_token(self):
         with patch(
-            "utils.urllib.request.urlopen", return_value=_mock_response(b'<html>nothing</html>')
+            "auto_image.utils.urllib.request.urlopen",
+            return_value=_mock_response(b'<html>nothing</html>'),
         ):
             assert fetch_image_results("cat") == []
 
@@ -138,7 +140,7 @@ class TestFetchImageResults:
             else:
                 return _mock_response(api_response.encode('utf-8'))
 
-        with patch("utils.urllib.request.urlopen", side_effect=fake_urlopen):
+        with patch("auto_image.utils.urllib.request.urlopen", side_effect=fake_urlopen):
             urls = fetch_image_results("cat")
             assert urls == ["https://tse1.mm.bing.net/th?id=2"]
 
@@ -147,13 +149,13 @@ class TestDownloadImage:
     def test_returns_bytes_on_success(self):
         fake_bytes = b'\x89PNG\r\n\x1a\nfake'
         mock = _mock_response(fake_bytes)
-        with patch("utils.urllib.request.urlopen", return_value=mock):
+        with patch("auto_image.utils.urllib.request.urlopen", return_value=mock):
             assert download_image("https://tse1.mm.bing.net/th?id=1") == fake_bytes
 
     def test_returns_none_on_error(self):
         with (
-            patch("utils.urllib.request.urlopen", side_effect=Exception("fail")),
-            patch("utils.logger.warning") as mock_warning,
+            patch("auto_image.utils.urllib.request.urlopen", side_effect=Exception("fail")),
+            patch("auto_image.utils.logger.warning") as mock_warning,
         ):
             assert download_image("https://tse1.mm.bing.net/th?id=1") is None
             mock_warning.assert_called_once()
@@ -168,7 +170,7 @@ class TestDownloadImage:
 
     def test_returns_none_on_empty_body(self):
         mock = _mock_response(b'')
-        with patch("utils.urllib.request.urlopen", return_value=mock):
+        with patch("auto_image.utils.urllib.request.urlopen", return_value=mock):
             assert download_image("https://tse1.mm.bing.net/th?id=1") is None
 
 

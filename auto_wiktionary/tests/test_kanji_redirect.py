@@ -1,9 +1,6 @@
-import os
-import sys
 from unittest.mock import patch
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from utils import (
+from auto_wiktionary.utils import (
     detect_kanji_redirect,
     fetch_wiktionary_html,
     inject_redirect_pronunciation,

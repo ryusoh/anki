@@ -1,9 +1,6 @@
 import json
-import os
-import sys
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from utils import (
+from auto_wiktionary.utils import (
     fetch_wiktionary_html,
     format_candidates_html,
     get_wiktionary_candidates,
@@ -57,7 +54,7 @@ def test_get_wiktionary_candidates_network_error():
     with (
         patch("urllib.request.urlopen", side_effect=URLError("offline")),
         # Keep the proxy fallback from probing real localhost ports in tests.
-        patch("utils._detect_local_proxy", return_value=None),
+        patch("auto_wiktionary.proxy_fallback._detect_local_proxy", return_value=None),
     ):
         # Failures are swallowed and yield an empty list, never raise.
         assert get_wiktionary_candidates("applz", "en") == []

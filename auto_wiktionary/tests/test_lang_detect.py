@@ -1,8 +1,4 @@
-import os
-import sys
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from utils import clean_html_text, detect_language
+from auto_wiktionary.utils import clean_html_text, detect_language
 
 
 def test_clean_html_text():
