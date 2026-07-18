@@ -8,8 +8,9 @@ from bs4 import BeautifulSoup
 from bs4.element import NavigableString, Tag
 
 # Well-known localhost HTTP-proxy ports probed when a direct connection
-# fails: Clash Verge/Clash mixed ports, ShadowsocksX-NG HTTP, Privoxy.
-_LOCAL_PROXY_PORTS = (7897, 7890, 1087, 8118)
+# fails: Clash Verge/Clash mixed ports, ShadowsocksX-NG HTTP, Privoxy,
+# Astrill VPN (OpenWeb mode local HTTP proxy).
+_LOCAL_PROXY_PORTS = (7897, 7890, 1087, 8118, 3213)
 
 _proxy_opener = None  # cached opener routed through a detected local proxy
 

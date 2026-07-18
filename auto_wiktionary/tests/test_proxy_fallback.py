@@ -1,5 +1,5 @@
 """Proxy-fallback behaviour for Wiktionary API calls: direct connection
-first, one retry through a detected local proxy (Clash/Shadowsocks-style
+first, one retry through a detected local proxy (Clash/Shadowsocks/Astrill-style
 localhost listener), HTTP errors passed through untouched."""
 
 import os
@@ -71,6 +71,19 @@ def test_network_failure_without_proxy_raises_original_error():
     ):
         with pytest.raises(URLError):
             urlopen_with_proxy_fallback('req', timeout=5)
+
+
+def test_detect_local_proxy_finds_astrill_openweb_port():
+    """Astrill VPN's OpenWeb mode runs a local HTTP proxy on 127.0.0.1:3213;
+    the fallback must find it when no Clash-family port is listening."""
+
+    def fake_connect(addr, timeout):
+        if addr[1] != 3213:
+            raise OSError('closed')
+        return MagicMock()
+
+    with patch('socket.create_connection', side_effect=fake_connect):
+        assert utils._detect_local_proxy() == 'http://127.0.0.1:3213'
 
 
 def test_dead_cached_proxy_heals_back_to_direct():
