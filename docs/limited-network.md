@@ -65,11 +65,14 @@ proxy that is no longer listening — observed 2026-07-17, when a dead proxy
 env var failed **every** upload in a run with
 `Failed to connect to proxy URL`. Network callers in this repo therefore
 self-heal in **both** directions: try the configured route first, and on
-failure probe well-known localhost proxy ports (`7897`, `7890`, `1087`,
-`8118` — Clash Verge/Clash mixed, ShadowsocksX-NG HTTP, Privoxy) or fall
-back to a direct connection.
+failure probe well-known localhost proxy ports (`7897`, `7890` — Clash
+Verge/Clash mixed; `1087` — ShadowsocksX-NG HTTP; `8118` — Privoxy; `3213` —
+Astrill OpenWeb) or fall back to a direct connection.
 
-Three implementations exist on purpose (update the port list in all three):
+Three implementations exist on purpose (each add-on dir must be
+self-contained for Anki; the R2 script is standalone). Their port lists are
+pinned identical by `tests/test_proxy_port_list_sync.py` — adding a port
+means editing all three, and the test fails if you miss one:
 
 - `data/anki/upload-to-r2` — `enable_proxy_fallback()` exports the detected
   proxy into `HTTPS_PROXY`/`HTTP_PROXY` for the rest of the process (botocore
@@ -83,6 +86,31 @@ Three implementations exist on purpose (update the port list in all three):
   proxy to the whole Anki process). HTTP 4xx/5xx bypass the fallback (they
   reached the server); a dead cached proxy heals back to direct. Pinned by
   each addon's `tests/test_proxy_fallback.py`.
+
+### Which VPN mode needs what (observed 2026-07-18)
+
+- **Clash Verge**: sets the system proxy and listens on its mixed port —
+  the fallback covers it.
+- **Astrill OpenWeb mode**: sets the macOS system proxy to `127.0.0.1:3213`;
+  only apps honoring the system proxy (browsers) get through. Local DNS
+  still returns poisoned IPs for blocked hosts, so a no-proxy HTTPS
+  connection dies with a TLS handshake timeout. And because
+  `urllib.request.urlopen`'s global opener snapshots the system proxy at
+  first use, a proxy set _after_ process start (Anki launched before
+  Astrill) is never picked up — the `3213` probe is what heals it.
+- **Astrill StealthVPN / other tunnel modes**: full-tunnel `utun` with VPN
+  DNS — direct connections just work, no local proxy exists, and the
+  fallback never triggers (a proxy cached from an earlier OpenWeb session is
+  dropped by the dead-proxy healing back to direct).
+
+Verify a fallback change against the live VPN by simulating the broken
+direct path — force a no-proxy connection with
+`build_opener(ProxyHandler({}))`, or in a Python session:
+
+```python
+with patch('urllib.request.urlopen', side_effect=URLError(TimeoutError('handshake timed out'))):
+    utils.fetch_wiktionary_html('猫', 'ja')  # must heal via the detected proxy
+```
 
 Related invariant, pinned by `data/anki/tests/test_failed_upload_hash_map.py`:
 **failed uploads never enter the hash map**, so an interrupted or partly

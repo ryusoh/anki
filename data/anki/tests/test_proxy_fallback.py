@@ -2,7 +2,7 @@
 """
 Test local-proxy fallback in upload-to-r2: uploads try a direct connection
 first and, on failure, retry through a detected localhost proxy exported as
-HTTPS_PROXY (Clash/ShadowsocksX-NG/Privoxy-style local listeners).
+HTTPS_PROXY (Clash/ShadowsocksX-NG/Privoxy/Astrill-style local listeners).
 """
 
 import importlib.util
@@ -91,6 +91,19 @@ def test_detect_probes_known_ports():
 
     with patch('socket.create_connection', side_effect=fake_connect):
         assert r2.detect_local_proxy() == PROXY
+
+
+def test_detect_finds_astrill_openweb_port():
+    """Astrill VPN's OpenWeb mode runs a local HTTP proxy on 127.0.0.1:3213;
+    the fallback must find it when no Clash-family port is listening."""
+
+    def fake_connect(addr, timeout=None):
+        if addr == ('127.0.0.1', 3213):
+            return MagicMock()
+        raise OSError('connection refused')
+
+    with patch('socket.create_connection', side_effect=fake_connect):
+        assert r2.detect_local_proxy() == 'http://127.0.0.1:3213'
 
 
 def test_detect_returns_none_when_nothing_listens():

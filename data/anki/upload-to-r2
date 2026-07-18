@@ -79,8 +79,9 @@ def load_credentials():
 
 
 # Well-known localhost HTTP-proxy ports probed when a direct upload fails:
-# Clash Verge mixed port, Clash mixed port, ShadowsocksX-NG HTTP, Privoxy.
-LOCAL_PROXY_PORTS = (7897, 7890, 1087, 8118)
+# Clash Verge mixed port, Clash mixed port, ShadowsocksX-NG HTTP, Privoxy,
+# Astrill VPN (OpenWeb mode local HTTP proxy).
+LOCAL_PROXY_PORTS = (7897, 7890, 1087, 8118, 3213)
 
 PROXY_ENV_VARS = ('HTTPS_PROXY', 'https_proxy', 'HTTP_PROXY', 'http_proxy')
 
