@@ -281,6 +281,17 @@ def test_bare_latex_short_variables_ok():
     assert _convert_dollar_to_mathjax(html) == expected
 
 
+def test_bare_lambdabar_line_wrapped_as_block():
+    """A bare \\lambdabar line is LaTeX too: \\lambdabar must match as its own
+    command — \\lambda's trailing word boundary cannot prefix-match it."""
+    html = '<div>\\lambdabar</div>'
+    result = _convert_dollar_to_mathjax(html)
+    # The bare line should be wrapped in display math
+    assert '\\[\\lambdabar\\]' in result
+    # A macro preamble should also be injected
+    assert '\\def\\lambdabar' in result
+
+
 def test_bare_latex_fragment_in_prose_wrapped_inline():
     """Prose stays prose; only the embedded LaTeX fragment is wrapped inline."""
     html = 'The result is \\frac{1}{2} of the total amount'
@@ -638,3 +649,54 @@ def test_real_world_input():
     # No stray $ for inline either
     assert '$I$' not in result
     assert '$I^2$' not in result
+
+
+# --- Macro injection: \lambdabar → \def\lambdabar{...} preamble ---
+
+
+def test_lambdabar_inline_gets_def_preamble():
+    r"""$\lambdabar$ converts to \\(...\\) and a \\def preamble is injected."""
+    html = r'$\lambdabar = \lambda_C / 2\pi$'
+    result = _convert_dollar_to_mathjax(html)
+    # The preamble block should appear exactly once
+    assert r'\def\lambdabar' in result
+    # The original math should still be wrapped
+    assert r'\(\lambdabar = \lambda_C / 2\pi\)' in result
+
+
+def test_lambdabar_already_wrapped_gets_def_preamble():
+    r"""Already-wrapped \\(\lambdabar\\) still gets a \\def preamble."""
+    html = r'\(\lambdabar\)'
+    result = _convert_dollar_to_mathjax(html)
+    assert r'\def\lambdabar' in result
+
+
+def test_lambdabar_bare_block_gets_def_preamble():
+    r"""A bare \lambdabar line wrapped as display math gets a \def preamble."""
+    html = r'<div>\lambdabar</div>'
+    result = _convert_dollar_to_mathjax(html)
+    assert r'\def\lambdabar' in result
+    assert r'\[\lambdabar\]' in result
+
+
+def test_lambdabar_def_injected_only_once():
+    r"""Multiple occurrences of \lambdabar produce only one \def."""
+    html = r'$\lambdabar$ and $\lambdabar$'
+    result = _convert_dollar_to_mathjax(html)
+    assert result.count(r'\def\lambdabar') == 1
+
+
+def test_no_lambdabar_no_preamble():
+    r"""Fields without \lambdabar get no preamble injection."""
+    html = r'$\lambda$'
+    result = _convert_dollar_to_mathjax(html)
+    assert r'\def\lambdabar' not in result
+
+
+def test_lambdabar_def_not_duplicated_on_rerun():
+    r"""Running the converter on already-converted output doesn't add a second \def."""
+    html = r'$\lambdabar$'
+    first = _convert_dollar_to_mathjax(html)
+    second = _convert_dollar_to_mathjax(first)
+    assert second.count(r'\def\lambdabar') == 1
+

@@ -48,7 +48,7 @@ BARE_LATEX_COMMAND_RE = re.compile(
     r'leq?|geq?|neq|approx|equiv|propto|infty|log|ln|exp|sin|cos|tan|lim|'
     r'partial|nabla|to|rightarrow|Rightarrow|left|right|over|hat|bar|vec|'
     r'mathbb|mathrm|mathbf|mathit|operatorname|'
-    r'alpha|beta|gamma|Gamma|delta|Delta|epsilon|theta|lambda|mu|pi|rho|'
+    r'alpha|beta|gamma|Gamma|delta|Delta|epsilon|theta|lambdabar|lambda|mu|pi|rho|'
     r'sigma|Sigma|tau|phi|Phi|omega|Omega'
     r')\b'
 )
@@ -87,6 +87,15 @@ EMBEDDED_RUN_RE = re.compile(
 # punctuation and a leading/trailing "=" that reads as prose glue
 # (e.g. "<b>Quick Ratio</b> = \frac{...}").
 _RUN_TRIM_CHARS = '.,;:= \t'
+
+# Custom macro definitions for commands MathJax doesn't know natively.
+# Each key is a command name (without backslash); the value is the TeX
+# replacement body.  When a converted field contains one of these commands,
+# a hidden preamble block (\def\cmd{body}) is prepended so MathJax learns
+# it before encountering the usage.
+CUSTOM_MACROS = {
+    'lambdabar': r'\unicode{x019B}',
+}
 
 
 def _is_purely_numeric(s):
@@ -202,6 +211,33 @@ def _wrap_embedded_latex(segment):
     return EMBEDDED_RUN_RE.sub(repl, segment)
 
 
+def _inject_macro_defs(html_str):
+    """Prepend hidden \\\\def preambles for custom macros found in *html_str*.
+
+    Scans for commands listed in CUSTOM_MACROS.  For each one found whose
+    \\\\def is not already present, a ``\\\\(\\\\def\\\\cmd{body}\\\\)`` preamble is
+    prepended (invisible — MathJax processes it but renders nothing).
+
+    Idempotent: re-running on output that already has the preamble is safe.
+    """
+    if not CUSTOM_MACROS:
+        return html_str
+
+    defs_needed = []
+    for cmd, body in CUSTOM_MACROS.items():
+        cmd_token = '\\' + cmd              # e.g. \lambdabar  (1 backslash)
+        def_token = '\\def\\' + cmd          # e.g. \def\lambdabar
+        # Command is used somewhere in the field, and not already defined
+        if cmd_token in html_str and def_token not in html_str:
+            defs_needed.append(f'\\def\\{cmd}{{{body}}}')
+
+    if not defs_needed:
+        return html_str
+
+    preamble = '\\(' + ' '.join(defs_needed) + '\\)'
+    return preamble + html_str
+
+
 def _convert_dollar_to_mathjax(html_str):
     """Convert $...$ patterns to \\(...\\) MathJax inline notation.
 
@@ -302,7 +338,8 @@ def _convert_dollar_to_mathjax(html_str):
 
         result_parts.append(converted)
 
-    return ''.join(result_parts)
+    converted_html = ''.join(result_parts)
+    return _inject_macro_defs(converted_html)
 
 
 def _apply_mathjax(editor):
