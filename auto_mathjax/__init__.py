@@ -103,9 +103,7 @@ ANKI_MATHJAX_RE = re.compile(
 )
 
 # Matches \[...\] and \(...\) MathJax delimiter blocks
-MATHJAX_DELIM_RE = re.compile(
-    r'(\\\[)(.*?)(\\\])|(\\\()(.*?)(\\\))', re.DOTALL
-)
+MATHJAX_DELIM_RE = re.compile(r'(\\\[)(.*?)(\\\])|(\\\()(.*?)(\\\))', re.DOTALL)
 
 
 def _is_purely_numeric(s):
@@ -235,8 +233,8 @@ def _inject_macro_defs(html_str):
 
     defs_needed = []
     for cmd, body in CUSTOM_MACROS.items():
-        cmd_token = '\\' + cmd              # e.g. \lambdabar  (1 backslash)
-        def_token = '\\def\\' + cmd          # e.g. \def\lambdabar
+        cmd_token = '\\' + cmd  # e.g. \lambdabar  (1 backslash)
+        def_token = '\\def\\' + cmd  # e.g. \def\lambdabar
         # Command is used somewhere in the field, and not already defined
         if cmd_token in html_str and def_token not in html_str:
             defs_needed.append(f'\\def\\{cmd}{{{body}}}')
@@ -256,6 +254,7 @@ def _clean_mathjax_nbsp(html_str):
     (HTML entity), and the Unicode non-breaking space U+00A0.
     Content outside math blocks is left untouched.
     """
+
     def _scrub_content(content):
         content = content.replace('&amp;nbsp;', '')
         content = content.replace('&nbsp;', '')

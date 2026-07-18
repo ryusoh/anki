@@ -567,8 +567,8 @@ Ranked findings (impact at 53 KiB/s → effort/risk):
 - `hash_map.json` (13 MB, 163k entries) parses in **0.06 s** — the 2–3
   loads/run are noise.
 - boto3 client reuse — already implemented (`get_s3_client()`).
-- The NET_DEADLINE kill design, the successes-only hash-map invariant, the
-  per-note file scheme (it _is_ consumed, by `download-from-r2`), and
+- The NET*DEADLINE kill design, the successes-only hash-map invariant, the
+  per-note file scheme (it \_is* consumed, by `download-from-r2`), and
   tracking `hash_map.json` in git (§4) are all correct — leave them.
 
 **Open questions:** whether anything _outside_ this repo (personal site,
