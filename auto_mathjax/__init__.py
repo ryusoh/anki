@@ -247,6 +247,63 @@ def _inject_macro_defs(html_str):
     return preamble + html_str
 
 
+def _fix_unbalanced_braces(content):
+    """Fix unbalanced braces in a LaTeX string.
+
+    Scans left-to-right tracking brace depth.  A ``}`` that would push
+    depth below zero is silently dropped (extra closing brace typo).
+    After the scan, any remaining unclosed ``{`` are closed by appending
+    ``}`` characters.  Escaped braces (``\\{`` / ``\\}``) are treated as
+    literal display characters and do not affect depth.
+    """
+    result = []
+    depth = 0
+    i = 0
+    while i < len(content):
+        ch = content[i]
+        # Escaped brace — literal, not grouping
+        if ch == '\\' and i + 1 < len(content) and content[i + 1] in '{}':
+            result.append(content[i : i + 2])
+            i += 2
+            continue
+        if ch == '{':
+            depth += 1
+            result.append(ch)
+        elif ch == '}':
+            if depth > 0:
+                depth -= 1
+                result.append(ch)
+            # else: skip this extra }
+        else:
+            result.append(ch)
+        i += 1
+    # Append missing closing braces
+    result.extend('}' * depth)
+    return ''.join(result)
+
+
+def _fix_mathjax_braces(html_str):
+    """Fix unbalanced braces inside all MathJax blocks in *html_str*.
+
+    Covers ``<anki-mathjax>``, ``\\[...\\]``, and ``\\(...\\)`` blocks.
+    Content outside math delimiters is untouched.
+    """
+
+    def _fix_anki(m):
+        fixed = _fix_unbalanced_braces(m.group(2))
+        return m.group(1) + fixed + m.group(3)
+
+    def _fix_delim(m):
+        if m.group(1) is not None:
+            opener, content, closer = m.group(1), m.group(2), m.group(3)
+        else:
+            opener, content, closer = m.group(4), m.group(5), m.group(6)
+        return opener + _fix_unbalanced_braces(content) + closer
+
+    html_str = ANKI_MATHJAX_RE.sub(_fix_anki, html_str)
+    return MATHJAX_DELIM_RE.sub(_fix_delim, html_str)
+
+
 def _clean_mathjax_nbsp(html_str):
     """Remove ``&nbsp;`` noise from inside MathJax blocks.
 
@@ -412,6 +469,7 @@ def _convert_dollar_to_mathjax(html_str):
 
     converted_html = ''.join(result_parts)
     converted_html = _clean_mathjax_nbsp(converted_html)
+    converted_html = _fix_mathjax_braces(converted_html)
     converted_html = _unwrap_mathjax_from_pre(converted_html)
     return _inject_macro_defs(converted_html)
 

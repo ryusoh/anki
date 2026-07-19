@@ -818,3 +818,87 @@ def test_real_card_mathjax_unwrapped_from_nested_pre():
     assert '</pre>' not in result
     assert '\\[\\begin{bmatrix}' in result
     assert '\\end{bmatrix}\\]' in result
+
+
+# --- Unbalanced-brace fixing inside MathJax blocks ---
+
+
+def test_extra_closing_brace_in_anki_mathjax_fixed():
+    r"""Extra } inside <anki-mathjax> is removed."""
+    html = '<anki-mathjax>E_{\\mathbf{p}}}</anki-mathjax>'
+    result = _convert_dollar_to_mathjax(html)
+    assert result == '<anki-mathjax>E_{\\mathbf{p}}</anki-mathjax>'
+
+
+def test_extra_closing_brace_in_block_anki_mathjax_fixed():
+    r"""Extra } in display <anki-mathjax block="true"> is removed."""
+    html = '<anki-mathjax block="true">' '\\frac{1}{2E_{\\mathbf{p}}}} e^{-ip}' '</anki-mathjax>'
+    result = _convert_dollar_to_mathjax(html)
+    assert '\\frac{1}{2E_{\\mathbf{p}}} e^{-ip}' in result
+    # Braces should now balance
+    import re
+
+    m = re.search(r'<anki-mathjax[^>]*>(.*?)</anki-mathjax>', result, re.DOTALL)
+    content = m.group(1)
+    assert content.count('{') == content.count('}')
+
+
+def test_extra_closing_brace_in_backslash_square_fixed():
+    r"""Extra } inside \[...\] is removed."""
+    html = '\\[\\frac{a}{b}}\\]'
+    result = _convert_dollar_to_mathjax(html)
+    assert result == '\\[\\frac{a}{b}\\]'
+
+
+def test_extra_closing_brace_in_backslash_paren_fixed():
+    r"""Extra } inside \(...\) is removed."""
+    html = '\\(E_{\\mathbf{p}}}\\)'
+    result = _convert_dollar_to_mathjax(html)
+    assert result == '\\(E_{\\mathbf{p}}\\)'
+
+
+def test_missing_closing_brace_in_anki_mathjax_appended():
+    r"""Missing } inside <anki-mathjax> is appended."""
+    html = '<anki-mathjax>\\frac{a}{b</anki-mathjax>'
+    result = _convert_dollar_to_mathjax(html)
+    assert result == '<anki-mathjax>\\frac{a}{b}</anki-mathjax>'
+
+
+def test_escaped_braces_not_counted():
+    r"""Literal \{ and \} are display characters, not grouping — don't touch."""
+    html = '<anki-mathjax>\\{a, b\\}</anki-mathjax>'
+    result = _convert_dollar_to_mathjax(html)
+    assert result == html  # unchanged — already balanced
+
+
+def test_balanced_braces_untouched():
+    r"""Already-balanced content is not modified."""
+    html = '<anki-mathjax>\\frac{a}{b}</anki-mathjax>'
+    result = _convert_dollar_to_mathjax(html)
+    assert result == html
+
+
+def test_user_wightman_card_braces_fixed():
+    r"""The user's exact card: two blocks with extra } are fixed."""
+    import re
+
+    html = (
+        '<anki-mathjax block="true">W(x-y) = \\int \\frac{d^3p}{(2\\pi)^3} '
+        '\\frac{1}{2E_{\\mathbf{p}}}} e^{-ip \\cdot (x-y)}</anki-mathjax>'
+        '<br>\u5176\u4e2d <anki-mathjax>p^0 = E_{\\mathbf{p}}} = '
+        '\\sqrt{\\mathbf{p}^2 + m^2}</anki-mathjax>'
+    )
+    result = _convert_dollar_to_mathjax(html)
+    for m in re.finditer(r'<anki-mathjax[^>]*>(.*?)</anki-mathjax>', result, re.DOTALL):
+        content = m.group(1)
+        assert content.count('{') == content.count('}'), f"Unbalanced: {content}"
+    # Specific fix: the FOUR consecutive } (typo) are now THREE (correct)
+    assert '\\mathbf{p}}}}' not in result
+
+
+def test_brace_fix_idempotent():
+    r"""Running brace fix twice gives the same result."""
+    html = '<anki-mathjax>E_{\\mathbf{p}}}</anki-mathjax>'
+    first = _convert_dollar_to_mathjax(html)
+    second = _convert_dollar_to_mathjax(first)
+    assert first == second
