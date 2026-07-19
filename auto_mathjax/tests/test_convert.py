@@ -902,3 +902,28 @@ def test_brace_fix_idempotent():
     first = _convert_dollar_to_mathjax(html)
     second = _convert_dollar_to_mathjax(first)
     assert first == second
+
+
+# --- Table conversion Tests ---
+
+
+def test_table_conversion():
+    r"""Ensure MathJax inside HTML tables converts correctly."""
+    html = '<table><tr><td><anki-mathjax>W(x,y)</anki-mathjax></td><td>$x^2$</td></tr></table>'
+    expected = (
+        '<table><tr><td><anki-mathjax>W(x,y)</anki-mathjax></td><td>\\(x^2\\)</td></tr></table>'
+    )
+    assert _convert_dollar_to_mathjax(html) == expected
+
+
+def test_autoclose_unclosed_mathjax_at_boundaries():
+    r"""Ensure unclosed \( or \[ delimiters are auto-closed at structural HTML boundaries."""
+    # Unclosed inline math in a table cell
+    html = '<td>\\(1/(k_E^2+m^2)</td>'
+    expected = '<td>\\(1/(k_E^2+m^2)\\)</td>'
+    assert _convert_dollar_to_mathjax(html) == expected
+
+    # Unclosed display math at the end of the field
+    html2 = '\\[math block without end'
+    expected2 = '\\[math block without end\\]'
+    assert _convert_dollar_to_mathjax(html2) == expected2

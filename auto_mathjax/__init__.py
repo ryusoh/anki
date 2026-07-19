@@ -28,9 +28,13 @@ ADDON_DIR = os.path.dirname(__file__)
 ICON_PATH = os.path.join(ADDON_DIR, "icon.png")
 
 # Regex to split HTML into logical lines.
-# We split on <br>, <br/>, <div>, </div>, </p>, or literal newlines,
-# but PRESERVE the delimiters so we can reassemble exactly.
-LINE_SPLIT_RE = re.compile(r'(<br\s*/?>|</?div[^>]*>|</p[^>]*>|\n)', re.IGNORECASE)
+# We split on <br>, <div>, <p>, and other structural block/table tags,
+# or literal newlines, but PRESERVE the delimiters so we can reassemble exactly.
+# MathJax formulas do not span across these structural boundaries.
+LINE_SPLIT_RE = re.compile(
+    r'(<br\s*/?>|</?(?:div|p|table|tbody|thead|tfoot|tr|td|th|ul|ol|li|blockquote|h[1-6])[^>]*>|\n)',
+    re.IGNORECASE,
+)
 
 # Combined regex: match $$...$$ (block) FIRST, then $...$ (inline).
 # - Group 1: block math content (between $$...$$)
@@ -394,6 +398,11 @@ def _convert_dollar_to_mathjax(html_str):
     for segment in segments:
         # If this segment is a delimiter (tag/newline), pass through unchanged
         if LINE_SPLIT_RE.match(segment):
+            # Auto-close unclosed MathJax blocks before structural HTML boundaries
+            if open_delim is not None and not segment.lower().startswith(('<br', '\n')):
+                closer = '\\)' if open_delim == '(' else '\\]'
+                result_parts.append(closer)
+                open_delim = None
             result_parts.append(segment)
             continue
 
@@ -466,6 +475,10 @@ def _convert_dollar_to_mathjax(html_str):
                 converted = _wrap_embedded_latex(segment)
 
         result_parts.append(converted)
+
+    if open_delim is not None:
+        closer = '\\)' if open_delim == '(' else '\\]'
+        result_parts.append(closer)
 
     converted_html = ''.join(result_parts)
     converted_html = _clean_mathjax_nbsp(converted_html)
