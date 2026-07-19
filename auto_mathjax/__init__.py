@@ -22,6 +22,7 @@ import re
 
 from aqt import gui_hooks
 from aqt.editor import Editor
+from bs4 import BeautifulSoup
 
 ADDON_DIR = os.path.dirname(__file__)
 ICON_PATH = os.path.join(ADDON_DIR, "icon.png")
@@ -276,6 +277,39 @@ def _clean_mathjax_nbsp(html_str):
     return MATHJAX_DELIM_RE.sub(_scrub_delim, html_str)
 
 
+def _unwrap_mathjax_from_pre(html_str):
+    """Unwrap MathJax blocks that are trapped inside ``<pre>`` tags.
+
+    Anki's editor renders ``\\(...\\)`` / ``\\[...\\]`` by converting them to
+    ``<anki-mathjax>`` itself, so it does not care about ``<pre>`` wrappers.
+    The reviewer's MathJax tex2jax preprocessor, however, skips ``<pre>``
+    (and ``<code>``) by default, so the same field shows raw code during
+    review. Remove ``<pre>`` wrappers whose only real content is a MathJax
+    block, and drop any ``<pre>`` tags left empty by the unwrap.
+    """
+    if '<pre' not in html_str.lower():
+        return html_str
+
+    soup = BeautifulSoup(html_str, 'html.parser')
+    math_block_re = re.compile(r'\\\[.*\\\]|\\\(.*\\\)', re.DOTALL)
+
+    changed = True
+    while changed:
+        changed = False
+        for pre in soup.find_all('pre'):
+            text = pre.get_text(strip=True)
+            if re.fullmatch(math_block_re, text):
+                pre.unwrap()
+                changed = True
+                break
+
+    for pre in list(soup.find_all('pre')):
+        if not pre.get_text(strip=True):
+            pre.decompose()
+
+    return str(soup)
+
+
 def _convert_dollar_to_mathjax(html_str):
     """Convert $...$ patterns to \\(...\\) MathJax inline notation.
 
@@ -378,6 +412,7 @@ def _convert_dollar_to_mathjax(html_str):
 
     converted_html = ''.join(result_parts)
     converted_html = _clean_mathjax_nbsp(converted_html)
+    converted_html = _unwrap_mathjax_from_pre(converted_html)
     return _inject_macro_defs(converted_html)
 
 

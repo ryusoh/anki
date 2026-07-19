@@ -579,13 +579,18 @@ def test_wikipedia_displaystyle_paste_untouched():
 
 
 def test_multiline_display_block_interior_untouched():
+    # The \[...\] content itself must not be mangled; <pre> wrappers that
+    # would hide it from the reviewer's MathJax are removed.
     html = (
         '<div><pre><pre><div>\\[\\begin{bmatrix}\n'
         '\\lambda &amp; 1 &amp; 0 &amp; \\cdots \\\\\n'
         '0 &amp; \\cdots &amp; 0 &amp; \\lambda\n'
         '\\end{bmatrix}\\]</div>'
     )
-    assert _convert_dollar_to_mathjax(html) == html
+    result = _convert_dollar_to_mathjax(html)
+    assert '<pre>' not in result
+    assert '\\[\\begin{bmatrix}' in result
+    assert '\\end{bmatrix}\\]' in result
 
 
 def test_multiline_display_block_continuation_untouched():
@@ -776,3 +781,40 @@ def test_real_kirchhoff_field_cleaned():
     assert 'U(P_0) = \\frac{1}{4\\pi}' in result
     # nbsp OUTSIDE the math block is preserved
     assert result.startswith('&nbsp;')
+
+
+# --- MathJax inside <pre> tags (reviewer skips them; editor does not) ---
+
+
+def test_mathjax_inside_pre_is_unwrapped():
+    r"""\[...\] inside <pre> is unwrapped so the reviewer MathJax sees it.
+
+    The editor renders \\(...\\) / \\[...\\] as <anki-mathjax> regardless of
+    surrounding <pre>, but MathJax tex2jax in the reviewer skips <pre> by
+    default. The add-on must unwrap math so it renders during review.
+    """
+    html = '<pre>\\[x^2\\]</pre>'
+    assert _convert_dollar_to_mathjax(html) == '\\[x^2\\]'
+
+
+def test_inline_mathjax_inside_pre_is_unwrapped():
+    r"""\\(...\\) inside <pre> is unwrapped too."""
+    html = '<p><pre>\\(x^2\\)</pre></p>'
+    assert _convert_dollar_to_mathjax(html) == '<p>\\(x^2\\)</p>'
+
+
+def test_real_card_mathjax_unwrapped_from_nested_pre():
+    r"""Real card with front field '相似标准型' had MathJax inside nested <pre>."""
+    html = (
+        '<div><pre><pre><div>\\[\\begin{bmatrix}\n'
+        '\\lambda &amp; 1 &amp; 0 &amp; \\cdots \\\\\n'
+        '0 &amp; \\lambda &amp; 1 &amp; \\cdots \\\\\n'
+        '\\vdots &amp; &amp; \\ddots &amp; 1 \\\\\n'
+        '0 &amp; \\cdots &amp; 0 &amp; \\lambda\n'
+        '\\end{bmatrix}\\]</div></pre><pre></pre><pre></pre></pre></div>'
+    )
+    result = _convert_dollar_to_mathjax(html)
+    assert '<pre>' not in result
+    assert '</pre>' not in result
+    assert '\\[\\begin{bmatrix}' in result
+    assert '\\end{bmatrix}\\]' in result
