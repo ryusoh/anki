@@ -1,0 +1,309 @@
+
+⏳ Running verification gate (parallel)...
+make[1]: Entering directory '/app'
+  [2m⏳ fmt-check ...[0m
+  [2m⏳ lint ...[0m
+  [2m⏳ typecheck-js ...[0m
+  [2m⏳ quality-py ...[0m
+  [32m✅ typecheck-js[0m
+  [2m⏳ check ...[0m
+  [32m✅ fmt-check[0m
+  [2m⏳ sync-check ...[0m
+  [32m✅ sync-check[0m
+  [32m✅ lint[0m
+  [32m✅ quality-py[0m
+  [32m✅ check[0m
+make[1]: Leaving directory '/app'
+
+[32m━━━ ✅ fmt-check ━━━[0m
+make[2]: Entering directory '/app'
+Checking formatting...
+make[2]: Leaving directory '/app'
+
+[32m━━━ ✅ lint ━━━[0m
+make[2]: Entering directory '/app'
+Linting JavaScript (ESLint, first-party only)...
+Linting CSS (Stylelint, first-party only)...
+Linting Markdown files...
+make[2]: Leaving directory '/app'
+
+[32m━━━ ✅ typecheck-js ━━━[0m
+make[2]: Entering directory '/app'
+JS type check (tsc --checkJs on whitelist)...
+make[2]: Leaving directory '/app'
+
+[32m━━━ ✅ quality-py ━━━[0m
+make[2]: Entering directory '/app'
+🐍 Ruff (lint)...
+All checks passed!
+🐍 Black (format check)...
+All done! ✨ 🍰 ✨
+257 files would be left unchanged.
+🐍 mypy (type check)...
+[1m[32mSuccess: no issues found in 174 source files[m
+🐍 Bandit (security, high severity)...
+[main]	INFO	Using ini file for skipped tests
+[main]	INFO	Using command line arg for selected targets
+✅ Python quality checks complete
+make[2]: Leaving directory '/app'
+
+[32m━━━ ✅ check ━━━[0m
+make[2]: Entering directory '/app'
+
+[1m🚀 Running Node.js Test Suite...[0m
+
+[32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m
+[32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m [32m✓[0m
+
+[1mTest Summary:[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mambient.test.mjs[0m [33m(1.23s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mambient_config.test.mjs[0m [33m(1.19s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mambient_loader.test.mjs[0m [33m(1.11s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1massetClasses.test.mjs[0m [33m(0.11s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mcommands.test.cjs[0m [33m(0.07s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mconfig.test.cjs[0m [33m(0.07s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mconfig.test.mjs[0m [33m(0.11s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mconfig_coverage.test.cjs[0m [33m(0.12s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mconfig_coverage.test.mjs[0m [33m(0.12s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mcursor_init_timing.test.mjs[0m [33m(1.30s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mdata_files.test.cjs[0m [33m(0.15s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mdue.test.cjs[0m [33m(0.21s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mdue_calendar.test.cjs[0m [33m(0.13s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mgraph_magnetic_thumb_disabled.test.mjs[0m [33m(0.10s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mhandler_calendar.test.cjs[0m [33m(0.14s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mhandler_coverage.test.cjs[0m [33m(0.09s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mhandler_regression.test.mjs[0m [33m(0.14s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mhandler_regression_extra.test.cjs[0m [33m(0.13s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mhost.test.cjs[0m [33m(0.07s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1micon_font_ready.test.mjs[0m [33m(1.11s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mlegend.test.cjs[0m [33m(0.07s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mloader_image_fallback.test.mjs[0m [33m(1.16s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mmagnetic_nav.test.mjs[0m [33m(1.07s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mmarquee.test.mjs[0m [33m(1.18s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mnav_current_page.test.mjs[0m [33m(1.09s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mnav_prefetch.test.mjs[0m [33m(3.63s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mquantum_shader_fallback.test.mjs[0m [33m(1.00s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mquantum_shader_normal.test.mjs[0m [33m(1.01s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mquantum_shader_scope.test.mjs[0m [33m(0.11s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mreduced_motion.test.mjs[0m [33m(1.02s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mretention.test.cjs[0m [33m(0.08s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mretention_calendar.test.cjs[0m [33m(0.11s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mreviews.test.cjs[0m [33m(0.12s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mreviews_calendar.test.cjs[0m [33m(0.12s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mscroll_control.test.mjs[0m [33m(1.08s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mservice_worker_register.test.mjs[0m [33m(1.48s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1msketch.test.mjs[0m [33m(1.03s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mstate.test.mjs[0m [33m(0.12s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mstats_6m_to_1y.test.mjs[0m [33m(4.24s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mstats_added_6m_truncation.test.mjs[0m [33m(2.84s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mstats_bin_size2.test.mjs[0m [33m(0.91s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mstats_blob_fetch.test.mjs[0m [33m(1.02s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mstats_fetch_blob_response.test.mjs[0m [33m(0.93s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mstats_final_learning_fix.test.mjs[0m [33m(2.74s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mstats_injected.test.mjs[0m [33m(1.47s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mstats_injected_month.test.mjs[0m [33m(1.45s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mstats_issue1_root_cause.test.mjs[0m [33m(1.99s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mstats_issue_1y_half_data.test.mjs[0m [33m(1.95s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mstats_issue_half_data_cache.test.mjs[0m [33m(2.85s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mstats_iteration_bug.test.mjs[0m [33m(4.05s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mstats_iteration_comprehensive.test.mjs[0m [33m(2.87s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mstats_math_min_strict.test.mjs[0m [33m(0.92s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mstats_varint_fix.test.mjs[0m [33m(0.82s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mtable_glass_effect_radius.test.mjs[0m [33m(1.00s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mtable_keyboard_nav.test.mjs[0m [33m(1.01s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mterminal_style.test.mjs[0m [33m(0.99s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mterminal_time_ranges.test.cjs[0m [33m(0.07s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mterminal_xss.test.cjs[0m [33m(0.06s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mtilt_effect.test.mjs[0m [33m(1.06s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mtimeRange.test.cjs[0m [33m(0.06s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mtimeRange_calendar.test.cjs[0m [33m(0.13s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mtimeRange_span.test.cjs[0m [33m(0.13s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mtrie.test.cjs[0m [33m(0.08s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1munbounded_parse.test.cjs[0m [33m(0.06s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mutils.test.mjs[0m [33m(0.15s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mutils_tx.test.mjs[0m [33m(0.15s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mvalidateCommand.real.test.mjs[0m [33m(0.09s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mvideoFallback.test.mjs[0m [33m(1.15s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mvideo_warmup.test.mjs[0m [33m(1.27s)[0m
+  [42m[30m PASS [0m [2mtests/[0m[1mzoom.test.mjs[0m [33m(0.11s)[0m
+
+[1mCoverage Report:[0m
+-------------------------------|---------|----------|---------|---------|---------------------------
+File                           | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s
+-------------------------------|---------|----------|---------|---------|---------------------------
+[33;1mAll files                     [0m | [33;1m  72.39[0m | [32;1m   91.87[0m | [32;1m  88.25[0m | [33;1m  72.39[0m | [31;1m                         [0m
+[31;1m animated_glass_background/web[0m | [31;1m      0[0m | [31;1m       0[0m | [31;1m      0[0m | [31;1m      0[0m | [31;1m                         [0m
+[31;1m  glass_effect.js             [0m | [31;1m      0[0m | [31;1m       0[0m | [31;1m      0[0m | [31;1m      0[0m | [31;1m1-384                    [0m
+[31;1m enhance_main_window          [0m | [31;1m      0[0m | [31;1m       0[0m | [31;1m      0[0m | [31;1m      0[0m | [31;1m                         [0m
+[31;1m  deckbrowser.js              [0m | [31;1m      0[0m | [31;1m       0[0m | [31;1m      0[0m | [31;1m      0[0m | [31;1m1-51                     [0m
+[33;1m js                           [0m | [33;1m  68.84[0m | [32;1m      96[0m | [33;1m  55.55[0m | [33;1m  68.84[0m | [31;1m                         [0m
+[32;1m  config.js                   [0m | [32;1m    100[0m | [32;1m     100[0m | [33;1m  66.66[0m | [32;1m    100[0m | [33;1m                         [0m
+[32;1m  cursor-init.js              [0m | [32;1m    100[0m | [32;1m     100[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                         [0m
+[31;1m  mobile_ambient_bootstrap.js [0m | [31;1m      0[0m | [31;1m       0[0m | [31;1m      0[0m | [31;1m      0[0m | [31;1m1-42                     [0m
+[31;1m  terminal.js                 [0m | [31;1m      0[0m | [31;1m       0[0m | [31;1m      0[0m | [31;1m      0[0m | [31;1m1-291                    [0m
+[33;1m js/ambient                   [0m | [33;1m  67.21[0m | [32;1m   83.59[0m | [32;1m  87.71[0m | [33;1m  67.21[0m | [31;1m                         [0m
+[32;1m  ambient.js                  [0m | [32;1m  94.93[0m | [33;1m   70.45[0m | [32;1m    100[0m | [32;1m  94.93[0m | [31;1m50-51,130-131,139-142    [0m
+[32;1m  config.js                   [0m | [32;1m    100[0m | [32;1m     100[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                         [0m
+[32;1m  loader.js                   [0m | [32;1m    100[0m | [32;1m     100[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                         [0m
+[31;1m  quantum_shader.js           [0m | [31;1m  35.09[0m | [33;1m    62.5[0m | [33;1m  58.82[0m | [31;1m  35.09[0m | [31;1m...20-635,640,642-646,661[0m
+[32;1m  sketch.js                   [0m | [32;1m  99.55[0m | [32;1m   91.58[0m | [32;1m    100[0m | [32;1m  99.55[0m | [31;1m61,396                   [0m
+[32;1m js/commands                  [0m | [32;1m  99.77[0m | [32;1m    94.7[0m | [32;1m    100[0m | [32;1m  99.77[0m | [31;1m                         [0m
+[32;1m  due.js                      [0m | [32;1m    100[0m | [32;1m   97.76[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m159-162                  [0m
+[32;1m  handler.js                  [0m | [32;1m  99.28[0m | [32;1m   97.94[0m | [32;1m    100[0m | [32;1m  99.28[0m | [31;1m62-63,121-122,716,726    [0m
+[32;1m  legendToggle.js             [0m | [32;1m    100[0m | [32;1m     100[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                         [0m
+[32;1m  retention.js                [0m | [32;1m    100[0m | [32;1m   96.96[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m141                      [0m
+[32;1m  reviews.js                  [0m | [32;1m    100[0m | [32;1m   88.49[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m...06,436-437,617-618,732[0m
+[32;1m  zoom.js                     [0m | [32;1m    100[0m | [32;1m     100[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                         [0m
+[32;1m js/config                    [0m | [32;1m    100[0m | [32;1m     100[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                         [0m
+[32;1m  assetClasses.js             [0m | [32;1m    100[0m | [32;1m     100[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                         [0m
+[31;1m js/graph                     [0m | [31;1m      0[0m | [31;1m       0[0m | [31;1m      0[0m | [31;1m      0[0m | [31;1m                         [0m
+[31;1m  graph.js                    [0m | [31;1m      0[0m | [31;1m       0[0m | [31;1m      0[0m | [31;1m      0[0m | [31;1m1-754                    [0m
+[31;1m js/loader                    [0m | [31;1m  34.32[0m | [32;1m   90.47[0m | [33;1m     75[0m | [31;1m  34.32[0m | [31;1m                         [0m
+[31;1m  cdnFallback.js              [0m | [31;1m      0[0m | [31;1m       0[0m | [31;1m      0[0m | [31;1m      0[0m | [31;1m1-86                     [0m
+[32;1m  imageFallback.js            [0m | [32;1m  95.83[0m | [32;1m      95[0m | [32;1m    100[0m | [32;1m  95.83[0m | [31;1m8-9                      [0m
+[32;1m js/transactions              [0m | [32;1m    100[0m | [32;1m     100[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                         [0m
+[32;1m  state.js                    [0m | [32;1m    100[0m | [32;1m     100[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                         [0m
+[32;1m  utils.js                    [0m | [32;1m    100[0m | [32;1m     100[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                         [0m
+[33;1m js/ui                        [0m | [33;1m  70.95[0m | [32;1m   84.09[0m | [33;1m  75.43[0m | [33;1m  70.95[0m | [31;1m                         [0m
+[32;1m  icon_font_ready.js          [0m | [32;1m    100[0m | [32;1m     100[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                         [0m
+[32;1m  magnetic_nav.js             [0m | [32;1m   91.2[0m | [32;1m   82.35[0m | [32;1m    100[0m | [32;1m   91.2[0m | [31;1m3-4,62-69,122            [0m
+[32;1m  marquee.js                  [0m | [32;1m  96.98[0m | [32;1m      86[0m | [32;1m    100[0m | [32;1m  96.98[0m | [31;1m34-35,77-78,130-132      [0m
+[32;1m  nav_current_page.js         [0m | [32;1m    100[0m | [32;1m   95.23[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m20                       [0m
+[32;1m  nav_prefetch.js             [0m | [32;1m  90.93[0m | [33;1m   76.47[0m | [32;1m    100[0m | [32;1m  90.93[0m | [31;1m...54-255,292-293,321-322[0m
+[32;1m  reduced_motion.js           [0m | [32;1m    100[0m | [32;1m     100[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                         [0m
+[32;1m  scroll_control.js           [0m | [32;1m    100[0m | [32;1m   85.71[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m13                       [0m
+[32;1m  service_worker_register.js  [0m | [32;1m    100[0m | [32;1m     100[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                         [0m
+[31;1m  tableGlassEffect.js         [0m | [31;1m  30.97[0m | [31;1m   41.66[0m | [31;1m  33.33[0m | [31;1m  30.97[0m | [31;1m...91-727,730-778,782-783[0m
+[32;1m  table_keyboard_nav.js       [0m | [32;1m    100[0m | [32;1m     100[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                         [0m
+[32;1m  tilt_effect.js              [0m | [32;1m  91.11[0m | [32;1m   94.73[0m | [32;1m    100[0m | [32;1m  91.11[0m | [31;1m51-58                    [0m
+[32;1m  videoFallback.js            [0m | [32;1m    100[0m | [32;1m     100[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                         [0m
+[32;1m  video_warmup.js             [0m | [32;1m  98.27[0m | [32;1m      96[0m | [32;1m    100[0m | [32;1m  98.27[0m | [31;1m31-32                    [0m
+[32;1m js/utils                     [0m | [32;1m    100[0m | [32;1m     100[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                         [0m
+[32;1m  host.js                     [0m | [32;1m    100[0m | [32;1m     100[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                         [0m
+[32;1m  timeRange.js                [0m | [32;1m    100[0m | [32;1m     100[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                         [0m
+[32;1m  trie.js                     [0m | [32;1m    100[0m | [32;1m     100[0m | [32;1m    100[0m | [32;1m    100[0m | [33;1m                         [0m
+-------------------------------|---------|----------|---------|---------|---------------------------
+
+=============================== Coverage summary ===============================
+[33;1mStatements   : 72.39% ( 6991/9657 )[0m
+[32;1mBranches     : 91.87% ( 1561/1699 )[0m
+[32;1mFunctions    : 88.25% ( 218/247 )[0m
+[33;1mLines        : 72.39% ( 6991/9657 )[0m
+================================================================================
+
+[1mTest Suites:[0m [32m70 passed[0m, 70 total
+[1mTests:      [0m [32m70 passed[0m, 70 total
+[1mSnapshots:  [0m 0 total
+[1mTime:       [0m 61.80 s
+[2mRan all test suites.[0m
+
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [2mreview_heatmap/tests/[22m[1mtest_tooltip.test.js[22m
+[0m[7m[1m[32m PASS [39m[22m[27m[0m [2mreview_heatmap/tests/[22m[1mtest_finished_heatmap.test.js[22m
+
+[1mTest Suites: [22m[1m[32m2 passed[39m[22m, 2 total
+[1mTests:       [22m[1m[32m8 passed[39m[22m, 8 total
+[1mSnapshots:   [22m0 total
+[1mTime:[22m        1.734 s, estimated 2 s
+[2mRan all test suites[22m[2m matching [22mreview_heatmap/tests/[2m.[22m
+🐍 Running Python Test Suite (with coverage, parallel)...
+make[3]: Entering directory '/app'
+make[3]: Leaving directory '/app'
+
+  [32m✓[0m [1manimated_glass_background/tests              [0m [2m[32m[32m[1m12 passed[0m[32m (0.20s[0m[0m)[0m
+  [32m✓[0m [1mauto_image/tests                             [0m [2m[32m[32m[1m57 passed[0m[32m (0.45s[0m[0m)[0m
+  [32m✓[0m [1mauto_markdown/tests                          [0m [2m[32m[32m[1m57 passed[0m[32m (0.27s[0m[0m)[0m
+  [32m✓[0m [1mauto_mathjax/tests                           [0m [2m[32m[32m[1m109 passed[0m[32m (1.59s[0m[0m)[0m
+  [32m✓[0m [1mauto_wiktionary/tests                        [0m [2m[32m[32m[1m83 passed[0m[32m (2.08s[0m[0m)[0m
+  [32m✓[0m [1mdata/anki/tests                              [0m [2m[32m[32m[1m153 passed[0m[32m (144.70s (0:02:24)[0m[0m)[0m
+  [32m✓[0m [1menhance_main_window/tests                    [0m [2m[32m[32m[1m52 passed[0m[32m (0.32s[0m[0m)[0m
+  [32m✓[0m [1mgraph/tests                                  [0m [2m[33m[32m241 passed[0m, [33m[1m2 warnings[0m[33m (4.00s[0m[0m)[0m
+  [32m✓[0m [1mhide_deck_collapse/tests                     [0m [2m[32m[32m[1m2 passed[0m[32m (0.09s[0m[0m)[0m
+  [32m✓[0m [1mhide_window_title/tests                      [0m [2m[32m[32m[1m5 passed[0m[32m (0.11s[0m[0m)[0m
+  [32m✓[0m [1mhighlight_search_matches/tests               [0m [2m[32m[32m[1m33 passed[0m[32m (0.62s[0m[0m)[0m
+  [32m✓[0m [1mno_leech_suspend/tests                       [0m [2m[32m[32m[1m7 passed[0m[32m (0.12s[0m[0m)[0m
+  [32m✓[0m [1mprioritize_front_field_search/tests          [0m [2m[32m[32m[1m33 passed[0m[32m (0.25s[0m[0m)[0m
+  [32m✓[0m [1mreflow_paragraphs/tests                      [0m [2m[32m[32m[1m25 passed[0m[32m (0.18s[0m[0m)[0m
+  [32m✓[0m [1mremove_deck_highlight/tests                  [0m [2m[32m[32m[1m2 passed[0m[32m (0.09s[0m[0m)[0m
+  [32m✓[0m [1mrewrite_text_of_study_cards/tests            [0m [2m[32m[32m[1m8 passed[0m[32m (0.15s[0m[0m)[0m
+  [32m✓[0m [1mstats_page_customizer/tests                  [0m [2m[32m[32m[1m65 passed[0m[32m (0.40s[0m[0m)[0m
+  [32m✓[0m [1mstrip_html_tags/tests                        [0m [2m[32m[32m[1m25 passed[0m[32m (0.53s[0m[0m)[0m
+  [32m✓[0m [1mtabbed_stats/tests                           [0m [2m[32m[32m[1m17 passed[0m[32m (0.27s[0m[0m)[0m
+  [32m✓[0m [1mtests                                        [0m [2m[32m[32m[1m88 passed[0m, [33m1 skipped[0m[32m (14.26s[0m[0m)[0m
+  [32m✓[0m [1mtools                                        [0m [2m[32m[32m[1m37 passed[0m[32m (7.36s[0m[0m)[0m
+  [32m✓[0m [1munify_review_count_colors/tests              [0m [2m[32m[32m[1m2 passed[0m[32m (0.09s[0m[0m)[0m
+
+📊 Combined Python coverage:
+Combined 22 files
+Name                                             Stmts   Miss Branch BrPart  Cover   Missing
+--------------------------------------------------------------------------------------------
+animated_glass_background/__init__.py               52      0     16      0   100%
+auto_image/__init__.py                              95      0     38      0   100%
+auto_image/proxy_fallback.py                        33      0      6      0   100%
+auto_image/utils.py                                 55      0     10      0   100%
+auto_markdown/__init__.py                           41     10     14      6    71%   17, 23->22, 26->22, 31-32, 34->39, 37-38, 41-42, 50, 55-62
+auto_markdown/core.py                              361     13    160     18    94%   181->193, 193->211, 195->197, 197->199, 223, 226, 229, 293->295, 295->299, 300-302, 313, 342, 385->396, 480, 503, 609, 628, 633
+auto_mathjax/__init__.py                           245      5    106      8    96%   147, 154, 166->163, 168->163, 216, 220, 237, 368->367
+auto_wiktionary/__init__.py                         87      0     38      0   100%
+auto_wiktionary/proxy_fallback.py                   33      0      6      0   100%
+auto_wiktionary/utils.py                           279     18    162     30    89%   18, 39, 59, 78-79, 106, 139, 154, 175->173, 200, 217, 220->223, 223->225, 231->249, 237->245, 242->237, 247->249, 285, 289->295, 291, 302->328, 304, 320, 323-326, 329, 355, 371->378, 400->407, 412->422, 418->422, 445->450
+data/anki/export_for_git.py                         64      0      8      0   100%
+data/anki/generate_custom_stats.py                 183      9     70      7    94%   24->23, 36-38, 73, 217->224, 239, 253->258, 255-256, 286-287
+data/anki/generate_review_stats.py                 149      0     60      0   100%
+data/anki/migrate-hash-map.py                       81      0     32      0   100%
+data/anki/security_check.py                        147      8     62     11    91%   49->48, 63->62, 105->135, 108->135, 164->167, 207, 222, 233-235, 279->281, 283, 285, 304
+data/anki/upload-to-r2                             576    297    260     34    44%   39-40, 47-49, 54-78, 150-153, 159-168, 173-239, 326, 337->360, 349, 355, 386, 389->393, 395, 399-403, 438, 454-455, 462-466, 468, 487-488, 491->475, 504->506, 513-556, 593, 609-611, 614-615, 618-620, 661, 663, 669->703, 673, 681, 685, 693-696, 699-700, 706-707, 729, 732->723, 749->748, 754, 761-1016, 1020
+data/anki/verify-hash-map.py                        66     48     18      1    23%   29-34, 52-57, 61-113, 117
+enhance_main_window/__init__.py                      1      0      0      0   100%
+enhance_main_window/changeFunction.py                8      0      0      0   100%
+enhance_main_window/column.py                       38      0      8      0   100%
+enhance_main_window/config.py                       25      0     10      0   100%
+enhance_main_window/consts.py                        8      0      0      0   100%
+enhance_main_window/debug.py                       121      2     46      2    98%   82-84
+enhance_main_window/htmlAndCss.py                   44      0      4      0   100%
+enhance_main_window/node.py                        461    392    208      0    10%   45-55, 106-144, 149-155, 158-163, 167-173, 178-181, 185-191, 195-204, 207-208, 212-221, 224-228, 231-260, 264, 272-292, 306-309, 316-319, 324-336, 340-351, 355-359, 364-370, 373-381, 385-398, 404-423, 426-441, 449-453, 460-464, 468-481, 485-507, 512-530, 542-556, 560-571, 574-578, 586-592, 596, 601-608, 611-619, 622-625, 629-635, 638-641, 644, 649-653, 656-674, 677-703, 706-714, 717-725, 728-730, 734-736, 749-754, 758-761, 768-781, 786-811, 816-817
+enhance_main_window/printing.py                     19      0     10      0   100%
+enhance_main_window/strings.py                      27      0     12      0   100%
+enhance_main_window/tree.py                         44      0     20      0   100%
+graph/__init__.py                                    0      0      0      0   100%
+graph/analyze.py                                   245     24     88     16    87%   94-95, 99-101, 122->126, 130->142, 134->140, 137->136, 161-162, 171-172, 178->176, 185-187, 408->412, 415->418, 418->412, 422->exit, 460-461, 466, 477-478, 486-493, 497
+graph/builder.py                                    89      0     46      5    96%   50->55, 85->84, 91->90, 197->203, 200->199
+graph/export_data.py                               314    109     98      7    63%   85->87, 96->98, 117->121, 200->203, 305-306, 355-577, 581
+graph/hash_map.py                                   44      0     12      0   100%
+graph/incremental_export.py                        100      0     30      0   100%
+graph/parser.py                                     37      0     12      0   100%
+graph/quick_3d.py                                   43      0      6      0   100%
+graph/references.py                                290     13    168     20    92%   32, 100, 166, 271-273, 288, 301, 339->335, 356, 358->354, 394->392, 421->417, 438, 440->436, 465, 473->472, 485, 537, 555->560, 561->569, 581->577, 600->596
+graph/watch_and_update.py                           64      0     16      0   100%
+hide_deck_collapse/__init__.py                       7      0      2      0   100%
+hide_window_title/__init__.py                       10      0      4      0   100%
+highlight_search_matches/__init__.py                42      0      8      0   100%
+highlight_search_matches/anki_integration.py        30      0     14      0   100%
+highlight_search_matches/core.py                    39      0     16      0   100%
+highlight_search_matches/editor_integration.py      32      0      6      0   100%
+no_leech_suspend/__init__.py                        37      5     16      2    83%   28->exit, 54-55, 62, 76-77
+prioritize_front_field_search/__init__.py           64      0     28      0   100%
+prioritize_front_field_search/search.py             50      0     28      0   100%
+reflow_paragraphs/__init__.py                       44     13     16      5    70%   26, 31, 35-36, 47-50, 53-54, 62, 67-74
+reflow_paragraphs/core.py                          111      0     46      0   100%
+remove_deck_highlight/__init__.py                    7      0      2      0   100%
+rewrite_text_of_study_cards/__init__.py             51      0     10      0   100%
+rewrite_text_of_study_cards/path_manager.py          3      0      0      0   100%
+stats_page_customizer/__init__.py                  247      9     74      8    95%   74->81, 77-78, 94-95, 107, 210-211, 291-292, 373->376, 376->379, 379->382, 382->386
+strip_html_tags/__init__.py                        340     28    166     25    89%   62->74, 63->62, 127->147, 130, 138->146, 161->188, 171, 213->212, 217, 219, 223->221, 249, 271-275, 276->255, 292->289, 368->379, 372->371, 379->383, 422, 438, 444, 448, 450-454, 487, 493-496, 499-502, 507, 526->534, 540-546
+tabbed_stats/__init__.py                           194     56     54      7    70%   17-19, 70->75, 75->exit, 85-89, 116, 128, 136, 138-153, 160-180, 206-234, 274, 356-361, 364->exit
+tools/coverage_rank.py                              94      0     36      0   100%
+tools/dump_field.py                                 52     29     14      1    42%   55-61, 66-84, 88-97, 101
+tools/git_push_retry.py                             56      3     24      3    92%   64, 75, 128
+tools/run_with_deadline.py                          38     10      4      2    71%   32-33, 36-41, 54, 70
+tools/security_audit.py                            145      0     60      0   100%
+tools/sweep_transform.py                            99     34     26      3    66%   59, 70-71, 96-97, 119, 124-168, 175
+unify_review_count_colors/__init__.py                6      0      2      0   100%
+--------------------------------------------------------------------------------------------
+TOTAL                                             6367   1135   2516    221    80%
+✅ Python tests complete
+make[2]: Leaving directory '/app'
+
+[32m━━━ ✅ sync-check ━━━[0m
+make[2]: Entering directory '/app'
+sync-check: .claude/commands is up to date
+make[2]: Leaving directory '/app'

@@ -1,0 +1,12 @@
+Added test coverage for:
+- `graph/quick_3d.py` (0% -> 100%)
+- `auto_wiktionary/proxy_fallback.py` (97% -> 100%)
+- `auto_image/proxy_fallback.py` (92% -> 100%)
+
+No production code changed.
+
+```
+make precommit SKIP=1
+[Output omitted for brevity, but all checks pass]
+✅ Pre-commit checks passed
+```
