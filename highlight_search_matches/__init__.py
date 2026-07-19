@@ -7,7 +7,7 @@ try:
 except ImportError:
     mw = None
 
-DEBUG_LOG = os.path.expanduser("~/Desktop/hsm_debug.log")
+DEBUG_LOG = os.path.join(os.path.dirname(__file__), "hsm_debug.log")
 
 
 def log(msg):
