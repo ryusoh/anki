@@ -109,6 +109,39 @@ canonical file, re-copy it to every add-on, and sync the port list in
   fallback never triggers (a proxy cached from an earlier OpenWeb session is
   dropped by the dead-proxy healing back to direct).
 
+### What the fallback can't cover: Anki's native sync
+
+`urlopen_with_proxy_fallback()` only wraps Python `urllib` calls made by
+add-on code. Anki's native collection/media sync runs in Anki's **Rust
+core** (reqwest), outside the Python runtime, so no add-on can intercept or
+retry it. The symptom on a blocked route (reported 2026-07-19) is the
+localized sync dialog:
+
+```
+ネットワークのエラーが発生しました。
+エラー詳細: error sending request for url ()
+```
+
+`error sending request for url ()` is a reqwest error string, not urllib —
+the empty `url ()` means the connection died before a request was even sent
+(DNS/TCP/TLS), which is what a poisoned direct route to AnkiWeb looks like.
+Fixes, in order of least friction:
+
+- **TUN/enhanced mode in the VPN client** routes all system traffic
+  including sync — no Anki-side configuration needed.
+- **Launch Anki with proxy env vars** — the Rust backend reads the standard
+  `HTTPS_PROXY`/`HTTP_PROXY` variables:
+
+  ```sh
+  HTTPS_PROXY=http://127.0.0.1:7897 HTTP_PROXY=http://127.0.0.1:7897 \
+    /Applications/Anki.app/Contents/MacOS/anki
+  ```
+
+  `open -a Anki` does not propagate env vars — launch the binary directly.
+
+- The macOS system proxy alone may not be honored by the Rust backend, so
+  prefer one of the two routes above.
+
 Verify a fallback change against the live VPN by simulating the broken
 direct path — force a no-proxy connection with
 `build_opener(ProxyHandler({}))`, or in a Python session:
