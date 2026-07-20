@@ -16,7 +16,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MAKEFILE = REPO_ROOT / "Makefile"
 
-NETWORK_JOB_PIDS = {"BG_R2_PID": "fetch-r2-skip-fetch", "BG_GRAPHPUSH_PID": "graph-push"}
+NETWORK_PIPELINE_PID = "BG_NETWORK_PID"
+NETWORK_PIPELINE_TARGETS = ("fetch-r2-skip-fetch", "graph-push")
 
 
 def _precommit_fix_recipe() -> str:
@@ -34,15 +35,18 @@ def test_net_deadline_variable_is_defined_and_overridable():
 
 def test_backgrounded_network_jobs_run_under_the_deadline_wrapper():
     recipe = _precommit_fix_recipe()
-    for pid_var, target in NETWORK_JOB_PIDS.items():
-        launches = [line for line in recipe.splitlines() if f"& {pid_var}=" in line]
-        assert launches, f"backgrounded launch for {target} ({pid_var}) not found"
-        for line in launches:
-            assert "run_with_deadline.py" in line and "$(NET_DEADLINE)" in line, (
-                f"backgrounded network job `{target}` is not wrapped in "
-                f"tools/run_with_deadline.py --seconds $(NET_DEADLINE) — on a "
-                f"limited uplink it can trickle for hours and the recipe's "
-                f"`wait` hangs forever: {line.strip()!r}"
+    launches = [line for line in recipe.splitlines() if f"& {NETWORK_PIPELINE_PID}=" in line]
+    assert launches, "backgrounded network pipeline launch not found in precommit-fix recipe"
+    for line in launches:
+        assert "run_with_deadline.py" in line and "$(NET_DEADLINE)" in line, (
+            "backgrounded network pipeline is not wrapped in "
+            "tools/run_with_deadline.py --seconds $(NET_DEADLINE) — on a "
+            "limited uplink it can trickle for hours and the recipe's "
+            f"`wait` hangs forever: {line.strip()!r}"
+        )
+        for target in NETWORK_PIPELINE_TARGETS:
+            assert target in line, (
+                f"backgrounded network pipeline must include `{target}`: " f"{line.strip()!r}"
             )
 
 

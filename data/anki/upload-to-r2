@@ -31,6 +31,7 @@ import hashlib
 from pathlib import Path
 from datetime import datetime, timezone
 from urllib.error import HTTPError
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 
 # Try to use boto3 for better upload reliability
@@ -335,30 +336,32 @@ def _delete_old_reviews_monolith(creds):
         pass
 
 
-def upload_to_r2(bucket, key, data, creds, verbose=False, max_retries=3, quiet=False):
+def upload_to_r2(bucket, key, data, creds, verbose=False, max_retries=3, quiet=False, s3_client=None):
     """Upload data to R2 bucket using boto3 (preferred) or urllib."""
     account_id = creds['account_id']
     access_key = creds['access_key']
     secret_key = creds['secret_key']
-    
+
     # Prepare data
     if isinstance(data, (dict, list)):
         content = json.dumps(data, ensure_ascii=False, default=str).encode('utf-8')
     else:
         content = data
-    
+
     # Compress
     content_gz = gzip.compress(content)
-    
+
     if HAS_BOTO3:
         # Use boto3 for better reliability. botocore reads HTTPS_PROXY from
         # the env when the client is created, so a proxy enabled mid-run by
         # enable_proxy_fallback() applies to the retry and all later clients.
+        # A shared s3_client may be passed in for thread-pool uploads; if a
+        # worker triggers proxy fallback it can request a fresh client below.
         for retry_with_proxy in (False, True):
             try:
-                s3_client = get_s3_client(creds)
+                client = s3_client if s3_client is not None else get_s3_client(creds)
 
-                s3_client.put_object(
+                client.put_object(
                     Bucket=bucket,
                     Key=key,
                     Body=content_gz,
@@ -499,36 +502,48 @@ def upload_from_staging(staging_dir, creds, verbose, notes_count, sync=False):
     
     # Upload individual notes with progress bar
     print(f"\n📤 Uploading {notes_count:,} individual notes...")
-    
+
     note_files = sorted(notes_dir.glob("*.json.gz"))
-    
-    for i, note_file in enumerate(note_files, 1):
+
+    s3_client = get_s3_client(creds) if HAS_BOTO3 else None
+    note_bytes = 0
+    n_workers = min(8, max(1, len(note_files)))
+
+    def _upload_one_note(note_file):
         key = f"notes/{note_file.name}"
-        
         with open(note_file, 'rb') as f:
             content = f.read()
-        
-        # Upload each file and show progress
-        success, size = upload_to_r2(creds['bucket'], key, content, creds, verbose=False, quiet=True)
-        if success:
-            uploaded_count += 1
-            total_bytes += size
-        else:
-            failed_count += 1
-            failed_keys.add(key)
+        success, size = upload_to_r2(
+            creds['bucket'], key, content, creds,
+            verbose=False, quiet=True, s3_client=s3_client
+        )
+        return key, success, size
 
-        # Show progress every 100 files (fast enough to not slow down, frequent enough to see movement)
-        if i % 100 == 0 or i == notes_count:
-            progress = (i / notes_count) * 100 if notes_count > 0 else 0
-            bar_width = 40
-            filled = int(bar_width * i / notes_count) if notes_count > 0 else 0
-            bar = '█' * filled + '░' * (bar_width - filled)
-            # Use carriage return to update in place
-            print(f"\r   [{bar}] {i:,}/{notes_count:,} ({progress:.1f}%)", end='', flush=True)
-    
+    with ThreadPoolExecutor(max_workers=n_workers) as executor:
+        futures = [executor.submit(_upload_one_note, nf) for nf in note_files]
+        for i, future in enumerate(as_completed(futures), 1):
+            key, success, size = future.result()
+            if success:
+                uploaded_count += 1
+                note_bytes += size
+            else:
+                failed_count += 1
+                failed_keys.add(key)
+
+            # Show progress every 100 files (fast enough to not slow down, frequent enough to see movement)
+            if i % 100 == 0 or i == len(note_files):
+                progress = (i / len(note_files)) * 100 if note_files else 0
+                bar_width = 40
+                filled = int(bar_width * i / len(note_files)) if note_files else 0
+                bar = '█' * filled + '░' * (bar_width - filled)
+                # Use carriage return to update in place
+                print(f"\r   [{bar}] {i:,}/{len(note_files):,} ({progress:.1f}%)", end='', flush=True)
+
     # Final newline
     print()
-    
+
+    total_bytes += note_bytes
+
     print()
     print(f"✅ Done! {uploaded_count:,}/{total_files:,} files uploaded ({total_bytes/1024/1024:.1f} MB)")
     if failed_count > 0:
@@ -760,22 +775,38 @@ R2 Directory Structure:
             _delete_old_reviews_monolith(creds)
 
         # Upload individual notes
-        for i, (guid, note_file, current_hash) in enumerate(notes_to_upload, 1):
+        s3_client = get_s3_client(creds) if HAS_BOTO3 else None
+        note_bytes = 0
+        n_workers = min(8, max(1, len(notes_to_upload)))
+
+        def _upload_one_note(note_tuple):
+            guid, note_file, current_hash = note_tuple
             key = f"notes/{note_file.name}"
             with open(note_file, 'rb') as f:
                 content = f.read()
-            success, size = upload_to_r2(creds['bucket'], key, content, creds, args.verbose, quiet=True)
-            if not success:
-                failed_keys.add(guid)
+            success, size = upload_to_r2(
+                creds['bucket'], key, content, creds,
+                args.verbose, quiet=True, s3_client=s3_client
+            )
+            return guid, success, size
 
-            # Progress
-            if i % 100 == 0 or i == len(notes_to_upload):
-                progress = (i / len(notes_to_upload)) * 100 if notes_to_upload else 0
-                bar_width = 40
-                filled = int(bar_width * i / len(notes_to_upload)) if notes_to_upload else 0
-                bar = '█' * filled + '░' * (bar_width - filled)
-                print(f"\r   [{bar}] {i:,}/{len(notes_to_upload):,} ({progress:.1f}%)", end='', flush=True)
-        
+        with ThreadPoolExecutor(max_workers=n_workers) as executor:
+            futures = [executor.submit(_upload_one_note, t) for t in notes_to_upload]
+            for i, future in enumerate(as_completed(futures), 1):
+                guid, success, size = future.result()
+                if success:
+                    note_bytes += size
+                else:
+                    failed_keys.add(guid)
+
+                # Progress
+                if i % 100 == 0 or i == len(notes_to_upload):
+                    progress = (i / len(notes_to_upload)) * 100 if notes_to_upload else 0
+                    bar_width = 40
+                    filled = int(bar_width * i / len(notes_to_upload)) if notes_to_upload else 0
+                    bar = '█' * filled + '░' * (bar_width - filled)
+                    print(f"\r   [{bar}] {i:,}/{len(notes_to_upload):,} ({progress:.1f}%)", end='', flush=True)
+
         if notes_to_upload:
             print()  # Newline after progress
 

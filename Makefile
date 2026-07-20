@@ -552,17 +552,15 @@ endif
 # commit's message. Check `git status` first. See AGENTS.md Gotchas.
 precommit-fix: .make/pip.stamp .make/npm-ci.stamp $(if $(filter 1,$(SKIP_FETCH) $(SKIP)),,fetch-prompt-fix)
 	@mkdir -p .make; \
-	BG_GRAPHLOCAL_PID=; BG_R2_PID=; BG_GRAPHPUSH_PID=; \
+	BG_GRAPHLOCAL_PID=; BG_NETWORK_PID=; \
 	if [ "$(YOLO)" = "1" ] && [ -z "$(SKIP)" ]; then \
 		echo ""; \
 		echo "📊 Export local private Knowledge Graph data? auto-yes (YOLO, backgrounded)"; \
 		$(MAKE) graph-local > .make/graph-local.log 2>&1 & BG_GRAPHLOCAL_PID=$$!; \
 	fi; \
 	if [ "$(YOLO)" = "1" ] && [ -z "$(SKIP_R2)" ] && [ -z "$(SKIP)" ]; then \
-		echo "📤 Upload private content to R2? auto-yes (YOLO, backgrounded, ≤$(NET_DEADLINE)s)"; \
-		$(PYTHON) tools/run_with_deadline.py --seconds $(NET_DEADLINE) -- $(MAKE) fetch-r2-skip-fetch > .make/r2-upload.log 2>&1 & BG_R2_PID=$$!; \
-		echo "🌐 Push public Knowledge Graph data to R2? auto-yes (YOLO, backgrounded, ≤$(NET_DEADLINE)s)"; \
-		$(PYTHON) tools/run_with_deadline.py --seconds $(NET_DEADLINE) -- $(MAKE) graph-push > .make/graph-push.log 2>&1 & BG_GRAPHPUSH_PID=$$!; \
+		echo "📤 Upload private content to R2, then push public graph? auto-yes (YOLO, backgrounded, ≤$(NET_DEADLINE)s)"; \
+		$(PYTHON) tools/run_with_deadline.py --seconds $(NET_DEADLINE) -- sh -c '$(MAKE) fetch-r2-skip-fetch && $(MAKE) graph-push' > .make/network-pipeline.log 2>&1 & BG_NETWORK_PID=$$!; \
 	fi; \
 	GATE_OK=1; SEC_OK=1; PUSH_OK=1; \
 	$(MAKE) fmt lint-fix fmt-py verify || GATE_OK=0; \
@@ -615,9 +613,9 @@ precommit-fix: .make/pip.stamp .make/npm-ci.stamp $(if $(filter 1,$(SKIP_FETCH) 
 		wait $$BG_GRAPHLOCAL_PID || BG_FAIL=1; \
 		echo ""; echo "📊 Local graph export log:"; cat .make/graph-local.log; \
 	fi; \
-	if [ -n "$$BG_R2_PID" ]; then \
-		wait $$BG_R2_PID || BG_FAIL=1; \
-		echo ""; echo "📤 R2 upload log:"; cat .make/r2-upload.log; \
+	if [ -n "$$BG_NETWORK_PID" ]; then \
+		wait $$BG_NETWORK_PID || BG_FAIL=1; \
+		echo ""; echo "📤 Network pipeline log:"; cat .make/network-pipeline.log; \
 		if ! git diff --quiet -- data/cloudflare/hash_map.json 2>/dev/null; then \
 			echo ""; \
 			echo "📝 R2 upload updated the hash map (GUID->SHA256 only, no note content —"; \
@@ -629,10 +627,6 @@ precommit-fix: .make/pip.stamp .make/npm-ci.stamp $(if $(filter 1,$(SKIP_FETCH) 
 			echo "✅ Hash map committed and pushed." || \
 			echo "⚠️  Failed to commit/push the updated hash map — it will be picked up by the next run's git add -A."; \
 		fi; \
-	fi; \
-	if [ -n "$$BG_GRAPHPUSH_PID" ]; then \
-		wait $$BG_GRAPHPUSH_PID || BG_FAIL=1; \
-		echo ""; echo "🌐 Graph push log:"; cat .make/graph-push.log; \
 	fi; \
 	if [ "$$GATE_OK" != "1" ] || [ "$$SEC_OK" != "1" ]; then exit 1; fi; \
 	if [ "$$PUSH_OK" != "1" ]; then \
