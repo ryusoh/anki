@@ -279,8 +279,7 @@ def test_detached_head_exits_with_helpful_message():
     sleep.assert_not_called()
 
 
-if __name__ == '__main__':
-    raise SystemExit(__import__('pytest').main([__file__, '-v']))
+def test_integration_auto_rebase_when_remote_moves(tmp_path, monkeypatch):
     """--auto-rebase pulls remote changes and then pushes local commits."""
     remote = tmp_path / 'remote.git'
     subprocess.run(
@@ -329,3 +328,7 @@ if __name__ == '__main__':
         capture_output=True,
     )
     assert ancestor_check.returncode == 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(__import__('pytest').main([__file__, '-v']))

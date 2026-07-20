@@ -16,6 +16,11 @@ import argparse
 import gzip
 import json
 import re
+import sys
+from pathlib import Path
+
+# Allow running this script directly (python3 graph/incremental_export.py).
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from graph._paths import ANKI_ADDONS_DIR
 from graph.builder import build_graph

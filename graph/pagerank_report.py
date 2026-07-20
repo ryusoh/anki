@@ -12,6 +12,10 @@ import json
 import re
 import sys
 from collections import defaultdict
+from pathlib import Path
+
+# Allow running this script directly (python3 graph/pagerank_report.py).
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from graph._paths import ANKI_ADDONS_DIR
 

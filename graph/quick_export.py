@@ -5,8 +5,12 @@ import gzip
 import json
 import sys
 from datetime import datetime
+from pathlib import Path
 
 import networkx as nx
+
+# Allow running this script directly (python3 graph/quick_export.py).
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from graph._paths import ANKI_ADDONS_DIR
 from graph.builder import build_graph

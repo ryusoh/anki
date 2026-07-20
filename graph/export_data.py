@@ -16,8 +16,13 @@ import logging
 import re
 import sys
 import time
+from pathlib import Path
 
 import numpy as np
+
+# Allow running this script directly (python3 graph/export_data.py) while still
+# importing sibling modules under the `graph` package.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from graph._paths import ANKI_ADDONS_DIR
 from graph.builder import build_graph

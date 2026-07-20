@@ -15,6 +15,10 @@ import subprocess
 import sys
 import time
 from datetime import datetime
+from pathlib import Path
+
+# Allow running this script directly (python3 graph/watch_and_update.py).
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from graph._paths import ANKI_ADDONS_DIR
 

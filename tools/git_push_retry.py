@@ -137,9 +137,7 @@ def main(argv: list[str] | None = None) -> int:
             '❌ tools/git_push_retry.py must be run from a branch, not a detached HEAD.',
             file=sys.stderr,
         )
-        print(
-            '   If you are on a detached HEAD, push explicitly with:', file=sys.stderr
-        )
+        print('   If you are on a detached HEAD, push explicitly with:', file=sys.stderr)
         print("      git push origin HEAD:<branch-name>", file=sys.stderr)
         return 1
 

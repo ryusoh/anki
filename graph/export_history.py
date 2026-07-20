@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
 import gzip
 import json
+import sys
 from datetime import datetime
+from pathlib import Path
+
+# Allow running this script directly (python3 graph/export_history.py).
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from graph._paths import ANKI_ADDONS_DIR
 
