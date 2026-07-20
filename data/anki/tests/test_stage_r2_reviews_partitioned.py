@@ -1,4 +1,5 @@
 import gzip
+import importlib.util
 import json
 import sys
 import tempfile
@@ -10,7 +11,10 @@ import pytest
 # Load the extensionless fetch script as a module.
 SCRIPT_DIR = Path(__file__).parent
 sys.path.insert(0, str(SCRIPT_DIR.parent))
-fetch = SourceFileLoader("fetch", str(SCRIPT_DIR.parent / "fetch")).load_module()
+_fetch_loader = SourceFileLoader("fetch", str(SCRIPT_DIR.parent / "fetch"))
+_fetch_spec = importlib.util.spec_from_loader("fetch", _fetch_loader)
+fetch = importlib.util.module_from_spec(_fetch_spec)
+_fetch_loader.exec_module(fetch)
 
 
 def _make_review(review_id, cid=1):

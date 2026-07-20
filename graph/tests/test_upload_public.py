@@ -1,4 +1,5 @@
 import hashlib
+import importlib.util
 import json
 import sys
 import tempfile
@@ -11,8 +12,10 @@ import pytest
 SCRIPT_DIR = Path(__file__).parent
 SCRIPT = SCRIPT_DIR.parent / 'upload_public.py'
 
-_loader = SourceFileLoader('upload_public_mod', str(SCRIPT))
-upload_public = _loader.load_module()
+_upload_public_loader = SourceFileLoader('upload_public_mod', str(SCRIPT))
+_upload_public_spec = importlib.util.spec_from_loader('upload_public_mod', _upload_public_loader)
+upload_public = importlib.util.module_from_spec(_upload_public_spec)
+_upload_public_loader.exec_module(upload_public)
 
 
 @pytest.fixture
