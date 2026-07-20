@@ -382,6 +382,31 @@ def test_embedded_latex_skipped_when_dollars_present():
     assert _convert_dollar_to_mathjax(html) == html
 
 
+# --- Dangling superscript/subscript: invalid LaTeX must not be wrapped ---
+
+
+def test_dangling_superscript_not_wrapped():
+    """$x^$ has a ^ with no operand — MathJax renders it as a red-on-yellow
+    error. The add-on must leave it alone."""
+    assert _convert_dollar_to_mathjax('$x^$') == '$x^$'
+
+
+def test_dangling_subscript_not_wrapped():
+    """$x_$ has a _ with no operand — also invalid LaTeX."""
+    assert _convert_dollar_to_mathjax('$x_$') == '$x_$'
+
+
+def test_leading_subscript_not_wrapped():
+    """$^x$ is not valid standalone math."""
+    assert _convert_dollar_to_mathjax('$^x$') == '$^x$'
+
+
+def test_valid_superscript_still_converts():
+    """$x^2$ and $x^*$ are valid and should still convert."""
+    assert _convert_dollar_to_mathjax('$x^2$') == '\\(x^2\\)'
+    assert _convert_dollar_to_mathjax('$x^*$') == '\\(x^*\\)'
+
+
 # --- Prose protection (shapes found by tools/sweep_transform.py) ---
 # Cashtags, money slang, and finance commentary regex-match as $ pairs but
 # must never convert. Each test pins the shape of a real mangled note.

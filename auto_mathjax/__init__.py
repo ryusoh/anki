@@ -152,6 +152,11 @@ def _looks_like_math_content(inner):
     stripped = ANY_LATEX_COMMAND_RE.sub(' ', stripped)
     if CJK_RE.search(stripped):
         return False
+    # A dangling superscript/subscript operator (^/_) with no operand is not
+    # valid LaTeX; MathJax renders it as a red-on-yellow error.
+    core = stripped.strip()
+    if core and (core[0] in '^_' or core[-1] in '^_'):
+        return False
     if re.fullmatch(r'[a-zA-Z]+', text):
         return True
     return all(len(word) <= 2 for word in re.findall(r'[a-zA-Z]+', stripped))
