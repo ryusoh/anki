@@ -16,19 +16,24 @@ import logging
 import re
 import sys
 import time
-from pathlib import Path
 
 import numpy as np
 
-sys.path.insert(0, '/Users/lz/Library/Application Support/Anki2/addons21')
-from fa2_modified import ForceAtlas2
-
+from graph._paths import ANKI_ADDONS_DIR
 from graph.builder import build_graph
 
-BASE = Path('/Users/lz/Library/Application Support/Anki2/addons21')
+BASE = ANKI_ADDONS_DIR
 NOTES_FILE = BASE / 'data/cloudflare/collection/notes.json.gz'
 OUTPUT_FILE = BASE / 'graph/graph_data.json'
 CACHE_FILE = BASE / 'graph/.export_cache.json'
+
+# fa2_modified is installed into the Anki add-ons root; allow both repo and
+# Anki runtime layouts.
+sys.path.insert(0, str(BASE))
+try:
+    from fa2_modified import ForceAtlas2
+except ImportError:
+    from fa2 import ForceAtlas2
 
 
 def strip_html(text):

@@ -6,26 +6,25 @@ import json
 import os
 import sys
 from datetime import datetime
-from pathlib import Path
 
 import networkx as nx
 
+from graph._paths import ANKI_ADDONS_DIR
 from graph.builder import build_per_deck_graphs
 
-sys.path.insert(0, '/Users/lz/Library/Application Support/Anki2/addons21')
-os.chdir('/Users/lz/Library/Application Support/Anki2/addons21')
+BASE = ANKI_ADDONS_DIR
+os.chdir(str(BASE))
+sys.path.insert(0, str(BASE))
 
 # Load staged notes
-staging_file = (
-    "/Users/lz/Library/Application Support/Anki2/addons21/data/cloudflare/collection/notes.json.gz"
-)
+staging_file = BASE / 'data/cloudflare/collection/notes.json.gz'
 with gzip.open(staging_file, 'rt') as f:
     notes = json.load(f)
 
 print(f"✓ Loaded {len(notes):,} notes")
 
 # Create output dir
-output_dir = Path("/Users/lz/Library/Application Support/Anki2/addons21/graph_output")
+output_dir = BASE / 'graph_output'
 output_dir.mkdir(exist_ok=True)
 timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
 

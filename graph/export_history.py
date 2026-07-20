@@ -2,9 +2,10 @@
 import gzip
 import json
 from datetime import datetime
-from pathlib import Path
 
-BASE = Path('/Users/lz/Library/Application Support/Anki2/addons21')
+from graph._paths import ANKI_ADDONS_DIR
+
+BASE = ANKI_ADDONS_DIR
 NOTES_FILE = BASE / 'data/anki/notes.json.gz'
 CARDS_FILE = BASE / 'data/anki/cards.json.gz'
 REVIEWS_DIR = BASE / 'data/anki/reviews'

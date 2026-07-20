@@ -16,19 +16,14 @@ import argparse
 import gzip
 import json
 import re
-import sys
-from pathlib import Path
 
-sys.path.insert(0, '/Users/lz/Library/Application Support/Anki2/addons21')
+from graph._paths import ANKI_ADDONS_DIR
 from graph.builder import build_graph
 
-CONFIG_FILE = Path(
-    '/Users/lz/Library/Application Support/Anki2/addons21/graph/.incremental_config.json'
-)
-DATA_FILE = Path('/Users/lz/Library/Application Support/Anki2/addons21/graph/graph_data.json')
-NOTES_FILE = Path(
-    '/Users/lz/Library/Application Support/Anki2/addons21/data/cloudflare/collection/notes.json.gz'
-)
+BASE = ANKI_ADDONS_DIR
+CONFIG_FILE = BASE / 'graph' / '.incremental_config.json'
+DATA_FILE = BASE / 'graph' / 'graph_data.json'
+NOTES_FILE = BASE / 'data' / 'cloudflare' / 'collection' / 'notes.json.gz'
 
 
 def load_config():

@@ -15,14 +15,12 @@ import subprocess
 import sys
 import time
 from datetime import datetime
-from pathlib import Path
 
-CONFIG_FILE = Path(
-    '/Users/lz/Library/Application Support/Anki2/addons21/graph/.incremental_config.json'
-)
-EXPORT_SCRIPT = Path(
-    '/Users/lz/Library/Application Support/Anki2/addons21/graph/incremental_export.py'
-)
+from graph._paths import ANKI_ADDONS_DIR
+
+BASE = ANKI_ADDONS_DIR
+CONFIG_FILE = BASE / 'graph' / '.incremental_config.json'
+EXPORT_SCRIPT = BASE / 'graph' / 'incremental_export.py'
 
 
 def get_current_size():

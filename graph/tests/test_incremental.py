@@ -1,21 +1,12 @@
-import unittest
-from unittest.mock import MagicMock, patch
-
-"""
-Tests for incremental export system
-"""
-
 import json
 import os
-
-# Import functions to test
 import sys
 import tempfile
+import unittest
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
-
-sys.path.insert(0, '/Users/lz/Library/Application Support/Anki2/addons21/graph')
 
 from graph.incremental_export import load_config, save_config, strip_html
 

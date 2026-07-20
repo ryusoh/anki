@@ -12,9 +12,10 @@ import json
 import re
 import sys
 from collections import defaultdict
-from pathlib import Path
 
-BASE = Path('/Users/lz/Library/Application Support/Anki2/addons21')
+from graph._paths import ANKI_ADDONS_DIR
+
+BASE = ANKI_ADDONS_DIR
 GRAPH_FILE = BASE / 'graph/graph_data.json'
 HISTORY_FILE = BASE / 'graph/history_data.json'
 OUTPUT_DIR = BASE / 'data/pagerank'
