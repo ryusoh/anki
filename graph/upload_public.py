@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Upload public anonymized graph data to Cloudflare R2."""
 
+import hashlib
 import sys
 from pathlib import Path
 
@@ -14,6 +15,11 @@ r2_utils = SourceFileLoader(
 
 BASE = Path('/Users/lz/Library/Application Support/Anki2/addons21')
 PUBLIC_FILES = ['graph/graph_data_public.json', 'graph/history_data_public.json']
+HASH_MAP_FILE = BASE / 'data/cloudflare/hash_map.json'
+
+# graph/hash_map.py lives in the graph package; add it to the path.
+sys.path.insert(0, str(BASE / 'graph'))
+from hash_map import load_hash_map, save_hash_map  # noqa: E402
 
 
 def upload_public_data():
@@ -24,7 +30,12 @@ def upload_public_data():
 
     print(f"🚀 Uploading public graph data to bucket: {creds['bucket']}")
 
+    hash_map = load_hash_map(HASH_MAP_FILE)
     total_size = 0
+    uploaded = 0
+    skipped = 0
+    updated = False
+
     for rel_path in PUBLIC_FILES:
         path = BASE / rel_path
         if not path.exists():
@@ -34,8 +45,15 @@ def upload_public_data():
         with open(path, 'rb') as f:
             content = f.read()
 
-        # Upload as gzipped, but R2 client might handle it.
-        # The main script uses gzip.compress(content)
+        # Hash raw JSON bytes. Do NOT hash gzip-compressed bytes:
+        # gzip.compress() embeds the current timestamp, so compressed bytes
+        # differ every run even when the underlying JSON is identical.
+        content_hash = hashlib.sha256(content).hexdigest()
+        if hash_map.get(rel_path) == content_hash:
+            print(f"   ⊘ {rel_path} unchanged — skipping upload")
+            skipped += 1
+            continue
+
         success, size = r2_utils.upload_to_r2(
             creds['bucket'],
             rel_path,  # Key matches path: graph/graph_data_public.json
@@ -44,11 +62,20 @@ def upload_public_data():
             verbose=True,
         )
         if success:
+            print(f"  ✓ Uploaded {rel_path} ({size:,} bytes)")
             total_size += size
+            uploaded += 1
+            hash_map[rel_path] = content_hash
+            updated = True
         else:
             print(f"❌ Failed to upload {rel_path}")
 
-    print(f"✅ Success! Total uploaded: {total_size/1024/1024:.1f} MB (compressed)")
+    if updated:
+        save_hash_map(hash_map, HASH_MAP_FILE)
+
+    print(
+        f"✅ Success! Uploaded {uploaded}, skipped {skipped}, total {total_size/1024/1024:.1f} MB (compressed)"
+    )
     print("🌐 Data is now available at your R2 public endpoint under /graph/...")
 
 
