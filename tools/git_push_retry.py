@@ -65,6 +65,34 @@ def unpushed_commits() -> list[str]:
     return res.stdout.split()
 
 
+def _upstream_ahead() -> bool:
+    """True when the upstream branch has commits that HEAD does not.
+
+    The local remote-tracking ref is stale after another client pushes, so we
+    fetch before comparing. A failed fetch is treated as "cannot tell".
+    """
+    if upstream_branch() is None:
+        return False
+    if _git_run(['fetch']) != 0:
+        return False
+    res = _git_capture(['rev-list', '--count', 'HEAD..@{u}'])
+    if res.returncode != 0:
+        return False
+    try:
+        return int(res.stdout.strip() or '0') > 0
+    except ValueError:
+        return False
+
+
+def _auto_rebase() -> bool:
+    """Pull --rebase; abort any partial rebase on conflict. Return True on success."""
+    print('⚠️  Remote has moved; attempting auto-rebase...', flush=True)
+    if _git_run(['pull', '--rebase']) == 0:
+        return True
+    _git_run(['rebase', '--abort'])
+    return False
+
+
 def _push_full(config: list[str]) -> bool:
     return _git_run([*config, 'push']) == 0
 
@@ -92,6 +120,11 @@ def main(argv: list[str] | None = None) -> int:
         default=10.0,
         help='seconds before the first retry; doubles each retry (default 10)',
     )
+    parser.add_argument(
+        '--auto-rebase',
+        action='store_true',
+        help='when the remote has moved, run "git pull --rebase" once and retry',
+    )
     opts = parser.parse_args(argv)
 
     for attempt in range(1, opts.attempts + 1):
@@ -106,6 +139,14 @@ def main(argv: list[str] | None = None) -> int:
         config = [] if attempt == 1 else RETRY_GIT_CONFIG
         if _push_full(config):
             return 0
+        if opts.auto_rebase and _upstream_ahead():
+            if _auto_rebase():
+                continue
+            print(
+                '❌ Auto-rebase failed (conflict or other error). Resolve manually and rerun.',
+                file=sys.stderr,
+            )
+            return 1
         pending = unpushed_commits()
         if len(pending) > 1:
             print(

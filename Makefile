@@ -593,6 +593,8 @@ precommit-fix: .make/pip.stamp .make/npm-ci.stamp $(if $(filter 1,$(SKIP_FETCH) 
 		if [ "$$SEC_OK" = "1" ]; then \
 			_msg="$(MSG)"; \
 			if [ -z "$$_msg" ]; then _msg="chore: データ取得・整形・リント修正・テスト・グラフ更新"; fi; \
+			_rebase_flag=""; \
+			if [ "$(YOLO)" = "1" ] || [ -n "$(MSG)" ]; then _rebase_flag="--auto-rebase"; fi; \
 			if [ "$(YOLO)" = "1" ] || [ -n "$(MSG)" ]; then \
 				echo ""; \
 				echo "📝 Committing: $$_msg"; \
@@ -600,7 +602,7 @@ precommit-fix: .make/pip.stamp .make/npm-ci.stamp $(if $(filter 1,$(SKIP_FETCH) 
 				{ git diff --cached --quiet || git commit -m "$$_msg"; } && \
 				echo "" && \
 				echo "🚀 Pushing to remote..." && \
-				$(PYTHON) tools/git_push_retry.py && \
+				$(PYTHON) tools/git_push_retry.py $$_rebase_flag && \
 				echo "✅ Committed and pushed." || PUSH_OK=0; \
 			fi; \
 		fi; \
@@ -623,7 +625,7 @@ precommit-fix: .make/pip.stamp .make/npm-ci.stamp $(if $(filter 1,$(SKIP_FETCH) 
 			echo "   commit above already ran before this background job finished:"; \
 			git add data/cloudflare/hash_map.json && \
 			git commit -m "chore: update R2 hash map after sync" && \
-			$(PYTHON) tools/git_push_retry.py && \
+			$(PYTHON) tools/git_push_retry.py $$_rebase_flag && \
 			echo "✅ Hash map committed and pushed." || \
 			echo "⚠️  Failed to commit/push the updated hash map — it will be picked up by the next run's git add -A."; \
 		fi; \
