@@ -25,12 +25,20 @@ class FakeGit:
     """
 
     def __init__(
-        self, upstream='origin/main', unpushed=(), full_push_results=(1,), chunk_push_results=(0,)
+        self,
+        upstream='origin/main',
+        unpushed=(),
+        full_push_results=(1,),
+        chunk_push_results=(0,),
+        upstream_ahead=0,
+        pull_rebase_result=0,
     ):
         self.upstream = upstream
         self.unpushed = list(unpushed)
         self.full_push_results = list(full_push_results)
         self.chunk_push_results = list(chunk_push_results)
+        self.upstream_ahead = upstream_ahead
+        self.pull_rebase_result = pull_rebase_result
         self.run_calls = []
 
     def _next(self, results):
@@ -38,17 +46,30 @@ class FakeGit:
 
     def git_run(self, args):
         self.run_calls.append(args)
-        if args[-1] == 'push':
+        if args == ['pull', '--rebase']:
+            code = self.pull_rebase_result
+        elif args == ['rebase', '--abort']:
+            code = 0
+        elif args == ['fetch']:
+            code = 0
+        elif args[-1] == 'push':
             code = self._next(self.full_push_results)
         else:
             code = self._next(self.chunk_push_results)
-        if code == 0 and self.unpushed:
-            # A successful push lands everything it targeted.
-            if args[-1] == 'push':
-                self.unpushed = []
-            else:
-                sha = args[-1].split(':', 1)[0]
-                self.unpushed = self.unpushed[self.unpushed.index(sha) + 1 :]
+
+        if code != 0 or not self.unpushed or args == ['rebase', '--abort'] or args == ['fetch']:
+            return code
+
+        if args == ['pull', '--rebase']:
+            # Rebase replays local commits; they remain unpushed.
+            return code
+        if args[-1] == 'push':
+            # A bare `git push` lands every local commit.
+            self.unpushed = []
+        else:
+            # Refspec push: args[-1] is '<sha>:refs/heads/<branch>'.
+            sha = args[-1].split(':', 1)[0]
+            self.unpushed = self.unpushed[self.unpushed.index(sha) + 1 :]
         return code
 
     def git_capture(self, args):
@@ -57,6 +78,10 @@ class FakeGit:
                 return subprocess.CompletedProcess(args, 128, stdout='', stderr='no upstream')
             return subprocess.CompletedProcess(args, 0, stdout=self.upstream + '\n', stderr='')
         if args[0] == 'rev-list':
+            if args[1:3] == ['--count', 'HEAD..@{u}']:
+                return subprocess.CompletedProcess(
+                    args, 0, stdout=str(self.upstream_ahead) + '\n', stderr=''
+                )
             return subprocess.CompletedProcess(args, 0, stdout='\n'.join(self.unpushed), stderr='')
         raise AssertionError(f'unexpected capture: {args}')
 
@@ -145,6 +170,54 @@ def test_no_upstream_means_no_chunking_just_plain_retries():
     assert all(c[-1] == 'push' for c in fake.run_calls)
 
 
+def test_auto_rebase_pulls_and_retries_when_upstream_moved():
+    fake = FakeGit(
+        unpushed=['aaa'],
+        full_push_results=[1, 0],
+        upstream_ahead=1,
+        pull_rebase_result=0,
+    )
+    code, _ = run_main(fake, ['--auto-rebase', '--attempts', '2'])
+    assert code == 0
+    assert ['fetch'] in fake.run_calls
+    assert ['pull', '--rebase'] in fake.run_calls
+    assert fake.run_calls[-1][-1] == 'push'
+
+
+def test_auto_rebase_aborts_and_fails_on_conflict():
+    fake = FakeGit(
+        unpushed=['aaa'],
+        full_push_results=[1],
+        upstream_ahead=1,
+        pull_rebase_result=1,
+    )
+    code, _ = run_main(fake, ['--auto-rebase', '--attempts', '2'])
+    assert code == 1
+    assert ['pull', '--rebase'] in fake.run_calls
+    assert ['rebase', '--abort'] in fake.run_calls
+
+
+def test_auto_rebase_skipped_when_upstream_not_ahead():
+    fake = FakeGit(
+        unpushed=['aaa', 'bbb'],
+        full_push_results=[1],
+        chunk_push_results=[0, 0],
+        upstream_ahead=0,
+    )
+    code, _ = run_main(fake, ['--auto-rebase'])
+    assert code == 0
+    assert ['fetch'] in fake.run_calls
+    assert ['pull', '--rebase'] not in fake.run_calls
+
+
+def test_no_auto_rebase_without_flag_even_if_upstream_ahead():
+    fake = FakeGit(unpushed=['aaa'], full_push_results=[1], upstream_ahead=1)
+    code, _ = run_main(fake, ['--attempts', '2'])
+    assert code == 1
+    assert ['fetch'] not in fake.run_calls
+    assert ['pull', '--rebase'] not in fake.run_calls
+
+
 def _git(cwd, *args):
     subprocess.run(['git', '-C', str(cwd), *args], check=True, capture_output=True)
 
@@ -180,3 +253,54 @@ def test_integration_chunked_push_against_real_local_remote(tmp_path, monkeypatc
         ['git', '-C', str(remote), 'rev-parse', 'main'], check=True, capture_output=True, text=True
     ).stdout
     assert local == on_remote
+
+
+def test_integration_auto_rebase_when_remote_moves(tmp_path, monkeypatch):
+    """--auto-rebase pulls remote changes and then pushes local commits."""
+    remote = tmp_path / 'remote.git'
+    subprocess.run(
+        ['git', 'init', '--bare', '-b', 'main', str(remote)], check=True, capture_output=True
+    )
+
+    clone1 = tmp_path / 'clone1'
+    subprocess.run(['git', 'clone', str(remote), str(clone1)], check=True, capture_output=True)
+    _git(clone1, 'config', 'user.email', 'test@example.com')
+    _git(clone1, 'config', 'user.name', 'test')
+    (clone1 / 'base.txt').write_text('base')
+    _git(clone1, 'add', '-A')
+    _git(clone1, 'commit', '-m', 'base')
+    _git(clone1, 'push', '-u', 'origin', 'main')
+
+    clone2 = tmp_path / 'clone2'
+    subprocess.run(['git', 'clone', str(remote), str(clone2)], check=True, capture_output=True)
+    _git(clone2, 'config', 'user.email', 'test@example.com')
+    _git(clone2, 'config', 'user.name', 'test')
+    (clone2 / 'remote.txt').write_text('remote')
+    _git(clone2, 'add', '-A')
+    _git(clone2, 'commit', '-m', 'remote commit')
+    _git(clone2, 'push')
+
+    (clone1 / 'local.txt').write_text('local')
+    _git(clone1, 'add', '-A')
+    _git(clone1, 'commit', '-m', 'local commit')
+
+    monkeypatch.chdir(clone1)
+    assert len(git_push_retry.unpushed_commits()) == 1
+    code = git_push_retry.main(['--auto-rebase'])
+    assert code == 0
+    assert git_push_retry.unpushed_commits() == []
+
+    local_head = subprocess.run(
+        ['git', '-C', str(clone1), 'rev-parse', 'HEAD'], check=True, capture_output=True, text=True
+    ).stdout.strip()
+    remote_head = subprocess.run(
+        ['git', '-C', str(remote), 'rev-parse', 'main'], check=True, capture_output=True, text=True
+    ).stdout.strip()
+    assert local_head == remote_head
+
+    ancestor_check = subprocess.run(
+        ['git', '-C', str(clone1), 'merge-base', '--is-ancestor', 'HEAD^', 'HEAD'],
+        check=False,
+        capture_output=True,
+    )
+    assert ancestor_check.returncode == 0

@@ -73,3 +73,16 @@ def test_empty_index_skips_commit_but_not_push():
         "commit it must still reach the push, so a rerun after a failed push "
         "retries it"
     )
+
+
+def test_auto_rebase_flag_only_in_unattended_push_path():
+    recipe = _precommit_fix_recipe()
+    assert (
+        "tools/git_push_retry.py $$_rebase_flag" in recipe
+    ), "precommit-fix no longer passes a dynamic rebase flag to git_push_retry.py"
+    assert (
+        '--auto-rebase' in recipe
+    ), "precommit-fix does not enable --auto-rebase for git_push_retry.py"
+    assert (
+        'if [ "$(YOLO)" = "1" ] || [ -n "$(MSG)" ]; then _rebase_flag="--auto-rebase"; fi' in recipe
+    ), "--auto-rebase must only be set in unattended YOLO=1 or MSG= push mode"
