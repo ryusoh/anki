@@ -190,11 +190,14 @@ is false. Confirm both pytest **and** the JS runner execute.
 - TDD-style corner-case tests live next to each add-on (e.g.
   `auto_wiktionary/tests/` pins Wiktionary redirect cases). Add a failing test
   there first, then fix.
-- **This repo's absolute path contains a space** (`.../Application Support/Anki2/addons21`).
-  A Makefile recipe that builds `VAR=$(CURDIR)/...` (or any other space-containing
-  value) as an env-var prefix MUST quote it (`VAR="$(CURDIR)/..."`) — unquoted,
-  `/bin/sh` word-splits at the space and tries to _execute_ the tail of the path
-  as a command instead of setting the var. Pinned by
+- **Workspace layout.** The repo lives at `~/dev/anki` and is symlinked back into
+  Anki's add-on folder at `~/Library/Application Support/Anki2/addons21`. Edit
+  files in `~/dev/anki`; Anki follows the symlink to see the same content. If you
+  ever move the working tree back under a path that contains a space (such as the
+  original `Application Support/Anki2/addons21` path), Makefile recipes that build
+  `VAR=$(CURDIR)/...` as an env-var prefix MUST quote it (`VAR="$(CURDIR)/..."`)
+  — unquoted, `/bin/sh` word-splits at the space and tries to _execute_ the tail
+  of the path instead of setting the var. Pinned by
   `tests/test_makefile_curdir_quoting.py`.
 - **`precommit-fix`'s `YOLO=1`/`MSG=` commit step runs `git add -A`.** If another
   process has unrelated uncommitted changes sitting in this working tree when it
