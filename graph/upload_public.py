@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Upload public anonymized graph data to Cloudflare R2."""
 
+import argparse
 import hashlib
 import sys
 from importlib.machinery import SourceFileLoader
@@ -82,4 +83,8 @@ def upload_public_data():
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description='Upload public anonymized graph data to Cloudflare R2.'
+    )
+    parser.parse_args()
     upload_public_data()
