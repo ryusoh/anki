@@ -45,12 +45,15 @@ then `wait`s on them last. Their clients have 120s per-request timeouts, but
 on a slow-but-alive link bytes keep flowing, so no timeout ever fires — the
 run appeared to hang forever right after the graph-local log.
 
-Both jobs now run under `tools/run_with_deadline.py` (a portable
-`timeout(1)`; macOS ships none), capped at `NET_DEADLINE` seconds
-(default 900). At the deadline the job's whole process group is
+Each job now runs under its own `tools/run_with_deadline.py` wrapper (a
+portable `timeout(1)`; macOS ships none), capped at `NET_DEADLINE` seconds
+(default 1800). At the deadline the job's whole process group is
 TERM→KILLed, the job exits 124, and the run fails loudly with rerun advice.
 Both uploads are incremental — rerunning `make fetch-r2-skip-fetch` /
 `make graph-push` on a healthy network resumes where they got to.
+
+The two network jobs no longer share a single deadline: a slow R2 upload
+cannot starve the public graph push (or vice versa).
 
 Let a slow-but-working upload finish by raising the cap:
 
