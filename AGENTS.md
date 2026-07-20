@@ -220,6 +220,17 @@ is false. Confirm both pytest **and** the JS runner execute.
   syncing `.agents/skills/` mid-session does not change what the running session
   has loaded — an invoked skill still uses the pre-edit text (observed: `/retro`
   loading a pre-consolidation copy). Start a new session to pick up skill edits.
+- **Never discard uncommitted user work without explicit confirmation.**
+  `git checkout -- <file>`, `git reset --hard`, and similar destructive resets
+  can destroy changes the user made in another session or is still reviewing.
+  This is especially risky in `data/`, where the "never hand-edit generated
+  data" rule means _agents shouldn't create manual edits there_, not that an
+  agent may freely revert whatever is uncommitted. If you see uncommitted
+  changes and don't know their origin, ask before resetting.
+- **Graph scripts are executed as standalone scripts**, not as `python3 -m graph.x`.
+  Any script under `graph/` that imports sibling modules (`from graph.builder
+import ...`) must insert the repo root into `sys.path` _before_ those imports.
+  See `docs/graph-analysis-guide.md`.
 
 ## Coding standards
 

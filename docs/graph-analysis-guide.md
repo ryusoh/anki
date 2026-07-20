@@ -4,6 +4,24 @@
 
 The `graph/analyze.py` CLI tool analyzes your Anki collection as a knowledge graph using PageRank to find the most important "hub" cards.
 
+> **Note for contributors:** scripts under `graph/` are executed as standalone
+> scripts (e.g. `python3 graph/export_data.py`), not as modules. Because of this,
+> any script that imports sibling modules such as `from graph.builder import ...`
+> must first add the repo root to `sys.path`:
+>
+> ```python
+> import sys
+> from pathlib import Path
+>
+> sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+>
+> from graph.builder import build_graph
+> ```
+>
+> Shared path resolution lives in `graph/_paths.py` (`ANKI_ADDONS_DIR`), which
+> supports an `ANKI_ADDONS_DIR` environment override and defaults to the repo
+> root resolved from `__file__`.
+
 ## Quick Start
 
 ```bash
