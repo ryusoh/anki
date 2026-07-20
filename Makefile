@@ -505,15 +505,17 @@ fetch-prompt:
 # Depends on the stamped install targets (not `install`), so an unchanged
 # lockfile/requirements.txt skips npm ci/pip install on every invocation.
 #
-# Hard wall-clock cap for the backgrounded NETWORK jobs (R2 upload, public
+# Hard wall-clock cap for EACH backgrounded NETWORK job (R2 upload, public
 # graph push). Their upload clients have per-request timeouts, but on a
 # limited-bandwidth link bytes keep trickling so no timeout ever fires — the
 # jobs crawl for hours and this recipe's `wait` hung "forever" (observed
 # 2026-07-13). tools/run_with_deadline.py kills the job's process group at
 # the deadline (exit 124 → BG_FAIL → loud non-zero exit); both uploads are
 # incremental, so a rerun on a healthy network resumes where they got to.
+# The two network jobs run under separate deadlines so a slow R2 upload does
+# not starve the public graph push (or vice versa).
 # Override per-invocation: make precommit-fix YOLO=1 NET_DEADLINE=3600
-NET_DEADLINE ?= 900
+NET_DEADLINE ?= 1800
 
 # The push goes through tools/git_push_retry.py (retries with backoff; falls
 # back to pushing queued commits one at a time so each HTTP request stays
@@ -559,8 +561,8 @@ precommit-fix: .make/pip.stamp .make/npm-ci.stamp $(if $(filter 1,$(SKIP_FETCH) 
 		$(MAKE) graph-local > .make/graph-local.log 2>&1 & BG_GRAPHLOCAL_PID=$$!; \
 	fi; \
 	if [ "$(YOLO)" = "1" ] && [ -z "$(SKIP_R2)" ] && [ -z "$(SKIP)" ]; then \
-		echo "📤 Upload private content to R2, then push public graph? auto-yes (YOLO, backgrounded, ≤$(NET_DEADLINE)s)"; \
-		$(PYTHON) tools/run_with_deadline.py --seconds $(NET_DEADLINE) -- sh -c '$(MAKE) fetch-r2-skip-fetch && $(MAKE) graph-push' > .make/network-pipeline.log 2>&1 & BG_NETWORK_PID=$$!; \
+		echo "📤 Upload private content to R2, then push public graph? auto-yes (YOLO, backgrounded, ≤$(NET_DEADLINE)s per job)"; \
+		$(PYTHON) tools/run_with_deadline.py --seconds $(NET_DEADLINE) -- sh -c '$(PYTHON) tools/run_with_deadline.py --seconds $(NET_DEADLINE) -- $(MAKE) fetch-r2-skip-fetch && $(PYTHON) tools/run_with_deadline.py --seconds $(NET_DEADLINE) -- $(MAKE) graph-push' > .make/network-pipeline.log 2>&1 & BG_NETWORK_PID=$$!; \
 	fi; \
 	GATE_OK=1; SEC_OK=1; PUSH_OK=1; \
 	$(MAKE) fmt lint-fix fmt-py verify || GATE_OK=0; \
