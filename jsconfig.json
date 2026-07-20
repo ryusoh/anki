@@ -10,6 +10,6 @@
     "types": [],
     "strict": true
   },
-  "include": ["js/types/*.d.ts", "js/utils/host.js"],
+  "include": ["js/types/*.d.ts", "js/utils/host.js", "js/ui/reduced_motion.js"],
   "exclude": ["node_modules", "js/vendor"]
 }
