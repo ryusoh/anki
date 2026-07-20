@@ -42,9 +42,9 @@ def test_backgrounded_network_jobs_run_under_the_deadline_wrapper():
     recipe = _precommit_fix_recipe()
     launches = [line for line in recipe.splitlines() if f"& {NETWORK_PIPELINE_PID}=" in line]
     assert launches, "backgrounded network pipeline launch not found in precommit-fix recipe"
-    assert len(launches) == 1, (
-        f"expected exactly one backgrounded network pipeline launch, found {len(launches)}"
-    )
+    assert (
+        len(launches) == 1
+    ), f"expected exactly one backgrounded network pipeline launch, found {len(launches)}"
     line = launches[0]
     assert "run_with_deadline.py" in line and "$(NET_DEADLINE)" in line, (
         "backgrounded network pipeline is not wrapped in "
@@ -53,9 +53,9 @@ def test_backgrounded_network_jobs_run_under_the_deadline_wrapper():
         f"`wait` hangs forever: {line.strip()!r}"
     )
     for target in NETWORK_PIPELINE_TARGETS:
-        assert target in line, (
-            f"backgrounded network pipeline must include `{target}`: {line.strip()!r}"
-        )
+        assert (
+            target in line
+        ), f"backgrounded network pipeline must include `{target}`: {line.strip()!r}"
     # Each job must have its own deadline wrapper so a slow R2 upload does not
     # consume the graph push's time budget (and vice versa).
     assert line.count("run_with_deadline.py") >= 2, (
