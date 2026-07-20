@@ -185,7 +185,7 @@ addons21/
 - **For R2 (full content):**
   - `collection/notes.json.gz` - Full notes with flds, tags
   - `collection/cards.json.gz` - All cards with deck info
-  - `collection/reviews.json.gz` - Full review history
+  - `collection/reviews/YYYY-MM.json.gz` - Full review history by month
   - `notes/{guid}.json.gz` - Individual notes for lookup
 
 **Usage:**

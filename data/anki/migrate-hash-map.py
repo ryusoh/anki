@@ -60,13 +60,17 @@ def main():
     collection_files = [
         "collection/notes.json.gz",
         "collection/cards.json.gz",
-        "collection/reviews.json.gz",
         "collection/decks.json",
         "collection/notetypes.json.gz",
         "collection/cards-data.json.gz",
         "collection/media-registry.json",
         "collection/collection-config.json",
     ]
+
+    reviews_dir = staging_dir / "collection" / "reviews"
+    if reviews_dir.exists():
+        for review_file in sorted(reviews_dir.glob("*.json.gz")):
+            collection_files.append(f"collection/reviews/{review_file.name}")
     
     print("\n📦 Computing collection file hashes...")
     for key in collection_files:

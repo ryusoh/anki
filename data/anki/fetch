@@ -21,6 +21,8 @@ import argparse
 from pathlib import Path
 from datetime import datetime
 
+from review_utils import partition_reviews_by_month
+
 
 def find_project_root():
     """Find project root by looking for data/anki directory."""
@@ -159,7 +161,15 @@ def _stage_collection_files(data, notes_with_deck, collection_dir, old_hash_map,
 
     process_file("collection/notes.json.gz", notes_with_deck)
     process_file("collection/cards.json.gz", data.get('cards', []))
-    process_file("collection/reviews.json.gz", data.get('reviews', []))
+
+    reviews = data.get('reviews', [])
+    reviews_dir = collection_dir / "reviews"
+    reviews_dir.mkdir(exist_ok=True)
+    if reviews:
+        reviews_by_month = partition_reviews_by_month(reviews)
+        for month, month_reviews in sorted(reviews_by_month.items()):
+            process_file(f"collection/reviews/{month}.json.gz", month_reviews)
+
     process_file("collection/decks.json", data.get('decks', {}), is_json=True)
     process_file("collection/notetypes.json.gz", data.get('notetypes', []))
 
@@ -378,21 +388,12 @@ def export_for_git(data, output_dir, verbose=True):
     reviews_dir = output_dir / "reviews"
     reviews_dir.mkdir(exist_ok=True)
 
-    # Group reviews by YYYY-MM
-    reviews_by_month = {}
-    for review in data['reviews']:
-        ts = review['id'] / 1000
-        dt = datetime.fromtimestamp(ts)
-        month_key = dt.strftime('%Y-%m')
-
-        if month_key not in reviews_by_month:
-            reviews_by_month[month_key] = []
-        reviews_by_month[month_key].append(review)
+    reviews_by_month = partition_reviews_by_month(data['reviews'])
 
     # Write each month to separate file ONLY if content changed
     for month, reviews in sorted(reviews_by_month.items()):
         month_file = reviews_dir / f"{month}.json.gz"
-        
+
         # Check if file content is identical
         if files_are_identical(reviews, month_file):
             files_unchanged.append(f'reviews/{month}.json.gz')

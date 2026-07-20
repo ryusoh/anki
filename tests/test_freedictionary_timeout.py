@@ -3,7 +3,7 @@ import types
 from unittest.mock import MagicMock, patch
 
 
-def test_missing_timeout():
+def test_missing_timeout(tmp_path):
     # Setup sys.modules for mock
     mock_base = MagicMock()
 
@@ -34,6 +34,8 @@ def test_missing_timeout():
 
     service = module.FreeDictionary()
 
+    output_path = str(tmp_path / "test.mp3")
+
     with patch('urllib.request.urlopen') as mock_urlopen:
         mock_response = MagicMock()
         mock_response.read.return_value = (
@@ -41,7 +43,7 @@ def test_missing_timeout():
         )
         mock_urlopen.return_value.__enter__.return_value = mock_response
 
-        service.run("hello", {"voice": "us"}, "/tmp/test.mp3")
+        service.run("hello", {"voice": "us"}, output_path)
 
         assert mock_urlopen.call_count == 2
         for call_args in mock_urlopen.call_args_list:

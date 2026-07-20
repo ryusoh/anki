@@ -8,8 +8,9 @@ Export Anki stats to Git-friendly format.
 import gzip
 import json
 import sqlite3
-from datetime import datetime
 from pathlib import Path
+
+from review_utils import partition_reviews_by_month
 
 SCRIPT_DIR = Path(__file__).parent
 SOURCE_DB = SCRIPT_DIR / "collection.anki2"
@@ -87,38 +88,28 @@ def export_for_git():
     # Export reviews partitioned by month
     reviews_dir = OUTPUT_DIR / "reviews"
     reviews_dir.mkdir(exist_ok=True)
-    
-    # Group reviews by YYYY-MM
-    reviews_by_month = {}
-    for review in data['reviews']:
-        # Convert Anki timestamp (ms since epoch) to datetime
-        ts = review['id'] / 1000
-        dt = datetime.fromtimestamp(ts)
-        month_key = dt.strftime('%Y-%m')
-        
-        if month_key not in reviews_by_month:
-            reviews_by_month[month_key] = []
-        reviews_by_month[month_key].append(review)
-    
+
+    reviews_by_month = partition_reviews_by_month(data['reviews'])
+
     # Write each month to separate file
     for month, reviews in sorted(reviews_by_month.items()):
         month_file = reviews_dir / f"{month}.json.gz"
         with gzip.open(month_file, 'wt', encoding='utf-8') as f:
             json.dump(reviews, f, ensure_ascii=False)
         print(f"   ✓ reviews/{month}.json.gz ({month_file.stat().st_size / 1024:.1f} KB, {len(reviews)} reviews)")
-    
+
     # Summary
     total_reviews = sum(len(r) for r in reviews_by_month.values())
     total_size = sum(
-        f.stat().st_size 
-        for f in OUTPUT_DIR.glob("*.json*") 
+        f.stat().st_size
+        for f in OUTPUT_DIR.glob("*.json*")
         for f in [f]
     ) + sum(
-        f.stat().st_size 
+        f.stat().st_size
         for f in reviews_dir.glob("*.json*")
         for f in [f]
     )
-    
+
     print()
     print("✅ Export complete!")
     print(f"   Total reviews: {total_reviews:,}")

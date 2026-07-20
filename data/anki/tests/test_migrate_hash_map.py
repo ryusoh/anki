@@ -96,7 +96,27 @@ def test_main_with_corrupt_files_and_abort(setup_module_mocks):
                     migrate_hash_map.main()
                 setup_module_mocks.save_hash_map.assert_not_called()
 
-def test_main_success_path(setup_module_mocks):
+def test_main_migrates_partitioned_reviews(setup_module_mocks):
+    with tempfile.TemporaryDirectory() as tempdir:
+        staging_dir = Path(tempdir)
+        reviews_dir = staging_dir / "collection" / "reviews"
+        reviews_dir.mkdir(parents=True)
+
+        for month, content in (("2021-01", b"a"), ("2021-02", b"b")):
+            (reviews_dir / f"{month}.json.gz").write_bytes(content)
+
+        setup_module_mocks.save_hash_map.reset_mock()
+        with patch('migrate_hash_map.get_staging_dir', return_value=staging_dir):
+            with patch('migrate_hash_map.compute_file_hash', side_effect=lambda p: f"hash_{p.name}"):
+                with patch('builtins.input', return_value='y'):
+                    migrate_hash_map.main()
+                    setup_module_mocks.save_hash_map.assert_called()
+                    args, _ = setup_module_mocks.save_hash_map.call_args
+                    hash_map = args[0]
+                    assert "collection/reviews/2021-01.json.gz" in hash_map
+                    assert "collection/reviews/2021-02.json.gz" in hash_map
+                    assert "collection/reviews.json.gz" not in hash_map
+
     with tempfile.TemporaryDirectory() as tempdir:
         staging_dir = Path(tempdir)
 

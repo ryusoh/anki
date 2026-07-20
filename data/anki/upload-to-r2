@@ -315,6 +315,26 @@ def get_s3_client(creds):
     return _s3_client
 
 
+def _review_collection_keys(staging_dir):
+    """Return R2 keys for staged monthly review files, sorted."""
+    reviews_dir = staging_dir / "collection" / "reviews"
+    if not reviews_dir.exists():
+        return []
+    return [f"collection/reviews/{f.name}" for f in sorted(reviews_dir.glob("*.json.gz"))]
+
+
+def _delete_old_reviews_monolith(creds):
+    """Best-effort delete of the pre-partition R2 object. Idempotent and free."""
+    if not HAS_BOTO3:
+        return
+    try:
+        get_s3_client(creds).delete_object(
+            Bucket=creds['bucket'], Key='collection/reviews.json.gz'
+        )
+    except Exception:
+        pass
+
+
 def upload_to_r2(bucket, key, data, creds, verbose=False, max_retries=3, quiet=False):
     """Upload data to R2 bucket using boto3 (preferred) or urllib."""
     account_id = creds['account_id']
@@ -416,13 +436,17 @@ def upload_from_staging(staging_dir, creds, verbose, notes_count, sync=False):
     collection_files = [
         'collection/notes.json.gz',
         'collection/cards.json.gz',
-        'collection/reviews.json.gz',
         'collection/notetypes.json.gz',
         'collection/decks.json',
         'collection/cards-data.json.gz',
         'collection/media-registry.json',
         'collection/collection-config.json',
     ]
+    collection_files += _review_collection_keys(staging_dir)
+
+    # Track whether any monthly review file was uploaded so we can delete the
+    # old monolith once.
+    uploaded_review_month = False
     
     # Count total files first
     total_files = len([f for f in collection_files if (staging_dir / f).exists()])
@@ -445,6 +469,8 @@ def upload_from_staging(staging_dir, creds, verbose, notes_count, sync=False):
         if success:
             uploaded_count += 1
             total_bytes += size
+            if key.startswith('collection/reviews/'):
+                uploaded_review_month = True
         else:
             failed_count += 1
             failed_keys.add(key)
@@ -453,6 +479,10 @@ def upload_from_staging(staging_dir, creds, verbose, notes_count, sync=False):
         if verbose:
             progress = (i / total_files) * 100 if total_files > 0 else 0
             print(f"   Progress: {i:,}/{total_files:,} ({progress:.1f}%)")
+
+    # The old monolithic reviews file is no longer generated; delete it once.
+    if uploaded_review_month:
+        _delete_old_reviews_monolith(creds)
     
     # Get list of local note files
     notes_dir = staging_dir / "notes"
@@ -639,16 +669,17 @@ R2 Directory Structure:
         collection_files = [
             'collection/notes.json.gz',
             'collection/cards.json.gz',
-            'collection/reviews.json.gz',
             'collection/notetypes.json.gz',
             'collection/decks.json',
             'collection/cards-data.json.gz',
             'collection/media-registry.json',
             'collection/collection-config.json',
         ]
+        collection_files += _review_collection_keys(staging_dir)
 
         files_to_upload = []
         new_collection_hashes = {}
+        review_month_changed = False
 
         for key in collection_files:
             file_path = staging_dir / key
@@ -657,6 +688,8 @@ R2 Directory Structure:
                 new_collection_hashes[key] = current_hash
             if needs_upload:
                 files_to_upload.append(('collection', key, file_path))
+                if key.startswith('collection/reviews/'):
+                    review_month_changed = True
                 if args.verbose:
                     print(f"   📤 {key} [CHANGED/NEW]")
             elif args.verbose:
@@ -711,6 +744,7 @@ R2 Directory Structure:
         failed_keys = set()
 
         # Upload collection files
+        uploaded_review_month = False
         for file_type, key, file_path in files_to_upload:
             with open(file_path, 'rb') as f:
                 content = f.read()
@@ -718,6 +752,12 @@ R2 Directory Structure:
             if not success:
                 failed_keys.add(key)
                 print(f"   ✗ Failed to upload {key}")
+            elif key.startswith('collection/reviews/'):
+                uploaded_review_month = True
+
+        # The old monolithic reviews file is no longer generated; delete it once.
+        if review_month_changed and uploaded_review_month:
+            _delete_old_reviews_monolith(creds)
 
         # Upload individual notes
         for i, (guid, note_file, current_hash) in enumerate(notes_to_upload, 1):

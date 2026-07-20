@@ -210,24 +210,24 @@ def test_collection_file_change_detection():
     old_files = {
         "collection/notes.json.gz": compute_file_hash([{'guid': '1'}]),
         "collection/cards.json.gz": compute_file_hash([{'id': '1'}]),
-        "collection/reviews.json.gz": compute_file_hash([{'cid': '1'}]),
+        "collection/reviews/2021-01.json.gz": compute_file_hash([{'cid': '1'}]),
     }
-    
+
     # Test 1: No changes
     current_same = {
         "collection/notes.json.gz": compute_file_hash([{'guid': '1'}]),
         "collection/cards.json.gz": compute_file_hash([{'id': '1'}]),
-        "collection/reviews.json.gz": compute_file_hash([{'cid': '1'}]),
+        "collection/reviews/2021-01.json.gz": compute_file_hash([{'cid': '1'}]),
     }
     changed = [k for k, h in current_same.items() if old_files.get(k) != h]
     assert len(changed) == 0
     print("   ✓ No changes detected")
-    
+
     # Test 2: One file changed
     current_changed = {
         "collection/notes.json.gz": compute_file_hash([{'guid': '1'}, {'guid': '2'}]),  # Changed
         "collection/cards.json.gz": compute_file_hash([{'id': '1'}]),  # Same
-        "collection/reviews.json.gz": compute_file_hash([{'cid': '1'}]),  # Same
+        "collection/reviews/2021-01.json.gz": compute_file_hash([{'cid': '1'}]),  # Same
     }
     changed = [k for k, h in current_changed.items() if old_files.get(k) != h]
     assert len(changed) == 1
