@@ -109,6 +109,11 @@ def _push_one_by_one(config: list[str]) -> bool:
     return True
 
 
+def _is_detached_head() -> bool:
+    res = _git_capture(['rev-parse', '--abbrev-ref', 'HEAD'])
+    return res.returncode != 0 or res.stdout.strip() == 'HEAD'
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description='git push with retries and a chunked fallback for slow links'
@@ -126,6 +131,17 @@ def main(argv: list[str] | None = None) -> int:
         help='when the remote has moved, run "git pull --rebase" once and retry',
     )
     opts = parser.parse_args(argv)
+
+    if _is_detached_head():
+        print(
+            '❌ tools/git_push_retry.py must be run from a branch, not a detached HEAD.',
+            file=sys.stderr,
+        )
+        print(
+            '   If you are on a detached HEAD, push explicitly with:', file=sys.stderr
+        )
+        print("      git push origin HEAD:<branch-name>", file=sys.stderr)
+        return 1
 
     for attempt in range(1, opts.attempts + 1):
         if attempt > 1:

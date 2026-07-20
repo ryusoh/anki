@@ -255,7 +255,32 @@ def test_integration_chunked_push_against_real_local_remote(tmp_path, monkeypatc
     assert local == on_remote
 
 
-def test_integration_auto_rebase_when_remote_moves(tmp_path, monkeypatch):
+def test_detached_head_exits_with_helpful_message():
+    fake = FakeGit(upstream='origin/main', unpushed=['aaa'])
+
+    def git_capture_detached(args):
+        if args[:2] == ['rev-parse', '--abbrev-ref']:
+            return subprocess.CompletedProcess(args, 0, stdout='HEAD\n', stderr='')
+        return fake.git_capture(args)
+
+    def git_run_no_push(args):
+        fake.run_calls.append(args)
+        return 0
+
+    with (
+        patch.object(git_push_retry, '_git_run', git_run_no_push),
+        patch.object(git_push_retry, '_git_capture', git_capture_detached),
+        patch.object(git_push_retry.time, 'sleep') as sleep,
+    ):
+        code = git_push_retry.main([])
+
+    assert code == 1
+    assert not any('push' in c for c in fake.run_calls)
+    sleep.assert_not_called()
+
+
+if __name__ == '__main__':
+    raise SystemExit(__import__('pytest').main([__file__, '-v']))
     """--auto-rebase pulls remote changes and then pushes local commits."""
     remote = tmp_path / 'remote.git'
     subprocess.run(

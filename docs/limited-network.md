@@ -32,6 +32,10 @@ python3 tools/git_push_retry.py
 A rerun of `precommit-fix` with nothing new to commit also retries the push
 (an empty index skips `git commit` instead of aborting the chain).
 
+**Run the tool from a branch.** It is meant for the normal commit/push path;
+if invoked from a detached HEAD it exits with an error and advises
+`git push origin HEAD:<branch-name>` instead of retrying blindly.
+
 Pinned by `tests/test_git_push_retry.py` and `tests/test_makefile_push_gate.py`.
 
 ## Failure mode 2: background uploads hang the run forever
