@@ -3,19 +3,21 @@
 
 import hashlib
 import sys
+from importlib.machinery import SourceFileLoader
 from pathlib import Path
 
-# Use the credentials loader from the main upload script
-sys.path.insert(0, '/Users/lz/Library/Application Support/Anki2/addons21/data/anki')
-from importlib.machinery import SourceFileLoader
+# Use the credentials loader from the main upload script.
+# When this script runs inside Anki, the repo is symlinked to the add-ons folder,
+# so resolving relative to __file__ works in both the repo checkout and Anki.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+R2_SCRIPT = REPO_ROOT / 'data' / 'anki' / 'upload-to-r2'
+sys.path.insert(0, str(R2_SCRIPT.parent))
 
-r2_utils = SourceFileLoader(
-    "r2_utils", "/Users/lz/Library/Application Support/Anki2/addons21/data/anki/upload-to-r2"
-).load_module()
+r2_utils = SourceFileLoader('r2_utils', str(R2_SCRIPT)).load_module()
 
-BASE = Path('/Users/lz/Library/Application Support/Anki2/addons21')
+BASE = REPO_ROOT
 PUBLIC_FILES = ['graph/graph_data_public.json', 'graph/history_data_public.json']
-HASH_MAP_FILE = BASE / 'data/cloudflare/hash_map.json'
+HASH_MAP_FILE = BASE / 'data' / 'cloudflare' / 'hash_map.json'
 
 # graph/hash_map.py lives in the graph package; add it to the path.
 sys.path.insert(0, str(BASE / 'graph'))
