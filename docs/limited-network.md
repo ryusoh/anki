@@ -57,7 +57,38 @@ make precommit-fix YOLO=1 NET_DEADLINE=3600
 Pinned by `tests/test_run_with_deadline.py` and
 `tests/test_makefile_net_deadline.py`.
 
-## Failure mode 3: direct connections blocked — local proxy fallback
+## Failure mode 3: `git push` rejected with "fetch first" / non-fast-forward
+
+`make precommit-fix YOLO=1` pushes after a long fix-and-verify run. If another
+client pushed to `main` in the meantime, the remote tip is ahead of the local
+tracking ref and the push is rejected:
+
+```
+! [rejected]  main -> main (fetch first)
+```
+
+`tools/git_push_retry.py` now accepts `--auto-rebase`. In the unattended
+commit/push path (`YOLO=1` or `MSG=`) `precommit-fix` passes this flag, so the
+script:
+
+1. fetches to refresh the remote-tracking ref;
+2. if upstream is ahead, runs `git pull --rebase` once;
+3. retries the push loop from the top.
+
+If the rebase hits a conflict, it runs `git rebase --abort` and exits non-zero
+so the working tree is never left half-merged. The failure is then loud and
+manual resolution is required.
+
+Drain a backlog this way by hand:
+
+```sh
+python3 tools/git_push_retry.py --auto-rebase
+```
+
+Pinned by `tests/test_git_push_retry.py` (unit + integration) and
+`tests/test_makefile_push_gate.py`.
+
+## Failure mode 4: direct connections blocked — local proxy fallback
 
 Sometimes the uplink only works through a local proxy client
 (Clash Verge et al.), and sometimes a stale `HTTPS_PROXY` export points at a
