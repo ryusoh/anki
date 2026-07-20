@@ -1,5 +1,6 @@
-import runpy
 from unittest.mock import mock_open, patch
+
+from graph.quick_3d import main
 
 
 def test_quick_3d_main():
@@ -8,7 +9,7 @@ def test_quick_3d_main():
         patch('gzip.open', mock_open(read_data='[{"guid":"1","front":"a","tags":""}]')),
         patch('graph.quick_3d.print'),
     ):
-        runpy.run_module('graph.quick_3d', run_name='__main__')
+        main()
 
 
 def test_quick_3d_main_no_file():
@@ -16,7 +17,7 @@ def test_quick_3d_main_no_file():
         mock_exit.side_effect = Exception("sys.exit called")
         with patch('gzip.open', side_effect=FileNotFoundError):
             try:
-                runpy.run_module('graph.quick_3d', run_name='__main__')
+                main()
             except Exception as e:
                 assert str(e) == "sys.exit called"
             mock_exit.assert_called_once_with(0)

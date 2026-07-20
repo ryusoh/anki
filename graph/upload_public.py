@@ -3,6 +3,7 @@
 
 import argparse
 import hashlib
+import importlib.util
 import sys
 from importlib.machinery import SourceFileLoader
 from pathlib import Path
@@ -14,7 +15,11 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 R2_SCRIPT = REPO_ROOT / 'data' / 'anki' / 'upload-to-r2'
 sys.path.insert(0, str(R2_SCRIPT.parent))
 
-r2_utils = SourceFileLoader('r2_utils', str(R2_SCRIPT)).load_module()
+_r2_loader = SourceFileLoader('r2_utils', str(R2_SCRIPT))
+_r2_spec = importlib.util.spec_from_loader('r2_utils', _r2_loader)
+assert _r2_spec is not None
+r2_utils = importlib.util.module_from_spec(_r2_spec)
+_r2_loader.exec_module(r2_utils)
 
 BASE = REPO_ROOT
 PUBLIC_FILES = ['graph/graph_data_public.json', 'graph/history_data_public.json']
