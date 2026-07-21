@@ -177,20 +177,27 @@ export function renderFutureDueChart(
     base.getMonth(),
     base.getDate(),
   );
+
+  // Bolt: Hoist Date instantiation out of the loop and mutate it
+  // to avoid O(N) object allocations and Garbage Collection pressure.
+  let iterDate = null;
+  if (isCalendar) {
+    iterDate = new Date(todayLocal.getTime());
+    iterDate.setDate(iterDate.getDate() + minDay);
+  }
+
   for (let i = 0; i < numDays; i++) {
     const day = minDay + i;
     const offsetLabel =
       day === 0 ? "Today" : day === 1 ? "Tomorrow" : `+${day}d`;
     if (isCalendar) {
-      const d = new Date(
-        todayLocal.getFullYear(),
-        todayLocal.getMonth(),
-        todayLocal.getDate() + day,
-      );
-      const mm = String(d.getMonth() + 1).padStart(2, "0");
-      const dd = String(d.getDate()).padStart(2, "0");
-      labels[i] = `${d.getFullYear()}-${mm}-${dd}`;
+      const m = iterDate.getMonth() + 1;
+      const d = iterDate.getDate();
+      const mm = m < 10 ? "0" + m : "" + m;
+      const dd = d < 10 ? "0" + d : "" + d;
+      labels[i] = `${iterDate.getFullYear()}-${mm}-${dd}`;
       tooltipTitles[i] = offsetLabel;
+      iterDate.setDate(iterDate.getDate() + 1);
     } else {
       labels[i] = offsetLabel;
     }
