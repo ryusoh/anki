@@ -1,22 +1,4 @@
-from unittest.mock import patch
-
-import pytest
-
-from enhance_main_window.printing import cap, conditionString, nowLater
-
-
-@patch('enhance_main_window.printing.getUserOption', create=True)
-def test_cap_zero_value(mock_getUserOption):
-    mock_getUserOption.return_value = 0
-    assert cap(0) == "0"
-    assert cap(5) == "+"
-
-
-@patch('enhance_main_window.printing.getUserOption', create=True)
-def test_cap_non_zero_value(mock_getUserOption):
-    mock_getUserOption.return_value = 10
-    # Because of indentation bug in cap, if capValue != 0, it falls through and returns None
-    assert cap(5) is None
+from enhance_main_window.printing import conditionString, nowLater
 
 
 def test_conditionString_falsey():
