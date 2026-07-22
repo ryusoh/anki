@@ -188,7 +188,13 @@ conn.create_collation("unicase", lambda x, y: (x > y) - (x < y))
 ## Test pattern
 
 The root `conftest.py` globally mocks `aqt`/`anki`, so a plain `import <addon>`
-works. To test the module-level _registration_ and behavior, install your own
+works **under pytest only**. In a bare `python3 -c` or standalone script there
+are no mocks, and `import <addon>` executes `__init__.py`, which imports `aqt`
+at module top and dies with `ModuleNotFoundError: No module named 'aqt'`. To
+replay a captured payload (a saved Wiktionary/API response) through a parser
+function, write a quick throwaway pytest that reads the fixture from disk —
+the conftest mocks make the import work — or copy the mock-then-import pattern
+from `tools/sweep_transform.py`. Don't hand-roll `importlib` shims. To test the module-level _registration_ and behavior, install your own
 mocks into `sys.modules` and `importlib.reload` the addon so its top-level code
 re-runs against them. `gui_hooks.<hook>` must be a real list (not a MagicMock) so
 `.append` is observable:
