@@ -288,6 +288,39 @@ def test_parse_wiktionary_html_kanji_char_multi_reading():
     assert "空から降る水" in parsed
 
 
+def test_parse_wiktionary_html_kikou_ul_definition():
+    """
+    ja.wiktionary pages for single-gloss words (e.g. 起工) put the definition
+    in a <ul>, not an <ol> — the parser must not return "" for them.
+    Structure mirrors the real rest_v1 payload for 起工.
+    """
+    mock_html = """
+    <html>
+        <body>
+            <section>
+                <h2>日本語</h2>
+                <section>
+                    <h3>名詞</h3>
+                    <p><b><a href="./起">起</a><a href="./工">工</a></b>（<a href="./きこう">きこう</a>）</p>
+                    <ul>
+                        <li>（<a href="./建築">建築</a>などの）<a href="./工事">工事</a>を始めること。</li>
+                    </ul>
+                </section>
+                <section>
+                    <h3>翻訳</h3>
+                    <ul><li>English: start of construction</li></ul>
+                </section>
+            </section>
+        </body>
+    </html>
+    """
+    parsed = parse_wiktionary_html(mock_html, lang="ja")
+    assert parsed != ""
+    assert "きこう" in parsed
+    assert "工事を始めること" in parsed
+    assert "start of construction" not in parsed  # Translation section removed
+
+
 def test_fetch_wiktionary_html_error():
     from unittest.mock import patch
     from urllib.error import HTTPError

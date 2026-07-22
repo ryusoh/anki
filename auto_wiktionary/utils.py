@@ -359,11 +359,14 @@ def parse_wiktionary_html(html_text, lang="en"):
     _filter_language_sections(soup, lang)
     _remove_unwanted_tags(soup)
 
-    ols = soup.find_all('ol')
+    # Definitions live in <ol> on most pages, but single-gloss entries
+    # (e.g. ja:起工) use a plain <ul>. Nested lists (examples inside an
+    # <li>) are skipped — they are already captured in the parent's text.
+    lists = [lst for lst in soup.find_all(['ol', 'ul']) if lst.find_parent(['ol', 'ul']) is None]
 
     results = []
     processed_ps = set()
-    for ol in ols:
+    for ol in lists:
         p_tag = ol.find_previous_sibling('p')
         if p_tag and id(p_tag) not in processed_ps:
             processed_ps.add(id(p_tag))
