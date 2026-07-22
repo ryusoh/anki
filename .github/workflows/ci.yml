@@ -20,6 +20,18 @@ jobs:
       # codeql[js/unpinned-tag] Pinned to actions/checkout@v4.2.2 SHA: 11bd71901bbe5b1630ceea73d27597364c9af683
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
 
+      # Hard guard: unattended Jules routines historically opened empty PRs in
+      # sibling repos when mis-detecting a "finalize" state. Fail fast so an empty
+      # diff can never pass CI.
+      - name: Reject empty pull request
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          git fetch origin ${{ github.base_ref }} --depth=1
+          if git diff --quiet origin/${{ github.base_ref }}; then
+            echo "::error::PR contains no changes. Empty PRs are not allowed."
+            exit 1
+          fi
+
       - name: Setup Node.js
         # codeql[js/unpinned-tag] Pinned to actions/setup-node@v4.1.0 SHA: 39370e3970a6d050c480ffad4ff0ed4d3fdee5af
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
