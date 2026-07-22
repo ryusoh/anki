@@ -70,7 +70,6 @@ def upload_public_data():
             verbose=True,
         )
         if success:
-            print(f"  ✓ Uploaded {rel_path} ({size:,} bytes)")
             total_size += size
             uploaded += 1
             hash_map[rel_path] = content_hash

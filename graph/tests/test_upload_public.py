@@ -48,6 +48,8 @@ def public_files(tmp_path):
 
 def fake_upload_factory(failing_key=None):
     def fake_upload(bucket, key, data, creds, verbose=False, quiet=False, **kwargs):
+        if verbose and not quiet:
+            print(f"  ✓ Uploaded {key} ({len(data):,} bytes)")
         return key != failing_key, len(data)
 
     return fake_upload
