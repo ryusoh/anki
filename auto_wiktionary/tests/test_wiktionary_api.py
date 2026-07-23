@@ -321,6 +321,42 @@ def test_parse_wiktionary_html_kikou_ul_definition():
     assert "start of construction" not in parsed  # Translation section removed
 
 
+def test_parse_wiktionary_html_yusugu_pronunciation_section_excluded():
+    """
+    ja.wiktionary verb pages (e.g. ゆすぐ) carry a 発音 section whose content
+    is a <ul> of accent/IPA items. Those are not definitions and must not leak
+    into the output — mirrors the real rest_v1 payload for ゆすぐ.
+    """
+    mock_html = """
+    <html>
+        <body>
+            <section>
+                <h2>日本語</h2>
+                <section>
+                    <h3>動詞：濯</h3>
+                    <p><strong>ゆすぐ</strong></p>
+                    <ol>
+                        <li>水の中で揺り動かして汚れを落とす。</li>
+                    </ol>
+                </section>
+                <section>
+                    <h3>発音</h3>
+                    <ul>
+                        <li>(東京式) ゆすぐ [yùsúgú] (平板型 – [0])</li>
+                        <li>IPA: [jɯ̟ᵝsɨᵝɡɯ̟ᵝ]</li>
+                    </ul>
+                </section>
+            </section>
+        </body>
+    </html>
+    """
+    parsed = parse_wiktionary_html(mock_html, lang="ja")
+    assert "水の中で揺り動かして汚れを落とす" in parsed
+    assert "東京式" not in parsed
+    assert "IPA" not in parsed
+    assert "平板型" not in parsed
+
+
 def test_fetch_wiktionary_html_error():
     from unittest.mock import patch
     from urllib.error import HTTPError
