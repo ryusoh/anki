@@ -50,6 +50,17 @@ describe("Image Fallback Loader", () => {
     assert.strictEqual(img.classList.contains("is-fallback-ready"), false);
   });
 
+
+  test("should do nothing if data-fallbacks is empty string", async () => {
+    const img = document.createElement("img");
+    img.setAttribute("data-fallbacks", "");
+    document.body.appendChild(img);
+
+    await loadScript();
+
+    assert.strictEqual(img.classList.contains("is-fallback-ready"), false);
+  });
+
   test("should do nothing if parsed list is not an array or is empty", async () => {
     const img1 = document.createElement("img");
     img1.setAttribute("data-fallbacks", "{}");

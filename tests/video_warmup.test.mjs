@@ -251,6 +251,24 @@ describe("video_warmup.js", () => {
     assert.strictEqual(video.dataset.videoWarmupScheduled, undefined);
   });
 
+  test("skips warmup execution if already scheduled", async () => {
+    video.dataset.videoWarmupScheduled = "true";
+    await loadScript();
+    assert.strictEqual(requestIdleCallbackCalled, false);
+    assert.strictEqual(setTimeoutCalled, false);
+  });
+
+  test("aborts if URL length exceeds 2000 characters", async () => {
+    Object.defineProperty(video, "currentSrc", {
+      value: "http://example.com/" + "a".repeat(2001) + ".mp4",
+      configurable: true,
+    });
+    await loadScript();
+    await Promise.resolve(); // flush microtasks
+    await Promise.resolve();
+    assert.strictEqual(cacheMatchCalls.length, 0);
+  });
+
   test("handles missing video element gracefully", async () => {
     document.body.innerHTML = "";
     await assert.doesNotReject(loadScript);
