@@ -39,7 +39,8 @@
   // For touch devices, to prevent overscroll bounce when scrolling up from the top
   // This might interfere with native pull-to-refresh if not handled carefully.
   // Given the user wants to prevent scrolling up, this is a necessary evil.
-  let startY;
+  /** @type {number} */
+  let startY = 0;
 
   document.addEventListener("touchstart", function (e) {
     startY = e.touches[0].clientY;
