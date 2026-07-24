@@ -179,11 +179,15 @@ def _remove_unwanted_tags(soup):
                 'synonym',
                 'antonym',
                 'pronunciation',
+                'etymology',
                 '翻訳',
                 '類義語',
                 '関連語',
                 '対義語',
                 '発音',
+                '語源',
+                '合成語',
+                '関連項目',
                 'anagram',
             ]
             if any(kw in header_text for kw in skip_keywords):

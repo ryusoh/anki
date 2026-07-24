@@ -357,6 +357,69 @@ def test_parse_wiktionary_html_yusugu_pronunciation_section_excluded():
     assert "平板型" not in parsed
 
 
+def test_parse_wiktionary_html_kansuu_etymology_section():
+    """
+    ja.wiktionary pages with a 語源 (etymology) section before the POS section
+    (e.g. 関数) used to emit the etymology <li> first, pushing the headword
+    pronunciation <p> into the middle of the <ul> where Anki drops it.
+    Non-definition sections (語源, 合成語, 関連項目) must be removed so the
+    pronunciation <p> lands at the top. Mirrors the real rest_v1 payload
+    for 関数.
+    """
+    mock_html = """
+    <html>
+        <body>
+            <section>
+                <h2>日本語</h2>
+                <section>
+                    <h3>語源</h3>
+                    <ol>
+                        <li>戦前は、ファンクションの中国語音訳語「函數」から「関数」に書き換えられた。</li>
+                    </ol>
+                </section>
+                <section>
+                    <h3>発音</h3>
+                    <ul>
+                        <li>かんすう [kàɴsɯ́ɯ̀]</li>
+                    </ul>
+                </section>
+                <section>
+                    <h3>名詞</h3>
+                    <p id="mwFQ"><strong class="Jpan headword" lang="ja"><a href="./関#日本語" title="関">関</a><a href="./数#日本語" title="数">数</a></strong><span> (</span><span class="headword-tr manual-tr tr" dir="ltr"><a href="./かんすう" title="かんすう">かんすう</a></span><span>)</span></p>
+                    <ol>
+                        <li>ある変数に依存して決まる値あるいはその対応を表す式。</li>
+                        <li>数の集合に限らない写像。</li>
+                    </ol>
+                </section>
+                <section>
+                    <h3>合成語</h3>
+                    <ul>
+                        <li>実関数、複素関数、汎関数</li>
+                    </ul>
+                </section>
+                <section>
+                    <h3>関連項目</h3>
+                    <ul>
+                        <li>プロジェクト:数学/函数と関数</li>
+                    </ul>
+                </section>
+            </section>
+        </body>
+    </html>
+    """
+    parsed = parse_wiktionary_html(mock_html, lang="ja")
+    # Pronunciation must be the first element, right after <ul>
+    assert parsed.startswith("<ul><p>かんすう</p>"), f"Unexpected output: {parsed}"
+    # Definitions must still be present
+    assert "ある変数に依存して決まる値" in parsed
+    assert "数の集合に限らない写像" in parsed
+    # Non-definition sections must not leak into the output
+    assert "語源" not in parsed
+    assert "函數" not in parsed
+    assert "実関数" not in parsed
+    assert "プロジェクト" not in parsed
+
+
 def test_fetch_wiktionary_html_error():
     from unittest.mock import patch
     from urllib.error import HTTPError
