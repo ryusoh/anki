@@ -68,6 +68,17 @@ regression (the Refactoring lane works the backlog down):
   the measured ranks. Find targets with
   `.venv/bin/python3 -m radon cc <dirs> -s -n B`.
 
+## Test streams
+
+Two streams exist (per the agentic-quality-gates recommendation): the **unit
+stream** (`<addon>/tests/test_*.py`) and a seed **acceptance stream**
+(`strip_html_tags/tests/test_acceptance_strip_button.py`) — behaviour-level
+tests that enter through the addon's real boundary (the pycmd message the
+editor JS sends when the strip button is pressed) and assert user-visible
+outcomes with hand-computed expectations in domain language. Acceptance tests
+for an addon live next to its unit tests so `check-py` discovery picks them
+up automatically; name them `test_acceptance_*.py`.
+
 ## Whole-suite coverage floor
 
 Both suites carry a low global floor so coverage can't silently erode while

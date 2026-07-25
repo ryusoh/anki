@@ -1,16 +1,6 @@
-import sys
 from unittest.mock import MagicMock
 
-
-# Mock out aqt entirely so we can import the module outside of Anki
-class Editor:
-    pass
-
-
-sys.modules['aqt'] = MagicMock()
-mock_editor_mod = MagicMock()
-mock_editor_mod.Editor = Editor
-sys.modules['aqt.editor'] = mock_editor_mod
+from editor_test_double import Editor  # noqa: F401  (installs the aqt mocks)
 
 from strip_html_tags import _render_text, _strip_field, _strip_selection, on_js_message
 
