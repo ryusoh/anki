@@ -14,7 +14,8 @@
     "js/types/*.d.ts",
     "js/utils/host.js",
     "js/ui/reduced_motion.js",
-    "js/ui/scroll_control.js"
+    "js/ui/scroll_control.js",
+    "js/ambient/config.js"
   ],
   "exclude": ["node_modules", "js/vendor"]
 }
