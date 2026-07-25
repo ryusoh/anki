@@ -348,9 +348,10 @@ check-py:
 	echo ""; \
 	echo "📊 Combined Python coverage:"; \
 	$(PYTHON) -m coverage combine "$$COVDIR"; \
-	$(PYTHON) -m coverage report -m; \
+	COV=0; $(PYTHON) -m coverage report -m || COV=$$?; \
 	rm -rf "$$COVDIR"; \
 	if [ "$$FAIL" != "0" ]; then echo "❌ Python tests failed"; exit 1; fi; \
+	if [ "$$COV" != "0" ]; then echo "❌ Python coverage below the fail_under floor (.coveragerc)"; exit 1; fi; \
 	echo "✅ Python tests complete"
 
 # Rank source files by coverage so Testpilot targets the highest-leverage files

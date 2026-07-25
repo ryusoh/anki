@@ -68,6 +68,23 @@ regression (the Refactoring lane works the backlog down):
   the measured ranks. Find targets with
   `.venv/bin/python3 -m radon cc <dirs> -s -n B`.
 
+## Whole-suite coverage floor
+
+Both suites carry a low global floor so coverage can't silently erode while
+per-file work continues (Testpilot ratchets the floors upward, never down):
+
+- **JS:** thresholds live in package.json's `"c8"` key (`lines`/`branches`/
+  `functions`/`statements`), enforced by `tools/node_test_runner.mjs` after
+  the c8 report (c8's CLI is unusable here — its yargs import crashes under
+  Node 26 — so the runner drives the `Report` class and compares the summary
+  itself). Measured 2026-07-26: lines/statements 72.3%, branches 92.05%,
+  functions 87.9%; floors set at 70/90/85/70. Verified: passes at the set
+  values, fails with exit ≠ 0 when `lines` was raised to 73.
+- **Python:** `fail_under = 75` in `.coveragerc` (`[report]`), enforced by
+  `make check-py`, which now propagates `coverage report`'s exit code.
+  Measured 2026-07-26: 77% total (branch coverage). Verified with
+  `coverage report --fail-under=99` → exit 2.
+
 ## Dependency structure
 
 Two gates, both preventive (zero violations on the day they landed, so no

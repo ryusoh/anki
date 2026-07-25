@@ -13,3 +13,9 @@ omit =
 
 [report]
 show_missing = True
+# Whole-suite coverage floor (docs/lint-and-quality.md): measured 77% on
+# 2026-07-26 (branch coverage, `make check-py`). Set slightly below the
+# measured value; ratchet upward as coverage improves, never down. `coverage
+# report` exits non-zero below the floor, which `check-py` turns into a gate
+# failure.
+fail_under = 75

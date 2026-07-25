@@ -66,12 +66,42 @@ async function runTest(file) {
   });
 }
 
+// Whole-suite coverage floor (docs/lint-and-quality.md): thresholds live in
+// package.json's "c8" key (the conventional c8 config location). The floor
+// stops silent whole-suite erosion that per-file work can miss; it is set
+// slightly below the measured totals and ratcheted upward, never down.
+// Returns true when the floor is met (or no floor is configured).
+async function checkCoverageFloor(report) {
+  const pkg = JSON.parse(fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8'));
+  const thresholds = pkg.c8 || {};
+  const keys = ['lines', 'branches', 'functions', 'statements'].filter(
+    (k) => typeof thresholds[k] === 'number'
+  );
+  if (keys.length === 0) return true;
+
+  // After report.run() the merged map is memoized, so this is cheap.
+  const map = await report.getCoverageMapFromAllCoverageFiles();
+  const summary = map.getCoverageSummary();
+  let ok = true;
+  for (const key of keys) {
+    const pct = summary[key].pct;
+    if (pct < thresholds[key]) {
+      console.error(
+        `\x1b[31mERROR: Coverage for ${key} (${pct}%) does not meet global threshold (${thresholds[key]}%)\x1b[0m`
+      );
+      ok = false;
+    }
+  }
+  return ok;
+}
+
 // Generate a terminal coverage report from the raw V8 coverage that the
 // spawned test processes dumped into $NODE_V8_COVERAGE.
 //
 // We drive c8's Report class directly instead of its CLI: c8's `bin/c8.js`
 // pulls in yargs, which crashes under Node 26 (`require` of yargs' extensionless
 // ESM entry). The library export (`Report`) has no such dependency and works.
+// Returns false when the whole-suite coverage floor (package.json "c8") fails.
 async function generateCoverageReport() {
   // When COVERAGE_SUMMARY_DIR is set (the `coverage-rank` target does this), keep
   // the report directory and additionally emit a machine-readable json-summary so
@@ -116,8 +146,10 @@ async function generateCoverageReport() {
     });
     console.log('\n\x1b[1mCoverage Report:\x1b[0m');
     await report.run();
+    return await checkCoverageFloor(report);
   } catch (e) {
     console.log(`\n\x1b[2mCoverage report skipped: ${e.message}\x1b[0m`);
+    return true;
   } finally {
     if (!summaryDir) {
       fs.rmSync(reportsDirectory, { recursive: true, force: true });
@@ -198,9 +230,11 @@ async function runAllTests() {
 
   // When invoked with NODE_V8_COVERAGE set (the `check-node` Makefile target
   // does this), the spawned test processes dump raw V8 coverage into that dir;
-  // turn it into a human-readable report here.
+  // turn it into a human-readable report here and enforce the whole-suite
+  // coverage floor from package.json's "c8" key.
+  let coverageOk = true;
   if (process.env.NODE_V8_COVERAGE) {
-    await generateCoverageReport();
+    coverageOk = await generateCoverageReport();
   }
 
   console.log(`\n\x1b[1mTest Suites:\x1b[0m ${failed > 0 ? '\x1b[31m' + failed + ' failed\x1b[0m, ' : ''}\x1b[32m${passed} passed\x1b[0m, ${results.length} total`);
@@ -209,7 +243,7 @@ async function runAllTests() {
   console.log(`\x1b[1mTime:       \x1b[0m ${totalTime} s`);
   console.log(`\x1b[2mRan all test suites.\x1b[0m\n`);
 
-  if (failed > 0) {
+  if (failed > 0 || !coverageOk) {
     process.exit(1);
   }
 }

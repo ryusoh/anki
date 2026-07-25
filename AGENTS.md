@@ -142,6 +142,10 @@ a valid Conventional Commit subject**.
   whitelisted in `pyproject.toml`). Alias resolution for `#js/`/`#ui/` lives in
   `.dependency-cruiser.webpack.cjs` — keep it in sync with package.json
   `imports` and the import maps. See `docs/lint-and-quality.md`.
+- **Coverage floor** — whole-suite minimums stop silent erosion: JS floors in
+  package.json's `"c8"` key (enforced by `check-node`), Python `fail_under` in
+  `.coveragerc` (enforced by `check-py`). Ratchet up only, never down. See
+  `docs/lint-and-quality.md`.
 - **Run everything from the repo ROOT.** The root `conftest.py` mocks `aqt`/`anki`;
   running `pytest` inside an add-on subdir fails to import them. Use **`python3`**,
   never `python` (not on PATH).
