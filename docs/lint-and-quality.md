@@ -124,10 +124,13 @@ per-file work continues (Testpilot ratchets the floors upward, never down):
   itself). Measured 2026-07-26: lines/statements 72.3%, branches 92.05%,
   functions 87.9%; floors set at 70/90/85/70. Verified: passes at the set
   values, fails with exit ≠ 0 when `lines` was raised to 73.
-- **Python:** `fail_under = 75` in `.coveragerc` (`[report]`), enforced by
-  `make check-py`, which now propagates `coverage report`'s exit code.
-  Measured 2026-07-26: 77% total (branch coverage). Verified with
-  `coverage report --fail-under=99` → exit 2.
+- **Python:** `--fail-under=75` on the combined `coverage report` in
+  `make check-py` (the flag must live in the recipe, NOT in `.coveragerc`'s
+  `fail_under` — pytest-cov reads that file too, and a global floor there
+  fails every per-suite run since each suite only covers its own addon;
+  verified: suites at 45–60% went red with all tests passing). Measured
+  2026-07-26: 77% total (branch coverage). Verified with `--fail-under=99`
+  → exit 2.
 
 ## Dependency structure
 

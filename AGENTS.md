@@ -144,8 +144,9 @@ a valid Conventional Commit subject**.
   `.dependency-cruiser.webpack.cjs` — keep it in sync with package.json
   `imports` and the import maps. See `docs/lint-and-quality.md`.
 - **Coverage floor** — whole-suite minimums stop silent erosion: JS floors in
-  package.json's `"c8"` key (enforced by `check-node`), Python `fail_under` in
-  `.coveragerc` (enforced by `check-py`). Ratchet up only, never down. See
+  package.json's `"c8"` key (enforced by `check-node`), Python `--fail-under=75`
+  on the combined report in `check-py` (not in `.coveragerc` — pytest-cov would
+  apply it per-suite). Ratchet up only, never down. See
   `docs/lint-and-quality.md`.
 - **Run everything from the repo ROOT.** The root `conftest.py` mocks `aqt`/`anki`;
   running `pytest` inside an add-on subdir fails to import them. Use **`python3`**,
