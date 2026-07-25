@@ -15,4 +15,7 @@ def test_addons_root_with_invalid_env(tmp_path):
     with patch.dict(os.environ, {"ANKI_ADDONS_DIR": str(invalid_path)}):
         result = addons_root()
         assert result != invalid_path.resolve()
-        assert result.name == "app" # or whatever the repo root is
+
+        from graph._paths import __file__ as paths_file
+        expected_fallback = Path(paths_file).resolve().parents[1]
+        assert result == expected_fallback
