@@ -92,3 +92,66 @@ def test_unsuspend_leech_ignores_non_suspended_card():
     mod.unsuspend_leech(card)
 
     card.col.sched.unsuspend_cards.assert_not_called()
+
+def test_save_config_no_saver():
+    suspend = {"lapse": {"leechAction": 0}}
+    col = _make_col([suspend])
+    # simulate no update_config and no save
+    col.decks.update_config = None
+    col.decks.save = None
+    mod = _load(MagicMock(col=col))
+
+    changed = mod.disable_leech_suspend(col)
+
+    assert changed == 1
+    assert suspend["lapse"]["leechAction"] == mod.LEECH_TAGONLY
+
+
+def test_on_sync_did_finish_valid():
+    mod = _load(MagicMock(col=MagicMock()))
+    mod.disable_leech_suspend = MagicMock()
+
+    mod.on_sync_did_finish()
+
+    mod.disable_leech_suspend.assert_called_once_with(mod.mw.col)
+
+
+def test_on_sync_did_finish_no_col():
+    mod = _load(MagicMock(col=None))
+    mod.disable_leech_suspend = MagicMock()
+
+    mod.on_sync_did_finish()
+
+    mod.disable_leech_suspend.assert_not_called()
+
+
+def test_unsuspend_leech_no_col():
+    mod = _load(MagicMock(col=None))
+    card = MagicMock()
+    card.col = None
+
+    mod.unsuspend_leech(card)
+    # Should just return early without error
+
+
+def test_imports_handle_import_error():
+    import sys
+    # To test lines 76-77 (except block), we need to reload the module while anki.hooks fails to import.
+    mock_aqt = MagicMock()
+    sys.modules['aqt'] = mock_aqt
+    sys.modules['anki.hooks'] = MagicMock()
+    del sys.modules['anki.hooks']
+
+    class FakeImporter:
+        def find_module(self, fullname, path=None):
+            if fullname == 'anki.hooks':
+                raise ImportError("mocked")
+            return None
+
+    import importlib
+    sys.meta_path.insert(0, FakeImporter())
+    try:
+        import no_leech_suspend
+        importlib.reload(no_leech_suspend)
+    finally:
+        sys.meta_path.pop(0)

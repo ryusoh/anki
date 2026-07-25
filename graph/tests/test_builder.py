@@ -336,3 +336,19 @@ def test_missing_coverage_builder2():
 
     with patch("builtins.compute_pagerank", return_value={1: 0.5}, create=True):
         get_top_nodes(G, by='pagerank')
+
+    def test_build_graph_with_anonymization_empty_tags(self):
+        from graph.builder import build_graph
+        # Test 50->55: tags is empty string when with_anonymization is True
+        notes = [{
+            'guid': 'guid3',
+            'tags': '',
+            'deck': 'Default',
+            'deck_id': 1,
+            'mid': 1234,
+            'mod': 5678,
+            'fields': {'Front': {'value': 'Empty Tags'}}
+        }]
+        refs = []
+        G = build_graph(notes, refs, with_anonymization=True)
+        assert G.nodes['guid3']['tags'] == ''
