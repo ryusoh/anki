@@ -10,6 +10,7 @@ def test_addons_root_with_valid_env(tmp_path):
         result = addons_root()
         assert result == tmp_path.resolve()
 
+
 def test_addons_root_with_invalid_env(tmp_path):
     invalid_path = tmp_path / "does_not_exist"
     with patch.dict(os.environ, {"ANKI_ADDONS_DIR": str(invalid_path)}):
@@ -17,5 +18,6 @@ def test_addons_root_with_invalid_env(tmp_path):
         assert result != invalid_path.resolve()
 
         from graph._paths import __file__ as paths_file
+
         expected_fallback = Path(paths_file).resolve().parents[1]
         assert result == expected_fallback

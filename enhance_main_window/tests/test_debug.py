@@ -281,6 +281,7 @@ class TestDebugCoverage:
 
     def test_assert_equal_false_isinstance_none_exception_handled(self):
         from enhance_main_window.debug import assertEqual
+
         # Mock isinstance to bypass the TypeError when None is passed as arg 2?
         # Actually we can't easily mock isinstance.
         # But wait, line 81 says `elif isinstance(pair, None):` which ALWAYS raises TypeError in Python 3.12.
