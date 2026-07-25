@@ -17,6 +17,9 @@ xenon==0.9.3
 # Dependency-structure gate (import-linter wraps grimp; see `make imports-py`).
 import-linter==2.13
 
+# Mutation-testing scaffold (`make mutate-py` — NOT part of any gate).
+mutmut==3.6.0
+
 # Type stubs
 types-requests
 

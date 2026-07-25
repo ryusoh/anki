@@ -1,0 +1,56 @@
+name: Mutation testing (weekly, non-blocking)
+
+# Scheduled mutation-testing scaffold (docs/lint-and-quality.md "Mutation
+# testing"). Deliberately NOT a PR gate: a full mutation run multiplies the
+# suite runtime by the mutant count. mutmut is scoped to strip_html_tags via
+# pyproject.toml [tool.mutmut] and runs incrementally across weeks via the
+# .mutmut-cache restore below. The kill report is uploaded as an artifact;
+# surviving mutants never fail the job (continue-on-error).
+
+on:
+  schedule:
+    # Mondays 02:00 UTC
+    - cron: '0 2 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mutate-py:
+    runs-on: ubuntu-latest
+    steps:
+      # codeql[js/unpinned-tag] Pinned to actions/checkout@v4.2.2 SHA: 11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+
+      - name: Setup Python
+        # codeql[js/unpinned-tag] Pinned to actions/setup-python@v5 SHA: a26af69be951a213d495a4c3e4e4022e16d87065
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+
+      - name: Restore mutmut incremental cache
+        # codeql[js/unpinned-tag] Pinned to actions/cache@v4 SHA: 0057852bfaa89a56745cba8c7296529d2fc39830
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: .mutmut-cache
+          key: mutmut-cache-${{ github.run_id }}
+          restore-keys: mutmut-cache-
+
+      - name: Install Python dependencies (runtime + dev/lint, pinned)
+        run: pip install -r requirements-dev.txt
+
+      # Surviving mutants are a report, not a failure — the job stays green.
+      - name: Run mutmut (strip_html_tags smoke scope)
+        continue-on-error: true
+        run: |
+          make mutate-py | tee mutmut-report.txt
+
+      - name: Upload kill report
+        if: always()
+        # codeql[js/unpinned-tag] Pinned to actions/upload-artifact@v4 SHA: ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mutmut-report
+          path: mutmut-report.txt
+          retention-days: 30

@@ -133,3 +133,13 @@ ignore_imports = [
     "tabbed_stats -> animated_glass_background",
     "tabbed_stats -> stats_page_customizer",
 ]
+
+# Mutation-testing scaffold (`make mutate-py` — deliberately NOT part of any
+# gate; a full run multiplies the suite runtime by the mutant count). Scoped
+# to one small real addon as a smoke target. Run `mutmut results` /
+# `mutmut show` after a run for the kill report.
+[tool.mutmut]
+source_paths = ["strip_html_tags/__init__.py"]
+pytest_add_cli_args_test_selection = ["strip_html_tags/tests"]
+also_copy = ["strip_html_tags/tests", "conftest.py"]
+debug = true

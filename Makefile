@@ -1,5 +1,5 @@
 .PHONY: help fetch fetch-r2 verify-r2 check precommit precommit-fix fmt fmt-check sync-check lint lint-js lint-css lint-fix depcheck typecheck-js hooks \
-	quality-py lint-py fmt-py fmt-py-check typecheck security-py install-dev coverage-rank verify \
+	quality-py lint-py fmt-py fmt-py-check typecheck security-py install-dev coverage-rank verify mutate-py mutate-js \
 	complexity-py imports-py
 
 PYTHON := $(if $(wildcard .venv/bin/python3),"$(CURDIR)/.venv/bin/python3",python3)
@@ -69,6 +69,7 @@ help:
 	@echo "  lint-fix       Auto-fix JS/CSS/Markdown lint issues"
 	@echo "  typecheck-js   JS strict type check (tsc --checkJs on whitelist)"
 	@echo "  quality-py     Python lint/format/type/security/complexity/imports (ruff/black/mypy/bandit/xenon/import-linter)"
+	@echo "  mutate-py      Mutation smoke run (mutmut on strip_html_tags; NOT part of any gate)"
 	@echo "  fmt-py         Auto-format Python (black + ruff --fix)"
 	@echo "  hooks          Install git pre-commit hook"
 
@@ -436,6 +437,23 @@ imports-py:
 	@# No `python -m importlinter` entry point exists (the package has no
 	@# __main__); call the click command behind the `lint-imports` script.
 	@$(PYTHON) -c "from importlinter.cli import lint_imports_command; lint_imports_command()"
+
+# Mutation-testing scaffold (docs/lint-and-quality.md) — deliberately NOT part
+# of VERIFY_GATE: a full run multiplies the suite runtime by the mutant count.
+# mutmut works incrementally (cache: .mutmut-cache/, sandbox: mutants/) and is
+# scoped to strip_html_tags via pyproject.toml [tool.mutmut]. The weekly
+# mutation-testing.yml workflow runs this and uploads the kill report.
+mutate-py:
+	@$(PYTHON) -c "import mutmut" >/dev/null 2>&1 || { echo "⊘ mutmut not installed (pip install -r requirements-dev.txt)"; exit 1; }
+	@echo "🧬 mutmut (strip_html_tags smoke scope, non-blocking)..."
+	@$(PYTHON) -m mutmut run
+	@$(PYTHON) -m mutmut results
+
+# JS mutation testing was evaluated and skipped — Stryker cannot instrument
+# this repo's tests. Evidence in docs/lint-and-quality.md ("Mutation testing").
+mutate-js:
+	@echo "⊘ mutate-js: Stryker not viable on this repo — see docs/lint-and-quality.md"
+	@exit 1
 
 # -----------------------------------------------------------------------------
 # Pre-commit Checks

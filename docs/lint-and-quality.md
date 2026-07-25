@@ -68,6 +68,39 @@ regression (the Refactoring lane works the backlog down):
   the measured ranks. Find targets with
   `.venv/bin/python3 -m radon cc <dirs> -s -n B`.
 
+## Mutation testing
+
+Scaffold only — **not part of any gate** (a full run multiplies the suite
+runtime by the mutant count). `make mutate-py` runs mutmut scoped to one
+small real addon (`strip_html_tags`, via `pyproject.toml [tool.mutmut]`) and
+prints the kill report; the weekly `.github/workflows/mutation-testing.yml`
+(Mondays 02:00 UTC, `continue-on-error`) runs it in CI, restores the
+`.mutmut-cache` incrementally, and uploads the report as an artifact.
+Surviving mutants are information for Testpilot, not a failure.
+
+- Smoke run (2026-07-26): **849 mutants, 553 killed, 267 survived, 17
+  no-cover, 12 timeouts — 65% kill ratio** in ~52s (16.45 mutations/s).
+  Survivors cluster in the GUI-hook wiring (`on_editor_did_init_buttons`,
+  `on_js_message` return-shape details) — expected: those paths are only
+  smoke-tested, and killing them is Testpilot backlog, not scaffold work.
+- Config gotcha: mutmut sandboxes into `mutants/` and copies only
+  `also_copy` paths — the addon's own `tests/` dir and the root `conftest.py`
+  must be listed there or pytest collects nothing (exit 4). `debug = true` is
+  kept in the config because mutmut swallows the underlying pytest error
+  without it, which cost a debugging round-trip. `mutants/` and
+  `.mutmut-cache/` are gitignored.
+- **JS (Stryker) — evaluated and skipped, with evidence.** The only jest
+  suites (`review_heatmap/tests/`) load the code under test via
+  `fs.readFileSync` + `window.eval` inside jsdom (verified in
+  `test_tooltip.test.js:8-50`). Stryker's jest runner instruments code
+  through jest's transform/module hooks; a file read off disk and evaled
+  bypasses instrumentation entirely, so every mutant would be an untested
+  "survivor" and the score meaningless. The rest of the JS suite runs on a
+  custom `node:test` runner (`tools/node_test_runner.mjs`), which Stryker
+  has no test-runner plugin for. Unblock condition: convert the heatmap
+  tests to import the bundle through jest's module system. `make mutate-js`
+  exists only to print this pointer.
+
 ## Test streams
 
 Two streams exist (per the agentic-quality-gates recommendation): the **unit

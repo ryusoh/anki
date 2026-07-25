@@ -126,6 +126,7 @@ a valid Conventional Commit subject**.
 | Scoped test for one add-on (`test-py SUITE=<dir>/tests`)  | `make test-addon ADDON=<dir>`      |
 | Scoped mypy for one add-on                                | `make typecheck-addon ADDON=<dir>` |
 | JS test suite (c8 coverage)                               | `make check-node`                  |
+| Mutation smoke run (mutmut, NOT part of any gate)         | `make mutate-py`                   |
 | JS strict type check (whitelist)                          | `make typecheck-js`                |
 
 - **Complexity ratchet** — the gate freezes cyclomatic complexity in both
