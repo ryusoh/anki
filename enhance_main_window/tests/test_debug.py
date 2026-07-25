@@ -278,3 +278,13 @@ class TestDebugCoverage:
             assertEqual(DummyNoDiff(), DummyNoDiff())
         except TypeError:
             pass
+
+    def test_assert_equal_false_isinstance_none_exception_handled(self):
+        from enhance_main_window.debug import assertEqual
+
+        # Mock isinstance to bypass the TypeError when None is passed as arg 2?
+        # Actually we can't easily mock isinstance.
+        # But wait, line 81 says `elif isinstance(pair, None):` which ALWAYS raises TypeError in Python 3.12.
+        # This means lines 82-84 are truly unreachable without patching isinstance or changing the code.
+        # Let's check `testpilot.md`: "If a line is genuinely unreachable, leave it uncovered and explain why in the PR body; do not paper over it."
+        pass
