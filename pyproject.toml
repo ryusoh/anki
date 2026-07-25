@@ -66,3 +66,70 @@ ignore = [
 "hide_window_title/**" = ["F403", "F405", "F821", "E402"]
 "hide_deck_collapse/**" = ["F403", "F405", "F821", "E402"]
 "toggle_bottom_pane/**" = ["F403", "F405", "F821", "E402"]
+
+# Dependency-structure gate for Python (`make imports-py`, part of quality-py).
+# Measured 2026-07-25 with grimp 3.15: unlike the fund repo (namespace packages,
+# invisible edges), every addon here is a real package and grimp sees all cross
+# edges — 235 files, 355 deps, exactly two cross-addon imports (whitelisted
+# below). data/anki is excluded: it is a collection of standalone scripts, not a
+# package.
+[tool.importlinter]
+root_packages = [
+    "auto_image",
+    "auto_mathjax",
+    "auto_wiktionary",
+    "graph",
+    "highlight_search_matches",
+    "prioritize_front_field_search",
+    "remove_deck_highlight",
+    "rewrite_text_of_study_cards",
+    "stats_page_customizer",
+    "strip_html_tags",
+    "unify_review_count_colors",
+    "tabbed_stats",
+    "tools",
+    "awesome_tts",
+    "review_heatmap",
+    "enhance_main_window",
+    "custom_background",
+    "animated_glass_background",
+    "mac_transparent_titlebar",
+    "hide_window_title",
+    "hide_deck_collapse",
+    "toggle_bottom_pane",
+]
+
+[[tool.importlinter.contracts]]
+name = "Addons are self-contained (AGENTS.md: each top-level dir is a self-contained add-on or tool)"
+type = "independence"
+modules = [
+    "auto_image",
+    "auto_mathjax",
+    "auto_wiktionary",
+    "graph",
+    "highlight_search_matches",
+    "prioritize_front_field_search",
+    "remove_deck_highlight",
+    "rewrite_text_of_study_cards",
+    "stats_page_customizer",
+    "strip_html_tags",
+    "unify_review_count_colors",
+    "tabbed_stats",
+    "tools",
+    "awesome_tts",
+    "review_heatmap",
+    "enhance_main_window",
+    "custom_background",
+    "animated_glass_background",
+    "mac_transparent_titlebar",
+    "hide_window_title",
+    "hide_deck_collapse",
+    "toggle_bottom_pane",
+]
+ignore_imports = [
+    # Optional runtime integrations: tabbed_stats reuses these siblings when
+    # they happen to be installed, each inside try/except (Anki addons are
+    # independently installable, so a hard dependency is not allowed).
+    "tabbed_stats -> animated_glass_background",
+    "tabbed_stats -> stats_page_customizer",
+]

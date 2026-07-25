@@ -119,6 +119,7 @@ a valid Conventional Commit subject**.
 | Python lint/format/type/security (ruff/black/mypy/bandit) | `make quality-py`                  |
 | Auto-fix Python format                                    | `make fmt-py`                      |
 | Lint (JS + CSS + Markdown)                                | `make lint`                        |
+| JS dependency-structure gate (dependency-cruiser)         | `make depcheck`                    |
 | Auto-fix lint findings                                    | `make lint-fix`                    |
 | Format JS/CSS/**MD**/JSON/HTML (Prettier)                 | `make fmt`                         |
 | Scoped, fast Python test (tight loop, no coverage)        | `make test-py SUITE=<addon>/tests` |
@@ -134,6 +135,13 @@ a valid Conventional Commit subject**.
   (xenon, part of `quality-py`) freezing Python's ranks
   (`--max-average A --max-modules F --max-absolute F`). Never raise the ceilings
   or hand-edit the suppressions file. See `docs/lint-and-quality.md`.
+- **Dependency structure** — `make depcheck` (dependency-cruiser, part of
+  `lint`) fails on circular imports in `js/`; `make imports-py` (import-linter,
+  part of `quality-py`) fails on any new cross-addon import (addons are
+  self-contained; the two intentional `tabbed_stats` integrations are
+  whitelisted in `pyproject.toml`). Alias resolution for `#js/`/`#ui/` lives in
+  `.dependency-cruiser.webpack.cjs` — keep it in sync with package.json
+  `imports` and the import maps. See `docs/lint-and-quality.md`.
 - **Run everything from the repo ROOT.** The root `conftest.py` mocks `aqt`/`anki`;
   running `pytest` inside an add-on subdir fails to import them. Use **`python3`**,
   never `python` (not on PATH).

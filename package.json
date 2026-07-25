@@ -14,6 +14,7 @@
   },
   "devDependencies": {
     "c8": "^12.0.0",
+    "dependency-cruiser": "^18.1.0",
     "eslint": "^10.7.0",
     "jest": "^30.4.2",
     "stylelint": "^17.14.1",

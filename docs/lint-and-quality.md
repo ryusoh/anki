@@ -10,18 +10,20 @@ configs, not in the `Makefile` scope.
 
 ## Toolchain
 
-| Layer                        | Tool             | Config                                  | Scope                                                         |
-| ---------------------------- | ---------------- | --------------------------------------- | ------------------------------------------------------------- |
-| JS lint                      | ESLint (flat)    | `eslint.config.cjs`                     | addon `*.js` (vendored excluded)                              |
-| CSS lint                     | Stylelint        | `.stylelintrc.cjs` + `.stylelintignore` | addon `*.css` (vendored excluded)                             |
-| Markdown lint                | markdownlint-cli | `.markdownlint.json`                    | tracked `*.md`                                                |
-| Format (JS/CSS/MD/JSON/HTML) | Prettier         | _defaults_ (no `.prettierrc`)           | `make fmt` glob                                               |
-| JS types                     | tsc `--checkJs`  | `jsconfig.json`                         | strict-mode whitelist only (see `docs/js-typing-strategy.md`) |
-| Python lint                  | Ruff             | `[tool.ruff]` in `pyproject.toml`       | `PY_ALL`                                                      |
-| Python format                | Black            | `[tool.black]` in `pyproject.toml`      | `PY_ALL`                                                      |
-| Python types                 | mypy             | `mypy.ini`                              | `PY_SRC`                                                      |
-| Python security              | Bandit           | `.bandit` (INI, via `--ini`)            | `PY_SRC`                                                      |
-| Python complexity            | xenon (radon)    | `Makefile` `complexity-py`              | `PY_ALL` (vendored excluded via `-e`)                         |
+| Layer                        | Tool                  | Config                                  | Scope                                                         |
+| ---------------------------- | --------------------- | --------------------------------------- | ------------------------------------------------------------- |
+| JS lint                      | ESLint (flat)         | `eslint.config.cjs`                     | addon `*.js` (vendored excluded)                              |
+| CSS lint                     | Stylelint             | `.stylelintrc.cjs` + `.stylelintignore` | addon `*.css` (vendored excluded)                             |
+| Markdown lint                | markdownlint-cli      | `.markdownlint.json`                    | tracked `*.md`                                                |
+| Format (JS/CSS/MD/JSON/HTML) | Prettier              | _defaults_ (no `.prettierrc`)           | `make fmt` glob                                               |
+| JS types                     | tsc `--checkJs`       | `jsconfig.json`                         | strict-mode whitelist only (see `docs/js-typing-strategy.md`) |
+| Python lint                  | Ruff                  | `[tool.ruff]` in `pyproject.toml`       | `PY_ALL`                                                      |
+| Python format                | Black                 | `[tool.black]` in `pyproject.toml`      | `PY_ALL`                                                      |
+| Python types                 | mypy                  | `mypy.ini`                              | `PY_SRC`                                                      |
+| Python security              | Bandit                | `.bandit` (INI, via `--ini`)            | `PY_SRC`                                                      |
+| Python complexity            | xenon (radon)         | `Makefile` `complexity-py`              | `PY_ALL` (vendored excluded via `-e`)                         |
+| JS dependency structure      | dependency-cruiser    | `.dependency-cruiser.cjs`               | `js/` (`js/vendor` excluded)                                  |
+| Python dependency structure  | import-linter (grimp) | `pyproject.toml` `[tool.importlinter]`  | addon packages (`data/anki` excluded)                         |
 
 `PY_SRC` / `PY_ALL` are defined in the `Makefile`: the addon source we maintain
 (broader than `PY_TEST_SUITES`), with vendored code excluded via the tool configs.
@@ -65,6 +67,43 @@ regression (the Refactoring lane works the backlog down):
   blocks F). Never raise the ceilings; tighten them only after refactors lower
   the measured ranks. Find targets with
   `.venv/bin/python3 -m radon cc <dirs> -s -n B`.
+
+## Dependency structure
+
+Two gates, both preventive (zero violations on the day they landed, so no
+baseline was needed), both part of the CI gate (`make depcheck` hangs off
+`lint`; `make imports-py` hangs off `quality-py`):
+
+- **JS (`make depcheck`):** dependency-cruiser over `js/` with a single rule,
+  `no-circular`. Measured 2026-07-25: 39 modules, 29 dependencies, zero cycles.
+  Alias resolution (`#js/`, `#ui/`, `#utils/`) goes through a webpack-config
+  stub, `.dependency-cruiser.webpack.cjs` — deliberately not `options.tsConfig`,
+  which makes dependency-cruiser look for a typescript <7 compiler (this repo
+  has v7) and print a spurious `missing-typescript-transpiler` warning every
+  run (verified). Resolution was verified by count comparison and JSON
+  inspection: `#js/config.js` resolves to the real `js/config.js` module in all
+  configurations; without the stub's `resolve.roots`, the web-root-absolute
+  imports (`/js/…` in `js/mobile_ambient_bootstrap.js`) surface as 2 fake
+  modules (41 modules cruised instead of 39), and the only unresolvable
+  specifier left is `three` (a genuine CDN/import-map external) — unresolved
+  aliases would silently neuter path-based rules. Two rules from the fund
+  reference were **measured but not ported**: the cross-page rule (this repo
+  has no `js/pages/` concept) and the not-to-vendor rule (`js/cursor-init.js`
+  imports `js/vendor/cursor.js` directly by design — it is the vendor loader
+  entry — so the rule measured 1 violation on day one and would gate the
+  repo's own accepted pattern).
+- **Python (`make imports-py`):** one import-linter `independence` contract —
+  addons are self-contained (AGENTS.md: "each top-level directory is a
+  self-contained add-on or tool") — over the 22 first-party packages. This is
+  the opposite outcome from the fund repo, where the gate was skipped: there
+  the interesting dirs were PEP 420 namespace packages invisible to grimp, but
+  here every addon has an `__init__.py` and grimp 3.15 sees all edges (235
+  files, 355 dependencies measured; even the namespace `tools/` package
+  resolves). The contract found exactly two cross-addon imports, both
+  intentional optional integrations in `tabbed_stats/__init__.py` (try/except
+  runtime imports of sibling addons that may not be installed), whitelisted via
+  `ignore_imports`. `data/anki` is excluded — standalone scripts, not a
+  package. Any **new** cross-addon import fails the gate.
 
 ## `precommit` vs `precommit-fix`
 

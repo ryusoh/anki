@@ -1,6 +1,6 @@
-.PHONY: help fetch fetch-r2 verify-r2 check precommit precommit-fix fmt fmt-check sync-check lint lint-js lint-css lint-fix typecheck-js hooks \
+.PHONY: help fetch fetch-r2 verify-r2 check precommit precommit-fix fmt fmt-check sync-check lint lint-js lint-css lint-fix depcheck typecheck-js hooks \
 	quality-py lint-py fmt-py fmt-py-check typecheck security-py install-dev coverage-rank verify \
-	complexity-py
+	complexity-py imports-py
 
 PYTHON := $(if $(wildcard .venv/bin/python3),"$(CURDIR)/.venv/bin/python3",python3)
 NPM := npm
@@ -64,10 +64,11 @@ help:
 	@echo "                 MSG='msg' to commit and push after checks pass"
 	@echo "  fmt            Format code (Prettier)"
 	@echo "  fmt-check      Check formatting (dry-run)"
-	@echo "  lint           Run JS+CSS+Markdown linters (ESLint/Stylelint/markdownlint)"
+	@echo "  lint           Run JS+CSS+Markdown linters (ESLint/Stylelint/markdownlint) + depcheck"
+	@echo "  depcheck       JS dependency-structure gate (dependency-cruiser, no cycles)"
 	@echo "  lint-fix       Auto-fix JS/CSS/Markdown lint issues"
 	@echo "  typecheck-js   JS strict type check (tsc --checkJs on whitelist)"
-	@echo "  quality-py     Python lint/format/type/security/complexity (ruff/black/mypy/bandit/xenon)"
+	@echo "  quality-py     Python lint/format/type/security/complexity/imports (ruff/black/mypy/bandit/xenon/import-linter)"
 	@echo "  fmt-py         Auto-format Python (black + ruff --fix)"
 	@echo "  hooks          Install git pre-commit hook"
 
@@ -381,7 +382,7 @@ coverage-rank:
 # .bandit, so third-party addons are excluded automatically.
 # -----------------------------------------------------------------------------
 
-quality-py: lint-py fmt-py-check typecheck security-py complexity-py
+quality-py: lint-py fmt-py-check typecheck security-py complexity-py imports-py
 	@echo "✅ Python quality checks complete"
 
 lint-py:
@@ -423,6 +424,17 @@ complexity-py:
 	@echo "🐍 Xenon (complexity ratchet)..."
 	@$(PYTHON) -m xenon --max-average A --max-modules F --max-absolute F \
 		-e '*/libaddon/*,*/_vendor/*,*/_vendor_legacy/*' $(PY_ALL)
+
+# Dependency-structure gate (docs/lint-and-quality.md): addons are
+# self-contained — no cross-addon imports except the whitelisted optional
+# integrations in pyproject.toml [tool.importlinter]. (No CHECK_TOOL_VERSION:
+# unlike the formatters, import-linter's result does not drift with versions.)
+imports-py:
+	@$(PYTHON) -c "import importlinter" >/dev/null 2>&1 || { echo "⊘ import-linter not installed (pip install -r requirements-dev.txt)"; exit 1; }
+	@echo "🐍 import-linter (addon independence)..."
+	@# No `python -m importlinter` entry point exists (the package has no
+	@# __main__); call the click command behind the `lint-imports` script.
+	@$(PYTHON) -c "from importlinter.cli import lint_imports_command; lint_imports_command()"
 
 # -----------------------------------------------------------------------------
 # Pre-commit Checks
@@ -708,7 +720,19 @@ sync-check:
 # Linting
 # -----------------------------------------------------------------------------
 
-lint: lint-js lint-css lint-md
+lint: lint-js lint-css lint-md depcheck
+
+# Dependency-structure gate (docs/lint-and-quality.md): no circular imports in
+# js/. Rules live in .dependency-cruiser.cjs; alias resolution (#js/, #ui/) in
+# .dependency-cruiser.webpack.cjs. Hanging off `lint` puts it in VERIFY_GATE,
+# so CI (`make precommit SKIP=1`) executes it.
+depcheck:
+	@if command -v npx >/dev/null 2>&1; then \
+		echo "Checking JS dependency structure (dependency-cruiser)..."; \
+		npx dependency-cruiser js --config .dependency-cruiser.cjs; \
+	else \
+		echo "⊘ npx not found — skipping dependency-structure check"; \
+	fi
 
 # JS strict type check (tsc --checkJs on a small, incrementally-growing
 # `include` whitelist in jsconfig.json; blocking — see
