@@ -21,6 +21,7 @@ configs, not in the `Makefile` scope.
 | Python format                | Black            | `[tool.black]` in `pyproject.toml`      | `PY_ALL`                                                      |
 | Python types                 | mypy             | `mypy.ini`                              | `PY_SRC`                                                      |
 | Python security              | Bandit           | `.bandit` (INI, via `--ini`)            | `PY_SRC`                                                      |
+| Python complexity            | xenon (radon)    | `Makefile` `complexity-py`              | `PY_ALL` (vendored excluded via `-e`)                         |
 
 `PY_SRC` / `PY_ALL` are defined in the `Makefile`: the addon source we maintain
 (broader than `PY_TEST_SUITES`), with vendored code excluded via the tool configs.
@@ -46,6 +47,24 @@ make fmt                  # prettier --write
 After hand-authoring Python, run `make fmt-py` **before** `make quality-py`: the
 gate's black step is check-only, so a formatting miss costs a full mypy pass over
 the whole repo before you find out.
+
+## Complexity ratchet
+
+Both languages freeze their current cyclomatic-complexity state and fail on any
+regression (the Refactoring lane works the backlog down):
+
+- **JS:** `eslint.config.cjs` sets `complexity: ['error', { max: 20 }]` and
+  `eslint-suppressions.json` baselines the legacy violations (file → rule →
+  count; ESLint bulk suppressions only apply to error-severity rules). Any **new
+  or worsened** violation fails `lint-js`. The suppressions file is the backlog:
+  after fixing one, run `npx eslint --prune-suppressions` to shrink it — the
+  baseline only ratchets down. Never hand-edit it.
+- **Python:** `make complexity-py` (part of `quality-py`, so part of the CI
+  gate) runs xenon over `PY_ALL` with ceilings freezing the measured state:
+  `--max-average A --max-modules F --max-absolute F` (average A / 3.29, worst
+  blocks F). Never raise the ceilings; tighten them only after refactors lower
+  the measured ranks. Find targets with
+  `.venv/bin/python3 -m radon cc <dirs> -s -n B`.
 
 ## `precommit` vs `precommit-fix`
 

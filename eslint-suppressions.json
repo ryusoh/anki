@@ -1,0 +1,32 @@
+{
+  "js/ambient/ambient.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "js/commands/due.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "js/commands/handler.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "js/commands/reviews.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "js/graph/graph.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "js/transactions/utils.js": {
+    "complexity": {
+      "count": 1
+    }
+  }
+}

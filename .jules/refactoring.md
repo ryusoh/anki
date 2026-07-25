@@ -20,8 +20,23 @@ or worse, i.e. > 10) down to a B/A grade by extracting focused, testable helpers
 
 Review open and recently-closed PRs (`gh pr list --state all --limit 30`). Do not
 refactor anything already proposed or previously rejected — pick a different target.
-Rank candidates with `radon cc -s -n C <addon>/` (install via `pip install radon` if
-absent); take the worst real offender in application code.
+
+## Finding targets with the metric (don't hunt by hand)
+
+The repo has an automated complexity gate (`docs/lint-and-quality.md`):
+
+- **JS:** `eslint.config.cjs` sets `complexity: ['error', { max: 20 }]` and
+  `eslint-suppressions.json` baselines the legacy violations (file → rule →
+  count). **The suppressions file is your backlog list** — every entry is a
+  function over 20 that needs refactoring. Never add a new violation or raise a
+  suppressed count — the gate fails on it.
+- **Python:** `.venv/bin/python3 -m radon cc <addon> -s -n B` lists every block
+  rated B or worse (complexity ≥ 6; radon and xenon are pinned in
+  `requirements-dev.txt`). `make complexity-py` freezes the xenon ceilings
+  (`--max-average A --max-modules F --max-absolute F`). Never let a refactor push
+  any rank past those ceilings.
+
+Rank candidates worst-first; take the worst real offender in application code.
 
 ## Lane
 
@@ -49,6 +64,9 @@ absent); take the worst real offender in application code.
 
 - Target function's complexity now ≤ 10 / B-or-better (state radon grade before →
   after).
+- If you removed a JS violation from the suppressions backlog, run
+  `npx eslint --prune-suppressions` and include the shrunk
+  `eslint-suppressions.json` in the PR — the baseline only ratchets down.
 - `make precommit SKIP=1` green — lint, types, security, full JS + Python suite, with
   **coverage preserved** (the existing tests must still pass unchanged).
 

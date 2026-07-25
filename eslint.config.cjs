@@ -78,6 +78,12 @@ module.exports = [
             },
         },
         rules: {
+            // Cyclomatic-complexity ratchet (docs/lint-and-quality.md), max 20;
+            // eslint-suppressions.json baselines the existing violations (ESLint
+            // bulk suppressions only apply to errors), so only NEW or worsened
+            // violations fail. After fixing one, run
+            // `npx eslint --prune-suppressions` to shrink the baseline.
+            complexity: ['error', { max: 20 }],
             'no-undef': 'error',
             'no-unused-vars': [
                 'warn',

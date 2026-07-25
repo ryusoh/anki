@@ -10,6 +10,10 @@ black==26.3.1
 mypy==1.17.1
 bandit==1.8.6
 
+# Cyclomatic-complexity ratchet (xenon wraps radon; see `make complexity-py`).
+radon==6.0.1
+xenon==0.9.3
+
 # Type stubs
 types-requests
 

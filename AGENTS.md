@@ -127,6 +127,13 @@ a valid Conventional Commit subject**.
 | JS test suite (c8 coverage)                               | `make check-node`                  |
 | JS strict type check (whitelist)                          | `make typecheck-js`                |
 
+- **Complexity ratchet** — the gate freezes cyclomatic complexity in both
+  languages: ESLint `complexity` errors above 20 with `eslint-suppressions.json`
+  baselining the legacy violations (any NEW or worsened one fails; shrink the
+  baseline with `npx eslint --prune-suppressions`), and `make complexity-py`
+  (xenon, part of `quality-py`) freezing Python's ranks
+  (`--max-average A --max-modules F --max-absolute F`). Never raise the ceilings
+  or hand-edit the suppressions file. See `docs/lint-and-quality.md`.
 - **Run everything from the repo ROOT.** The root `conftest.py` mocks `aqt`/`anki`;
   running `pytest` inside an add-on subdir fails to import them. Use **`python3`**,
   never `python` (not on PATH).

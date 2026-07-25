@@ -1,5 +1,6 @@
 .PHONY: help fetch fetch-r2 verify-r2 check precommit precommit-fix fmt fmt-check sync-check lint lint-js lint-css lint-fix typecheck-js hooks \
-	quality-py lint-py fmt-py fmt-py-check typecheck security-py install-dev coverage-rank verify
+	quality-py lint-py fmt-py fmt-py-check typecheck security-py install-dev coverage-rank verify \
+	complexity-py
 
 PYTHON := $(if $(wildcard .venv/bin/python3),"$(CURDIR)/.venv/bin/python3",python3)
 NPM := npm
@@ -66,7 +67,7 @@ help:
 	@echo "  lint           Run JS+CSS+Markdown linters (ESLint/Stylelint/markdownlint)"
 	@echo "  lint-fix       Auto-fix JS/CSS/Markdown lint issues"
 	@echo "  typecheck-js   JS strict type check (tsc --checkJs on whitelist)"
-	@echo "  quality-py     Python lint/format/type/security (ruff/black/mypy/bandit)"
+	@echo "  quality-py     Python lint/format/type/security/complexity (ruff/black/mypy/bandit/xenon)"
 	@echo "  fmt-py         Auto-format Python (black + ruff --fix)"
 	@echo "  hooks          Install git pre-commit hook"
 
@@ -380,7 +381,7 @@ coverage-rank:
 # .bandit, so third-party addons are excluded automatically.
 # -----------------------------------------------------------------------------
 
-quality-py: lint-py fmt-py-check typecheck security-py
+quality-py: lint-py fmt-py-check typecheck security-py complexity-py
 	@echo "✅ Python quality checks complete"
 
 lint-py:
@@ -411,6 +412,17 @@ security-py:
 	@$(call CHECK_TOOL_VERSION,bandit)
 	@echo "🐍 Bandit (security, high severity)..."
 	@$(PYTHON) -m bandit -rq -lll --ini .bandit $(PY_SRC)
+
+# Complexity ratchet (docs/lint-and-quality.md): xenon fails if the
+# average/worst cyclomatic-complexity rank regresses past these ceilings.
+# Vendored trees (review_heatmap/libaddon, _vendor, _vendor_legacy) are excluded
+# the same way ruff/black exclude them in pyproject.toml.
+complexity-py:
+	@$(PYTHON) -m xenon --version >/dev/null 2>&1 || { echo "⊘ xenon not installed (pip install -r requirements-dev.txt)"; exit 1; }
+	@$(call CHECK_TOOL_VERSION,xenon)
+	@echo "🐍 Xenon (complexity ratchet)..."
+	@$(PYTHON) -m xenon --max-average A --max-modules F --max-absolute F \
+		-e '*/libaddon/*,*/_vendor/*,*/_vendor_legacy/*' $(PY_ALL)
 
 # -----------------------------------------------------------------------------
 # Pre-commit Checks
