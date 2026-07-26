@@ -21,3 +21,24 @@ def test_quick_3d_main_no_file():
             except Exception as e:
                 assert str(e) == "sys.exit called"
             mock_exit.assert_called_once_with(0)
+
+
+def test_quick_3d_runpy():
+    import runpy
+    from unittest.mock import MagicMock
+
+    with (
+        patch('builtins.open', mock_open()),
+        patch('gzip.open', mock_open(read_data='[{"guid":"1","flds":"a","tags":""}]')),
+        patch('graph.quick_3d.print'),
+        patch('sys.exit', MagicMock()),
+    ):
+        runpy.run_module('graph.quick_3d', run_name='__main__')
+
+
+def test_scale_node_size():
+    from graph.quick_3d import scale_node_size
+
+    assert scale_node_size(0.01) == 1.0
+    assert scale_node_size(0.1) == 3
+    assert scale_node_size(0.001) == 0.5

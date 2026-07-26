@@ -195,3 +195,17 @@ def test_missing_credentials_exit(tmp_path, monkeypatch):
 
 if __name__ == '__main__':
     sys.exit(pytest.main([__file__, '-v']))
+
+
+def test_upload_public_runpy():
+    with (
+        patch('sys.argv', ['upload_public.py']),
+        patch('graph.tests.test_upload_public.upload_public.upload_public_data'),
+        patch('sys.exit'),
+    ):
+        import runpy
+
+        with patch(
+            'graph.upload_public.upload_public_data'
+        ):  # prevent actual execution via string path
+            runpy.run_path('graph/upload_public.py', run_name='__main__')
