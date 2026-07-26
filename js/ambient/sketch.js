@@ -252,10 +252,19 @@
       extend(mouse, touches[0], true);
       return copy;
     }
+    // Bolt: Pre-compute event map lookup to O(1) instead of O(N) indexOf in high-frequency handler.
+    const eventIndexMap = {};
+    for (let i = 0; i < eventMap.length; i++) {
+      if (typeof eventMap[i] === "string") {
+        eventIndexMap[eventMap[i]] = i;
+      }
+    }
+
     function pointer(e) {
       e = process(e);
       type = e.type;
-      min = eventMap.indexOf(type) - 1;
+      const idx = eventIndexMap[type];
+      min = (idx !== undefined ? idx : -1) - 1;
       max = min + 1;
       if (/down|start/.test(type)) {
         context.dragging = true;
