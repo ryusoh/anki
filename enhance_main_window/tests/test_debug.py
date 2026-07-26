@@ -281,4 +281,5 @@ class TestDebugCoverage:
 
     def test_assert_equal_false_isinstance_none_exception_handled(self):
         from enhance_main_window.debug import assertEqual
+
         pass
