@@ -24,8 +24,6 @@ from .adjust_css import *
 QDir.addSearchPath("CustomBackground", str(Path(__file__).parent / "AnKing"))
 
 
-# from .gui import Manager
-# a = Manager()
 from . import gui_updatemanager
 from .config import addon_path, addonfoldername, gc, getUserOption
 
@@ -208,30 +206,3 @@ def replace_gears(deck_browser, content):
 
 
 gui_hooks.deck_browser_will_render_content.append(replace_gears)
-
-
-# No longer needed
-'''
-menu = QMenu(('Custom Background & Gear Icon'), mw)
-mw.form.menuTools.addMenu(menu)
-
-#add config button
-def on_advanced_settings():
-	addonDlg = AddonsDialog(mw.addonManager)
-	addonDlg.accept() #closes addon dialog
-	ConfigEditor(addonDlg,__name__,mw.addonManager.getConfig(__name__))
-
-#menu.addSeparator()
-advanced_settings = QAction('Set up Background/Gear (Config)', mw)
-menu.addAction(advanced_settings)
-advanced_settings.triggered.connect(on_advanced_settings)
-
-shortcut = gc("Keyboard Shortcut", "Ctrl+shift+b")
-#add folder button
-imgfolder = os.path.join(addon_path, "user_files") 
-action = QAction(mw) 
-action.setText("Background/gear image folder") 
-action.setShortcut(QKeySequence(shortcut))
-menu.addAction(action) 
-action.triggered.connect(lambda: openFolder(imgfolder))
-'''
