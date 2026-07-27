@@ -44,20 +44,20 @@ auto_itaigi/
 
 ## 2. Parity with auto_wiktionary — ported / cut surface
 
-| auto_wiktionary surface                                                        | Status in auto_itaigi                                                                                              |
-| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| Editor button via `gui_hooks.editor_did_init_buttons`                          | **Ported** — identical wiring, new command name `autoItaigi`                                                       |
-| Selection → Front-field fallback, `editor.saveNow` flush                       | **Ported** — identical                                                                                             |
-| Case-insensitive `front`/`back` field lookup                                   | **Ported** — identical                                                                                             |
-| stdlib `urllib` + `urlopen_with_proxy_fallback`, 5s timeout, custom User-Agent | **Ported** — UA string `AnkiAutoItaigi/1.0`                                                                        |
-| Error contract (`""` not-found / `"Error: …"`), `tooltip` feedback             | **Ported** — not-found is detected in JSON instead of via HTTP 404, see §4                                         |
-| Merge into Back (empty → replace, else prepend + `<br>`)                       | **Ported** — simplified, see §6                                                                                    |
-| Conditional `note.flush()` (skip in addMode), `loadNoteKeepingFocus()`         | **Ported** — identical                                                                                             |
-| Language detection (`detect_language`)                                         | **Cut** — query is always Hanji; single endpoint                                                                   |
-| BeautifulSoup HTML parsing, section filtering                                  | **Cut** — response is JSON, parsed with stdlib `json`                                                              |
-| Kanji-redirect detection/follow                                                | **Cut** — no equivalent concept in itaigi                                                                          |
-| opensearch "Did you mean" candidates                                           | **Cut** — not-found shows a tooltip only (KISS; `其他建議` suggestions are a possible later feature, out of scope) |
-| **Audio MP3 download + `[sound:]` line**                                       | **New** — auto_wiktionary strips audio; designed fresh in §7                                                       |
+| auto_wiktionary surface                                                        | Status in auto_itaigi                                                                                                                                        |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Editor button via `gui_hooks.editor_did_init_buttons`                          | **Ported** — identical wiring, new command name `autoItaigi`                                                                                                 |
+| Selection → Front-field fallback, `editor.saveNow` flush                       | **Ported** — identical                                                                                                                                       |
+| Case-insensitive `front`/`back` field lookup                                   | **Ported** — identical                                                                                                                                       |
+| stdlib `urllib` + `urlopen_with_proxy_fallback`, 5s timeout, custom User-Agent | **Ported** — UA string `AnkiAutoItaigi/1.0`                                                                                                                  |
+| Error contract (`""` not-found / `"Error: …"`), `tooltip` feedback             | **Ported** — not-found is detected in JSON instead of via HTTP 404, see §4                                                                                   |
+| Merge into Back (empty → replace, else prepend + `<br>`)                       | **Ported** — simplified, see §6                                                                                                                              |
+| Conditional `note.flush()` (skip in addMode), `loadNoteKeepingFocus()`         | **Ported** — identical                                                                                                                                       |
+| Language detection (`detect_language`)                                         | **Cut** — query is always Hanji; single endpoint                                                                                                             |
+| BeautifulSoup HTML parsing, section filtering                                  | **Cut** — response is JSON, parsed with stdlib `json`                                                                                                        |
+| Kanji-redirect detection/follow                                                | **Cut** — no equivalent concept in itaigi                                                                                                                    |
+| opensearch "Did you mean" candidates                                           | **Partial** — general suggestions are still ignored, but an exact-match `其他建議` entry (`文本資料 == query`) is used when the main `列表` is empty, see §5 |
+| **Audio MP3 download + `[sound:]` line**                                       | **New** — auto_wiktionary strips audio; designed fresh in §7                                                                                                 |
 
 ## 3. The itaigi API (verified live 2026-07-27)
 
@@ -173,37 +173,52 @@ from __future__ import annotations
 import json
 
 
+def _extract_entry(entry: dict) -> tuple[str, list[str]]:
+    """Extract (tailo, mandarin_words) from a single entry."""
+    tailo = (entry.get("音標資料") or "").strip()
+    mandarin: list[str] = []
+    for item in entry.get("按呢講的外語列表") or []:
+        w = (item.get("外語資料") or "").strip()
+        if w and w not in mandarin:
+            mandarin.append(w)
+    return tailo, mandarin
+
+
 def parse_itaigi_json(body: str, query: str) -> tuple[str, list[str]] | None:
     """Parse a 揣列表 response body.
 
     Returns (tailo, mandarin_words) for the chosen entry, or None when the
     word is not found (empty 列表 / empty 新詞文本 / unparseable JSON).
     `tailo` may be "" and `mandarin_words` may be [] — that is not not-found.
+
+    When the main 列表 is empty but 其他建議 contains an entry whose 文本資料
+    exactly matches the query, that suggestion is treated as the result. This
+    mirrors the website behavior for words like 腿庫.
     """
     try:
         data = json.loads(body)
     except ValueError:
         return None
+
     results = data.get("列表") or []
-    if not results:
-        return None
-    texts = results[0].get("新詞文本") or []
-    if not texts:
-        return None
+    if results:
+        texts = results[0].get("新詞文本") or []
+        if texts:
 
-    def votes(entry: dict) -> int:
-        return entry.get("按呢講好") or 0
+            def votes(entry: dict) -> int:
+                return entry.get("按呢講好") or 0
 
-    exact = [t for t in texts if t.get("文本資料") == query]
-    chosen = max(exact or texts, key=votes)
+            exact = [t for t in texts if t.get("文本資料") == query]
+            chosen = max(exact or texts, key=votes)
+            return _extract_entry(chosen)
 
-    tailo = (chosen.get("音標資料") or "").strip()
-    mandarin: list[str] = []
-    for item in chosen.get("按呢講的外語列表") or []:
-        w = (item.get("外語資料") or "").strip()
-        if w and w not in mandarin:
-            mandarin.append(w)
-    return tailo, mandarin
+    # Fallback: some queries (e.g. 腿庫) return the entry only under 其他建議.
+    suggestions = data.get("其他建議") or []
+    for suggestion in suggestions:
+        if suggestion.get("文本資料") == query:
+            return _extract_entry(suggestion)
+
+    return None
 ```
 
 Entry-selection rule (MUST): among `新詞文本`, prefer entries whose
@@ -353,6 +368,7 @@ from running the implementation.
 | 17  | `merge_itaigi_result("existing", html)`                                                 | `html + "<br>existing"` (prepend)                                                               |
 | 18  | `download_audio` returning non-MP3 bytes (e.g. `<html>…`)                               | `None` (magic-byte sniff rejects)                                                               |
 | 19  | `itaigi_lookup_url("番薯").isascii()`                                                   | `True` (URL-encoding gotcha, §3)                                                                |
+| 20  | `{"列表": [], "其他建議": [{"文本資料": "腿庫", "音標資料": "thuí-khòo", …}]}`          | `("thuí-khòo", ["蹄膀", "肘子"])` — exact-match suggestion used when main list is empty         |
 
 End-to-end flow expectations (mocked fetch + mocked media):
 

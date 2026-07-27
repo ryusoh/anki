@@ -27,6 +27,11 @@ shipped to AnkiWeb also carry `anki_version` and `version`:
 }
 ```
 
+If the addon adds an editor or toolbar button, give it a distinct `icon.png`.
+Don't reuse another addon's icon as a placeholder — users can't tell the buttons
+apart in Anki's UI. A good default is the service's own favicon/logo, resized to
+48×48.
+
 ## `__init__.py` patterns
 
 The module runs once at startup, so registration happens at module scope.
