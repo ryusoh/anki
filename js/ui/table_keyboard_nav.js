@@ -12,15 +12,18 @@ export function initTableKeyboardNav() {
       header.setAttribute("aria-sort", "none");
     }
 
-    header.addEventListener("keydown", /** @param {Event} event */ (event) => {
-      const e = /** @type {KeyboardEvent} */ (event);
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        if (header instanceof window.HTMLElement) {
-          header.click();
+    header.addEventListener(
+      "keydown",
+      /** @param {Event} event */ (event) => {
+        const e = /** @type {KeyboardEvent} */ (event);
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          if (header instanceof window.HTMLElement) {
+            header.click();
+          }
         }
-      }
-    });
+      },
+    );
   });
 }
 
