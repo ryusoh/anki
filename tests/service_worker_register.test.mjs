@@ -8,7 +8,9 @@ describe("service_worker_register.js", () => {
   let registerCalledWith = null;
 
   beforeEach(() => {
-    dom = new JSDOM("<!DOCTYPE html><html><body></body></html>", { url: "http://localhost" });
+    dom = new JSDOM("<!DOCTYPE html><html><body></body></html>", {
+      url: "http://localhost",
+    });
     globalThis.window = dom.window;
     globalThis.document = dom.window.document;
     originalConsoleWarn = globalThis.console.warn;
@@ -18,11 +20,11 @@ describe("service_worker_register.js", () => {
 
     dom.window.__SW_FORCE_SW_HOSTNAME__ = "example.com";
 
-    // Set up mock navigator.serviceWorker on global navigator
     Object.defineProperty(globalThis.navigator, "serviceWorker", {
       configurable: true,
       writable: true,
       value: {
+        getRegistrations: () => Promise.resolve([]),
         register: (path, opts) => {
           registerCalledWith = { path, opts };
           return Promise.resolve({
@@ -76,7 +78,6 @@ describe("service_worker_register.js", () => {
       }
     );
 
-    // Let any unresolved promises run
     await new Promise((resolve) => setTimeout(resolve, 50));
 
     assert.ok(registerCalledWith);
@@ -125,6 +126,7 @@ describe("service_worker_register.js", () => {
     Object.defineProperty(globalThis.navigator, "serviceWorker", {
       configurable: true,
       value: {
+        getRegistrations: () => Promise.resolve([]),
         register: () => Promise.reject(new Error("boom")),
       },
     });
@@ -197,9 +199,11 @@ describe("service_worker_register.js", () => {
     Object.defineProperty(globalThis.navigator, "serviceWorker", {
       configurable: true,
       value: {
-        register: () => Promise.resolve({
-          update: () => Promise.reject(new Error("Update failed")),
-        }),
+        getRegistrations: () => Promise.resolve([]),
+        register: () =>
+          Promise.resolve({
+            update: () => Promise.reject(new Error("Update failed")),
+          }),
       },
     });
 
@@ -221,6 +225,33 @@ describe("service_worker_register.js", () => {
 
     await loadScript();
     assert.strictEqual(listenerAdded, false);
+  });
+
+  test("unregisters existing service workers on localhost", async () => {
+    dom.window.__SW_FORCE_SW_HOSTNAME__ = "localhost";
+    let unregisterCalls = 0;
+    const mockUnregister = () => {
+      unregisterCalls += 1;
+      return Promise.resolve(true);
+    };
+    let getRegistrationsCalls = 0;
+    const mockGetRegistrations = () => {
+      getRegistrationsCalls += 1;
+      return Promise.resolve([
+        { unregister: mockUnregister },
+        { unregister: mockUnregister },
+      ]);
+    };
+    Object.defineProperty(globalThis.navigator, "serviceWorker", {
+      configurable: true,
+      value: { getRegistrations: mockGetRegistrations },
+    });
+
+    await loadScript();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    assert.strictEqual(getRegistrationsCalls, 1);
+    assert.strictEqual(unregisterCalls, 2);
   });
 
   test("bails out early if serviceWorker is not supported in navigator", async () => {

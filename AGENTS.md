@@ -186,6 +186,11 @@ is false. Confirm both pytest **and** the JS runner execute.
   `js/transactions/`, `js/ui/`, `js/utils/`, `js/config.js`. No build step.
   `js/types/*.d.ts` — type-only ambient declarations for `tsc --checkJs`
   (never shipped).
+- `sw.js` — root service worker. It precaches the core shell for `/`, `/terminal/`,
+  and `/graph/` and serves live data (`/data/anki/`, `/graph/*.json`) network-first.
+  Bump `CACHE_NAME` in `sw.js` whenever the core asset list changes; the register
+  script (`js/ui/service_worker_register.js`) unregisters any existing SW on
+  localhost to keep dev caches from shadowing local changes.
 - `jsconfig.json` — the `tsc --checkJs` strict-mode whitelist; see
   `docs/js-typing-strategy.md` before touching it.
 - `<addon>/` — each Anki add-on (Python) with its own `__init__.py`, hooks, and

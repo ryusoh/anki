@@ -748,7 +748,7 @@ lint: lint-js lint-css lint-md depcheck
 depcheck:
 	@if command -v npx >/dev/null 2>&1; then \
 		echo "Checking JS dependency structure (dependency-cruiser)..."; \
-		npx dependency-cruiser js --config .dependency-cruiser.cjs; \
+		npx dependency-cruiser js sw.js --config .dependency-cruiser.cjs; \
 	else \
 		echo "⊘ npx not found — skipping dependency-structure check"; \
 	fi

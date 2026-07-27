@@ -103,6 +103,22 @@ module.exports = [
         },
     },
     {
+        files: ['sw.js'],
+        languageOptions: {
+            globals: {
+                self: 'readonly',
+                caches: 'readonly',
+                clients: 'readonly',
+                Cache: 'readonly',
+                CacheStorage: 'readonly',
+                Request: 'readonly',
+                Response: 'readonly',
+                URL: 'readonly',
+                location: 'readonly',
+            },
+        },
+    },
+    {
         // Node-based test runners and tooling scripts
         files: ['**/tests/**/*.js', '**/*.test.js', '**/*.test.mjs', 'tools/**/*.mjs'],
         languageOptions: {

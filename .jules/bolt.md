@@ -64,6 +64,15 @@ re-renders, code-splitting, ORM/N+1/connection-pooling advice. Real surfaces:
 - Python: `.itertuples(index=False)` over `iterrows`; `functools.lru_cache` for
   repeated file reads; collapse repeated SQLite round-trips into one query.
 
+## Service worker note
+
+The repo now ships a root service worker (`sw.js`) that precaches the
+`/`, `/terminal/`, and `/graph/` shell and serves live `/data/anki/` and
+`/graph/*.json` data network-first. When you change core assets (new page, new
+shell CSS/JS, new required font/icon), bump the `CACHE_NAME` constant in
+`sw.js` so the install event fetches the new shell and the activate event
+prunes the stale cache.
+
 ## Verification gate (before opening a PR)
 
 - Behaviour unchanged; `make precommit SKIP=1` green.
