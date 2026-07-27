@@ -10,37 +10,52 @@ from urllib.request import Request
 from .proxy_fallback import urlopen_with_proxy_fallback
 
 
+def _extract_entry(entry: dict) -> tuple[str, list[str]]:
+    """Extract (tailo, mandarin_words) from a single 新詞文本 or 其他建議 entry."""
+    tailo = (entry.get("音標資料") or "").strip()
+    mandarin: list[str] = []
+    for item in entry.get("按呢講的外語列表") or []:
+        w = (item.get("外語資料") or "").strip()
+        if w and w not in mandarin:
+            mandarin.append(w)
+    return tailo, mandarin
+
+
 def parse_itaigi_json(body: str, query: str) -> tuple[str, list[str]] | None:
     """Parse a 揣列表 response body.
 
     Returns (tailo, mandarin_words) for the chosen entry, or None when the
     word is not found (empty 列表 / empty 新詞文本 / unparseable JSON).
     `tailo` may be "" and `mandarin_words` may be [] — that is not not-found.
+
+    When the main 列表 is empty but 其他建議 contains an entry whose 文本資料
+    exactly matches the query, that suggestion is treated as the result. This
+    mirrors the website behavior for words like 腿庫.
     """
     try:
         data = json.loads(body)
     except ValueError:
         return None
+
     results = data.get("列表") or []
-    if not results:
-        return None
-    texts = results[0].get("新詞文本") or []
-    if not texts:
-        return None
+    if results:
+        texts = results[0].get("新詞文本") or []
+        if texts:
 
-    def votes(entry: dict) -> int:
-        return entry.get("按呢講好") or 0
+            def votes(entry: dict) -> int:
+                return entry.get("按呢講好") or 0
 
-    exact = [t for t in texts if t.get("文本資料") == query]
-    chosen = max(exact or texts, key=votes)
+            exact = [t for t in texts if t.get("文本資料") == query]
+            chosen = max(exact or texts, key=votes)
+            return _extract_entry(chosen)
 
-    tailo = (chosen.get("音標資料") or "").strip()
-    mandarin: list[str] = []
-    for item in chosen.get("按呢講的外語列表") or []:
-        w = (item.get("外語資料") or "").strip()
-        if w and w not in mandarin:
-            mandarin.append(w)
-    return tailo, mandarin
+    # Fallback: some queries (e.g. 腿庫) return the entry only under 其他建議.
+    suggestions = data.get("其他建議") or []
+    for suggestion in suggestions:
+        if suggestion.get("文本資料") == query:
+            return _extract_entry(suggestion)
+
+    return None
 
 
 def format_itaigi_result(

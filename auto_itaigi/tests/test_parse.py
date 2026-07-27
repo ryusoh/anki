@@ -146,6 +146,26 @@ def test_parse_empty_tailo():
     assert parse_itaigi_json(body, "蕃薯") == ("", ["地瓜"])
 
 
+def test_parse_falls_back_to_exact_suggestion_when_list_empty():
+    body = json.dumps(
+        {
+            "列表": [],
+            "其他建議": [
+                {
+                    "文本資料": "腿庫",
+                    "音標資料": "thuí-khòo",
+                    "按呢講的外語列表": [
+                        {"外語資料": "蹄膀"},
+                        {"外語資料": "肘子"},
+                    ],
+                }
+            ],
+        },
+        ensure_ascii=False,
+    )
+    assert parse_itaigi_json(body, "腿庫") == ("thuí-khòo", ["蹄膀", "肘子"])
+
+
 @pytest.mark.parametrize(
     "body",
     [
