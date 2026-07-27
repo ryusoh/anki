@@ -142,6 +142,9 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  if (!req.url || req.url.length > 2000) {
+    return;
+  }
   const url = new URL(req.url);
 
   if (url.origin !== self.location.origin) {
