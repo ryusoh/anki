@@ -12,10 +12,13 @@ export function initTableKeyboardNav() {
       header.setAttribute("aria-sort", "none");
     }
 
-    header.addEventListener("keydown", (e) => {
+    header.addEventListener("keydown", /** @param {Event} event */ (event) => {
+      const e = /** @type {KeyboardEvent} */ (event);
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
-        header.click();
+        if (header instanceof window.HTMLElement) {
+          header.click();
+        }
       }
     });
   });
