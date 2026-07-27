@@ -170,6 +170,12 @@ a valid Conventional Commit subject**.
   silently never runs. Browser-side scripts are pinned with source-level regression
   tests. See `docs/js-testing.md`.
 
+### Workflow maintenance
+
+When bumping action versions in `.github/workflows/*.yml`, verify the tag exists
+first (`gh api repos/<owner>/<repo>/git/refs/tags/v<N>`). A non-existent major
+version such as `actions/cache@v7` fails the runner before the job starts.
+
 ## Environment setup (run once in the VM before working)
 
 ```sh
