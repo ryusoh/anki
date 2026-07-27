@@ -36,3 +36,4 @@ verify against current code/Makefile before trusting specifics.
 - [terminal-calendar-ranges.md](terminal-calendar-ranges.md) — year/quarter calendar time filters for the stats terminal
 - [precommit-speed.md](precommit-speed.md) — measured baseline + parallelization plan for `make precommit-fix` (SKIP/YOLO)
 - [field-snapshot-undo.md](field-snapshot-undo.md) — `field_snapshot_undo` addon spec: field revision ring to recover deleted MathJax
+- [auto-itaigi-spec.md](auto-itaigi-spec.md) — `auto_itaigi` addon spec: Taiwanese Hokkien lookup from itaigi.tw
