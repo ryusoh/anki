@@ -296,8 +296,10 @@ scene.add(bgNodes);
 const MAX_BG_EDGES = 800000;
 const bgEdgePos = new Float32Array(MAX_BG_EDGES * 6);
 let bgEdgeIdx = 0;
-data.links.forEach((l) => {
-  if (bgEdgeIdx >= MAX_BG_EDGES) return;
+// Bolt: Replace .forEach with a native for loop to eliminate closure allocations and reduce GC pressure
+for (let i = 0, len = data.links.length; i < len; i++) {
+  const l = data.links[i];
+  if (bgEdgeIdx >= MAX_BG_EDGES) break;
 
   const sId = String(l.source).trim();
   const tId = String(l.target).trim();
@@ -308,7 +310,7 @@ data.links.forEach((l) => {
   const tDeck = nodeDeckMap.get(tId);
   const isSameDeck = sDeck && tDeck && sDeck === tDeck;
   const prob = isSameDeck ? 0.2 : 0.05;
-  if (Math.random() > prob) return;
+  if (Math.random() > prob) continue;
 
   const s = nodeMap.get(sId),
     t = nodeMap.get(tId);
@@ -322,7 +324,7 @@ data.links.forEach((l) => {
     bgEdgePos[o + 5] = t.z;
     bgEdgeIdx++;
   }
-});
+}
 const bgEdgeGeom = new THREE.BufferGeometry();
 bgEdgeGeom.setAttribute(
   "position",
