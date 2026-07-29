@@ -713,3 +713,70 @@ def test_full_redirect_flow_amakudari():
     assert "天界" in parsed
     assert "官僚" in parsed
     assert "あまくだり" in parsed
+
+
+# ---- 聴牌 (テンパイ) qualifier-prefix redirect test fixtures ----
+
+# Real HTML from ja.wiktionary for 聴牌.
+# New wrinkle vs. the other 参照 redirects: the <li> starts with a usage-tag
+# qualifier '(麻雀) ' before the '「テンパイ」を参照。' notice. The qualifier is
+# not part of the reading and must not leak into the follow-up fetch.
+TEMPAI_REDIRECT_HTML = """
+<html>
+    <body>
+        <section>
+            <h2>日本語</h2>
+            <section>
+                <h3>名詞</h3>
+                <p><strong class="Jpan headword" lang="ja"><a href="./聴#日本語" title="聴">聴</a><a href="./牌#日本語" title="牌">牌</a></strong> (<span class="headword-tr manual-tr tr" dir="ltr">テンパイ</span>)</p>
+                <ol><li><span class="ib-brac"><span class="qualifier-brac"> (</span></span><span class="ib-content"><span class="qualifier-content">麻雀</span></span><span class="ib-brac"><span class="qualifier-brac">) </span></span>「<a href="./テンパイ" title="テンパイ">テンパイ</a>」を<a href="./参照" title="参照">参照</a>。</li></ol>
+            </section>
+        </section>
+    </body>
+</html>
+"""
+
+# Real HTML from ja.wiktionary for テンパイ (the redirect target).
+TEMPAI_REAL_HTML = """
+<html>
+    <body>
+        <section>
+            <h2>日本語</h2>
+            <section>
+                <h3>名詞</h3>
+                <p><strong class="Jpan headword" lang="ja">テンパイ</strong><span class="headword-kanji">【<b class="Jpan" lang="ja"><a href="./聴牌#日本語" title="聴牌">聴牌</a></b>】</span></p>
+                <ol>
+                    <li>後一つ必要な牌がくれば上がりとなる状態。</li>
+                    <li>転じて、準備が整った状態。</li>
+                </ol>
+            </section>
+        </section>
+    </body>
+</html>
+"""
+
+
+def test_detect_kanji_redirect_tempai_strips_qualifier():
+    """聴牌 redirects to テンパイ via '(麻雀) 「テンパイ」を参照。' — the leading
+    usage-tag qualifier '(麻雀) ' must be dropped so the follow-up fetch uses
+    'テンパイ', not '(麻雀) 「テンパイ'."""
+    result = detect_kanji_redirect(TEMPAI_REDIRECT_HTML)
+    assert result is not None, "detect_kanji_redirect should detect qualifier-prefixed redirects"
+    reading, all_readings = result
+    assert reading == "テンパイ"
+    assert all_readings == ["テンパイ"]
+
+
+def test_full_redirect_flow_tempai():
+    """Full flow: 聴牌 (qualifier-prefixed redirect) → fetch テンパイ → real definition.
+    Must NOT show the bare '「テンパイ」を参照。' notice."""
+    result = detect_kanji_redirect(TEMPAI_REDIRECT_HTML)
+    assert result is not None
+    reading, all_readings = result
+    assert reading == "テンパイ"
+
+    parsed = parse_wiktionary_html(TEMPAI_REAL_HTML, lang="ja")
+    parsed = inject_redirect_pronunciation(parsed, all_readings)
+    assert "を参照" not in parsed
+    assert "上がり" in parsed
+    assert "テンパイ" in parsed
