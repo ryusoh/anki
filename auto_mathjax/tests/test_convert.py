@@ -775,6 +775,61 @@ def test_no_closed_integral_no_preamble():
     assert r'\def\oiiint{' not in result
 
 
+# --- Standalone integral symbols (\oint / \oiint / \oiiint) in prose ---
+# Chinese physics notes mention the symbols inline ("你问的 \oint 是…"),
+# not as formulas. These self-contained glyphs take no operand, so they are
+# wrapped even in CJK prose lines (where embedded-run wrapping is normally
+# skipped); \oint_C-style uses with operands are left alone.
+
+
+def test_standalone_oint_wrapped_in_cjk_prose():
+    r"""A bare \oint symbol inside a CJK prose line is wrapped inline."""
+    html = r'<ul><li>你问的 <b>\oint</b> 是沿<b>闭合曲线</b>的线积分。&nbsp;</li></ul>'
+    result = _convert_dollar_to_mathjax(html)
+    assert r'<b>\(\oint\)</b>' in result
+    # CJK prose and surrounding tags are untouched
+    assert '你问的' in result
+    assert '<b>闭合曲线</b>' in result
+
+
+def test_standalone_oiint_and_oint_wrapped_in_cjk_prose():
+    r"""Mixed \oint / \oiint symbols in one CJK line are each wrapped."""
+    html = r'<li>如果说 \oint 常用于计算环路环量（如安培环路定理），那么 \oiint 就是计算闭合曲面通量（如高斯定理）。</li>'
+    result = _convert_dollar_to_mathjax(html)
+    assert r'\(\oint\)' in result
+    assert r'\(\oiint\)' in result
+
+
+def test_oint_with_subscript_not_wrapped_in_cjk_prose():
+    r"""\oint_C takes an operand — not a standalone symbol, left alone."""
+    html = r'<li>沿闭合路径的积分 \oint_C 表示环量。</li>'
+    result = _convert_dollar_to_mathjax(html)
+    assert r'\(\oint' not in result
+
+
+def test_standalone_oiint_symbol_gets_macro_preamble():
+    r"""A \oiint symbol wrapped from prose also triggers the \def preamble."""
+    html = r'<li>高斯定理用的是 <b>\oiint</b>，即沿闭合曲面的面积分。</li>'
+    result = _convert_dollar_to_mathjax(html)
+    assert r'\(\oiint\)' in result
+    assert r'\def\oiint{' in result
+
+
+def test_standalone_symbols_not_double_wrapped_on_rerun():
+    r"""Re-running the converter does not re-wrap an already-wrapped \oint."""
+    html = r'<li>你问的 <b>\oint</b> 是沿闭合曲线的线积分。</li>'
+    first = _convert_dollar_to_mathjax(html)
+    second = _convert_dollar_to_mathjax(first)
+    assert second == first
+
+
+def test_standalone_oint_wrapped_in_english_prose():
+    r"""A bare \oint symbol in an English prose line is also wrapped."""
+    html = r'the symbol \oint denotes a closed loop integral'
+    result = _convert_dollar_to_mathjax(html)
+    assert r'\(\oint\)' in result
+
+
 # --- &nbsp; cleaning inside <anki-mathjax> blocks ---
 
 

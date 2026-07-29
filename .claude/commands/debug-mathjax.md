@@ -33,7 +33,9 @@ bytes and classify before touching code.
      pipeline: `LINE_SPLIT_RE` segmentation, `DOLLAR_PAIR_RE`,
      `_looks_like_math_content` (cashtag/currency guards),
      `_looks_like_bare_latex` + `BARE_LATEX_COMMAND_RE` (whitelist gaps —
-     e.g. a bare `\oint` line isn't wrapped because `oint` isn't listed),
+     e.g. a bare `\iint` line isn't detected because only `int` is listed;
+     standalone `\oint`/`\oiint`/`\oiiint` symbols in prose are handled by
+     `STANDALONE_SYMBOL_RE`, operand-taking `\oint_C` is not),
      `_wrap_embedded_latex` (CJK lines are deliberately skipped).
 
 3. **Reproduce in Python** against the dumped HTML. Import the root

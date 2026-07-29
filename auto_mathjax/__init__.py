@@ -50,6 +50,7 @@ ALREADY_MATHJAX_RE = re.compile(r'\\[(\(|\[]|<anki-mathjax', re.IGNORECASE)
 BARE_LATEX_COMMAND_RE = re.compile(
     r'\\(?:'
     r'frac|dfrac|tfrac|text|times|sqrt|sum|prod|int|cdot|pm|mp|div(?:isionsymbol)?|'
+    r'oiiint|oiint|oint|'
     r'leq?|geq?|neq|approx|equiv|propto|infty|log|ln|exp|sin|cos|tan|lim|'
     r'partial|nabla|to|rightarrow|Rightarrow|left|right|over|hat|bar|vec|'
     r'mathbb|mathrm|mathbf|mathit|operatorname|'
@@ -87,6 +88,12 @@ _EMBEDDED_FILLER = r'[0-9\s=+\-*/^_().,%]'
 EMBEDDED_RUN_RE = re.compile(
     _EMBEDDED_FILLER + r'*(?:' + _EMBEDDED_TOKEN + _EMBEDDED_FILLER + r'*)+'
 )
+
+# Standalone integral symbols: self-contained glyphs that take no operand
+# and never appear in prose as anything but LaTeX. Safe to wrap even in CJK
+# lines (where embedded-run wrapping is skipped) and even without a braced
+# or numeric operand. The \b keeps operand-taking uses like \oint_C out.
+STANDALONE_SYMBOL_RE = re.compile(r'\\(?:oiiint|oiint|oint)\b')
 
 # Characters trimmed off the ends of a math run before wrapping: sentence
 # punctuation and a leading/trailing "=" that reads as prose glue
@@ -211,8 +218,10 @@ def _wrap_embedded_latex(segment):
     """
     # A CJK prose line is not a formula card: letters break embedded runs,
     # so wrapping fragments there mangles shapes like (E\ln(1+r)>0).
+    # Standalone integral symbols (\oint & friends) are still wrapped —
+    # they are unambiguous LaTeX and take no operand.
     if CJK_RE.search(TEXT_GROUP_RE.sub(' ', segment)):
-        return segment
+        return STANDALONE_SYMBOL_RE.sub(r'\\(\g<0>\\)', segment)
     # {\displaystyle ...} marks LaTeX source pasted from Wikipedia/MathML —
     # it renders via its own <img>/<math> fallback; wrapping fragments of
     # it (e.g. just "(\log" out of O(\log N)) mangles the source.
@@ -227,8 +236,9 @@ def _wrap_embedded_latex(segment):
         if not core:
             return run
         # A bare \command with no braced or numeric operand (Wikipedia's
-        # {\displaystyle O(\log N)} pastes) is not a self-contained formula.
-        if not re.search(r'[{0-9]', core):
+        # {\displaystyle O(\log N)} pastes) is not a self-contained formula —
+        # unless it is a standalone integral symbol (\oint & friends).
+        if not re.search(r'[{0-9]', core) and not STANDALONE_SYMBOL_RE.fullmatch(core):
             return run
         start = run.find(core)
         return run[:start] + '\\(' + core + '\\)' + run[start + len(core) :]
