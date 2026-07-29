@@ -13,6 +13,7 @@ def test_assertEqual_none_difference(capsys):
     with pytest.raises(TypeError):
         assertEqual(left, right)
 
+
 def test_assertEqual_other_difference():
     left = MagicMock()
     left.firstDifference.return_value = "string"
@@ -20,6 +21,7 @@ def test_assertEqual_other_difference():
     right.firstDifference.return_value = "string"
     with pytest.raises(TypeError):
         assertEqual(left, right)
+
 
 def test_assertEqual_none_type_difference():
     MagicMock()

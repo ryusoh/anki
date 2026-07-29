@@ -19,11 +19,15 @@ def test_bare_command_wrap():
 
     text = "\\frac "
     assert _wrap_embedded_latex(text) == "\\frac "
+
+
 def test_bare_command_wrap_trim_only():
     text = "\\ "
     assert _wrap_embedded_latex(text) == "\\ "
     text = "\\"
     assert _wrap_embedded_latex(text) == "\\"
+
+
 def test_bare_command_wrap_trim_only_2():
     # To hit line 238, core must be empty, but run must not be empty and must match BARE_LATEX_COMMAND_RE
     # Wait, if core is empty, run only consists of _RUN_TRIM_CHARS.

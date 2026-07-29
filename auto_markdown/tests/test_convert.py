@@ -639,6 +639,7 @@ def test_on_auto_markdown_calls_save_first():
     sys.modules['aqt.utils'] = MagicMock()
 
     import importlib
+
     import auto_markdown
 
     importlib.reload(auto_markdown)
@@ -660,6 +661,7 @@ def test_apply_converts_both_fields():
     sys.modules['aqt.utils'] = MagicMock()
 
     import importlib
+
     import auto_markdown
 
     importlib.reload(auto_markdown)
@@ -689,6 +691,7 @@ def test_shortcut_registration():
     sys.modules['aqt.utils'] = MagicMock()
 
     import importlib
+
     import auto_markdown
 
     importlib.reload(auto_markdown)
