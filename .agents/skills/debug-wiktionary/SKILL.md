@@ -33,7 +33,7 @@ format — pull the real HTML first.
    (follows kanji-notation/`参照` redirects — ja only) → `parse_wiktionary_html`
    → `inject_redirect_pronunciation`. Compare the live HTML against what each
    regex/selector expects. Failure families differ by language:
-   - **ja**: usually a *new wrinkle* in redirect-notice markup. Already
+   - **ja**: usually a _new wrinkle_ in redirect-notice markup. Already
      pinned in `auto_wiktionary/tests/test_kanji_redirect.py`:
      `Xの漢字表記。`, `X　参照`, `「X」を参照。`, `"X"参照`, `<ul>` vs `<ol>`,
      multi-reading lists, qualifier prefixes like `(麻雀) 「X」を参照。`.
@@ -62,7 +62,7 @@ format — pull the real HTML first.
    failing test).** Add fixtures to the test file matching the failure family
    — redirect extraction → `auto_wiktionary/tests/test_kanji_redirect.py`;
    parse/API behaviour → `auto_wiktionary/tests/test_wiktionary_api.py`.
-   Follow the existing house style: a comment noting the *new wrinkle*, a
+   Follow the existing house style: a comment noting the _new wrinkle_, a
    trimmed real-HTML fixture, a unit test for the broken stage, and a
    full-flow test asserting the junk text (e.g. `を参照`) is gone and the
    real definition is present. Confirm the new tests are **red** before
