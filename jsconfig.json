@@ -16,7 +16,8 @@
     "js/ui/reduced_motion.js",
     "js/ui/table_keyboard_nav.js",
     "js/ui/scroll_control.js",
-    "js/ambient/config.js"
+    "js/ambient/config.js",
+    "js/loader/imageFallback.js"
   ],
   "exclude": ["node_modules", "js/vendor"]
 }

@@ -2,11 +2,15 @@
 /* Simple <img> fallback: looks for data-fallbacks='["url1","url2",...]' */
 (function () {
   try {
+    /**
+     * @param {HTMLImageElement} el
+     */
     function attach(el) {
       const listAttr = el.getAttribute("data-fallbacks");
       if (!listAttr) {
         return;
       }
+      /** @type {string[]} */
       let list;
       try {
         list = JSON.parse(listAttr);
@@ -40,7 +44,7 @@
     }
     const imgs = document.querySelectorAll("img[data-fallbacks]");
     for (let j = 0; j < imgs.length; j++) {
-      attach(imgs[j]);
+      attach(/** @type {HTMLImageElement} */ (imgs[j]));
     }
   } catch (error) {
     console.warn("Caught exception:", error);
