@@ -100,6 +100,13 @@ _RUN_TRIM_CHARS = '.,;:= \t'
 # it before encountering the usage.
 CUSTOM_MACROS = {
     'lambdabar': r'\unicode{x019B}',
+    # esint closed integrals — Anki's bundled MathJax has no esint
+    # extension, so \oiint / \oiiint render as red "undefined control
+    # sequence" errors. Emulate the glyphs: a circle overlaid on
+    # \iint / \iiint (negative \mkern pulls the integrals back over
+    # the \bigcirc; tune the mu value if the overlay looks off-center).
+    'oiint': r'\mathop{\bigcirc\mkern-14mu\iint}',
+    'oiiint': r'\mathop{\bigcirc\mkern-14mu\iiint}',
 }
 
 # Matches <anki-mathjax ...>content</anki-mathjax> blocks (inline and display)

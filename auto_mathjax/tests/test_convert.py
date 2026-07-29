@@ -731,6 +731,50 @@ def test_lambdabar_def_not_duplicated_on_rerun():
     assert second.count(r'\def\lambdabar') == 1
 
 
+# --- Macro injection: \oiint / \oiiint (esint closed integrals) ---
+# Anki's bundled MathJax has no esint extension, so \oiint / \oiiint render
+# as red "undefined control sequence" errors. They get \def preambles that
+# emulate the glyphs (circle overlaid on \iint / \iiint) via CUSTOM_MACROS.
+
+
+def test_oiint_anki_mathjax_gets_def_preamble():
+    r"""A field using <anki-mathjax>\oiint</anki-mathjax> gets a \def\oiint preamble."""
+    html = r'closed surface: <anki-mathjax>\oiint</anki-mathjax>'
+    result = _convert_dollar_to_mathjax(html)
+    assert r'\def\oiint{' in result
+    # Emulated as a circle overlaid on \iint
+    assert r'\iint' in result
+    # The original math block is untouched
+    assert r'<anki-mathjax>\oiint</anki-mathjax>' in result
+
+
+def test_oiiint_anki_mathjax_gets_def_preamble():
+    r"""A field using <anki-mathjax>\oiiint</anki-mathjax> gets a \def\oiiint preamble."""
+    html = r'closed volume: <anki-mathjax>\oiiint</anki-mathjax>'
+    result = _convert_dollar_to_mathjax(html)
+    assert r'\def\oiiint{' in result
+    assert r'\iiint' in result
+
+
+def test_oiint_defs_not_duplicated_on_rerun():
+    r"""Re-running the converter on converted output adds no second \def."""
+    html = r'<anki-mathjax>\oiint</anki-mathjax> and <anki-mathjax>\oiiint</anki-mathjax>'
+    first = _convert_dollar_to_mathjax(html)
+    assert first.count(r'\def\oiint{') == 1
+    assert first.count(r'\def\oiiint{') == 1
+    second = _convert_dollar_to_mathjax(first)
+    assert second.count(r'\def\oiint{') == 1
+    assert second.count(r'\def\oiiint{') == 1
+
+
+def test_no_closed_integral_no_preamble():
+    r"""Fields without \oiint / \oiiint get no closed-integral preamble."""
+    html = r'<anki-mathjax>\oint_C</anki-mathjax>'
+    result = _convert_dollar_to_mathjax(html)
+    assert r'\def\oiint{' not in result
+    assert r'\def\oiiint{' not in result
+
+
 # --- &nbsp; cleaning inside <anki-mathjax> blocks ---
 
 
