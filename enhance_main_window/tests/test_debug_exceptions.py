@@ -1,6 +1,9 @@
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
+
 from enhance_main_window.debug import assertEqual
+
 
 def test_assertEqual_none_difference(capsys):
     left = MagicMock()
@@ -19,7 +22,7 @@ def test_assertEqual_other_difference():
         assertEqual(left, right)
 
 def test_assertEqual_none_type_difference():
-    left = MagicMock()
+    MagicMock()
     # We want isinstance(pair, type(None)) to be true, but wait, the bug in the code is it uses `isinstance(pair, None)` which crashes!
     # Wait, the coverage report says: missing 82-84!
     # That means the branch `elif isinstance(pair, None):` was taken? No, the TypeError crashes the program before executing 82.

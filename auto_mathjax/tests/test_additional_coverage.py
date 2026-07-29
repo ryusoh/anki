@@ -1,6 +1,8 @@
 import re
 from unittest.mock import MagicMock
+
 from auto_mathjax import BARE_LATEX_COMMAND_RE, _wrap_embedded_latex
+
 
 def test_bare_command_wrap():
     text = "\\displaystyle O(\\log N)"

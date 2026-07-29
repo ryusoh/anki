@@ -1,6 +1,9 @@
 from unittest.mock import MagicMock, patch
+
 import pytest
+
 from auto_markdown import _apply_markdown, on_auto_markdown, on_editor_did_init_buttons
+
 
 def test_apply_markdown_note_none():
     editor = MagicMock()
@@ -53,7 +56,7 @@ def test_apply_markdown_addMode_true():
     editor.note.keys.return_value = ["Front"]
     editor.note.fields = ["**bold**"]
     editor.addMode = True
-    with patch("auto_markdown.tooltip") as mock_tooltip:
+    with patch("auto_markdown.tooltip"):
         _apply_markdown(editor)
     editor.note.flush.assert_not_called()
     editor.loadNoteKeepingFocus.assert_called_once()
