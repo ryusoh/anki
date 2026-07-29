@@ -22,6 +22,7 @@ import re
 
 from aqt import gui_hooks
 from aqt.editor import Editor
+from aqt.utils import tooltip
 from bs4 import BeautifulSoup
 
 ADDON_DIR = os.path.dirname(__file__)
@@ -520,8 +521,14 @@ def _apply_mathjax(editor):
     html_str = editor.note.fields[idx]
     new_html = _convert_dollar_to_mathjax(html_str)
 
-    # Only update if something actually changed
+    # Only update if something actually changed. Always say what happened —
+    # a silent no-op is indistinguishable from "the button did nothing",
+    # which makes wrong-field focus impossible to diagnose.
     if new_html == html_str:
+        tooltip(
+            f"auto_mathjax: nothing to convert in field {idx + 1} — "
+            "click into the field that contains the math first."
+        )
         return
 
     editor.note.fields[idx] = new_html
@@ -534,6 +541,8 @@ def _apply_mathjax(editor):
         editor.loadNoteKeepingFocus()
     except Exception as e:
         print(f"Error loading note in auto_mathjax: {e}")
+
+    tooltip(f"auto_mathjax: converted field {idx + 1}.")
 
 
 def on_auto_mathjax(editor: Editor) -> None:

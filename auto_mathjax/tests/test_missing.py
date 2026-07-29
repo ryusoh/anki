@@ -46,6 +46,29 @@ def test_apply_mathjax_no_changes():
     editor.loadNoteKeepingFocus.assert_not_called()
 
 
+def test_apply_mathjax_no_changes_shows_tooltip():
+    """A no-op press must say so and name the focused field — silent no-ops
+    made wrong-field focus undiagnosable."""
+    editor = MagicMock()
+    editor.note.fields = ["No math here"]
+    editor.currentField = 0
+    with patch("auto_mathjax.tooltip") as mock_tooltip:
+        _apply_mathjax(editor)
+    mock_tooltip.assert_called_once()
+    assert "field 1" in mock_tooltip.call_args[0][0]
+
+
+def test_apply_mathjax_conversion_shows_tooltip():
+    """A successful conversion confirms with a tooltip."""
+    editor = MagicMock()
+    editor.note.fields = ["$math$"]
+    editor.currentField = 0
+    editor.addMode = True
+    with patch("auto_mathjax.tooltip") as mock_tooltip:
+        _apply_mathjax(editor)
+    mock_tooltip.assert_called_once()
+
+
 def test_apply_mathjax_flush_exception():
     # Covers line 136-137: exception during flush
     editor = MagicMock()
