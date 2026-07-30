@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Stream-of-consciousness gate (AGENTS.md non-negotiable #10).
 
-Deterministic scan of ALL git-tracked sources (Python, JS, CSS — not just
-tests; unattended agents write both languages) for:
+Deterministic scan of ALL in-scope sources (Python, JS, CSS — tracked and
+untracked-but-not-ignored; unattended agents write both languages) for:
 1. Thinking-out-loud comments ("Wait, ...", "Ah, ...", "To hit line N, ...").
 2. Abandoned test bodies: pytest-collectable functions (module-level ``test_*``
    or methods of ``Test*`` classes) whose body is only ``pass``, ``...``, or a
@@ -183,14 +183,29 @@ def scan_js_comments(src):
 
 
 def iter_tracked_sources():
-    """Git-tracked source files in scope (tracked only, so .gitignore is honored)."""
+    """Source files in scope: tracked plus untracked-but-not-ignored.
+
+    `--others --exclude-standard` (same pattern as the Makefile's
+    PY_TEST_SUITES) matters because a NEW file is invisible to a tracked-only
+    scan until committed — which is how the detector's own self-referential
+    comment once shipped: it passed the gate while untracked, then failed CI
+    once tracked. Scan new files before commit, not after.
+    """
     result = subprocess.run(
-        ["git", "ls-files", "--", *[f"*{ext}" for ext in SCAN_EXTENSIONS]],
+        [
+            "git",
+            "ls-files",
+            "--cached",
+            "--others",
+            "--exclude-standard",
+            "--",
+            *[f"*{ext}" for ext in SCAN_EXTENSIONS],
+        ],
         capture_output=True,
         text=True,
         check=True,
     )
-    for path in result.stdout.split():
+    for path in dict.fromkeys(result.stdout.split()):  # dedup, keep order
         if path.endswith(".min.js") or any(part in path for part in EXCLUDED_PARTS):
             continue
         yield path

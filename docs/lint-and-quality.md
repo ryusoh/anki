@@ -71,9 +71,10 @@ regression (the Refactoring lane works the backlog down):
 ## Stream-of-consciousness gate
 
 `make thinking-check` (part of `VERIFY_GATE`) deterministically enforces
-AGENTS.md non-negotiable #10 across **all** tracked Python, JS, and CSS sources
-(unattended agents write both languages, so this is not test-only).
-`tools/check_thinking_comments.py` fails on:
+AGENTS.md non-negotiable #10 across **all** in-scope Python, JS, and CSS
+sources — tracked files plus untracked-but-not-ignored ones, so a new file is
+scanned before commit, not after (unattended agents write both languages, so
+this is not test-only). `tools/check_thinking_comments.py` fails on:
 
 - **Thinking-out-loud comments** — openers like "Wait, ...", "Ah, ...", "Hmm",
   "Actually, ...", "Let's check ...", and coverage-chasing notes like "to

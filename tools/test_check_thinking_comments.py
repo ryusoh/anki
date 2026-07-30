@@ -19,6 +19,26 @@ from check_thinking_comments import (
     thinking_in_comment,
 )
 
+
+def test_iter_sources_includes_untracked_not_ignored(monkeypatch):
+    # The gate must scan NEW files pre-commit: a tracked-only ls-files let a
+    # detector's own self-matching comment pass locally and fail CI once
+    # committed. Pin the exact flags (same pattern as Makefile PY_TEST_SUITES).
+    calls = []
+
+    class FakeResult:
+        stdout = "a/tracked.py\na/tracked.py\nb/new.js\n"
+
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd)
+        return FakeResult()
+
+    monkeypatch.setattr("check_thinking_comments.subprocess.run", fake_run)
+    assert list(iter_tracked_sources()) == ["a/tracked.py", "b/new.js"]
+    cmd = calls[0]
+    assert "--cached" in cmd and "--others" in cmd and "--exclude-standard" in cmd
+
+
 FLAGGED_COMMENTS = [
     "Wait, if core is empty",
     "wait! that breaks",
