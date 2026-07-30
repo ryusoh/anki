@@ -16,24 +16,36 @@ fails otherwise.
 The siblings:
 
 - `~/dev/fund` — static vanilla-JS/CSS financial dashboard + a Python data
-  pipeline; CI gate = `make precommit-fix` (the web-ci job runs the
-  `.pre-commit-config.yaml` hooks, whose eslint hook uses `--max-warnings=0` —
-  `make verify`-green is NOT CI-green); never hand-edit `data/` (pipeline-
-  generated); same `.agents/skills/` canonical + generated `.claude/commands/`
+  pipeline; CI gate = `make precommit-fix` (the web-ci job runs
+  `make precommit-fix` itself, which runs the `.pre-commit-config.yaml` hooks
+  only in its final `precommit` phase — wire new checks into the Makefile
+  target, not the hooks; eslint uses `--max-warnings=0` — `make verify`-green
+  is NOT CI-green); never hand-edit `data/` (pipeline-generated); tracks `.ts`
+  sources under `js/ui/cal-heatmap-src/`; `scripts/vendor/` and
+  `tests/js/__mocks__/vendor/` are FIRST-PARTY (not vendored — the real
+  exclusions are `assets/vendor/`, `js/vendor/`, `tests/js/vendor/`); has a
+  diff-coverage gate (90% on PR diff) so new scripts need thorough tests;
+  same `.agents/skills/` canonical + generated `.claude/commands/`
   convention as here.
 - `~/dev/networking` — multi-language net-tools monorepo (JS Chrome extension,
-  Python, C, eBPF); **no** `.pre-commit-config.yaml`; gate = `make precommit`;
+  Python, C, eBPF); **no** `.pre-commit-config.yaml`; gate = `make precommit`
+  (no `VERIFY_GATE` variable — checks are direct prerequisites:
+  `fmt-check lint type test test-py test-ebpf test-nas sync-check`);
   `Dockerfile.precommit` mirrors the CI runner; gate output is noisy on purpose
-  (judge by exit code, not the log); its AGENTS.md non-negotiable #6 forbids
+  (judge by exit code, not the log); `test-py` hardcodes its pytest dir list —
+  a new test dir (e.g. `tools/`) must be added there or CI never runs it;
+  gate docs live in AGENTS.md's "Repo conventions" section (no
+  docs/lint-and-quality.md equivalent); its AGENTS.md non-negotiable #6 forbids
   JULES ROUTINES from touching build/lint config — interactive agents acting on
   explicit user direction are exempt, note it in the PR body; `.jules/` is in
   its `.prettierignore`, so persona-file edits are never gate-checked there
   (verify them with `prettier --check --ignore-path /dev/null` instead).
 - `~/dev/ryusoh.github.io` — JS-only static site; primary branch is **`master`**
-  (not `main`); CI-parity gate = `make precommit-fix` (runs
-  `.pre-commit-config.yaml` hooks); eslint/stylelint use `--max-warnings=0`;
-  `package-lock.json` is authoritative and `pnpm-lock.yaml` is secondary — it
-  drifts by convention, don't regenerate it.
+  (not `main`); CI-parity gate = `make precommit` (the fail-capable verify path
+  CI executes — `precommit-fix` runs the same `.pre-commit-config.yaml` hooks
+  with `|| true` auto-fix semantics and can't fail); eslint/stylelint use
+  `--max-warnings=0`; `package-lock.json` is authoritative and `pnpm-lock.yaml`
+  is secondary — it drifts by convention, don't regenerate it.
 
 Verify these facts against each repo's current AGENTS.md/Makefile before
 relying on them — they drift.
@@ -63,8 +75,19 @@ Delegate one subagent per repo, in parallel. Brief each with:
    ship it baseline-free as a preventive gate — that's a fine outcome.
 5. **Probe protocol.** Append the probe to a TRACKED file → gate must fail →
    `git restore` → gate must pass → `git status` clean. Never create new files
-   for probes; never mask backup/restore errors with `|| true`.
-6. **Resolution proof for dependency tooling.** When wiring alias resolution
+   for probes; never mask backup/restore errors with `|| true`. Probe in a file
+   you have NOT otherwise modified — `git restore` wipes your real fix along
+   with the probe (observed 2026-07 in anki: restore of a probe file reverted
+   the violation fixes in it, which had to be re-applied).
+6. **Scanner gates scan themselves.** When the synced tool is a source scanner
+   (e.g. the thinking-comment gate), its own pattern-documenting comments are
+   in scope: a trailing `# "Wait, ..."` next to the regex literally matches
+   it (anki commit 4d849fe7). Python's `tokenize` shields string literals but
+   NOT comments; a JS port has no such shield at all. Keep banned-phrase
+   samples out of real comments everywhere (build test fixtures at runtime,
+   e.g. `'i' + 't'`) and always run the scanner over its own file before
+   shipping.
+7. **Resolution proof for dependency tooling.** When wiring alias resolution
    for dependency-cruiser: use a webpack-config stub, NEVER `options.tsConfig`
    (typescript v7 repos get a spurious "missing-typescript-transpiler"
    warning); `enhancedResolveOptions` rejects alias keys. Prove resolution by
@@ -74,14 +97,14 @@ Delegate one subagent per repo, in parallel. Brief each with:
    fake external nodes and path-based rules silently don't match them. If the
    repo has no aliases at all, ship an empty-alias stub with a comment, or no
    stub — don't add decorative config.
-7. **Python import-linter check.** grimp has no PEP 420 namespace-package
+8. **Python import-linter check.** grimp has no PEP 420 namespace-package
    support. Check `__init__.py` presence and whether the interesting import
    edges are visible to grimp before wiring a contract; if the graph is
    invisible or empty, document the skip WITH the measurement evidence and the
    unblock condition (fund §3 model). Beware: `python -m importlinter.cli`
    silently no-ops — call the click entry point; grimp writes `.grimp_cache/`
    into the repo root (add to .gitignore or delete).
-8. **Finish per repo:** run prettier/fmt over new config files, run the repo's
+9. **Finish per repo:** run prettier/fmt over new config files, run the repo's
    own full CI-parity gate green, update its AGENTS.md (command table + short
    note), update the `.jules/` persona whose lane owns the new metric (if
    any). **Never commit** — leave changes uncommitted and report: violation

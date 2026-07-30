@@ -41,6 +41,9 @@ THINKING_RE = re.compile(
     r"|^how about\b"
     r"|^let'?s (?:check|see|try|look)\b"
     r"|^let me think\b"
+    r"|\blet'?s (?:assume|rely)\b"  # first-person deliberation, anywhere in comment
+    r"|\bmight be (?:easier|better|simpler|cleaner)\b"
+    r"|^this is (?:tricky|hard|hacky)\b"
     r"|\bto (?:hit|reach) line \d+"  # coverage-chasing notes
     r")",
     re.IGNORECASE,
