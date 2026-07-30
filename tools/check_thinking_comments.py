@@ -29,7 +29,7 @@ EXCLUDED_PARTS = ("libaddon/", "_vendor/", "_vendor_legacy/", "node_modules/", "
 # stripped; unanchored ones may appear anywhere in the comment.
 THINKING_RE = re.compile(
     r"(?:"
-    r"\bwait[,!?…—]"  # "Wait, ..." / "oh wait!"
+    r"\bwait[,!?…—]"  # mid-write hesitation interjection
     r"|^hmm+\b"
     r"|^huh\b"
     r"|^ah[,!?]"  # "Ah, ..."
