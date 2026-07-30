@@ -29,12 +29,5 @@ def test_bare_command_wrap_trim_only():
 
 
 def test_bare_command_wrap_trim_only_2():
-    # To hit line 238, core must be empty, but run must not be empty and must match BARE_LATEX_COMMAND_RE
-    # Wait, if core is empty, run only consists of _RUN_TRIM_CHARS.
-    # But BARE_LATEX_COMMAND_RE is r'\\[a-zA-Z]+'
-    # Wait, BARE_LATEX_COMMAND_RE requires a backslash. So run must contain a backslash.
-    # Ah, if BARE_LATEX_COMMAND_RE matches run, then run contains a backslash.
-    # So `core` after stripping _RUN_TRIM_CHARS will contain a backslash.
-    # _RUN_TRIM_CHARS is '.,;:= \t'
 
     pass
