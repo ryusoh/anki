@@ -26,4 +26,3 @@ def test_bare_command_wrap_trim_only():
     assert _wrap_embedded_latex(text) == "\\ "
     text = "\\"
     assert _wrap_embedded_latex(text) == "\\"
-
