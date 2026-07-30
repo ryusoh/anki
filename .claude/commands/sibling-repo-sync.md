@@ -7,7 +7,7 @@ Propagate an improvement made in this repo (`~/dev/anki`) to the sibling repos.
 
 This repo: monorepo of Anki add-ons (Python) + a JS/graph data pipeline; CI gate
 = `make precommit SKIP=1` (fmt-check lint typecheck-js quality-py check
-sync-check); **no** `.pre-commit-config.yaml`; run everything from the repo root
+sync-check thinking-check); **no** `.pre-commit-config.yaml`; run everything from the repo root
 with `python3` (root `conftest.py` mocks `aqt`/`anki`); run `make fmt` after
 hand-authoring Markdown — Prettier owns MD table/list formatting and `fmt-check`
 fails otherwise.

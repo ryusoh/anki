@@ -25,7 +25,7 @@ def test_computeValues(mock_anki_modules):
         if "from cards " in query.lower():
             # Match number of aggregates
             # There are 19 conditions for cards, and 2 for revlog ...
-            # Actually, since it groups by table we can count.
+            # It groups by table, so counting the SUM( aggregates works.
             num_selects = query.count("SUM(")
             return [[123] + [2] * num_selects]  # did=123, val=2 for all columns
         elif "revlog" in query.lower():

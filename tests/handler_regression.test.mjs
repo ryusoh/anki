@@ -138,12 +138,8 @@ async function runRegressionTests() {
 
     console.log('\n📋 Testing fallback handling (uncovered lines 745-746)');
     try {
-        // We need a command that passes validation (e.g. valid dynamically or partial or valid prefix)
-        // but drops completely through the big regex/abbreviation if/else blocks to reach line 746.
-        // "plot due" is handled, but "show" with unknown stuff drops to line 705 and returns handled: true.
-        // Actually, just pass empty string space like "   " which normalizes to empty and returns handled:false early? No, that's line 640.
-        // How about a command in trie like "clear"? It's not in plot/due/show patterns, it passes validation if added to trie or handled separately?
-        // Let's check `handleCommand('clear', appendLine)`. The trie might have "clear". If it falls through, it returns { handled: false }!
+        // A command that passes validation but matches no regex/abbreviation
+        // branch must fall through to the end and return handled: false.
         const result = handleCommand('clear', appendLine);
         assert.strictEqual(result.handled, false, `"clear" should fall through to end and return unhandled`);
         console.log(`   ✓ "clear" fallback handled correctly`);

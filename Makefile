@@ -1,6 +1,6 @@
 .PHONY: help fetch fetch-r2 verify-r2 check precommit precommit-fix fmt fmt-check sync-check lint lint-js lint-css lint-fix depcheck typecheck-js hooks \
 	quality-py lint-py fmt-py fmt-py-check typecheck security-py install-dev coverage-rank verify mutate-py mutate-js \
-	complexity-py imports-py
+	complexity-py imports-py thinking-check
 
 PYTHON := $(if $(wildcard .venv/bin/python3),"$(CURDIR)/.venv/bin/python3",python3)
 NPM := npm
@@ -69,6 +69,7 @@ help:
 	@echo "  lint-fix       Auto-fix JS/CSS/Markdown lint issues"
 	@echo "  typecheck-js   JS strict type check (tsc --checkJs on whitelist)"
 	@echo "  quality-py     Python lint/format/type/security/complexity/imports (ruff/black/mypy/bandit/xenon/import-linter)"
+	@echo "  thinking-check Stream-of-consciousness scan (thinking comments, abandoned test bodies)"
 	@echo "  mutate-py      Mutation smoke run (mutmut on strip_html_tags; NOT part of any gate)"
 	@echo "  fmt-py         Auto-format Python (black + ruff --fix)"
 	@echo "  hooks          Install git pre-commit hook"
@@ -438,6 +439,15 @@ imports-py:
 	@# __main__); call the click command behind the `lint-imports` script.
 	@$(PYTHON) -c "from importlinter.cli import lint_imports_command; lint_imports_command()"
 
+# Stream-of-consciousness gate (AGENTS.md non-negotiable #10): deterministic
+# scan of all tracked Python/JS/CSS sources for thinking-out-loud comments and
+# abandoned test bodies (pass-only pytest functions, empty it()/test()
+# callbacks). Whole-codebase, not just tests — unattended agents write both
+# languages. Implementation: tools/check_thinking_comments.py.
+thinking-check:
+	@echo "🧠 Stream-of-consciousness scan (py/js/css)..."
+	@$(PYTHON) tools/check_thinking_comments.py
+
 # Mutation-testing scaffold (docs/lint-and-quality.md) — deliberately NOT part
 # of VERIFY_GATE: a full run multiplies the suite runtime by the mutant count.
 # mutmut works incrementally (cache: .mutmut-cache/, sandbox: mutants/) and is
@@ -463,7 +473,7 @@ mutate-js:
 # BOTH `precommit` (verify-only, what CI runs) and `precommit-fix` (fix-then-verify)
 # reference this, so they can never silently diverge. Add a gate here once and it
 # applies everywhere; CI runs `make precommit SKIP=1`.
-VERIFY_GATE := fmt-check lint typecheck-js quality-py check sync-check
+VERIFY_GATE := fmt-check lint typecheck-js quality-py check sync-check thinking-check
 
 # Output buffering for the parallel verify gate: macOS ships GNU Make 3.81 which
 # lacks --output-sync, so each gate member's output is captured in a log file

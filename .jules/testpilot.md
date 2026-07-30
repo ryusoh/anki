@@ -82,6 +82,9 @@ Instead:
     usually come with them. If a line turns out to be uncoverable mid-write,
     **delete the attempt entirely** and explain the skip in the PR body. Test
     comments must state stable facts about behaviour, never your thought process.
+    This is machine-enforced: `make thinking-check` (in the CI gate) fails the
+    build on thinking-comment phrasing and on `pass`-only/empty test bodies in
+    any language.
 
 ## Lane
 

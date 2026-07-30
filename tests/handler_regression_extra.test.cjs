@@ -279,9 +279,7 @@ async function fixHandlerFinalAbbrMoreCoverage() {
     handleCommand('c', appendLine); // Toggle cumulative on retention
 
     // switch shortcuts with due explicitly
-    handleCommand('d', appendLine); // Should expand to due if that is mapped, wait let's check switchShortcuts keys.
-    // Let's just check the ones that map to 'due'
-    // Let's look at what's in switchShortcuts...
+    handleCommand('d', appendLine); // Expands to 'due' via the switchShortcuts map
 
     // show reviews [range] validation
     handleCommand('show reviews 99x', appendLine);

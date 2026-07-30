@@ -68,6 +68,28 @@ regression (the Refactoring lane works the backlog down):
   the measured ranks. Find targets with
   `.venv/bin/python3 -m radon cc <dirs> -s -n B`.
 
+## Stream-of-consciousness gate
+
+`make thinking-check` (part of `VERIFY_GATE`) deterministically enforces
+AGENTS.md non-negotiable #10 across **all** tracked Python, JS, and CSS sources
+(unattended agents write both languages, so this is not test-only).
+`tools/check_thinking_comments.py` fails on:
+
+- **Thinking-out-loud comments** — openers like "Wait, ...", "Ah, ...", "Hmm",
+  "Actually, ...", "Let's check ...", and coverage-chasing notes like "to
+  hit/reach line N". Python comments are matched via `tokenize` (string
+  contents never count); JS/CSS via a block-comment-aware line scan that
+  ignores URL schemes (`https://`).
+- **Abandoned test bodies** — pytest-collectable functions (module-level
+  `test_*`, `Test*` methods) whose body is only `pass`/`...`/a docstring, and
+  JS `it()`/`test()` calls with an empty callback. Nested helpers (a `test_func`
+  closure exercising a decorator) are not collectable and not flagged.
+
+Vendored trees (`libaddon/`, `_vendor*/`, `assets/vendor/`) and minified bundles
+are excluded. The pattern list is deliberately high-precision — a comment that
+states a fact about behaviour must never match, so extend it only with observed
+phrasings, and re-run the scan on the whole tree before shipping an addition.
+
 ## Mutation testing
 
 Scaffold only — **not part of any gate** (a full run multiplies the suite

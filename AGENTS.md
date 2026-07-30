@@ -39,8 +39,8 @@ Writing a design spec for another agent to implement? See
 ## Non-negotiables (a PR that violates any of these will be closed)
 
 1. **Open a PR only if `make precommit SKIP=1` is green.** It is the CI gate
-   (`fmt-check` + `lint` + `typecheck-js` + `quality-py` + `check`). Red = don't
-   open it.
+   (`fmt-check` + `lint` + `typecheck-js` + `quality-py` + `check` +
+   `sync-check` + `thinking-check`). Red = don't open it.
 2. **One concern, smallest possible diff.** No drive-by edits, no scope creep.
    Diff size is inversely proportional to approval — keep it tiny.
 3. **Stay in your lane** (see "Lanes" below). If two routines touch the same files,
@@ -60,6 +60,8 @@ Writing a design spec for another agent to implement? See
     committed code: no thinking-out-loud comments ("Wait, ...", "Ah, ..."), no
     abandoned `pass`-only tests. If an approach fails mid-write, delete the
     attempt — don't commit the trail. Code comments state facts about behaviour.
+    Enforced deterministically by `make thinking-check`
+    (`tools/check_thinking_comments.py`) over all tracked py/js/css sources.
 
 ## You cannot see the rendered page
 
@@ -133,6 +135,7 @@ a valid Conventional Commit subject**.
 | JS test suite (c8 coverage)                               | `make check-node`                  |
 | Mutation smoke run (mutmut, NOT part of any gate)         | `make mutate-py`                   |
 | JS strict type check (whitelist)                          | `make typecheck-js`                |
+| Stream-of-consciousness scan (comments, abandoned tests)  | `make thinking-check`              |
 
 - **Complexity ratchet** — the gate freezes cyclomatic complexity in both
   languages: ESLint `complexity` errors above 20 with `eslint-suppressions.json`
