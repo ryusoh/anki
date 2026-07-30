@@ -25,7 +25,9 @@ The siblings:
   `Dockerfile.precommit` mirrors the CI runner; gate output is noisy on purpose
   (judge by exit code, not the log); its AGENTS.md non-negotiable #6 forbids
   JULES ROUTINES from touching build/lint config — interactive agents acting on
-  explicit user direction are exempt, note it in the PR body.
+  explicit user direction are exempt, note it in the PR body; `.jules/` is in
+  its `.prettierignore`, so persona-file edits are never gate-checked there
+  (verify them with `prettier --check --ignore-path /dev/null` instead).
 - `~/dev/ryusoh.github.io` — JS-only static site; primary branch is **`master`**
   (not `main`); CI-parity gate = `make precommit-fix` (runs
   `.pre-commit-config.yaml` hooks); eslint/stylelint use `--max-warnings=0`;
