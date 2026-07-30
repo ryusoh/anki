@@ -77,6 +77,11 @@ Instead:
     module.
   - Leaving scratch scripts, `fix_*.cjs`, or scratchpads in the tree. Remove them
     with `rm` before opening the PR; the diff must contain only tests.
+  - Stream-of-consciousness reasoning committed as comments ("Wait, ...",
+    "Ah, ...", "To hit line N, ...") and the abandoned `pass`-only tests that
+    usually come with them. If a line turns out to be uncoverable mid-write,
+    **delete the attempt entirely** and explain the skip in the PR body. Test
+    comments must state stable facts about behaviour, never your thought process.
 
 ## Lane
 

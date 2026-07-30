@@ -56,6 +56,10 @@ Writing a design spec for another agent to implement? See
 9. **Check open and recently-closed PRs before you start, and don't repeat them**
    (`gh pr list --state all --limit 30`). A closed PR was closed for a reason; an
    open one already claims that work. Pick something new.
+10. **No stream-of-consciousness in the diff.** Your reasoning stays out of
+    committed code: no thinking-out-loud comments ("Wait, ...", "Ah, ..."), no
+    abandoned `pass`-only tests. If an approach fails mid-write, delete the
+    attempt — don't commit the trail. Code comments state facts about behaviour.
 
 ## You cannot see the rendered page
 
