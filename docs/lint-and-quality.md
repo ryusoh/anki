@@ -89,6 +89,10 @@ Vendored trees (`libaddon/`, `_vendor*/`, `assets/vendor/`) and minified bundles
 are excluded. The pattern list is deliberately high-precision — a comment that
 states a fact about behaviour must never match, so extend it only with observed
 phrasings, and re-run the scan on the whole tree before shipping an addition.
+The scanner's own source is scanned too: only **comments** are matched
+(docstrings are exempt), so quote literal example phrasings in the module
+docstring and paraphrase in trailing `#` comments — a quoted `"Wait, ..."`
+example in a `#` comment self-matches.
 
 ## Mutation testing
 
@@ -205,7 +209,9 @@ drift:
   something CI would reject.
 
 To add a new check to the gate, edit `VERIFY_GATE` once — it applies to both paths
-and to CI.
+and to CI. The commit that introduces a check must also leave the whole tree green
+under it — run the new target before committing (the `thinking-check` introduction
+shipped with its own source file self-matching and broke CI until fixed).
 
 ## Environment gotchas
 

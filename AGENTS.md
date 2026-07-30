@@ -173,6 +173,9 @@ a valid Conventional Commit subject**.
   `ThreadPoolExecutor`. See `docs/creating-an-addon.md`.)
 - **Run `make fmt` after hand-authoring any `docs/*.md`** — Prettier owns Markdown
   table/list formatting and `fmt-check` fails otherwise.
+- **Run `make fmt-py` after hand-editing Python** — black owns formatting (e.g.
+  trailing blank lines after a deletion); scoped test runs don't catch a format
+  miss, `fmt-py-check` does.
 - **JS tests: only root `tests/` (node runner, `node:test`) and
   `review_heatmap/tests/` (jest) are executed** — a `*.test.js` anywhere else
   silently never runs. Browser-side scripts are pinned with source-level regression
