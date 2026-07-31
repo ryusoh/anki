@@ -29,8 +29,16 @@ shipped to AnkiWeb also carry `anki_version` and `version`:
 
 If the addon adds an editor or toolbar button, give it a distinct `icon.png`.
 Don't reuse another addon's icon as a placeholder — users can't tell the buttons
-apart in Anki's UI. A good default is the service's own favicon/logo, resized to
-48×48.
+apart in Anki's UI. This applies within a single addon too: two buttons sharing
+one icon are indistinguishable in the toolbar, and the user WILL press the wrong
+one (happened in `strip_html_tags`: a furigana button cloned the strip icon, the
+user hit the strip-HTML button, and the "wrong" output came back as a bug
+report). Unit tests can't see which button was pressed — button ambiguity is a
+human-facing failure no mock catches. A good default is the service's own
+favicon/logo, resized to 48×48. And before adding a second button at all, ask
+whether the new action is a variant of an existing one — folding it into the
+same button's pipeline (e.g. stripping furigana readings as part of stripping
+HTML) beats a near-duplicate button.
 
 ## `__init__.py` patterns
 

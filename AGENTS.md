@@ -313,6 +313,15 @@ import ...`) must insert the repo root into `sys.path` _before_ those imports.
   bundles packages like `beautifulsoup4` and `requests` at runtime, but they are
   not available in local/CI test runs outside Anki unless declared.
 
+### Source-file hygiene
+
+- **Never write invisible Unicode characters literally into source.** Zero-width
+  spaces (`\u200b`–`\u200d`, `\ufeff`) and exotic spaces (`\u2000`–`\u200a`) in
+  regexes must use escaped forms (`r'[\u200b\u200c]'`, `r'[\s\xa0\u2000-\u200a]'`).
+  Literal ones are invisible in diffs and reviews, and the Edit tool can't match
+  them reliably afterwards (an `old_string` containing them normalizes
+  differently), forcing shell workarounds for later edits.
+
 ## Sibling repositories
 
 This project is part of a cluster of repositories. Note the primary branch names
