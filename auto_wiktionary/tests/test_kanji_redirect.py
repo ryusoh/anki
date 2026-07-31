@@ -715,6 +715,115 @@ def test_full_redirect_flow_amakudari():
     assert "あまくだり" in parsed
 
 
+# ---- 砧骨 (きぬたぼね) bare cross-reference redirect test fixtures ----
+
+# Real HTML from ja.wiktionary for 砧骨.
+# New wrinkle vs. the other redirects: the gloss has NO 漢字表記/参照 marker —
+# the entire <li> is just a wikilink to the target entry plus '。'.
+KINUTABONE_REDIRECT_HTML = """
+<html>
+    <body>
+        <section>
+            <h2>日本語</h2>
+            <section>
+                <h3>名詞</h3>
+                <p><b><a href="./砧" title="砧">砧</a><a href="./骨" title="骨">骨</a></b>（きぬたこつ、ちんこつ、<a href="./きぬたぼね" title="きぬたぼね">きぬたぼね</a>）</p>
+                <ol><li><a href="./きぬたぼね" title="きぬたぼね">きぬたぼね</a>。</li></ol>
+            </section>
+        </section>
+    </body>
+</html>
+"""
+
+# The real 砧骨 page repeats the identical bare-link gloss in the 朝鮮語 and
+# 中国語 sections. detect_kanji_redirect runs on the unfiltered page, so the
+# same reading arrives once per section and must be deduped.
+KINUTABONE_MULTI_SECTION_HTML = """
+<html>
+    <body>
+        <section>
+            <h2>日本語</h2>
+            <section>
+                <h3>名詞</h3>
+                <p><b><a href="./砧" title="砧">砧</a><a href="./骨" title="骨">骨</a></b>（きぬたこつ、ちんこつ、きぬたぼね）</p>
+                <ol><li><a href="./きぬたぼね" title="きぬたぼね">きぬたぼね</a>。</li></ol>
+            </section>
+        </section>
+        <section>
+            <h2>朝鮮語</h2>
+            <section>
+                <h3>名詞</h3>
+                <p><b>砧骨</b>（침골）</p>
+                <ol><li><a href="./きぬたぼね" title="きぬたぼね">きぬたぼね</a>。</li></ol>
+            </section>
+        </section>
+    </body>
+</html>
+"""
+
+# Real HTML from ja.wiktionary for きぬたぼね (the redirect target).
+KINUTABONE_REAL_HTML = """
+<html>
+    <body>
+        <section>
+            <h2>日本語</h2>
+            <section>
+                <h3>名詞</h3>
+                <p><b>きぬたぼね</b></p>
+                <ol><li>耳小骨を構成する骨で中耳の中にあり槌骨からの音波を鐙骨に伝える。</li></ol>
+            </section>
+        </section>
+    </body>
+</html>
+"""
+
+
+def test_detect_kanji_redirect_kinutabone_bare_cross_reference():
+    """砧骨 redirects to きぬたぼね via a bare cross-reference gloss — the whole
+    <li> is just '<a>きぬたぼね</a>。' with no 漢字表記/参照 marker."""
+    result = detect_kanji_redirect(KINUTABONE_REDIRECT_HTML)
+    assert result is not None, "detect_kanji_redirect should detect bare cross-reference redirects"
+    reading, all_readings = result
+    assert reading == "きぬたぼね"
+    assert all_readings == ["きぬたぼね"]
+
+
+def test_detect_kanji_redirect_multi_section_dedupes_reading():
+    """The same bare-link gloss repeated across language sections must not
+    produce duplicate readings."""
+    result = detect_kanji_redirect(KINUTABONE_MULTI_SECTION_HTML)
+    assert result is not None
+    reading, all_readings = result
+    assert reading == "きぬたぼね"
+    assert all_readings == ["きぬたぼね"]
+
+
+def test_no_redirect_for_link_with_extra_text():
+    """An <li> that starts with a link but continues with real definition text
+    (e.g. '<a>骨</a>の一種。') is a normal gloss, NOT a cross-reference."""
+    html = """
+    <html><body><section><h2>日本語</h2>
+        <ol><li><a href="./骨" title="骨">骨</a>の一種で、中耳にある。</li></ol>
+    </section></body></html>
+    """
+    assert detect_kanji_redirect(html) is None
+
+
+def test_full_redirect_flow_kinutabone():
+    """Full flow: 砧骨 (bare cross-reference) → fetch きぬたぼね → real definition.
+    Must NOT leave the useless 'きぬたぼね。' pointer as the definition."""
+    result = detect_kanji_redirect(KINUTABONE_REDIRECT_HTML)
+    assert result is not None
+    reading, all_readings = result
+    assert reading == "きぬたぼね"
+
+    parsed = parse_wiktionary_html(KINUTABONE_REAL_HTML, lang="ja")
+    parsed = inject_redirect_pronunciation(parsed, all_readings)
+    assert "耳小骨" in parsed
+    assert "鐙骨" in parsed
+    assert "きぬたぼね" in parsed
+
+
 # ---- 聴牌 (テンパイ) qualifier-prefix redirect test fixtures ----
 
 # Real HTML from ja.wiktionary for 聴牌.

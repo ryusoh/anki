@@ -79,6 +79,25 @@ def fetch_wiktionary_html(word, lang):
         return f"Error: {str(e)}"
 
 
+def _extract_bare_cross_reference(li):
+    """
+    Some ja entries define a word by just pointing at another entry: the whole
+    gloss is a wikilink plus '。' (e.g. 砧骨 → '<a>きぬたぼね</a>。'), with no
+    漢字表記/参照 marker. Returns the linked word, or None if the <li> is not
+    a bare cross-reference.
+    """
+    children = [c for c in li.children if not (isinstance(c, NavigableString) and not c.strip())]
+    if not children:
+        return None
+    first = children[0]
+    if not isinstance(first, Tag) or first.name != 'a':
+        return None
+    rest = "".join(str(c) for c in children[1:]).strip()
+    if rest not in ('', '。'):
+        return None
+    return first.get_text().strip() or None
+
+
 def detect_kanji_redirect(html_text):
     """
     Detects if a Japanese Wiktionary page is just a kanji notation redirect.
@@ -101,7 +120,8 @@ def detect_kanji_redirect(html_text):
     for lst in lists:
         all_lis.extend(lst.find_all('li', recursive=False))  # type: ignore[attr-defined]
 
-    # A redirect page has all <li> items matching "Xの漢字表記。"
+    # A redirect page has all <li> items matching a redirect pattern
+    # ("Xの漢字表記。" / "…参照" / a bare cross-reference link).
     if not all_lis:
         return None
 
@@ -120,15 +140,23 @@ def detect_kanji_redirect(html_text):
         # The separator before 参照 may be whitespace, を, or a closing
         # quote/bracket that wraps the reading.
         match = re.match(r'^(.+?)(?:の漢字表記。|(?:[\s　]+|を|["”」』])参照。?)$', li_text)
-        if not match:
-            return None
-        reading = match.group(1)
-        # Some pages wrap the reading in quotes/corner brackets
-        # (e.g. 関脇 → 「せきわけ」の漢字表記。, 物語 → "ものがたり"参照).
-        # Strip them so the follow-up fetch uses the bare reading.
-        reading = reading.strip('「」『』"“”\'')
+        if match:
+            reading = match.group(1)
+            # Some pages wrap the reading in quotes/corner brackets
+            # (e.g. 関脇 → 「せきわけ」の漢字表記。, 物語 → "ものがたり"参照).
+            # Strip them so the follow-up fetch uses the bare reading.
+            reading = reading.strip('「」『』"“”\'')
+        else:
+            # Bare cross-reference: the whole gloss is just a wikilink plus '。'
+            # (e.g. 砧骨 → '<a>きぬたぼね</a>。'), with no 漢字表記/参照 marker.
+            reading = _extract_bare_cross_reference(li)
+            if reading is None:
+                return None
         readings.append(reading)
 
+    # Multi-language pages repeat the same redirect notice per section
+    # (e.g. 砧骨 has identical 日本語/朝鮮語/中国語 glosses) — dedupe.
+    readings = list(dict.fromkeys(readings))
     return (readings[0], readings)
 
 
