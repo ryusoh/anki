@@ -79,6 +79,7 @@ function initControls(container, surface, state, uniforms, onStateChange) {
   let start = { x: 0, y: 0, nx: state.nx, ny: state.ny };
 
   let cachedRect = null;
+  let ticking = false;
 
   const updatePointerUniform = (pageX, pageY) => {
     let rect = cachedRect;
@@ -126,23 +127,29 @@ function initControls(container, surface, state, uniforms, onStateChange) {
       return;
     }
 
-    const deltaX = (event.pageX - start.x) / 60;
-    const deltaY = (event.pageY - start.y) / 60;
-    const newNx = clamp(Math.round(start.nx + deltaX), 0, MAX_N);
-    const newNy = clamp(Math.round(start.ny - deltaY), 0, MAX_N);
+    if (!ticking) {
+      window.requestAnimationFrame(() => {
+        const deltaX = (event.pageX - start.x) / 60;
+        const deltaY = (event.pageY - start.y) / 60;
+        const newNx = clamp(Math.round(start.nx + deltaX), 0, MAX_N);
+        const newNy = clamp(Math.round(start.ny - deltaY), 0, MAX_N);
 
-    if (newNx !== state.nx || newNy !== state.ny) {
-      state.nx = newNx;
-      state.ny = newNy;
-      uniforms.nx.value = state.nx;
-      uniforms.ny.value = state.ny;
-      uniforms.normalizationX.value = normalization(state.nx);
-      uniforms.normalizationY.value = normalization(state.ny);
-      uniforms.energy.value = state.nx + state.ny + 1;
-      onStateChange();
+        if (newNx !== state.nx || newNy !== state.ny) {
+          state.nx = newNx;
+          state.ny = newNy;
+          uniforms.nx.value = state.nx;
+          uniforms.ny.value = state.ny;
+          uniforms.normalizationX.value = normalization(state.nx);
+          uniforms.normalizationY.value = normalization(state.ny);
+          uniforms.energy.value = state.nx + state.ny + 1;
+          onStateChange();
+        }
+
+        updatePointerUniform(event.pageX, event.pageY);
+        ticking = false;
+      });
+      ticking = true;
     }
-
-    updatePointerUniform(event.pageX, event.pageY);
   };
 
   const releasePointer = (event) => {
