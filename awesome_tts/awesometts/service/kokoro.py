@@ -63,7 +63,8 @@ class Kokoro(Service):
             import soundfile as sf
         except ImportError as exc:
             raise EnvironmentError(
-                "Kokoro is not installed; run 'pip install kokoro soundfile' in Anki's Python"
+                'Kokoro is not installed — manual setup (needs espeak-ng): '
+                'docs/free-tts-services-spec.md §7'
             ) from exc
 
         voice = options.get('voice', 'af_heart')

@@ -166,7 +166,11 @@ directory MUST have zero diff (`git status` / `git diff --stat` at the end).
 - **Q4 Local-engine deployment → manual install, "just make it work".** The
   user is the only user. No auto-download, no install UX: if a backup engine
   isn't reachable, the both-engines-failed tooltip (§2) names it. Setup steps
-  go in the add-on README comment/doc only.
+  go in the add-on README comment/doc only. **Amended 2026-08-01:** silent
+  auto-download/auto-launch was prototyped and rejected — the VOICEVOX engine
+  archive is ~1.8 GB, too heavy to pull invisibly at add-on load. Manual
+  setup is documented in §7; the failure tooltips point there. (The
+  edge-tts _pip package_ bootstrap in §2.3 stays automatic — it is ~7 MB.)
 - **Q5 Voices → fixed defaults, no picker in v1.** Defaults: edge-tts ja
   `ja-JP-NanamiNeural`, edge-tts en `en-US-AvaNeural`. VOICEVOX speaker id and
   Kokoro voice pack are chosen at implementation time by querying the local
@@ -262,3 +266,48 @@ DO-NOT list:
 - Do NOT auto-download or auto-launch engines (Q4).
 - Do NOT hardcode a VOICEVOX speaker id without querying `/speakers` (Q5).
 - Do NOT reorder/modify existing Back content (Q8) — append only.
+
+## 7. Local engine setup (manual, one-time)
+
+Auto-download was rejected (§4 Q4, 2026-08-01): the backup engines are only
+needed when edge-tts is down, and their installers are far too heavy to fetch
+invisibly. Set them up once, by hand, if you want the failover paths live.
+
+### VOICEVOX (Japanese backup, `localhost:50021`)
+
+**Easiest — the app:** download VOICEVOX from <https://voicevox.hiroshiba.jp/>
+and launch it; the app starts its engine on `:50021` automatically. Keep the
+app (or its engine) running while using Anki.
+
+**Headless — engine only (verified 2026-08-01, engine 0.25.2, ~1.8 GB):**
+
+```sh
+curl -LO "https://github.com/VOICEVOX/voicevox_engine/releases/download/0.25.2/voicevox_engine-macos-arm64-0.25.2.7z.001"
+brew install sevenzip                       # macOS has no built-in 7z
+mv voicevox_engine-macos-arm64-0.25.2.7z.001 voicevox.7z   # single-part archive
+7z x voicevox.7z
+./macos-arm64/run &                          # listens on :50021
+```
+
+Either way, verify with `curl http://localhost:50021/version`. The add-on
+picks a speaker automatically from `/speakers` (§4 Q5) — no id to configure.
+
+### Kokoro (English backup)
+
+Kokoro needs a native `espeak-ng` plus pip packages in Anki's Python (frozen
+— so install into the deps dir from an external python3, the same pattern
+§2.3's bootstrap uses):
+
+```sh
+brew install espeak-ng
+python3 -m pip install --target "$HOME/Library/Application Support/Anki2/awesome_tts_deps" \
+    --only-binary=:all: --python-version 3.9 \
+    --platform macosx_11_0_arm64 --platform macosx_11_0_universal2 \
+    --platform macosx_10_13_universal2 --platform macosx_10_9_universal2 \
+    kokoro soundfile torch
+```
+
+Notes: torch is the heavy piece (~100 MB+ wheel); the Kokoro voice model
+downloads from Hugging Face on first synthesis. This path is documented but
+**untested on this machine** — the English backup is optional; edge-tts (§2.3)
+covers the main flow.

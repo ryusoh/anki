@@ -56,7 +56,8 @@ class Voicevox(Service):
                 speakers = json.loads(response.read().decode('utf-8'))
         except (URLError, TimeoutError, json.JSONDecodeError) as exc:
             raise EnvironmentError(
-                "Cannot reach VOICEVOX at localhost:50021; is the engine running?"
+                'Cannot reach VOICEVOX at localhost:50021 — engine not running; '
+                'manual setup: docs/free-tts-services-spec.md §7'
             ) from exc
 
         for speaker in speakers:
