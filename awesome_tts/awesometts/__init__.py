@@ -924,3 +924,11 @@ def display_homescreen():
 
     on_deckbrowser_will_render_content = gui.homescreen.makeDeckBrowserRenderContent(addon)
     aqt.gui_hooks.deck_browser_will_render_content.append(on_deckbrowser_will_render_content)
+
+
+# Bootstrap optional runtime dependencies (edge-tts) so the free-TTS services
+# work without manual setup; a missing package is installed silently by a
+# background thread on first add-on load.
+from . import deps as _deps  # noqa: E402
+
+_deps.bootstrap_edge_tts_background()

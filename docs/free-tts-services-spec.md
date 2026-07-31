@@ -109,6 +109,22 @@ order `get_services()` returns, which is alphabetical by display name
 - Tests: dropdown order (first three entries are the new services, rest still
   alphabetical) and the bold/marker presence on exactly those entries.
 
+## 2.3 Runtime dependency bootstrap (DECIDED 2026-07-31, user requirement)
+
+Supersedes the manual install in §4 Q6: after real-Anki testing showed
+edge-tts failing (Anki's bundled Python is frozen — no pip), the user
+required zero-setup operation ("just open Anki and use it").
+
+- `awesometts/deps.py` puts `<Anki2>/awesome_tts_deps/` (a sibling of
+  `addons21`, outside the git tree) on `sys.path` at add-on load.
+- If edge-tts is still missing, a daemon thread installs it with an external
+  python3's pip using `--python-version <Anki's X.Y> --only-binary=:all:
+--platform <mac tags> --target`, so it works even when no python on PATH
+  matches Anki's interpreter (verified: Homebrew py3.14 cross-installing for
+  Anki's py3.13). Install is staged in a temp dir and renamed atomically.
+- Silent by design: success needs no restart (next click works); failure
+  surfaces via the existing §2 failure tooltips.
+
 ## 3. Integration points inside awesome_tts (verified 2026-07-31)
 
 - **New services** — `awesometts/service/edgetts.py`, `voicevox.py`,
@@ -150,7 +166,9 @@ directory MUST have zero diff (`git status` / `git diff --stat` at the end).
   edge-tts). Vendoring rejected: edge-tts pulls an aiohttp/certifi tree —
   heavy and unreviewable. Import edge-tts lazily inside the service so the
   add-on still loads (and existing services keep working) when it's missing;
-  the missing-dep path produces the §2 failure tooltip.
+  the missing-dep path produces the §2 failure tooltip. **Amended 2026-07-31:**
+  the manual install proved impossible (Anki's bundled Python is frozen);
+  installation is now fully automatic via §2.3.
 - **Q7 Cache → reuse awesome_tts's existing cache as-is.** Its key already
   includes service+voice, so main/backup output cannot collide. No new cache
   layer.

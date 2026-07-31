@@ -62,7 +62,9 @@ class EdgeTTS(Service):
             import edge_tts
         except ImportError as exc:
             raise EnvironmentError(
-                "edge-tts is not installed; run 'pip install edge-tts' in Anki's Python"
+                'edge-tts is not installed yet; AwesomeTTS auto-installs it in '
+                'the background at startup — try again in a few seconds '
+                '(requires network)'
             ) from exc
 
         voice = options.get('voice', 'en-US-AvaNeural')
