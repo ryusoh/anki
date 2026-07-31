@@ -312,6 +312,10 @@ import ...`) must insert the repo root into `sys.path` _before_ those imports.
   library (e.g. `beautifulsoup4`) must be listed in `requirements.txt`. Anki
   bundles packages like `beautifulsoup4` and `requests` at runtime, but they are
   not available in local/CI test runs outside Anki unless declared.
+- Runtime deps Anki doesn't bundle can't be pip-installed into it (frozen
+  Python — and its version varies per build: 25.02.5 "ao" is 3.9, not 3.13).
+  See `docs/creating-an-addon.md` → "Runtime third-party dependencies" for the
+  external-pip + deps-dir pattern (awesome_tts uses it for edge-tts).
 
 ### Source-file hygiene
 

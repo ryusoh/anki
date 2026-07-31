@@ -162,6 +162,52 @@ What real fields look like (each of these was found in production cards, and
   `context.ids` filters the result rows. `highlight_search_matches/`
   implements this (see `note_has_real_match` in its `core.py` and the
   conservative skip rules in its `anki_integration.py`).
+- **`[sound:]` resolves only inside `collection.media`.** A tag built from an
+  add-on cache path renders but plays nothing (found 2026-07-31: AwesomeTTS
+  single-click flow generated valid mp3s that were mute). Copy the file with
+  `editor._addMedia(path)` and build the tag from its return value — it
+  dedups/renames.
+- **Appending a line to a field: use a `<div>` block, never `<br>`.** After
+  content ending in a block close tag (`</div>`), a `<br>` renders as a
+  _blank_ line; adjacent blocks never do. Collapse trailing `<br>`/whitespace
+  runs first (the editor leaves them when Enter was pressed).
+- **Extracting text from field HTML: never a bare tag-regex.** Entities
+  survive it (`&nbsp;` got read aloud by TTS as "and and nbsp") and adjacent
+  tags merge words (`<b>a</b><b>b</b>` → `ab`). Replace tags with spaces,
+  `html.unescape`, collapse all whitespace — or reuse the add-on's own
+  sanitizer if it has one (AwesomeTTS's `addon.strip.from_note`).
+
+## Runtime third-party dependencies (frozen Anki Python)
+
+Anki's bundled Python is PyInstaller-frozen — **no pip, no way to install
+into it**. Worse, the version is not guessable: the same Anki release ships
+builds with different Pythons (found 2026-07-31: the user's 25.02.5 "ao"
+build runs **3.9.18**, not the 3.13 the release notes implied). Never derive
+the target version from release notes — read it at runtime
+(`sys.version_info`) or ask for the user's Help → About line.
+
+The working pattern (implemented in `awesome_tts/awesometts/deps.py`):
+
+1. Install from an _external_ python3 into a deps dir inside Anki's data
+   folder (a sibling of `addons21`, e.g. `<Anki2>/awesome_tts_deps/` — never
+   inside this repo, which is symlinked as `addons21`):
+   `python3 -m pip install --target <deps> --only-binary=:all:
+--python-version <Anki's X.Y> --platform macosx_11_0_arm64
+--platform macosx_10_13_universal2 <spec>`
+2. At add-on load, `sys.path.append` (not insert — Anki's bundled packages
+   keep precedence) the deps dir; auto-install in a daemon thread when
+   missing, and treat **any** import exception (not just `ImportError`) as
+   "not installed" — a wrong-version deps dir fails with `TypeError` and must
+   never crash add-on loading.
+3. **pip cross-install gotcha:** `--python-version` changes wheel and
+   `Requires-Python` checks but NOT dependency marker evaluation — the
+   installing interpreter's markers win, so conditional deps are silently
+   dropped (aiohttp's `async-timeout` on Python < 3.11 was). Request them
+   explicitly in the spec list.
+4. Verify against a **real** interpreter of Anki's version
+   (`uv python install 3.9` takes seconds) — "imports fine in the repo venv"
+   proves nothing about Anki's runtime, and a wrong-version install crashing
+   the add-on is exactly the failure this pattern exists to prevent.
 
 ## Verifying aqt/anki APIs (source is not on disk)
 
