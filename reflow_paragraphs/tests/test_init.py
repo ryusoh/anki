@@ -89,7 +89,6 @@ def test_apply_reflow_nothing_to_reflow():
     editor.note.keys.return_value = ["Front", "Back"]
     editor.currentField = 1
     from unittest.mock import patch
-    from unittest.mock import patch
     with patch.object(mod, 'reflow_field_html', return_value="Already reflowed"):
         mod._apply_reflow(editor)
         sys.modules["aqt.utils"].tooltip.assert_called_with("Nothing to reflow.")
@@ -110,7 +109,6 @@ def test_apply_reflow_exceptions_handled(capsys):
         raise Exception("Load Error")
     editor.loadNoteKeepingFocus.side_effect = mock_load
 
-    from unittest.mock import patch
     from unittest.mock import patch
     with patch.object(mod, 'reflow_field_html', return_value="Needs reflow lines"):
         mod._apply_reflow(editor)

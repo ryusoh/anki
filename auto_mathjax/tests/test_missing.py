@@ -121,6 +121,8 @@ def test_on_editor_did_init_buttons():
     editor.addButton.assert_called_once()
     assert buttons == ["button"]
     pass
+
+
 def test_unreachable_empty_core():
     # Line 238 (if not core: return run) is practically unreachable because
     # EMBEDDED_RUN_RE only matches things containing at least one backslash
