@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Tests for awesometts.quicktts single-click flow and click handler."""
 
+import os
 from unittest.mock import MagicMock
 
 import pytest
@@ -16,6 +17,9 @@ def _make_editor(front='日陰', back='existing'):
     editor = MagicMock()
     editor.note = note
     editor.loadNoteKeepingFocus = MagicMock()
+    # Mirror Anki's Editor._addMedia: copies the file into collection.media
+    # and returns the [sound:] tag with the final filename.
+    editor._addMedia = MagicMock(side_effect=lambda path: f'[sound:{os.path.basename(path)}]')
     return editor
 
 
@@ -52,6 +56,38 @@ def test_main_success_ja_appends_sound_and_tooltip(_mock_tooltip):
     assert editor.note.fields[1] == 'existing<br>[sound:edgetts_abc.mp3]'
     assert 'added audio (edgetts)' in _mock_tooltip
     editor.loadNoteKeepingFocus.assert_called_once()
+
+
+def test_main_success_copies_audio_into_collection_media(_mock_tooltip):
+    # A [sound:] tag pointing at the AwesomeTTS cache plays nothing; the file
+    # must go through Editor._addMedia into collection.media (mute-bug pin).
+    editor = _make_editor(front='日陰', back='')
+    router = _fake_router({'edgetts': '/cache/edgetts_abc.mp3'})
+
+    quicktts.run_single_click_flow(editor, router)
+
+    editor._addMedia.assert_called_once_with('/cache/edgetts_abc.mp3')
+
+
+def test_main_success_collapses_trailing_breaks(_mock_tooltip):
+    # The editor leaves a trailing <br> when Enter was pressed; appending our
+    # own <br> after it would produce a blank line before the tag.
+    editor = _make_editor(front='日陰', back='existing<br>')
+    router = _fake_router({'edgetts': '/cache/edgetts_abc.mp3'})
+
+    quicktts.run_single_click_flow(editor, router)
+
+    assert editor.note.fields[1] == 'existing<br>[sound:edgetts_abc.mp3]'
+
+
+def test_add_media_tag_falls_back_without_editor_add_media(_mock_tooltip):
+    editor = _make_editor(front='日陰', back='')
+    editor._addMedia = None
+    router = _fake_router({'edgetts': '/cache/edgetts_abc.mp3'})
+
+    quicktts.run_single_click_flow(editor, router)
+
+    assert editor.note.fields[1] == '[sound:edgetts_abc.mp3]'
 
 
 def test_main_success_empty_back_uses_no_br(_mock_tooltip):

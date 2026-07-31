@@ -54,12 +54,29 @@ def _field_index(note, name):
     return None
 
 
-def _append_sound_tag(note, back_idx, path):
-    """Append [sound:<file>] to the Back field as a standalone new line."""
-    filename = os.path.basename(path)
-    tag = f'[sound:{filename}]'
-    existing = note.fields[back_idx]
-    if existing.strip():
+_TRAILING_BREAKS = re.compile(r'(?:\s|<br\s*/?>|<div>\s*<br\s*/?>\s*</div>)+$', re.IGNORECASE)
+
+
+def _add_media_tag(editor, path):
+    """Copy the audio file into Anki's media folder and return its [sound:] tag.
+
+    ``[sound:]`` resolves only inside ``collection.media``, so a tag pointing
+    at the AwesomeTTS cache plays nothing. This mirrors AwesomeTTS's own
+    dialog, which calls ``Editor._addMedia`` (copies the file and returns the
+    tag with the final, deduplicated filename).
+    """
+    add_media = getattr(editor, '_addMedia', None)
+    if callable(add_media):
+        return add_media(path)
+    return f'[sound:{os.path.basename(path)}]'
+
+
+def _append_sound_tag(note, back_idx, tag):
+    """Append the [sound:] tag to the Back field as a standalone new line."""
+    # Trailing <br>/whitespace runs (left behind by pressing Enter in the
+    # editor) are collapsed first, or the tag lands after a blank line.
+    existing = _TRAILING_BREAKS.sub('', note.fields[back_idx])
+    if existing:
         note.fields[back_idx] = existing + '<br>' + tag
     else:
         note.fields[back_idx] = tag
@@ -98,12 +115,12 @@ def run_single_click_flow(editor, router):
     main_options = {'voice': cfg['voice']} if cfg.get('voice') else {}
 
     def on_main_okay(path):
-        _append_sound_tag(note, back_idx, path)
+        _append_sound_tag(note, back_idx, _add_media_tag(editor, path))
         _refresh_editor(editor)
         _show_tooltip(f'added audio ({main_id})')
 
     def on_backup_okay(path):
-        _append_sound_tag(note, back_idx, path)
+        _append_sound_tag(note, back_idx, _add_media_tag(editor, path))
         _refresh_editor(editor)
         _show_tooltip(f'added audio ({backup_id} — {main_id} failed)')
 

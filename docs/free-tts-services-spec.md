@@ -174,7 +174,13 @@ directory MUST have zero diff (`git status` / `git diff --stat` at the end).
   layer.
 - **Q8 `[sound:]` target → Back field, standalone new line at the end.**
   If Back is non-empty: append `<br>` + `[sound:<file>]`; if empty: just the
-  tag. Never reorder or touch existing Back content.
+  tag. Never reorder or touch existing Back content. **Amended 2026-07-31
+  (real-Anki testing):** (a) the file MUST be copied into `collection.media`
+  via `editor._addMedia(path)` — exactly like AwesomeTTS's own dialog — and
+  the tag built from its return value; a tag pointing at the AwesomeTTS cache
+  renders but plays nothing (mute bug). (b) Trailing `<br>`/whitespace runs
+  at the end of Back are collapsed before appending, or the tag lands after
+  a blank line when the user pressed Enter.
 
 ## 5. Non-goals
 
