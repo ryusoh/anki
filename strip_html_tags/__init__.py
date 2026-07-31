@@ -1,5 +1,7 @@
 # Strip HTML Tags Button — Anki Editor Addon
 # Strips HTML tags from selected text, or whole field if nothing selected.
+# A second button strips furigana (<rt>/<rp> readings, unwraps <ruby>) the
+# same way — selection if present, else the whole field.
 #
 # How it works:
 #   1. JS checks document.getSelection().toString() for selected text
@@ -28,6 +30,19 @@ GET_SELECTION_JS = """
     } else {
         // No selection — strip whole field
         pycmd('stripHtmlAll');
+    }
+})();
+"""
+
+# Same selection dance for the furigana strip, with its own pycmd prefix
+GET_FURIGANA_SELECTION_JS = """
+(function() {
+    var sel = document.getSelection();
+    var text = sel ? sel.toString() : '';
+    if (text.length > 0) {
+        pycmd('stripFuriSel:' + text);
+    } else {
+        pycmd('stripFuriAll');
     }
 })();
 """
@@ -471,6 +486,72 @@ def _strip_selection(html_str, selected_text):
     return html_str[:safe_html_start] + stripped + html_str[safe_html_end:]
 
 
+def _strip_furigana(html_str):
+    """Remove furigana readings: drop <rt>/<rp> content and unwrap <ruby>,
+    keeping the base text and all other formatting."""
+    text = re.sub(r'<rt\b[^>]*>.*?</rt>', '', html_str, flags=re.IGNORECASE | re.DOTALL)
+    text = re.sub(r'<rp\b[^>]*>.*?</rp>', '', text, flags=re.IGNORECASE | re.DOTALL)
+    return re.sub(r'</?ruby\b[^>]*>', '', text, flags=re.IGNORECASE)
+
+
+def _expand_to_ruby_tags(html_str, start, end):
+    """Expand [start, end) so a partially covered <ruby>…</ruby> is taken whole —
+    stripping half a ruby would strand its <rt> reading or its base text."""
+    open_idx = html_str.rfind('<ruby', 0, start)
+    if open_idx != -1:
+        close_idx = html_str.find('</ruby>', open_idx)
+        if close_idx != -1 and close_idx + len('</ruby>') > start:
+            start = open_idx
+    close_idx = html_str.find('</ruby>', end)
+    if close_idx != -1:
+        open_idx = html_str.rfind('<ruby', 0, close_idx)
+        if open_idx != -1 and open_idx < end:
+            end = close_idx + len('</ruby>')
+    return start, end
+
+
+def _strip_furigana_selection(html_str, selected_text):
+    """Strip furigana only from the portion of html_str that renders as
+    selected_text. The browser's selection text includes ruby readings inline
+    (base+reading concatenated), so the plain-text mapping locates it.
+
+    Returns the modified HTML, or None if the selection can't be mapped.
+    """
+    sel_normalized = re.sub(r'[\u200b\u200c\u200d\ufeff]', '', selected_text)
+    sel_normalized = re.sub(r'[\s\xa0\u2000-\u200a]+', ' ', sel_normalized).strip()
+    if not sel_normalized:
+        return None
+
+    text_to_html, rendered_chars, _mathjax_spans = _map_html_to_text(html_str)
+    rendered_normalized, norm_to_text = _normalize_rendered_chars(rendered_chars)
+
+    idx = _find_mismatches(sel_normalized, rendered_normalized)
+    if idx is None:
+        return None
+
+    start_text_pos = norm_to_text.get(idx)
+    end_text_pos = norm_to_text.get(idx + len(sel_normalized) - 1)
+    if start_text_pos is None or end_text_pos is None:
+        return None
+
+    html_start = text_to_html.get(start_text_pos)
+    last_html_start = text_to_html.get(end_text_pos)
+    if html_start is None or last_html_start is None:
+        return None
+
+    html_end = last_html_start
+    if html_str[html_end] == '&':
+        end_idx = html_str.find(';', html_end)
+        html_end = end_idx + 1 if end_idx != -1 and end_idx - html_end < 10 else html_end + 1
+    else:
+        html_end += 1
+
+    html_start, html_end = _expand_to_ruby_tags(html_str, html_start, html_end)
+
+    stripped = _strip_furigana(html_str[html_start:html_end])
+    return html_str[:html_start] + stripped + html_str[html_end:]
+
+
 def _strip_field(editor, new_html=None):
     """Set field content and reload."""
     if editor.note is None or editor.currentField is None:
@@ -507,6 +588,11 @@ def on_strip_html(editor: Editor) -> None:
     editor.web.eval(GET_SELECTION_JS)
 
 
+def on_strip_furigana(editor: Editor) -> None:
+    """Furigana button handler: run JS to detect selection."""
+    editor.web.eval(GET_FURIGANA_SELECTION_JS)
+
+
 def on_js_message(handled, message, context):
     """Handle pycmd from JS."""
     if not isinstance(message, str):
@@ -533,6 +619,35 @@ def on_js_message(handled, message, context):
                     _strip_field(context)
         return (True, None)
 
+    if message == 'stripFuriAll':
+        # No selection — strip furigana from the whole field
+        if isinstance(context, Editor) and context.note and context.currentField is not None:
+            idx = context.currentField
+            if 0 <= idx < len(context.note.fields):
+                html_str = context.note.fields[idx]
+                new_html = _strip_furigana(html_str)
+                if new_html != html_str:
+                    _strip_field(context, new_html)
+        return (True, None)
+
+    if message.startswith('stripFuriSel:'):
+        # Selection — strip furigana in that range, fall back to whole field
+        selected_text = message[len('stripFuriSel:') :]
+        if isinstance(context, Editor) and context.note and context.currentField is not None:
+            idx = context.currentField
+            if 0 <= idx < len(context.note.fields):
+                html_str = context.note.fields[idx]
+                result = _strip_furigana_selection(html_str, selected_text)
+                if result is not None:
+                    if result != html_str:
+                        _strip_field(context, result)
+                else:
+                    # Couldn't map selection — strip furigana from whole field
+                    new_html = _strip_furigana(html_str)
+                    if new_html != html_str:
+                        _strip_field(context, new_html)
+        return (True, None)
+
     return handled
 
 
@@ -544,6 +659,13 @@ def on_editor_did_init_buttons(buttons: list, editor: Editor) -> None:
         tip="Strip HTML tags (selection or whole field)",
     )
     buttons.append(btn)
+    furi_btn = editor.addButton(
+        ICON_PATH,
+        "stripFurigana",
+        on_strip_furigana,
+        tip="Strip furigana readings from Japanese text (selection or whole field)",
+    )
+    buttons.append(furi_btn)
 
 
 gui_hooks.editor_did_init_buttons.append(on_editor_did_init_buttons)
