@@ -268,6 +268,15 @@ class ServiceDialog(Dialog):
         for svc_id, text in self._addon.router.get_services():
             dropdown.addItem(text, svc_id)
 
+            if text.startswith('★'):
+                font = aqt.qt.QFont()
+                font.setBold(True)
+                dropdown.setItemData(
+                    dropdown.count() - 1,
+                    font,
+                    aqt.qt.Qt.FontRole,
+                )
+
             svc_layout = aqt.qt.QGridLayout()
             svc_layout.addWidget(Label("Pass the following to %s:" % text), 0, 0, 1, 2)
 

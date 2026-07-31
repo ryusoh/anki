@@ -245,6 +245,9 @@ player = Player(
 router = Router(
     services=Bundle(
         mappings=[
+            ('edgetts', service.EdgeTTS),
+            ('voicevox', service.Voicevox),
+            ('kokoro', service.Kokoro),
             ('amazon', service.Amazon),
             ('azure', service.Azure),
             ('baidu', service.Baidu),
@@ -673,7 +676,12 @@ def editor_button():
     """
     Enable the generation of a single audio clip through the editor,
     which is present in the "Add" and browser windows.
+
+    Single click runs the auto-detect/failover TTS flow; double click
+    opens the existing EditorGenerator dialog.
     """
+
+    from . import quicktts
 
     def createAwesomeTTSEditorLambda():
         def launch(editor):
@@ -688,12 +696,15 @@ def editor_button():
 
         return launch
 
+    launch_dialog = createAwesomeTTSEditorLambda()
+    click_handler = quicktts.make_click_handler(launch_dialog, router)
+
     def addAwesomeTTSEditorButton(buttons, editor):
         new_button = editor.addButton(
             gui.ICON_FILE,
             'AwesomeTTS',
-            createAwesomeTTSEditorLambda(),
-            tip="Record and insert an audio clip here w/ AwesomeTTS",
+            click_handler,
+            tip="Record and insert an audio clip here w/ AwesomeTTS (double-click for dialog)",
         )
         buttons.append(new_button)
         return buttons

@@ -28,6 +28,7 @@ from .cereproc import CereProc
 from .collins import Collins
 from .common import Trait
 from .duden import Duden
+from .edgetts import EdgeTTS
 from .ekho import Ekho
 from .elevenlabs import ElevenLabs
 from .espeak import ESpeak
@@ -38,6 +39,7 @@ from .freedictionary import FreeDictionary
 from .google import Google
 from .googletts import GoogleTTS
 from .ispeech import ISpeech
+from .kokoro import Kokoro
 from .naver import Naver
 from .naverclova import NaverClova
 from .naverclovapremium import NaverClovaPremium
@@ -50,6 +52,7 @@ from .sapi5js import SAPI5JS
 from .say import Say
 from .spanishdict import SpanishDict
 from .vocalware import VocalWare
+from .voicevox import Voicevox
 from .watson import Watson
 from .yandex import Yandex
 from .youdao import Youdao
@@ -64,6 +67,7 @@ __all__ = [
     'CereProc',
     'Collins',
     'Duden',
+    'EdgeTTS',
     'Ekho',
     'ElevenLabs',
     'ESpeak',
@@ -73,6 +77,7 @@ __all__ = [
     'Google',
     'GoogleTTS',
     'ISpeech',
+    'Kokoro',
     'Naver',
     'NaverClova',
     'Oddcast',
@@ -87,5 +92,6 @@ __all__ = [
     'Youdao',
     'Forvo',
     'VocalWare',
+    'Voicevox',
     'Watson',
 ]

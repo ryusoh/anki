@@ -42,6 +42,9 @@ RE_MUSTACHE = re.compile(r'\{?\{\{(.+?)\}\}\}?')
 RE_UNSAFE = re.compile(r'[^\w\s()-]', re.UNICODE)
 RE_WHITESPACE = re.compile(r'[\0\s]+', re.UNICODE)
 
+# New free services are pinned to the top of the dialog dropdown.
+NEW_SERVICE_ORDER = ['edgetts', 'voicevox', 'kokoro']
+
 WINDOWS_RESERVED = [
     'com1',
     'com2',
@@ -206,14 +209,19 @@ class Router(object):
             for service in self._services.lookup.values():
                 self._load_service(service)
 
-            self._services.avail = sorted(
-                [
-                    (svc_id, service['name'])
-                    for svc_id, service in self._services.lookup.items()
-                    if service['instance']
-                ],
-                key=lambda service: service[1].lower(),
-            )
+            avail = [
+                (svc_id, service['name'])
+                for svc_id, service in self._services.lookup.items()
+                if service['instance']
+            ]
+
+            new_services = [svc for svc in avail if svc[0] in NEW_SERVICE_ORDER]
+            new_services.sort(key=lambda svc: NEW_SERVICE_ORDER.index(svc[0]))
+
+            rest = [svc for svc in avail if svc[0] not in NEW_SERVICE_ORDER]
+            rest.sort(key=lambda svc: svc[1].lower())
+
+            self._services.avail = new_services + rest
 
         return self._services.avail
 

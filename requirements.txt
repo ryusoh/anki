@@ -3,6 +3,9 @@
 networkx>=3.0
 scipy>=1.10
 
+# TTS engine used by awesome_tts
+edge-tts>=7.0
+
 # Testing
 # For running TDD test suite
 pytest>=8.0

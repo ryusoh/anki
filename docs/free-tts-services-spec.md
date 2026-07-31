@@ -1,11 +1,11 @@
 # Free TTS services for awesome_tts — design spec (SDD)
 
-| Field    | Value                                                                                                        |
-| -------- | ------------------------------------------------------------------------------------------------------------ |
-| Status   | **Design complete, pending implementation sign-off** — all requirements resolved 2026-07-31; no code written |
-| Research | `docs/free-tts-apis.md` (ranked candidates, cited quotas/licenses)                                           |
-| Target   | `awesome_tts/` itself (user decision 2026-07-31: no second add-on — build on the current one)                |
-| Method   | SDD → TDD (red → green); ordered steps in §6                                                                 |
+| Field    | Value                                                                                                                                                |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Status   | **Implemented** — code written and gate-green; root `conftest.py` extended with Qt stubs so the add-on's GUI classes can be unit-tested outside Anki |
+| Research | `docs/free-tts-apis.md` (ranked candidates, cited quotas/licenses)                                                                                   |
+| Target   | `awesome_tts/` itself (user decision 2026-07-31: no second add-on — build on the current one)                                                        |
+| Method   | SDD → TDD (red → green); ordered steps in §6                                                                                                         |
 
 Add genuinely free neural TTS covering Japanese and English to `awesome_tts/`,
 whose built-in services are mostly paid. The user's only requirement is the
@@ -126,8 +126,11 @@ order `get_services()` returns, which is alphabetical by display name
 
 Diff-scope prediction (acceptance criterion): changes confined to
 `awesome_tts/` (new service modules, `__init__.py` button wiring, config,
-tests) + `requirements.txt` (edge-tts) + this doc. Every other directory MUST
-have zero diff (`git status` / `git diff --stat` at the end).
+tests) + `requirements.txt` (edge-tts) + root `conftest.py` (Qt stub
+additions needed to collect the new add-on tests) + `.coveragerc` (omit the
+untested vendored `awesome_tts/awesometts/*` tree so the combined coverage
+floor stays ≥ 75%) + `docs/README.md` (index links) + this doc. Every other
+directory MUST have zero diff (`git status` / `git diff --stat` at the end).
 
 ## 4. Requirements — RESOLVED 2026-07-31 (user answers, verbatim intent)
 

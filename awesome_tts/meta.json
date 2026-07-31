@@ -6,6 +6,6 @@
   "branch_index": 1,
   "disabled": false,
   "conflicts": [],
-  "update_enabled": true,
+  "update_enabled": false,
   "config": { "user_uuid": "2307b41bca434e6e864d03f428f4ca20" }
 }

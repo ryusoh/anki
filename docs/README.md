@@ -37,3 +37,5 @@ verify against current code/Makefile before trusting specifics.
 - [precommit-speed.md](precommit-speed.md) — measured baseline + parallelization plan for `make precommit-fix` (SKIP/YOLO)
 - [field-snapshot-undo.md](field-snapshot-undo.md) — `field_snapshot_undo` addon spec: field revision ring to recover deleted MathJax
 - [auto-itaigi-spec.md](auto-itaigi-spec.md) — `auto_itaigi` addon spec: Taiwanese Hokkien lookup from itaigi.tw
+- [free-tts-apis.md](free-tts-apis.md) — research notes on free TTS APIs for AwesomeTTS
+- [free-tts-services-spec.md](free-tts-services-spec.md) — AwesomeTTS free-ja/en TTS service integration spec
