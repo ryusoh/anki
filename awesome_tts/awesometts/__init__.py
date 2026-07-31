@@ -697,7 +697,9 @@ def editor_button():
         return launch
 
     launch_dialog = createAwesomeTTSEditorLambda()
-    click_handler = quicktts.make_click_handler(launch_dialog, router)
+    # Reuse AwesomeTTS's own field sanitizer (handles tags, entities like
+    # &nbsp;, clozes, [sound:] tags) so the spoken text matches the dialog.
+    click_handler = quicktts.make_click_handler(launch_dialog, router, strip=addon.strip.from_note)
 
     def addAwesomeTTSEditorButton(buttons, editor):
         new_button = editor.addButton(

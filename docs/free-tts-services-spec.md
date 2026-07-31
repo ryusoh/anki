@@ -50,7 +50,10 @@ awesome_tts already installs one editor toolbar button
 That button's behavior changes to:
 
 1. **Single click** — the whole workflow, no dialog:
-   a. Read the **Front field** text (HTML-stripped).
+   a. Read the **Front field** text (HTML-stripped with AwesomeTTS's own
+   `addon.strip.from_note` sanitizer — the same pipeline the dialog uses:
+   tags, `&nbsp;`-style entities, clozes, `[sound:]` tags all handled. A
+   naive tag-regex leaves `&nbsp;` literal and edge-tts reads it aloud).
    b. **Auto-detect language**: Japanese if the text contains Japanese
    characters (Unicode-range heuristic, local helper inside awesome_tts —
    no cross-addon imports allowed by import-linter); otherwise English.
@@ -186,9 +189,10 @@ directory MUST have zero diff (`git status` / `git diff --stat` at the end).
   (real-Anki testing):** (a) the file MUST be copied into `collection.media`
   via `editor._addMedia(path)` — exactly like AwesomeTTS's own dialog — and
   the tag built from its return value; a tag pointing at the AwesomeTTS cache
-  renders but plays nothing (mute bug). (b) Trailing `<br>`/whitespace runs
-  at the end of Back are collapsed before appending, or the tag lands after
-  a blank line when the user pressed Enter.
+  renders but plays nothing (mute bug). (b) The new line is a `<div>` block,
+  NOT `<br>`: after block-ending content (`</div>`) a `<br>` renders as a
+  blank line, adjacent blocks never do. Trailing `<br>`/whitespace runs at
+  the end of Back are collapsed before appending for the same reason.
 
 ## 5. Non-goals
 
@@ -204,21 +208,21 @@ directory MUST have zero diff (`git status` / `git diff --stat` at the end).
 
 Behavior matrix (each row becomes a test; mocked engines, no network):
 
-| #   | Front field       | Main result     | Expected outcome                                                 |
-| --- | ----------------- | --------------- | ---------------------------------------------------------------- |
-| 1   | `日陰` (ja)       | edge-tts ok     | Back += `<br>[sound:x.mp3]`, tooltip names edge-tts              |
-| 2   | `apple` (en)      | edge-tts ok     | same, en voice                                                   |
-| 3   | `日陰`            | edge-tts raises | VOICEVOX used; tooltip `VOICEVOX — edge-tts failed`              |
-| 4   | `apple`           | edge-tts raises | Kokoro used; tooltip names Kokoro                                |
-| 5   | `日陰`            | both raise      | tooltip names BOTH failures; Back byte-identical                 |
-| 6   | empty Front       | —               | tooltip "no text"; no engine call, no field change               |
-| 7   | `日陰` twice      | edge-tts ok     | 2nd click served from awesome_tts cache (engine called once)     |
-| 8   | Back = `existing` | edge-tts ok     | result is `existing<br>[sound:x.mp3]` — prefix preserved exactly |
-| 9   | single click      | —               | flow runs, dialog NOT opened                                     |
-| 10  | double click      | —               | dialog opened, flow NOT run                                      |
-| 11  | `meta.json`       | —               | pinned test: `update_enabled is false` (§2.1)                    |
-| 12  | dialog dropdown   | —               | first 3 entries are the new services, rest alphabetical (§2.2)   |
-| 13  | dialog dropdown   | —               | new-service entries carry the star marker + bold font (§2.2)     |
+| #   | Front field       | Main result     | Expected outcome                                                |
+| --- | ----------------- | --------------- | --------------------------------------------------------------- |
+| 1   | `日陰` (ja)       | edge-tts ok     | Back += `<div>[sound:x.mp3]</div>`, tooltip names edge-tts      |
+| 2   | `apple` (en)      | edge-tts ok     | same, en voice                                                  |
+| 3   | `日陰`            | edge-tts raises | VOICEVOX used; tooltip `VOICEVOX — edge-tts failed`             |
+| 4   | `apple`           | edge-tts raises | Kokoro used; tooltip names Kokoro                               |
+| 5   | `日陰`            | both raise      | tooltip names BOTH failures; Back byte-identical                |
+| 6   | empty Front       | —               | tooltip "no text"; no engine call, no field change              |
+| 7   | `日陰` twice      | edge-tts ok     | 2nd click served from awesome_tts cache (engine called once)    |
+| 8   | Back = `existing` | edge-tts ok     | result is `existing<div>[sound:x.mp3]</div>` — prefix preserved |
+| 9   | single click      | —               | flow runs, dialog NOT opened                                    |
+| 10  | double click      | —               | dialog opened, flow NOT run                                     |
+| 11  | `meta.json`       | —               | pinned test: `update_enabled is false` (§2.1)                   |
+| 12  | dialog dropdown   | —               | first 3 entries are the new services, rest alphabetical (§2.2)  |
+| 13  | dialog dropdown   | —               | new-service entries carry the star marker + bold font (§2.2)    |
 
 Ordered steps (each: write failing test(s) → implement → verify):
 

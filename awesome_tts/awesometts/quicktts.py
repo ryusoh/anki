@@ -10,6 +10,7 @@
 
 """Single-click, auto-detect, failover TTS flow for the editor button."""
 
+import html
 import os
 import re
 
@@ -41,9 +42,16 @@ LANGUAGE_SERVICES = {
 }
 
 
-def _strip_html(text):
-    """Minimal HTML stripping for language detection."""
-    return re.sub(r'<[^>]+>', '', text)
+def _plain_text(field_html):
+    """Fallback HTML-to-text for the TTS source when no stripper is injected.
+
+    Tags become spaces (never empty strings, or ``<b>a</b><b>b</b>`` would
+    merge into ``ab``), character entities are decoded (``&nbsp;`` read aloud
+    as "and and nbsp" was the bug that prompted this), and all whitespace —
+    including the non-breaking space entities decode to — is collapsed.
+    """
+    text = re.sub(r'<[^>]+>', ' ', field_html)
+    return ' '.join(html.unescape(text).split())
 
 
 def _field_index(note, name):
@@ -72,12 +80,17 @@ def _add_media_tag(editor, path):
 
 
 def _append_sound_tag(note, back_idx, tag):
-    """Append the [sound:] tag to the Back field as a standalone new line."""
-    # Trailing <br>/whitespace runs (left behind by pressing Enter in the
-    # editor) are collapsed first, or the tag lands after a blank line.
+    """Append the [sound:] tag to the Back field on its own line.
+
+    A ``<div>`` block is used instead of ``<br>``: when the existing content
+    ends with a block-level close tag (``</div>``), a ``<br>`` after it
+    renders as a blank line, while adjacent blocks never do. Trailing
+    ``<br>``/whitespace runs (left behind by pressing Enter in the editor)
+    are collapsed first for the same reason.
+    """
     existing = _TRAILING_BREAKS.sub('', note.fields[back_idx])
     if existing:
-        note.fields[back_idx] = existing + '<br>' + tag
+        note.fields[back_idx] = existing + '<div>' + tag + '</div>'
     else:
         note.fields[back_idx] = tag
 
@@ -86,8 +99,13 @@ def _show_tooltip(message):
     aqt.utils.tooltip(f'AwesomeTTS: {message}', 3000)
 
 
-def run_single_click_flow(editor, router):
-    """Generate audio from the Front field and append it to the Back field."""
+def run_single_click_flow(editor, router, strip=None):
+    """Generate audio from the Front field and append it to the Back field.
+
+    ``strip`` converts raw field HTML to speakable text; pass AwesomeTTS's
+    own ``addon.strip.from_note`` in real Anki. The local ``_plain_text``
+    fallback is used when no stripper is given.
+    """
     note = editor.note
     front_idx = _field_index(note, 'Front')
     back_idx = _field_index(note, 'Back')
@@ -95,7 +113,7 @@ def run_single_click_flow(editor, router):
         _show_tooltip('Front/Back fields not found')
         return
 
-    text = _strip_html(note.fields[front_idx]).strip()
+    text = (strip or _plain_text)(note.fields[front_idx]).strip()
     if not text:
         _show_tooltip('no text in Front field')
         return
@@ -150,19 +168,20 @@ def _refresh_editor(editor):
         refresh()
 
 
-def make_click_handler(launch_dialog, router):
+def make_click_handler(launch_dialog, router, strip=None):
     """Return a click handler that distinguishes single and double clicks.
 
     The returned callable accepts an ``editor`` argument. A single click
     starts a short timer; if a second click arrives before the timer fires,
     the timer is cancelled and the dialog is opened. If the timer fires, the
-    single-click TTS flow runs.
+    single-click TTS flow runs. ``strip`` is passed through to
+    ``run_single_click_flow``.
     """
     state = {'waiting': False, 'timer': None}
 
     def on_timeout(editor):
         state['waiting'] = False
-        run_single_click_flow(editor, router)
+        run_single_click_flow(editor, router, strip=strip)
 
     def handler(editor):
         if state['waiting']:

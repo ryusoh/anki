@@ -53,9 +53,53 @@ def test_main_success_ja_appends_sound_and_tooltip(_mock_tooltip):
 
     quicktts.run_single_click_flow(editor, router)
 
-    assert editor.note.fields[1] == 'existing<br>[sound:edgetts_abc.mp3]'
+    assert editor.note.fields[1] == 'existing<div>[sound:edgetts_abc.mp3]</div>'
     assert 'added audio (edgetts)' in _mock_tooltip
     editor.loadNoteKeepingFocus.assert_called_once()
+
+
+def test_main_success_after_block_tag_gets_no_blank_line(_mock_tooltip):
+    # A <br> after a block-level close tag renders as a blank line; wrapping
+    # the tag in its own <div> never does.
+    editor = _make_editor(front='日陰', back='<div>existing</div>')
+    router = _fake_router({'edgetts': '/cache/edgetts_abc.mp3'})
+
+    quicktts.run_single_click_flow(editor, router)
+
+    assert editor.note.fields[1] == '<div>existing</div><div>[sound:edgetts_abc.mp3]</div>'
+
+
+def test_front_field_tags_and_entities_are_stripped(_mock_tooltip):
+    # '<a>Schelling</a>&nbsp;<a>point</a>' must be spoken as "Schelling
+    # point", not "Schelling and and nbsp point".
+    editor = _make_editor(
+        front='<strong><a href="https://en.wiktionary.org/wiki/Schelling#English">'
+        'Schelling</a>&nbsp;<a href="https://en.wiktionary.org/wiki/point#English">'
+        'point</a></strong>',
+        back='',
+    )
+    seen = []
+
+    def router(_svc_id, text, _options, callbacks):
+        seen.append(text)
+        callbacks['okay']('/cache/en.mp3')
+
+    quicktts.run_single_click_flow(editor, router)
+
+    assert seen == ['Schelling point']
+
+
+def test_strip_callable_overrides_builtin_fallback(_mock_tooltip):
+    editor = _make_editor(front='<b>raw</b>', back='')
+    seen = []
+
+    def router(_svc_id, text, _options, callbacks):
+        seen.append(text)
+        callbacks['okay']('/cache/x.mp3')
+
+    quicktts.run_single_click_flow(editor, router, strip=lambda _html: 'clean text')
+
+    assert seen == ['clean text']
 
 
 def test_main_success_copies_audio_into_collection_media(_mock_tooltip):
@@ -71,13 +115,13 @@ def test_main_success_copies_audio_into_collection_media(_mock_tooltip):
 
 def test_main_success_collapses_trailing_breaks(_mock_tooltip):
     # The editor leaves a trailing <br> when Enter was pressed; appending our
-    # own <br> after it would produce a blank line before the tag.
+    # own block after it would produce a blank line before the tag.
     editor = _make_editor(front='日陰', back='existing<br>')
     router = _fake_router({'edgetts': '/cache/edgetts_abc.mp3'})
 
     quicktts.run_single_click_flow(editor, router)
 
-    assert editor.note.fields[1] == 'existing<br>[sound:edgetts_abc.mp3]'
+    assert editor.note.fields[1] == 'existing<div>[sound:edgetts_abc.mp3]</div>'
 
 
 def test_add_media_tag_falls_back_without_editor_add_media(_mock_tooltip):
