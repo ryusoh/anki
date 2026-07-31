@@ -14,8 +14,10 @@ edge-tts is an optional dependency; this module imports it lazily so the
 add-on still loads when edge-tts is not installed.
 """
 
+import asyncio
 import os
 
+from ...proxy_fallback import _detect_local_proxy
 from .base import Service
 from .common import Trait
 
@@ -32,6 +34,54 @@ _VOICE_LIST = [
     ('en-GB-SoniaNeural', 'English GB (Sonia)'),
     ('en-GB-RyanNeural', 'English GB (Ryan)'),
 ]
+
+
+# Local proxy URL that worked previously; re-probed when it dies, matching
+# shared/proxy_fallback.py's heal-back-to-direct behavior (edge-tts uses
+# aiohttp, which ignores proxy env vars, so the proxy is passed explicitly).
+_working_proxy = None
+
+
+def _is_network_error(exc):
+    """True when no server was reached, so retrying via a proxy is worthwhile.
+
+    HTTP-level failures (bad token, 403) reached the server and re-raise
+    untouched — a proxy would not change them.
+    """
+    import aiohttp
+
+    return isinstance(exc, (aiohttp.ClientConnectionError, asyncio.TimeoutError, OSError))
+
+
+def _save_with_proxy_fallback(edge_tts, text, voice, path):
+    """Save audio, trying a direct connection first and, on network failure,
+    retrying once through a detected local proxy (cached for later calls)."""
+    global _working_proxy
+    if _working_proxy is not None:
+        try:
+            edge_tts.Communicate(text, voice=voice, proxy=_working_proxy).save_sync(path)
+            return
+        except Exception as exc:
+            if not _is_network_error(exc):
+                raise
+            _working_proxy = None  # cached proxy died — heal back to direct
+    try:
+        edge_tts.Communicate(text, voice=voice).save_sync(path)
+        return
+    except Exception as exc:
+        if not _is_network_error(exc):
+            raise
+        direct_error = exc
+    proxy = _detect_local_proxy()
+    if proxy is None:
+        raise direct_error
+    try:
+        edge_tts.Communicate(text, voice=voice, proxy=proxy).save_sync(path)
+    except Exception as exc:
+        if _is_network_error(exc):
+            raise direct_error from None  # both routes failed; report the direct one
+        raise
+    _working_proxy = proxy
 
 
 class EdgeTTS(Service):
@@ -70,9 +120,9 @@ class EdgeTTS(Service):
         voice = options.get('voice', 'en-US-AvaNeural')
 
         try:
-            edge_tts.Communicate(text, voice=voice).save_sync(path)
+            _save_with_proxy_fallback(edge_tts, text, voice, path)
         except Exception as exc:
-            raise ValueError(f"edge-tts failed for voice {voice}: {exc}") from exc
+            raise ValueError(f'edge-tts failed for voice {voice}: {exc}') from exc
 
         if not os.path.exists(path) or os.path.getsize(path) == 0:
             raise ValueError(f"edge-tts wrote an empty or missing file at {path}")

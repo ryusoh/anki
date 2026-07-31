@@ -36,6 +36,7 @@ VENDORED_COPIES = {
     'auto_wiktionary/proxy_fallback.py',
     'auto_image/proxy_fallback.py',
     'auto_itaigi/proxy_fallback.py',
+    'awesome_tts/proxy_fallback.py',
 }
 
 # Every file carrying a proxy port list, vendored or standalone. The test

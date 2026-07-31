@@ -124,6 +124,14 @@ required zero-setup operation ("just open Anki and use it").
   Anki's py3.13). Install is staged in a temp dir and renamed atomically.
 - Silent by design: success needs no restart (next click works); failure
   surfaces via the existing §2 failure tooltips.
+- **Blocked-network fallback (added 2026-08-01):** the edge-tts service
+  retries a failed direct connection once through a detected local proxy
+  (aiohttp ignores proxy env vars, so the proxy URL is passed to
+  `Communicate(proxy=...)` explicitly). Port probing is the vendored,
+  byte-identical `awesome_tts/proxy_fallback.py` (canonical:
+  `shared/proxy_fallback.py`; sync pinned by
+  `tests/test_proxy_fallback_sync.py`). HTTP-level errors are not retried —
+  they reached the server.
 
 ## 3. Integration points inside awesome_tts (verified 2026-07-31)
 
