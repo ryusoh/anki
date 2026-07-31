@@ -42,3 +42,36 @@ def test_grandchildren_in_the_process_group_are_killed_too(tmp_path):
     assert code == run_with_deadline.TIMEOUT_EXIT_CODE
     time.sleep(2.5)
     assert not marker.exists(), 'grandchild outlived the deadline kill — group kill regressed'
+
+from unittest.mock import patch, MagicMock
+import subprocess
+import signal
+from tools import run_with_deadline
+
+def test_kill_group_process_lookup_error_on_sigterm():
+    child = MagicMock()
+    with patch('os.killpg', side_effect=ProcessLookupError):
+        run_with_deadline._kill_group(child)
+        assert child.wait.called == False
+
+def test_kill_group_process_lookup_error_on_sigkill():
+    child = MagicMock()
+    child.wait.side_effect = [subprocess.TimeoutExpired(cmd="test", timeout=1), None]
+    def mock_killpg(pid, sig):
+        if sig == signal.SIGKILL:
+            raise ProcessLookupError
+    with patch('os.killpg', side_effect=mock_killpg):
+        run_with_deadline._kill_group(child)
+        assert child.wait.call_count == 2
+
+def test_main_no_command_given(capsys):
+    import pytest
+    with pytest.raises(SystemExit) as excinfo:
+        run_with_deadline.main(['--seconds', '10'])
+    assert excinfo.value.code == 2
+
+def test_main_no_command_given_with_dash_dash(capsys):
+    import pytest
+    with pytest.raises(SystemExit) as excinfo:
+        run_with_deadline.main(['--seconds', '10', '--'])
+    assert excinfo.value.code == 2
