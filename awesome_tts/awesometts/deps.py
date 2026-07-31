@@ -61,7 +61,10 @@ def deps_dir():
 def _edge_tts_importable():
     try:
         import edge_tts  # noqa: F401
-    except ImportError:
+    except Exception:
+        # Not just ImportError: a deps dir built for a different Python
+        # version fails later with TypeError and friends, and an add-on load
+        # must never crash over an optional dependency.
         return False
     return True
 
@@ -71,11 +74,18 @@ def ensure_deps_on_path():
     if _edge_tts_importable():
         return True
     target = deps_dir()
-    if (target / 'edge_tts').is_dir() and str(target) not in sys.path:
-        # Appended, not prepended, so Anki's own bundled packages (e.g.
-        # certifi) keep precedence over the runtime-installed copies.
-        sys.path.append(str(target))
-    return _edge_tts_importable()
+    if not (target / 'edge_tts').is_dir():
+        return False
+    if str(target) in sys.path:
+        return _edge_tts_importable()
+    # Appended, not prepended, so Anki's own bundled packages (e.g. certifi)
+    # keep precedence over the runtime-installed copies.
+    sys.path.append(str(target))
+    if _edge_tts_importable():
+        return True
+    # Broken or wrong-version install — keep it off the path.
+    sys.path.remove(str(target))
+    return False
 
 
 def _wheel_platform_tags():
@@ -90,6 +100,21 @@ def _wheel_platform_tags():
             'macosx_10_9_universal2',
         ]
     return ['macosx_10_13_x86_64', 'macosx_10_9_x86_64']
+
+
+def _install_specs():
+    """Package specs to install for Anki's Python version.
+
+    pip evaluates dependency environment markers (e.g. ``python_version <
+    "3.11"``) against the *installing* interpreter, not the ``--python-
+    version`` target, so conditional deps must be requested explicitly.
+    """
+    specs = [EDGE_TTS_SPEC]
+    if sys.version_info < (3, 11):
+        # aiohttp imports async_timeout on Python < 3.11; pip's cross-install
+        # silently drops it (see docstring above).
+        specs.append('async-timeout>=4,<6')
+    return specs
 
 
 def _pip_install_command(executable, staging):
@@ -115,7 +140,7 @@ def _pip_install_command(executable, staging):
     ]
     for tag in _wheel_platform_tags():
         command += ['--platform', tag]
-    command.append(EDGE_TTS_SPEC)
+    command += _install_specs()
     return command
 
 
@@ -167,10 +192,10 @@ def run_bootstrap(run=subprocess.run):
         _log(f'edge-tts auto-install failed: {result.stderr.strip()[-300:]}')
         return False
     if target.exists():
-        # Another process installed it first; discard our copy.
-        shutil.rmtree(staging, ignore_errors=True)
-    else:
-        os.rename(staging, target)  # same filesystem, so this is atomic
+        # We only get here when the existing install is broken (a working one
+        # short-circuits above), so replace it with the fresh staging copy.
+        shutil.rmtree(target, ignore_errors=True)
+    os.rename(staging, target)  # same filesystem, so this is atomic
     ready = ensure_deps_on_path()
     if ready:
         _log('edge-tts auto-install complete')
@@ -178,9 +203,17 @@ def run_bootstrap(run=subprocess.run):
 
 
 def bootstrap_edge_tts_background():
-    """Start a daemon thread installing edge-tts if missing; return it or None."""
-    if ensure_deps_on_path():
+    """Start a daemon thread installing edge-tts if missing; return it or None.
+
+    Never raises: an optional dependency must not be able to break add-on
+    loading.
+    """
+    try:
+        if ensure_deps_on_path():
+            return None
+        thread = threading.Thread(target=run_bootstrap, name='awesometts-deps', daemon=True)
+        thread.start()
+        return thread
+    except Exception as exc:
+        _log(f'bootstrap skipped: {exc}')
         return None
-    thread = threading.Thread(target=run_bootstrap, name='awesometts-deps', daemon=True)
-    thread.start()
-    return thread

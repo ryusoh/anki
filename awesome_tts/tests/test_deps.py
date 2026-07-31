@@ -143,21 +143,53 @@ def test_run_bootstrap_reports_pip_spawn_error(monkeypatch, tmp_path):
     assert deps.run_bootstrap(run=pip_spawn_error) is False
 
 
-def test_run_bootstrap_discards_staging_when_target_appeared(monkeypatch, tmp_path):
+def test_run_bootstrap_replaces_broken_existing_install(monkeypatch, tmp_path):
     target = tmp_path / 'awesome_tts_deps'
+    (target / 'edge_tts').mkdir(parents=True)  # pre-existing broken install
+    (target / 'stale_marker').touch()
     monkeypatch.setattr(deps, 'deps_dir', lambda: target)
     monkeypatch.setattr(deps, '_find_pip_python', lambda: '/usr/bin/python3')
     ready = iter([False, True])
     monkeypatch.setattr(deps, 'ensure_deps_on_path', lambda: next(ready))
 
-    def pip_race(command, **_kwargs):
-        result = _pip_success(command)
-        (target / 'edge_tts').mkdir(parents=True)  # another process won the race
-        return result
-
-    assert deps.run_bootstrap(run=pip_race) is True
+    assert deps.run_bootstrap(run=_pip_success) is True
     assert (target / 'edge_tts').is_dir()
+    assert not (target / 'stale_marker').exists()  # fully replaced, not merged
     assert not list(tmp_path.glob('.*.staging-*'))
+
+
+def test_ensure_deps_on_path_removes_broken_dir_from_path(monkeypatch, tmp_path):
+    (tmp_path / 'edge_tts').mkdir()
+    monkeypatch.setattr(deps, 'deps_dir', lambda: tmp_path)
+    monkeypatch.setattr(deps, '_edge_tts_importable', lambda: False)
+
+    assert deps.ensure_deps_on_path() is False
+    assert str(tmp_path) not in sys.path
+
+
+def test_edge_tts_importable_treats_any_exception_as_missing(monkeypatch):
+    # A deps dir built for another Python version fails with TypeError (not
+    # ImportError) at import time; both must count as "not importable". The
+    # failure is injected at the import hook so no scratch module file ends
+    # up in coverage's file list.
+    real_import = __import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == 'edge_tts':
+            raise TypeError('wrong python version')
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr('builtins.__import__', fake_import)
+
+    assert deps._edge_tts_importable() is False
+
+
+def test_install_specs_include_async_timeout_only_below_311(monkeypatch):
+    monkeypatch.setattr(deps.sys, 'version_info', (3, 9, 18))
+    assert 'async-timeout>=4,<6' in deps._install_specs()
+
+    monkeypatch.setattr(deps.sys, 'version_info', (3, 13, 0))
+    assert deps._install_specs() == [deps.EDGE_TTS_SPEC]
 
 
 def test_pip_install_command_targets_running_python_version(monkeypatch):
@@ -168,7 +200,7 @@ def test_pip_install_command_targets_running_python_version(monkeypatch):
     version = f'{sys.version_info.major}.{sys.version_info.minor}'
     assert command[command.index('--python-version') + 1] == version
     assert command[command.index('--platform') + 1] == 'macosx_11_0_arm64'
-    assert command[-1] == deps.EDGE_TTS_SPEC
+    assert deps.EDGE_TTS_SPEC in command
 
 
 def test_wheel_platform_tags_only_on_darwin(monkeypatch):
@@ -184,6 +216,15 @@ def test_wheel_platform_tags_only_on_darwin(monkeypatch):
 
 def test_bootstrap_background_no_thread_when_importable(monkeypatch):
     monkeypatch.setattr(deps, 'ensure_deps_on_path', lambda: True)
+
+    assert deps.bootstrap_edge_tts_background() is None
+
+
+def test_bootstrap_background_never_raises(monkeypatch):
+    def boom():
+        raise RuntimeError('unexpected')
+
+    monkeypatch.setattr(deps, 'ensure_deps_on_path', boom)
 
     assert deps.bootstrap_edge_tts_background() is None
 
