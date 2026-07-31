@@ -1,11 +1,11 @@
 # Free TTS services for awesome_tts — design spec (SDD)
 
-| Field    | Value                                                                                                 |
-| -------- | ----------------------------------------------------------------------------------------------------- |
-| Status   | **Requirements clarification in progress** — core flow decided, no code written; do NOT implement yet |
-| Research | `docs/free-tts-apis.md` (ranked candidates, cited quotas/licenses)                                    |
-| Target   | `awesome_tts/` itself (user decision 2026-07-31: no second add-on — build on the current one)         |
-| Method   | SDD → TDD (red → green); ordered steps to be added after §4 is resolved                               |
+| Field    | Value                                                                                                        |
+| -------- | ------------------------------------------------------------------------------------------------------------ |
+| Status   | **Design complete, pending implementation sign-off** — all requirements resolved 2026-07-31; no code written |
+| Research | `docs/free-tts-apis.md` (ranked candidates, cited quotas/licenses)                                           |
+| Target   | `awesome_tts/` itself (user decision 2026-07-31: no second add-on — build on the current one)                |
+| Method   | SDD → TDD (red → green); ordered steps in §6                                                                 |
 
 Add genuinely free neural TTS covering Japanese and English to `awesome_tts/`,
 whose built-in services are mostly paid. The user's only requirement is the
@@ -87,6 +87,28 @@ the add-on in "Check for Updates".
 - Note: Anki's add-on manager can also flip this via GUI; the file is the
   deterministic source and the test guards it.
 
+## 2.2 Dialog service list (DECIDED 2026-07-31, user requirement)
+
+The three new services MUST also appear in the existing dialog
+(`gui.EditorGenerator` etc.), alongside all existing services — but **at the
+top of the service dropdown and visually distinguishable**.
+
+Verified mechanism (`awesometts/router.py:get_services` →
+`awesometts/gui/base.py:_ui_services`): the dropdown is populated in the
+order `get_services()` returns, which is alphabetical by display name
+(`key=lambda service: service[1].lower()`). So:
+
+- **Top placement** — `get_services()` MUST pin the three new svc_ids first
+  (edgetts, voicevox, kokoro), existing services keep their alphabetical
+  order after them. Implement as an explicit pin-list, not a name hack.
+- **Highlight** — two layers, both cheap: (a) each new service's display name
+  carries a distinguishing marker (star prefix, e.g. `★ Edge-TTS (free)`),
+  and (b) `_ui_services` renders those items **bold** via
+  `dropdown.setItemData(index, font, Qt.FontRole)` using the same pin-list.
+  Keep this the ONLY `gui/` change in the whole feature.
+- Tests: dropdown order (first three entries are the new services, rest still
+  alphabetical) and the bold/marker presence on exactly those entries.
+
 ## 3. Integration points inside awesome_tts (verified 2026-07-31)
 
 - **New services** — `awesometts/service/edgetts.py`, `voicevox.py`,
@@ -107,45 +129,96 @@ Diff-scope prediction (acceptance criterion): changes confined to
 tests) + `requirements.txt` (edge-tts) + this doc. Every other directory MUST
 have zero diff (`git status` / `git diff --stat` at the end).
 
-## 4. Open requirements — PENDING user clarification (blocking)
+## 4. Requirements — RESOLVED 2026-07-31 (user answers, verbatim intent)
 
-- **Q1 ToS posture.** Is edge-tts's unofficial status acceptable for the main
-  slot, or MUST the main be fully official (→ Google Cloud free tier with a
-  billing account, or local engines as mains)?
-- **Q4 Local-engine deployment.** When a backup engine isn't installed/running:
-  (a) detect and disable with install instructions in the tooltip, (b)
-  auto-download/launch, or (c) documented manual install only? Kokoro's
-  torch+espeak-ng install inside Anki's bundled Python may be impractical — is
-  "advanced users only, documented manual install" acceptable for the en
-  backup?
-- **Q5 Voice defaults + controls.** Which default voices per language
-  (e.g. `ja-JP-NanamiNeural`, `en-US-AvaNeural`; which VOICEVOX speaker; which
-  Kokoro voice pack), and is a fixed default enough for v1 or MUST the user
-  pick voices (via the existing awesome_tts config GUI)?
-- **Q6 Dependency policy.** `edge-tts` is a third-party pip package — repo
-  rule says non-stdlib deps go in `requirements.txt`; confirm the mechanism
-  (documented `pip install` vs vendoring into the add-on).
-- **Q7 Cache.** awesome_tts already caches generated audio — confirm: reuse it
-  as-is (its key includes service+voice, so main/backup output cannot
-  collide), no new cache layer?
-- **Q8 `[sound:]` target field.** Append the tag to the **Back** field (like
-  auto_wiktionary/auto_itaigi append their output) or to **Front** next to the
-  source text?
+- **Q1 ToS posture → edge-tts accepted as main.** Unofficial status is fine.
+- **Q4 Local-engine deployment → manual install, "just make it work".** The
+  user is the only user. No auto-download, no install UX: if a backup engine
+  isn't reachable, the both-engines-failed tooltip (§2) names it. Setup steps
+  go in the add-on README comment/doc only.
+- **Q5 Voices → fixed defaults, no picker in v1.** Defaults: edge-tts ja
+  `ja-JP-NanamiNeural`, edge-tts en `en-US-AvaNeural`. VOICEVOX speaker id and
+  Kokoro voice pack are chosen at implementation time by querying the local
+  engine (`/speakers` / installed packs) — do NOT hardcode an unverified id.
+- **Q6 Dependency → `requirements.txt` + documented one-time
+  `pip install edge-tts`** into Anki's Python (repo rule: third-party packages
+  are declared in `requirements.txt`; Anki bundles some itself but not
+  edge-tts). Vendoring rejected: edge-tts pulls an aiohttp/certifi tree —
+  heavy and unreviewable. Import edge-tts lazily inside the service so the
+  add-on still loads (and existing services keep working) when it's missing;
+  the missing-dep path produces the §2 failure tooltip.
+- **Q7 Cache → reuse awesome_tts's existing cache as-is.** Its key already
+  includes service+voice, so main/backup output cannot collide. No new cache
+  layer.
+- **Q8 `[sound:]` target → Back field, standalone new line at the end.**
+  If Back is non-empty: append `<br>` + `[sound:<file>]`; if empty: just the
+  tag. Never reorder or touch existing Back content.
 
 ## 5. Non-goals
 
 - No removal or modification of awesome_tts's existing services (paid or
   otherwise) — only additions plus the button-behavior change.
 - No support for engines beyond the four slots in this phase.
-- No new dialog for the single-click flow (it is dialog-free by design).
+- No new dialog for the single-click flow (it is dialog-free by design); no
+  voice picker UI in v1.
 - No mixed-language cards in v1: detection picks ONE language per click
   (Japanese if any Japanese character present, else English).
 
-## 6. Implementation plan
+## 6. Implementation plan (TDD, red → green)
 
-TBD after §4 is resolved. Will include: behavior matrix with worked examples
-(ja text, en text, empty field, main-down-fallback, both-down, single vs
-double click), ordered red-green steps with verify commands
-(`make test-addon ADDON=awesome_tts`, `make typecheck-addon ADDON=awesome_tts`),
-and a DO-NOT list (no edits outside `awesome_tts/`; no cross-addon imports;
-don't break the existing EditorGenerator path).
+Behavior matrix (each row becomes a test; mocked engines, no network):
+
+| #   | Front field       | Main result     | Expected outcome                                                 |
+| --- | ----------------- | --------------- | ---------------------------------------------------------------- |
+| 1   | `日陰` (ja)       | edge-tts ok     | Back += `<br>[sound:x.mp3]`, tooltip names edge-tts              |
+| 2   | `apple` (en)      | edge-tts ok     | same, en voice                                                   |
+| 3   | `日陰`            | edge-tts raises | VOICEVOX used; tooltip `VOICEVOX — edge-tts failed`              |
+| 4   | `apple`           | edge-tts raises | Kokoro used; tooltip names Kokoro                                |
+| 5   | `日陰`            | both raise      | tooltip names BOTH failures; Back byte-identical                 |
+| 6   | empty Front       | —               | tooltip "no text"; no engine call, no field change               |
+| 7   | `日陰` twice      | edge-tts ok     | 2nd click served from awesome_tts cache (engine called once)     |
+| 8   | Back = `existing` | edge-tts ok     | result is `existing<br>[sound:x.mp3]` — prefix preserved exactly |
+| 9   | single click      | —               | flow runs, dialog NOT opened                                     |
+| 10  | double click      | —               | dialog opened, flow NOT run                                      |
+| 11  | `meta.json`       | —               | pinned test: `update_enabled is false` (§2.1)                    |
+| 12  | dialog dropdown   | —               | first 3 entries are the new services, rest alphabetical (§2.2)   |
+| 13  | dialog dropdown   | —               | new-service entries carry the star marker + bold font (§2.2)     |
+
+Ordered steps (each: write failing test(s) → implement → verify):
+
+1. **Scaffold + vendor-update pin.** Create `awesome_tts/tests/` (house
+   pattern: per-addon tests dir, collected by `make check-py`); first test is
+   row 11 (`meta.json` `update_enabled is false`) — red, then flip the flag.
+2. **Language detector** — small local helper (Unicode ranges; ja if any
+   hiragana/katakana/kanji, else en) + unit tests incl. empty/mixed input.
+3. **`service/edgetts.py`** — `Service` subclass; lazy `import edge_tts`;
+   ja/en default voices from Q5; errors surface as service failure (not
+   crash). Tests mock `edge_tts.Communicate`; missing-package path tested via
+   import patching.
+4. **`service/voicevox.py`** — stdlib `urllib` against `localhost:50021`
+   (`/audio_query` → `/synthesis`, or `/synthesis` mora API per engine
+   version); speaker id from `/speakers` at first use. Tests mock `urlopen`.
+5. **`service/kokoro.py`** — CLI/library invocation of the local Kokoro
+   install; failure if binary/module absent. Tests mock the subprocess/import.
+6. **Register services** in `awesometts/service/__init__.py` (pattern:
+   `from .amazon import Amazon`). Verify rows 1–2 against the Service base
+   contract (cache reuse = row 7).
+7. **Dialog ordering + highlight** — pin-list in `router.get_services()` and
+   star/bold item data in `gui/base.py:_ui_services` (rows 12–13).
+8. **Button handler** in `awesometts/__init__.py` (`editor_button()` /
+   `addAwesomeTTSEditorButton`): QTimer single/double-click split, flow per
+   §2, failover per §2 step 1d, Q8 append. Rows 3–6, 8–10.
+9. **Gate** — `make test-addon ADDON=awesome_tts`,
+   `make typecheck-addon ADDON=awesome_tts`, then full `make precommit SKIP=1`.
+   Manual: reload add-on in Anki, click once on a ja card and an en card
+   (mocked tests cannot prove real-Anki behavior).
+
+DO-NOT list:
+
+- Do NOT edit existing services or any directory outside `awesome_tts/`
+  (except `requirements.txt` + this doc). The ONLY permitted `gui/` change is
+  the §2.2 service-list highlight in `gui/base.py` — no dialog layout changes.
+- Do NOT import across add-ons (import-linter) — the detector is a local copy.
+- Do NOT auto-download or auto-launch engines (Q4).
+- Do NOT hardcode a VOICEVOX speaker id without querying `/speakers` (Q5).
+- Do NOT reorder/modify existing Back content (Q8) — append only.
