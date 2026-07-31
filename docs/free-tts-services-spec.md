@@ -127,9 +127,10 @@ order `get_services()` returns, which is alphabetical by display name
 Diff-scope prediction (acceptance criterion): changes confined to
 `awesome_tts/` (new service modules, `__init__.py` button wiring, config,
 tests) + `requirements.txt` (edge-tts) + root `conftest.py` (Qt stub
-additions needed to collect the new add-on tests) + `.coveragerc` (omit the
-untested vendored `awesome_tts/awesometts/*` tree so the combined coverage
-floor stays ≥ 75%) + `docs/README.md` (index links) + this doc. Every other
+additions needed to collect the new add-on tests) + `.coveragerc` (explicit
+per-file omit of the untested legacy awesome_tts tree so the combined floor
+stays ≥ 75%; the list doubles as Testpilot's coverage work queue) +
+`docs/README.md` (index links) + this doc. Every other
 directory MUST have zero diff (`git status` / `git diff --stat` at the end).
 
 ## 4. Requirements — RESOLVED 2026-07-31 (user answers, verbatim intent)

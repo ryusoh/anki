@@ -52,6 +52,20 @@ Instead:
 5. For the tight edit→verify loop on a chosen addon, scope with
    `make test-py SUITE=<addon>/tests` (the root `conftest.py` mocks `aqt`/`anki`; a
    subdir run fails to import them). Use `python3`, never `python`.
+6. **awesome_tts legacy files live in a `.coveragerc` work queue, not in
+   `coverage-rank`.** The vendored-upstream files under `awesome_tts/awesometts/`
+   are individually listed in `.coveragerc`'s `omit` block (they predate the
+   repo's test culture and would sink the combined 75% floor). That list is your
+   target queue for this addon. To claim a file: delete its omit line in your
+   working tree, write tests until `make check-py` shows the file at 100%, and
+   keep the line removal in the PR. If you only make partial progress on a large
+   file, **restore its omit line before opening the PR** (the tests still ship
+   and count next run) and note the remaining surface in the PR body — a
+   partially covered awesome_tts file must never drag the combined report below
+   the floor. The newer awesome_tts modules (`quicktts.py`, `langdetect.py`,
+   `service/{edgetts,kokoro,voicevox}.py`, outer `awesome_tts/__init__.py`) are
+   already measured and appear in `coverage-rank` like any first-party code —
+   pick them from there as usual.
 
 ## Write real tests (no coverage theater)
 
@@ -89,7 +103,9 @@ Instead:
 ## Lane
 
 - You own: files under each addon's `tests/` and the root `tests/` (node `*.test.cjs`
-  / `*.test.mjs`).
+  / `*.test.mjs`), plus single-line removals from the awesome_tts work-queue
+  omit block in `.coveragerc` (one line per file you drove to 100%, only in the
+  same PR that covers it — see target selection rule 6).
 - You must NOT touch any production file, `package.json`, or CI config. If a file
   can only be covered by changing production code or fixing an unrelated failure,
   skip it and say why in the PR body — never "fix" CI to make a test pass.

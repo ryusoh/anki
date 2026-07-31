@@ -10,10 +10,73 @@ omit =
     tools/test_*.py
     conftest.py
     */__pycache__/*
-    # awesome_tts was vendored code with no existing test coverage; measuring
-    # the whole tree drops the combined floor below 75%. Its tests still run
-    # and prove behavior of the newly-added free-TTS paths.
-    awesome_tts/awesometts/*
+    # awesome_tts legacy (vendored upstream) files — Testpilot work queue.
+    # These files predate the repo's test culture and are omitted so the
+    # combined floor stays green. The list is explicit on purpose: each entry
+    # is a coverage target. When a file is driven to 100% by tests, remove its
+    # line here in the same PR so it joins the measured set. New awesome_tts
+    # modules (quicktts, langdetect, service/{edgetts,kokoro,voicevox}) are
+    # deliberately NOT listed — they are measured like any first-party code.
+    awesome_tts/awesometts/__init__.py
+    awesome_tts/awesometts/bundle.py
+    awesome_tts/awesometts/config.py
+    awesome_tts/awesometts/conversion.py
+    awesome_tts/awesometts/gui/__init__.py
+    awesome_tts/awesometts/gui/base.py
+    awesome_tts/awesometts/gui/common.py
+    awesome_tts/awesometts/gui/configurator.py
+    awesome_tts/awesometts/gui/generator.py
+    awesome_tts/awesometts/gui/groups.py
+    awesome_tts/awesometts/gui/homescreen.py
+    awesome_tts/awesometts/gui/listviews.py
+    awesome_tts/awesometts/gui/presets.py
+    awesome_tts/awesometts/gui/stripper.py
+    awesome_tts/awesometts/gui/templater.py
+    awesome_tts/awesometts/languagetools.py
+    awesome_tts/awesometts/machineid.py
+    awesome_tts/awesometts/paths.py
+    awesome_tts/awesometts/player.py
+    awesome_tts/awesometts/router.py
+    awesome_tts/awesometts/service/__init__.py
+    awesome_tts/awesometts/service/amazon.py
+    awesome_tts/awesometts/service/azure.py
+    awesome_tts/awesometts/service/baidu.py
+    awesome_tts/awesometts/service/base.py
+    awesome_tts/awesometts/service/cambridge.py
+    awesome_tts/awesometts/service/cereproc.py
+    awesome_tts/awesometts/service/collins.py
+    awesome_tts/awesometts/service/common.py
+    awesome_tts/awesometts/service/duden.py
+    awesome_tts/awesometts/service/ekho.py
+    awesome_tts/awesometts/service/elevenlabs.py
+    awesome_tts/awesometts/service/espeak.py
+    awesome_tts/awesometts/service/festival.py
+    awesome_tts/awesometts/service/forvo.py
+    awesome_tts/awesometts/service/fptai.py
+    awesome_tts/awesometts/service/freedictionary.py
+    awesome_tts/awesometts/service/google.py
+    awesome_tts/awesometts/service/googletts.py
+    awesome_tts/awesometts/service/ispeech.py
+    awesome_tts/awesometts/service/languages.py
+    awesome_tts/awesometts/service/naver.py
+    awesome_tts/awesometts/service/naverclova.py
+    awesome_tts/awesometts/service/naverclovapremium.py
+    awesome_tts/awesometts/service/oddcast.py
+    awesome_tts/awesometts/service/oxford.py
+    awesome_tts/awesometts/service/pico2wave.py
+    awesome_tts/awesometts/service/rhvoice.py
+    awesome_tts/awesometts/service/sapi5com.py
+    awesome_tts/awesometts/service/sapi5js.py
+    awesome_tts/awesometts/service/say.py
+    awesome_tts/awesometts/service/spanishdict.py
+    awesome_tts/awesometts/service/vocalware.py
+    awesome_tts/awesometts/service/voicelist.py
+    awesome_tts/awesometts/service/watson.py
+    awesome_tts/awesometts/service/yandex.py
+    awesome_tts/awesometts/service/youdao.py
+    awesome_tts/awesometts/text.py
+    awesome_tts/awesometts/ttsplayer.py
+    awesome_tts/awesometts/version.py
 
 [report]
 show_missing = True
