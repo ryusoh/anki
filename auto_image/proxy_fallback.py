@@ -1,10 +1,11 @@
 """Local-proxy fallback for urllib-based HTTP calls behind a blocked network.
 
-Try a direct connection first; on network failure, retry once through a
-detected local HTTP proxy (cached for later calls). Probed ports: Clash
-Verge/Clash mixed (7897, 7890), ShadowsocksX-NG HTTP (1087), Privoxy (8118),
-Astrill VPN OpenWeb mode (3213). HTTP errors (4xx/5xx) reached the server, so
-they re-raise untouched.
+Try a direct connection first; on network failure, retry once with a
+proxy-free opener (heals a stale proxy cached in urllib's global opener),
+then once through a detected local HTTP proxy (cached for later calls).
+Probed ports: Clash Verge/Clash mixed (7897, 7890), ShadowsocksX-NG HTTP
+(1087), Privoxy (8118), Astrill VPN OpenWeb mode (3213). HTTP errors
+(4xx/5xx) reached the server, so they re-raise untouched.
 
 This is the CANONICAL source. Anki add-ons must be self-contained (AnkiWeb
 packages ship a single add-on dir), so each consuming add-on keeps a
@@ -41,9 +42,23 @@ def _detect_local_proxy(ports=_LOCAL_PROXY_PORTS):
     return None
 
 
+def _build_direct_opener():
+    """Opener that bypasses all proxies — a truly direct connection.
+
+    ``urllib.request.urlopen`` reuses a global opener whose ProxyHandler
+    snapshots the system proxy at first use. If a local proxy client (e.g.
+    Astrill OpenWeb) was running when Anki made its first request and is
+    later switched off or to a tunnel mode, that stale snapshot breaks every
+    later urlopen even though the network itself is fine. A proxy-free
+    opener heals this without leaking a proxy to the whole process.
+    """
+    return urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+
 def urlopen_with_proxy_fallback(req, timeout=10):
     """urlopen that tries a direct connection first and, on network failure,
-    retries once through a detected local proxy (cached for later calls).
+    retries once proxy-free and once through a detected local proxy (cached
+    for later calls).
 
     HTTP errors (4xx/5xx) reached the server, so they re-raise untouched.
     Runs inside Anki, so the proxy is scoped to a cached opener instead of
@@ -62,13 +77,20 @@ def urlopen_with_proxy_fallback(req, timeout=10):
         return urllib.request.urlopen(req, timeout=timeout)
     except HTTPError:
         raise
-    except OSError:
-        proxy = _detect_local_proxy()
-        if proxy is None:
+    except OSError as direct_err:
+        # A stale proxy cached in the global opener can be the real failure —
+        # retry once with a proxy-free opener before probing local ports.
+        try:
+            return _build_direct_opener().open(req, timeout=timeout)
+        except HTTPError:
             raise
-        opener = urllib.request.build_opener(
-            urllib.request.ProxyHandler({'http': proxy, 'https': proxy})
-        )
-        response = opener.open(req, timeout=timeout)
-        _proxy_opener = opener
-        return response
+        except OSError:
+            proxy = _detect_local_proxy()
+            if proxy is None:
+                raise direct_err from None
+            opener = urllib.request.build_opener(
+                urllib.request.ProxyHandler({'http': proxy, 'https': proxy})
+            )
+            response = opener.open(req, timeout=timeout)
+            _proxy_opener = opener
+            return response

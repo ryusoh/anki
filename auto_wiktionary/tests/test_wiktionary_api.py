@@ -48,12 +48,16 @@ def test_get_wiktionary_candidates_empty_input_skips_network():
 
 
 def test_get_wiktionary_candidates_network_error():
-    from unittest.mock import patch
+    from unittest.mock import MagicMock, patch
     from urllib.error import URLError
 
+    direct_opener = MagicMock()
+    direct_opener.open.side_effect = URLError("still offline")
     with (
         patch("urllib.request.urlopen", side_effect=URLError("offline")),
-        # Keep the proxy fallback from probing real localhost ports in tests.
+        # Keep the proxy-free retry and the proxy fallback from hitting the
+        # real network or real localhost ports in tests.
+        patch("auto_wiktionary.proxy_fallback._build_direct_opener", return_value=direct_opener),
         patch("auto_wiktionary.proxy_fallback._detect_local_proxy", return_value=None),
     ):
         # Failures are swallowed and yield an empty list, never raise.

@@ -122,7 +122,13 @@ canonical file, re-copy it to every add-on, and sync the port list in
   the proxy is scoped to a cached urllib opener instead of `os.environ`
   (never leak a proxy to the whole Anki process). HTTP 4xx/5xx bypass the
   fallback (they reached the server); a dead cached proxy heals back to
-  direct. Pinned by each addon's `tests/test_proxy_fallback.py`.
+  direct. If the first direct attempt fails, it retries once with a
+  **proxy-free opener** before probing ports — `urllib.request.urlopen`'s
+  global opener snapshots the system proxy at first use, so a proxy that was
+  live when Anki started but is now gone (Astrill OpenWeb switched off or to
+  WireGuard/tunnel mode) otherwise breaks every later call with
+  `Network connection failed` even though browsers work (observed
+  2026-08-01). Pinned by each addon's `tests/test_proxy_fallback.py`.
 - `data/anki/upload-to-r2` — standalone script with its own inline helper:
   `enable_proxy_fallback()` exports the detected proxy into
   `HTTPS_PROXY`/`HTTP_PROXY` for the rest of the process (botocore reads env

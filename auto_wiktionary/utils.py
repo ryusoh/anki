@@ -73,8 +73,8 @@ def fetch_wiktionary_html(word, lang):
         if e.code == 404:
             return ""  # Word not found
         return f"Error: {e.code}"
-    except URLError:
-        return "Error: Network connection failed."
+    except URLError as e:
+        return f"Error: Network connection failed. ({e.reason})"
     except Exception as e:
         return f"Error: {str(e)}"
 
