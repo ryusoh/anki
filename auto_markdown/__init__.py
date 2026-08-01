@@ -12,20 +12,18 @@ from .core import convert_markdown_field
 
 
 def _apply_markdown(editor: Editor) -> None:
-    """Read Front and Back fields, convert markdown, write back."""
+    """Read all note fields, convert markdown, write back."""
     if editor.note is None:
         return
 
-    keys = editor.note.keys()
     changed = False
 
-    for i, name in enumerate(keys):
-        if name.lower() in ("front", "back"):
-            original = editor.note.fields[i]
-            converted = convert_markdown_field(original)
-            if converted != original:
-                editor.note.fields[i] = converted
-                changed = True
+    for i, _name in enumerate(editor.note.fields):
+        original = editor.note.fields[i]
+        converted = convert_markdown_field(original)
+        if converted != original:
+            editor.note.fields[i] = converted
+            changed = True
 
     if not changed:
         tooltip("No markdown to convert.")
@@ -56,7 +54,7 @@ def on_editor_did_init_buttons(buttons: list, editor: Editor) -> None:
         None,
         "autoMarkdown",
         on_auto_markdown,
-        tip="Auto Markdown: convert markdown syntax to HTML in Front and Back fields (Ctrl+M / Cmd+M)",
+        tip="Auto Markdown: convert markdown syntax to HTML in all fields (Ctrl+M / Cmd+M)",
         label="M",
     )
     buttons.append(btn)

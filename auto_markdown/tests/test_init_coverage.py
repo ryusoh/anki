@@ -62,9 +62,12 @@ def test_apply_markdown_addMode_true():
     editor.loadNoteKeepingFocus.assert_called_once()
 
 def test_apply_markdown_other_field():
+    """Fields with names other than Front/Back are also converted."""
     editor = MagicMock()
     editor.note.keys.return_value = ["Other"]
     editor.note.fields = ["**bold**"]
+    editor.addMode = False
     with patch("auto_markdown.tooltip") as mock_tooltip:
         _apply_markdown(editor)
-    mock_tooltip.assert_called_with("No markdown to convert.")
+    assert editor.note.fields[0] == "<b>bold</b>"
+    mock_tooltip.assert_called_with("Converted markdown to HTML.")

@@ -736,8 +736,8 @@ def test_on_auto_markdown_calls_save_first():
     editor.saveNow.assert_called_once()
 
 
-def test_apply_converts_both_fields():
-    """_apply_markdown processes both Front and Back fields."""
+def test_apply_converts_all_fields():
+    """_apply_markdown processes every field, not just Front/Back."""
     import sys
     from unittest.mock import MagicMock
 
@@ -754,14 +754,21 @@ def test_apply_converts_both_fields():
     from auto_markdown import _apply_markdown
 
     editor = MagicMock()
-    editor.note.keys.return_value = ['Front', 'Back']
-    editor.note.fields = ['#### Front heading', '#### Back heading']
+    editor.note.keys.return_value = ['Front', 'Back', 'Text', 'Extra']
+    editor.note.fields = [
+        '#### Front heading',
+        '#### Back heading',
+        '#### Text heading',
+        '#### Extra heading',
+    ]
     editor.addMode = False
 
     _apply_markdown(editor)
 
     assert editor.note.fields[0] == '<h4>Front heading</h4>'
     assert editor.note.fields[1] == '<h4>Back heading</h4>'
+    assert editor.note.fields[2] == '<h4>Text heading</h4>'
+    assert editor.note.fields[3] == '<h4>Extra heading</h4>'
     editor.note.flush.assert_called_once()
     editor.loadNoteKeepingFocus.assert_called_once()
 
