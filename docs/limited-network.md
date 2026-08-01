@@ -195,6 +195,32 @@ with patch('urllib.request.urlopen', side_effect=URLError(TimeoutError('handshak
     utils.fetch_wiktionary_html('猫', 'ja')  # must heal via the detected proxy
 ```
 
+**Keep fallback tests hermetic.** The helper has three network paths, and a
+test that patches only `urllib.request.urlopen` silently hits the real
+network through the other two. Any failure-path test must patch all of:
+`urllib.request.urlopen`, `<addon>.proxy_fallback._build_direct_opener`, and
+`<addon>.proxy_fallback._detect_local_proxy` (plus
+`urllib.request.build_opener` when asserting the proxy opener). See
+`auto_wiktionary/tests/test_proxy_fallback.py` for the pattern. When adding a
+new path to the helper, grep for `side_effect=URLError` across `*/tests/` and
+patch the new path everywhere.
+
+**Diagnosing a live failure** (browser works, add-on says network error) —
+rule the environment in or out before touching code:
+
+```sh
+for p in 7897 7890 1087 8118 3213; do nc -z -w 1 127.0.0.1 $p && echo "$p open"; done
+python3 -c "import urllib.request; print(urllib.request.getproxies())"
+curl -sS -o /dev/null -w '%{http_code} total=%{time_total}s\n' --max-time 15 \
+  'https://en.wiktionary.org/api/rest_v1/page/html/test'
+```
+
+All ports closed + `getproxies()` empty + curl 200 means the add-on's failure
+is a stale snapshot or timeout, not the network — and since 2026-08-01 the
+Wiktionary tooltip includes the underlying `URLError` reason
+(`Error: Network connection failed. (<reason>)`), which distinguishes DNS,
+connection-refused, and timeout at a glance.
+
 Related invariant, pinned by `data/anki/tests/test_failed_upload_hash_map.py`:
 **failed uploads never enter the hash map**, so an interrupted or partly
 failed run retries exactly the missing files on rerun. Audit the ledger
