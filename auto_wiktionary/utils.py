@@ -188,42 +188,99 @@ def inject_redirect_pronunciation(parsed_html, all_readings):
 
 def _filter_language_sections(soup, lang):
     target_headers = {"en": ["english"], "ja": ["japanese", "日本語"]}
-    for section in soup.find_all('section'):
-        h2 = section.find('h2')
-        if h2:
-            header_text = h2.get_text().strip().lower()
-            allowed_headers = target_headers.get(lang, [])
-            if allowed_headers and not any(h == header_text for h in allowed_headers):
-                section.decompose()
+    sections = soup.find_all('section')
+    if sections:
+        for section in sections:
+            h2 = section.find('h2')
+            if h2:
+                header_text = h2.get_text().strip().lower()
+                allowed_headers = target_headers.get(lang, [])
+                if allowed_headers and not any(h == header_text for h in allowed_headers):
+                    section.decompose()
+        return
+    # New wrinkle: the parse API no longer emits <section> wrappers — headings
+    # are flat <div class="mw-heading mw-headingN"> siblings, so remove whole
+    # heading blocks instead (h2 blocks run to the next h2).
+    allowed_headers = target_headers.get(lang, [])
+    if not allowed_headers:
+        return
+    for div, level, h_tag in _iter_heading_divs(soup):
+        if level == 2 and h_tag.get_text().strip().lower() not in allowed_headers:
+            _remove_heading_div_block(div, level)
+
+
+def _heading_div_level(div):
+    for cls in div.get('class', []):
+        match = re.fullmatch(r'mw-heading(\d)', cls)
+        if match:
+            return int(match.group(1))
+    return None
+
+
+def _iter_heading_divs(soup):
+    for div in soup.find_all('div', class_=re.compile(r'\bmw-heading\d\b')):
+        h_tag = div.find(['h2', 'h3', 'h4', 'h5'])
+        level = _heading_div_level(div)
+        if h_tag and level is not None:
+            yield div, level, h_tag
+
+
+def _remove_heading_div_block(div, level):
+    # Heading divs are flat siblings of their content (no <section> nesting):
+    # drop everything up to the next heading div of the same or higher level.
+    node = div.next_sibling
+    while node is not None:
+        nxt = node.next_sibling
+        if isinstance(node, Tag) and _heading_div_level(node) is not None:
+            if _heading_div_level(node) <= level:
+                break
+        node.extract()
+        node = nxt
+    div.decompose()
 
 
 def _remove_unwanted_tags(soup):
-    for tag in soup.find_all(class_=["mw-empty-elt", "reference", "mw-editsection", "ext-phonos"]):
+    # Citation lists (mw-references-wrap/ol.references) are footnote dumps,
+    # not definitions — they sit under 参考文献/References headings that the
+    # keyword filter keeps.
+    for tag in soup.find_all(
+        class_=[
+            "mw-empty-elt",
+            "reference",
+            "references",
+            "mw-references-wrap",
+            "mw-editsection",
+            "ext-phonos",
+        ]
+    ):
         tag.decompose()
     for tag in soup.find_all(["style", "link"]):
         tag.decompose()
+    skip_keywords = [
+        'translation',
+        'synonym',
+        'antonym',
+        'pronunciation',
+        'etymology',
+        '翻訳',
+        '類義語',
+        '関連語',
+        '対義語',
+        '発音',
+        '語源',
+        '合成語',
+        '関連項目',
+        'anagram',
+    ]
     for section in soup.find_all('section'):
         h_tag = section.find(['h2', 'h3', 'h4', 'h5'])
         if h_tag:
             header_text = h_tag.get_text().lower()
-            skip_keywords = [
-                'translation',
-                'synonym',
-                'antonym',
-                'pronunciation',
-                'etymology',
-                '翻訳',
-                '類義語',
-                '関連語',
-                '対義語',
-                '発音',
-                '語源',
-                '合成語',
-                '関連項目',
-                'anagram',
-            ]
             if any(kw in header_text for kw in skip_keywords):
                 section.decompose()
+    for div, level, h_tag in _iter_heading_divs(soup):
+        if any(kw in h_tag.get_text().lower() for kw in skip_keywords):
+            _remove_heading_div_block(div, level)
 
 
 def _extract_square_bracket_reading(p_tag):

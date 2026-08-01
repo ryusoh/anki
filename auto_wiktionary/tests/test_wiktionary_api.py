@@ -420,6 +420,73 @@ def test_parse_wiktionary_html_kansuu_etymology_section():
     assert "プロジェクト" not in parsed
 
 
+def test_parse_wiktionary_html_menseki_new_heading_markup():
+    """
+    New wrinkle: the Wiktionary parse API no longer wraps sections in
+    <section> elements — headings are flat <div class="mw-heading
+    mw-headingN"> siblings under div.mw-parser-output. The section-based
+    filters silently no-op on this markup, so on multi-language pages like
+    面積 the 中国語 section (官話/拼音 pronunciations) and the 参考文献
+    citation list (↑ 黃河清…) leaked into the parsed definition.
+    Trimmed from the real ja.wiktionary parse payload for 面積.
+    """
+    mock_html = """
+    <div class="mw-content-ltr mw-parser-output" lang="ja" dir="ltr">
+        <div class="mw-heading mw-heading2"><h2 id="日本語">日本語</h2></div>
+        <div class="mw-heading mw-heading3"><h3>語源</h3></div>
+        <p>「めん」+「せき」<sup class="reference"><a href="#cite_note-1">[1]</a></sup></p>
+        <div class="mw-heading mw-heading3"><h3>発音</h3></div>
+        <ul>
+            <li>(東京式) めんせき [méꜜǹsèkì] (頭高型 – [1])</li>
+        </ul>
+        <div class="mw-heading mw-heading3"><h3>名詞</h3></div>
+        <p><strong class="Jpan headword" lang="ja">面積</strong><span> (</span><span class="headword-tr manual-tr tr" dir="ltr">めんせき</span><span>)</span></p>
+        <ol>
+            <li>平面の広さ。</li>
+        </ol>
+        <div class="mw-heading mw-heading4"><h4>関連語</h4></div>
+        <ul>
+            <li>表面積</li>
+        </ul>
+        <div class="mw-heading mw-heading3"><h3>参考文献</h3></div>
+        <div class="mw-references-wrap">
+            <ol class="references">
+                <li id="cite_note-1"><span>↑</span> <span>黃河清, 利玛窦对汉语的贡献, 2003</span></li>
+            </ol>
+        </div>
+        <div class="mw-heading mw-heading2"><h2 id="中国語">中国語</h2></div>
+        <div class="mw-heading mw-heading3"><h3>発音</h3></div>
+        <ul>
+            <li>官話: 拼音 miànjī</li>
+        </ul>
+        <div class="mw-heading mw-heading3"><h3>名詞</h3></div>
+        <ol>
+            <li>平面的大小。</li>
+        </ol>
+        <div class="mw-heading mw-heading2"><h2 id="朝鮮語">朝鮮語</h2></div>
+        <div class="mw-heading mw-heading3"><h3>名詞</h3></div>
+        <ol>
+            <li>면적。</li>
+        </ol>
+    </div>
+    """
+    parsed = parse_wiktionary_html(mock_html, lang="ja")
+    # Reading from the 名詞 headword lands at the top
+    assert parsed.startswith("<ul><p>めんせき</p>"), f"Unexpected output: {parsed}"
+    # Japanese definition kept
+    assert "平面の広さ" in parsed
+    # 語源/発音/関連語 and the 参考文献 citation list must not leak
+    assert "黃河清" not in parsed
+    assert "利玛窦" not in parsed
+    assert "東京式" not in parsed
+    assert "表面積" not in parsed
+    # Non-Japanese language sections must not leak
+    assert "官話" not in parsed
+    assert "拼音" not in parsed
+    assert "平面的大小" not in parsed
+    assert "면적" not in parsed
+
+
 def test_fetch_wiktionary_html_error():
     from unittest.mock import patch
     from urllib.error import HTTPError
