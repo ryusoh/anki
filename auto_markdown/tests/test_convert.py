@@ -383,6 +383,68 @@ def test_code_block_fence_glued_to_closing_tag():
     assert '```' not in out
 
 
+def test_code_block_in_leaf_div_lines():
+    """Code block when Anki stored the field as one leaf <div> per line.
+
+    Mirrors the real 'Example: Logging Sidecar' card back field, where the
+    YAML fence and every code line were wrapped in `<div>...</div>` instead
+    of separated by `<br>`.
+    """
+    html = (
+        '<div>Intro paragraph<br></div>'
+        '<div><br></div>'
+        '<div>```yaml</div>'
+        '<div>apiVersion: v1</div>'
+        '<div>kind: Pod</div>'
+        '<div>metadata:</div>'
+        '<div>&nbsp; name: example-pod</div>'
+        '<div>```</div>'
+        '<div><br></div>'
+        '<div>Outro text</div>'
+    )
+    out = convert_markdown_field(html)
+    assert '<pre style=' in out
+    assert '<code class="language-yaml">' in out
+    assert 'apiVersion: v1' in out
+    assert 'kind: Pod' in out
+    assert '&nbsp; name: example-pod' in out
+    assert '```' not in out
+
+
+def test_leaf_div_run_with_list_and_code():
+    """A leaf-<div> run can contain both a code block and list items."""
+    html = (
+        '<div>```python</div>'
+        '<div>def f():</div>'
+        '<div>&nbsp;    pass</div>'
+        '<div>```</div>'
+        '<div><br></div>'
+        '<div>- First item</div>'
+        '<div>- Second item</div>'
+    )
+    out = convert_markdown_field(html)
+    assert '<pre style=' in out
+    assert '<code class="language-python">' in out
+    assert '<ul>' in out
+    assert '<li>First item</li>' in out
+    assert '<li>Second item</li>' in out
+    assert '```' not in out
+
+
+def test_plain_leaf_div_preserved():
+    """Plain prose wrapped in leaf <div>s without markdown markers is unchanged."""
+    html = '<div>Just plain prose</div><div>Another line</div>'
+    assert convert_markdown_field(html) == html
+
+
+def test_leaf_div_code_block_idempotent():
+    """Converting a leaf-<div> code block twice yields the same result."""
+    html = '<div>```python</div><div>print(1)</div><div>```</div>'
+    first = convert_markdown_field(html)
+    second = convert_markdown_field(first)
+    assert first == second
+
+
 # ---------------------------------------------------------------------------
 # Markdown Tables
 # ---------------------------------------------------------------------------

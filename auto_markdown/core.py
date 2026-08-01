@@ -255,6 +255,115 @@ def _is_separator_row(content: str) -> bool:
     return True
 
 
+# ---------------------------------------------------------------------------
+# Leaf <div> line normalization
+# ---------------------------------------------------------------------------
+
+# Match top-level <div> open/close tags so we can detect leaf-<div>-per-line
+# fields (Anki's paste sometimes produces these instead of <br> separators).
+_DIV_TAG_RE = re.compile(r"<(/?)div(\b[^>]*)>", re.IGNORECASE)
+
+# Block-level tags inside a <div> mean it is structural, not a leaf line.
+_BLOCK_TAG_IN_DIV_RE = re.compile(
+    r"<(/?)(?:div|p|ul|ol|li|blockquote|h[1-6]|pre|table|hr)\b",
+    re.IGNORECASE,
+)
+
+# Strip trailing <br> tags (and surrounding whitespace) from a leaf line's
+# content before joining leaf lines with <br>.
+_TRAILING_BR_RE = re.compile(r"(?:<br\s*/?>|\s)+$", re.IGNORECASE)
+
+
+def _strip_trailing_br(content: str) -> str:
+    return _TRAILING_BR_RE.sub("", content)
+
+
+def _has_block_markdown(content: str) -> bool:
+    """Return True if a leaf <div>'s content starts with a block markdown marker."""
+    stripped = content.strip()
+    return (
+        stripped.startswith("```")
+        or _HEADING_RE.match(stripped) is not None
+        or _UL_RE.match(stripped) is not None
+        or _OL_RE.match(stripped) is not None
+        or _BQ_RE.match(stripped) is not None
+        or _HR_RE.match(stripped) is not None
+        or _is_table_row(stripped)
+    )
+
+
+def _normalize_top_level_leaf_div_runs(html: str) -> str:
+    """Unwrap consecutive top-level leaf <div> lines into <br>-separated text.
+
+    Anki sometimes stores multi-line fields as `<div>line</div><div>line</div>`
+    instead of `line<br>line`. The rest of the markdown pipeline only splits on
+    `<br>`, so those lines are invisible. This helper converts a run of leaf
+    `<div>` elements into the `<br>` representation the pipeline expects, but
+    only when the run contains a block-level markdown marker (code fence,
+    heading, list, blockquote, HR, or table). Plain prose stays untouched so
+    the byte-identical no-op guarantee is preserved for non-markdown fields.
+    """
+    intervals: list[tuple[int, int, str, bool]] = []
+    depth = 0
+    top_start: int | None = None
+    content_start = 0
+
+    for m in _DIV_TAG_RE.finditer(html):
+        if m.group(1) == "/":
+            if depth > 0:
+                depth -= 1
+                if depth == 0 and top_start is not None:
+                    content = html[content_start : m.start()]
+                    is_leaf = _BLOCK_TAG_IN_DIV_RE.search(content) is None
+                    intervals.append((top_start, m.end(), content, is_leaf))
+                    top_start = None
+        else:
+            if depth == 0:
+                top_start = m.start()
+                content_start = m.end()
+            depth += 1
+
+    if not intervals:
+        return html
+
+    result_parts: list[str] = []
+    last = 0
+    run_contents: list[str] = []
+    run_start: int | None = None
+    run_end = 0
+    run_has_marker = False
+
+    def flush() -> None:
+        nonlocal last, run_has_marker
+        if run_contents and run_has_marker:
+            assert run_start is not None
+            result_parts.append(html[last:run_start])
+            cleaned = [_strip_trailing_br(c) for c in run_contents]
+            result_parts.append("<br>".join(cleaned))
+            last = run_end
+        run_contents.clear()
+        run_has_marker = False
+
+    for start, end, content, is_leaf in intervals:
+        if is_leaf:
+            if not run_contents:
+                run_start = start
+            run_contents.append(content)
+            run_end = end
+            if _has_block_markdown(content):
+                run_has_marker = True
+        else:
+            flush()
+            result_parts.append(html[last:start])
+            result_parts.append(html[start:end])
+            last = end
+            run_start = None
+
+    flush()
+    result_parts.append(html[last:])
+    return "".join(result_parts)
+
+
 # A table row glued onto preceding HTML with no <br> before it — Anki's
 # paste sometimes opens/closes a block tag (e.g. `</ul><div>`) right before
 # a table's first row instead of inserting <br>. `.*` is greedy so this
@@ -546,6 +655,10 @@ def convert_markdown_field(html: str) -> str:
     """
     if not html:
         return html
+
+    # Convert leaf-<div>-per-line fields (common after Anki paste) into the
+    # <br>-separated representation the rest of the pipeline understands.
+    html = _normalize_top_level_leaf_div_runs(html)
 
     # Split on <br>, preserving delimiters.
     split_parts = _BR_SPLIT_RE.split(html)
