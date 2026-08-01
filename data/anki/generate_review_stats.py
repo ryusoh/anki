@@ -16,9 +16,16 @@ OUTPUT_FILE = Path(os.environ.get("ANKI_REVIEW_STATS_OUTPUT", str(SCRIPT_DIR / "
 CARDS_FILE = SCRIPT_DIR / "cards.json.gz"
 
 
+# Bolt: Cache date string conversions to eliminate O(N) object allocations and formatting
+# in the hot loop over hundreds of thousands of review items.
+# We pre-calculate and map integer day indexes to ISO-8601 date strings.
+_date_cache = {}
 def parse_review_timestamp(ts_ms):
     """Convert review timestamp (ms) to date string."""
-    return datetime.fromtimestamp(ts_ms / 1000).date()
+    day_idx = ts_ms // 86400000
+    if day_idx not in _date_cache:
+        _date_cache[day_idx] = datetime.fromtimestamp(ts_ms / 1000).date().isoformat()
+    return _date_cache[day_idx]
 
 
 def _init_stats(date_str):
@@ -119,7 +126,7 @@ def aggregate_reviews():
     deck_daily_stats = {}
     
     for review in all_reviews:
-        date_str = parse_review_timestamp(review["id"]).isoformat()
+        date_str = parse_review_timestamp(review["id"])
         
         # Determine deck
         cid = review.get("cid")
