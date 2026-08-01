@@ -70,7 +70,7 @@ def _convert_inline(text: str) -> str:
         return text
 
     # Find and protect MathJax blocks.
-    mathjax_blocks = []
+    mathjax_blocks: list[str] = []
 
     def protect_mathjax(match):
         placeholder = f"__MATHJAX_PLACEHOLDER_{len(mathjax_blocks)}__"
@@ -153,6 +153,29 @@ def _convert_line(line: str) -> tuple[str, str]:
 # ---------------------------------------------------------------------------
 # Code Blocks & Tables Parsing Helpers
 # ---------------------------------------------------------------------------
+
+
+# A code fence glued onto preceding HTML with no <br> before it — same paste
+# artifact as the table-row case below (e.g. `</ul>```assembly`). Without
+# splitting, `_parse_code_blocks` never sees the fence start the part.
+_BLOCK_BOUNDARY_CODE_FENCE_RE = re.compile(
+    r"^(.*</?(?:div|ul|ol|li|p|blockquote|h[1-6])\b[^>]*>)\s*(```[^\n]*)$",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def _split_glued_code_fences(parts: list[tuple[str, bool]]) -> list[tuple[str, bool]]:
+    """Splits an opening fence glued onto preceding HTML into two parts."""
+    result: list[tuple[str, bool]] = []
+    for content, is_br in parts:
+        if not is_br:
+            m = _BLOCK_BOUNDARY_CODE_FENCE_RE.match(content)
+            if m:
+                result.append((m.group(1), False))
+                result.append((m.group(2), False))
+                continue
+        result.append((content, is_br))
+    return result
 
 
 def _parse_code_blocks(parts: list[tuple[str, bool]]) -> list[tuple[str, str]]:
@@ -532,6 +555,9 @@ def convert_markdown_field(html: str) -> str:
             parts_tuples.append((part, True))
         else:
             parts_tuples.append((part, False))
+
+    # Split off opening code fences glued onto preceding HTML with no <br>.
+    parts_tuples = _split_glued_code_fences(parts_tuples)
 
     # Parse code blocks
     parts = _parse_code_blocks(parts_tuples)

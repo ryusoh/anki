@@ -359,6 +359,30 @@ def test_code_block_protects_asterisks():
     assert convert_markdown_field(html) == expected
 
 
+def test_code_block_fence_glued_to_closing_tag():
+    """Fence glued onto preceding block HTML with no <br> before it.
+
+    Anki's paste sometimes closes a block tag (e.g. `</ul>`) right before an
+    opening ``` fence instead of inserting <br> — mirrors the real Back field
+    of the 'JNZ（Jump if Not Zero，非零则跳转）' note. `_parse_code_blocks`
+    requires the fence to start the part, so without splitting the fence off
+    the block passes through unconverted.
+    """
+    html = (
+        '<ul><li><b>示例</b>：</li></ul>'
+        '```assembly<br>'
+        '&nbsp; MOV CX, 5<br>'
+        '&nbsp; JNZ LOOP_START<br>'
+        '```'
+    )
+    out = convert_markdown_field(html)
+    assert '<pre style=' in out
+    assert '<code class="language-assembly">' in out
+    assert '&nbsp; MOV CX, 5' in out
+    assert out.startswith('<ul><li><b>示例</b>：</li></ul>')
+    assert '```' not in out
+
+
 # ---------------------------------------------------------------------------
 # Markdown Tables
 # ---------------------------------------------------------------------------
