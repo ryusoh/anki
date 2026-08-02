@@ -44,7 +44,7 @@ def _apply_itaigi(editor: Editor, text_to_search: str) -> None:
         tooltip(f"Word '{text}' not found in iTaigi or fallbacks.")
         return
 
-    tailo, mandarin = parsed
+    tailo, mandarin, fallback_audio_url = parsed
 
     if editor.note is None:
         return
@@ -59,7 +59,9 @@ def _apply_itaigi(editor: Editor, text_to_search: str) -> None:
         tooltip("No 'Back' field found in this note type.")
         return
 
-    audio_filename = save_audio_to_media(tailo)
+    audio_filename = save_audio_to_media(
+        tailo, fallback_url=fallback_audio_url
+    )
     new_html = format_itaigi_result(tailo, mandarin, audio_filename)
     if new_html is None:
         tooltip(f"No iTaigi result to add for '{text}'.")

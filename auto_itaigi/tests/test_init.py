@@ -73,7 +73,7 @@ def test_apply_itaigi_success_with_audio():
     with (
         patch(
             "auto_itaigi.lookup_itaigi",
-            return_value=("han-tsî/han-tsû", ["蕃薯", "甘薯", "地瓜"]),
+            return_value=("han-tsî/han-tsû", ["蕃薯", "甘薯", "地瓜"], None),
         ),
         patch("auto_itaigi.save_audio_to_media", return_value="itaigi_han-tsi.mp3"),
     ):
@@ -100,7 +100,7 @@ def test_apply_itaigi_audio_failure_still_writes_text():
     with (
         patch(
             "auto_itaigi.lookup_itaigi",
-            return_value=("han-tsî/han-tsû", ["蕃薯", "甘薯", "地瓜"]),
+            return_value=("han-tsî/han-tsû", ["蕃薯", "甘薯", "地瓜"], None),
         ),
         patch("auto_itaigi.save_audio_to_media", return_value=None),
     ):

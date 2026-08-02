@@ -108,27 +108,34 @@ def media_filename(tailo: str) -> str:
     return f"itaigi_{slug or 'audio'}.mp3"
 
 
-def download_audio(tailo: str) -> bytes | None:
+def download_audio(tailo: str, fallback_url: str | None = None) -> bytes | None:
     """Return MP3 bytes, or None on any failure."""
-    try:
-        req = Request(
-            hapsing_url(tailo),
-            headers={
-                "User-Agent": "AnkiAutoItaigi/1.0 (https://github.com/ryusoh/anki)"
-            },
-        )
-        with urlopen_with_proxy_fallback(req, timeout=10) as resp:
-            data = resp.read()
-    except Exception:
-        return None
-    if data[:3] == b"ID3" or data[:2] in (b"\xff\xfb", b"\xff\xf3", b"\xff\xf2"):
-        return data
+    urls = [hapsing_url(tailo)]
+    if fallback_url:
+        urls.append(fallback_url)
+
+    for url in urls:
+        try:
+            req = Request(
+                url,
+                headers={
+                    "User-Agent": "AnkiAutoItaigi/1.0 (https://github.com/ryusoh/anki)"
+                },
+            )
+            with urlopen_with_proxy_fallback(req, timeout=10) as resp:
+                data = resp.read()
+            if data[:3] == b"ID3" or data[:2] in (b"\xff\xfb", b"\xff\xf3", b"\xff\xf2"):
+                return data
+        except Exception:
+            continue
     return None
 
 
-def save_audio_to_media(tailo: str) -> str | None:
+def save_audio_to_media(
+    tailo: str, fallback_url: str | None = None
+) -> str | None:
     """Download + store. Returns the media filename for [sound:], or None."""
-    data = download_audio(tailo)
+    data = download_audio(tailo, fallback_url=fallback_url)
     if data is None:
         return None
     fname = media_filename(tailo)
@@ -168,7 +175,9 @@ def fetch_itaigi_json(word: str) -> str:
         return f"Error: {e}"
 
 
-def fetch_moedict_entry(word: str) -> tuple[str, list[str]] | None:
+def fetch_moedict_entry(
+    word: str,
+) -> tuple[str, list[str], str | None] | None:
     """Fallback 1: Fetch entry from g0v MOEDiCT Minnan API (https://www.moedict.tw/t/{word}.json)."""
     url = f"https://www.moedict.tw/t/{quote(word)}.json"
     req = Request(
@@ -188,6 +197,13 @@ def fetch_moedict_entry(word: str) -> tuple[str, list[str]] | None:
         return None
     h0 = heteronyms[0]
     tailo = (h0.get("T") or "").strip()
+    audio_id = str(h0.get("_") or "").strip()
+    audio_url = (
+        f"https://r2-assets.moedict.tw/audio/t/{audio_id}.mp3"
+        if audio_id
+        else None
+    )
+
     defs = h0.get("d") or []
     mandarin: list[str] = []
     for d in defs:
@@ -197,7 +213,7 @@ def fetch_moedict_entry(word: str) -> tuple[str, list[str]] | None:
             mandarin.append(cleaned)
     if not tailo and not mandarin:
         return None
-    return tailo, mandarin
+    return tailo, mandarin, audio_url
 
 
 def fetch_chhoetaigi_entry(word: str) -> tuple[str, list[str]] | None:
@@ -238,18 +254,21 @@ def fetch_chhoetaigi_entry(word: str) -> tuple[str, list[str]] | None:
     return _chhoetaigi_cache.get(word)
 
 
-def lookup_itaigi(word: str) -> tuple[str, list[str]] | None:
+def lookup_itaigi(word: str) -> tuple[str, list[str], str | None] | None:
     """Lookup Taiwanese Hokkien entry with 3-tier fallback chain:
     1. iTaigi API (https://itaigi.tw)
     2. MOEDiCT API (https://www.moedict.tw)
     3. ChhoeTaigi Dataset (GitHub raw CSV)
+
+    Returns (tailo, mandarin_words, fallback_audio_url) or None.
     """
     # Tier 1: iTaigi API
     body = fetch_itaigi_json(word)
     if body and not body.startswith("Error:"):
         parsed = parse_itaigi_json(body, word)
         if parsed is not None:
-            return parsed
+            tailo, mandarin = parsed
+            return tailo, mandarin, None
 
     # Tier 2: MOEDiCT API
     moe_res = fetch_moedict_entry(word)
@@ -259,7 +278,8 @@ def lookup_itaigi(word: str) -> tuple[str, list[str]] | None:
     # Tier 3: ChhoeTaigi Dataset
     chhoe_res = fetch_chhoetaigi_entry(word)
     if chhoe_res is not None:
-        return chhoe_res
+        tailo, mandarin = chhoe_res
+        return tailo, mandarin, None
 
     return None
 
