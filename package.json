@@ -5,6 +5,9 @@
     "#js/*": "./js/*",
     "#ui/*": "./js/ui/*"
   },
+  "scripts": {
+    "test": "NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" jest"
+  },
   "dependencies": {
     "jsdom": "27.0.0"
   },
@@ -21,6 +24,9 @@
     "typescript": "^7.0.2"
   },
   "jest": {
+    "roots": [
+      "<rootDir>/review_heatmap/tests"
+    ],
     "testPathIgnorePatterns": [
       "/node_modules/",
       "<rootDir>/.claude/",
