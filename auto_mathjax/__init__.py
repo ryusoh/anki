@@ -52,13 +52,15 @@ BARE_LATEX_COMMAND_RE = re.compile(
     r'\\(?:'
     r'frac|dfrac|tfrac|text|times|sqrt|sum|prod|int|cdot|pm|mp|div(?:isionsymbol)?|'
     r'oiiint|oiint|oint|'
-    r'leq?|geq?|neq|approx|equiv|propto|infty|log|ln|exp|sin|cos|tan|lim|'
+    r'leq?|geq?|neq|approx|equiv|propto|infty|log|ln|exp|sin|cos|tan|lim|min|max|inf|sup|argmin|argmax|'
     r'partial|nabla|to|rightarrow|Rightarrow|left|right|over|hat|bar|vec|'
     r'mathbb|mathrm|mathbf|mathit|operatorname|'
     r'alpha|beta|gamma|Gamma|delta|Delta|epsilon|theta|lambdabar|lambda|mu|pi|rho|'
     r'sigma|Sigma|tau|phi|Phi|omega|Omega'
     r')\b'
 )
+
+CODE_TAG_RE = re.compile(r'<code>(.*?)</code>', re.IGNORECASE | re.DOTALL)
 
 # \text-like groups whose braces hold prose, not math — their contents must
 # not count against the "leftover prose" check below.
@@ -209,6 +211,19 @@ def _looks_like_bare_latex(segment):
     return all(len(word) <= 2 for word in re.findall(r'[a-zA-Z]+', stripped))
 
 
+def _convert_code_latex(segment):
+    """Convert <code>...</code> blocks containing whitelisted LaTeX commands to \\(...\\)."""
+
+    def repl(m):
+        inner = m.group(1)
+        if BARE_LATEX_COMMAND_RE.search(inner) and not CJK_RE.search(inner):
+            core = inner.strip()
+            return '\\(' + core + '\\)'
+        return m.group(0)
+
+    return CODE_TAG_RE.sub(repl, segment)
+
+
 def _wrap_embedded_latex(segment):
     """Wrap bare-LaTeX fragments inside a prose/HTML line in \\(...\\).
 
@@ -217,6 +232,7 @@ def _wrap_embedded_latex(segment):
     containing a whitelisted command are wrapped; surrounding prose,
     tags and entities are untouched.
     """
+    segment = _convert_code_latex(segment)
     # A CJK prose line is not a formula card: letters break embedded runs,
     # so wrapping fragments there mangles shapes like (E\ln(1+r)>0).
     # Standalone integral symbols (\oint & friends) are still wrapped —

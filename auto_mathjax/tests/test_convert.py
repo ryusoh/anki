@@ -1051,3 +1051,22 @@ def test_autoclose_unclosed_mathjax_at_boundaries():
     html2 = '\\[math block without end'
     expected2 = '\\[math block without end\\]'
     assert _convert_dollar_to_mathjax(html2) == expected2
+
+
+def test_code_tag_latex_conversion():
+    r"""LaTeX inside <code>...</code> tags on a CJK line is converted to \(...\)."""
+    html = (
+        '<li><b>发送方窗口变量约束:</b> 必须满足 <code>LastByteSent - SendBase \\le \\min(\\text{cwnd}, \\text{RcvWindow})</code>。'
+        '其中 <code>SendBase</code> 为最早未被 ACK 确认的字节序号。</li>'
+    )
+    expected = (
+        '<li><b>发送方窗口变量约束:</b> 必须满足 \\(LastByteSent - SendBase \\le \\min(\\text{cwnd}, \\text{RcvWindow})\\)。'
+        '其中 <code>SendBase</code> 为最早未被 ACK 确认的字节序号。</li>'
+    )
+    assert _convert_dollar_to_mathjax(html) == expected
+
+
+def test_bare_latex_min_max_commands():
+    r"""\min, \max, \inf, \sup are recognized in BARE_LATEX_COMMAND_RE."""
+    html = '$a \\min b$'
+    assert _convert_dollar_to_mathjax(html) == '\\(a \\min b\\)'
