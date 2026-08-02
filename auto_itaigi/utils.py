@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import csv
+import io
 import json
 import re
 import unicodedata
@@ -8,6 +10,8 @@ from urllib.parse import quote, urlencode
 from urllib.request import Request
 
 from .proxy_fallback import urlopen_with_proxy_fallback
+
+_chhoetaigi_cache: dict[str, tuple[str, list[str]]] | None = None
 
 
 def _extract_entry(entry: dict) -> tuple[str, list[str]]:
@@ -162,3 +166,100 @@ def fetch_itaigi_json(word: str) -> str:
         return "Error: Network connection failed."
     except Exception as e:
         return f"Error: {e}"
+
+
+def fetch_moedict_entry(word: str) -> tuple[str, list[str]] | None:
+    """Fallback 1: Fetch entry from g0v MOEDiCT Minnan API (https://www.moedict.tw/t/{word}.json)."""
+    url = f"https://www.moedict.tw/t/{quote(word)}.json"
+    req = Request(
+        url,
+        headers={
+            "User-Agent": "AnkiAutoItaigi/1.0 (https://github.com/ryusoh/anki)"
+        },
+    )
+    try:
+        with urlopen_with_proxy_fallback(req, timeout=5) as response:
+            data = json.loads(response.read().decode("utf-8"))
+    except Exception:
+        return None
+
+    heteronyms = data.get("h") or []
+    if not heteronyms:
+        return None
+    h0 = heteronyms[0]
+    tailo = (h0.get("T") or "").strip()
+    defs = h0.get("d") or []
+    mandarin: list[str] = []
+    for d in defs:
+        f = d.get("f", "")
+        cleaned = re.sub(r"[`~]", "", f).strip()
+        if cleaned and cleaned not in mandarin:
+            mandarin.append(cleaned)
+    if not tailo and not mandarin:
+        return None
+    return tailo, mandarin
+
+
+def fetch_chhoetaigi_entry(word: str) -> tuple[str, list[str]] | None:
+    """Fallback 2: Fetch entry from ChhoeTaigi iTaigi dataset (cached in memory)."""
+    global _chhoetaigi_cache
+    if _chhoetaigi_cache is None:
+        url = "https://raw.githubusercontent.com/ChhoeTaigi/ChhoeTaigiDatabase/master/ChhoeTaigiDatabase/ChhoeTaigi_iTaigiHoataiTuichiautian.csv"
+        req = Request(
+            url,
+            headers={
+                "User-Agent": "AnkiAutoItaigi/1.0 (https://github.com/ryusoh/anki)"
+            },
+        )
+        try:
+            with urlopen_with_proxy_fallback(req, timeout=10) as resp:
+                content = resp.read().decode("utf-8")
+            reader = csv.DictReader(io.StringIO(content))
+            cache: dict[str, tuple[list[str], list[str]]] = {}
+            for row in reader:
+                hoabun = (row.get("HoaBun") or "").strip()
+                kip = (row.get("KipUnicode") or "").strip()
+                taibun = (row.get("HanLoTaibunKip") or "").strip()
+                if not hoabun:
+                    continue
+                if hoabun not in cache:
+                    cache[hoabun] = ([], [])
+                tailos, taibuns = cache[hoabun]
+                if kip and kip not in tailos:
+                    tailos.append(kip)
+                if taibun and taibun not in taibuns:
+                    taibuns.append(taibun)
+            _chhoetaigi_cache = {
+                k: ("/".join(v[0]), v[1]) for k, v in cache.items()
+            }
+        except Exception:
+            _chhoetaigi_cache = {}
+
+    return _chhoetaigi_cache.get(word)
+
+
+def lookup_itaigi(word: str) -> tuple[str, list[str]] | None:
+    """Lookup Taiwanese Hokkien entry with 3-tier fallback chain:
+    1. iTaigi API (https://itaigi.tw)
+    2. MOEDiCT API (https://www.moedict.tw)
+    3. ChhoeTaigi Dataset (GitHub raw CSV)
+    """
+    # Tier 1: iTaigi API
+    body = fetch_itaigi_json(word)
+    if body and not body.startswith("Error:"):
+        parsed = parse_itaigi_json(body, word)
+        if parsed is not None:
+            return parsed
+
+    # Tier 2: MOEDiCT API
+    moe_res = fetch_moedict_entry(word)
+    if moe_res is not None:
+        return moe_res
+
+    # Tier 3: ChhoeTaigi Dataset
+    chhoe_res = fetch_chhoetaigi_entry(word)
+    if chhoe_res is not None:
+        return chhoe_res
+
+    return None
+

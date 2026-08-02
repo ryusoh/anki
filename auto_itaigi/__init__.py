@@ -8,6 +8,7 @@ from aqt.editor import Editor
 from .utils import (
     fetch_itaigi_json,
     format_itaigi_result,
+    lookup_itaigi,
     merge_itaigi_result,
     parse_itaigi_json,
     save_audio_to_media,
@@ -30,7 +31,7 @@ def _clean_html_text(html_text: str) -> str:
 
 
 def _apply_itaigi(editor: Editor, text_to_search: str) -> None:
-    """Fetch the iTaigi entry and prepend it to the Back field."""
+    """Fetch the iTaigi entry (or MOEDiCT / ChhoeTaigi fallbacks) and prepend it to the Back field."""
     from aqt.utils import tooltip
 
     text = _clean_html_text(text_to_search)
@@ -38,17 +39,9 @@ def _apply_itaigi(editor: Editor, text_to_search: str) -> None:
         tooltip("No text found to search iTaigi.")
         return
 
-    body = fetch_itaigi_json(text)
-    if not body:
-        tooltip(f"Word '{text}' not found in iTaigi.")
-        return
-    if body.startswith("Error:"):
-        tooltip(f"iTaigi API {body}")
-        return
-
-    parsed = parse_itaigi_json(body, text)
+    parsed = lookup_itaigi(text)
     if parsed is None:
-        tooltip(f"Word '{text}' not found in iTaigi.")
+        tooltip(f"Word '{text}' not found in iTaigi or fallbacks.")
         return
 
     tailo, mandarin = parsed

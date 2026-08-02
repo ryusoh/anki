@@ -5,7 +5,12 @@ from urllib.error import HTTPError, URLError
 
 import pytest
 
-from auto_itaigi.utils import fetch_itaigi_json
+from auto_itaigi.utils import (
+    fetch_chhoetaigi_entry,
+    fetch_itaigi_json,
+    fetch_moedict_entry,
+    lookup_itaigi,
+)
 
 
 def _make_response(body: bytes) -> MagicMock:
@@ -67,3 +72,62 @@ def test_fetch_itaigi_json_url_error_returns_network():
         side_effect=URLError("no route"),
     ):
         assert fetch_itaigi_json("番薯") == "Error: Network connection failed."
+
+
+def test_fetch_moedict_entry_success():
+    body = '{"h": [{"T": "han-tsî/han-tsû", "d": [{"f": "`地~`瓜~"}]}]}'.encode("utf-8")
+    mock_resp = _make_response(body)
+    mock_urlopen = MagicMock()
+    mock_urlopen.return_value.__enter__.return_value = mock_resp
+    with patch("auto_itaigi.utils.urlopen_with_proxy_fallback", new=mock_urlopen):
+        res = fetch_moedict_entry("番薯")
+        assert res == ("han-tsî/han-tsû", ["地瓜"])
+
+
+def test_fetch_moedict_entry_failure():
+    with patch("auto_itaigi.utils.urlopen_with_proxy_fallback", side_effect=Exception("error")):
+        assert fetch_moedict_entry("unknown") is None
+
+
+def test_fetch_chhoetaigi_entry_success():
+    csv_data = 'HoaBun,KipUnicode,HanLoTaibunKip\n番薯,han-tsî,蕃薯\n'.encode("utf-8")
+    mock_resp = _make_response(csv_data)
+    mock_urlopen = MagicMock()
+    mock_urlopen.return_value.__enter__.return_value = mock_resp
+    with patch("auto_itaigi.utils.urlopen_with_proxy_fallback", new=mock_urlopen):
+        with patch("auto_itaigi.utils._chhoetaigi_cache", None):
+            res = fetch_chhoetaigi_entry("番薯")
+            assert res == ("han-tsî", ["蕃薯"])
+
+
+def test_lookup_itaigi_tier1_success():
+    fixture = '{"列表": [{"新詞文本": [{"文本資料": "番薯", "音標資料": "han-tsî", "按呢講的外語列表": [{"外語資料": "地瓜"}]}]}]}'
+    with (
+        patch("auto_itaigi.utils.fetch_itaigi_json", return_value=fixture),
+        patch("auto_itaigi.utils.fetch_moedict_entry") as mock_moe,
+    ):
+        res = lookup_itaigi("番薯")
+        assert res == ("han-tsî", ["地瓜"])
+        assert not mock_moe.called
+
+
+def test_lookup_itaigi_tier1_fail_tier2_success():
+    with (
+        patch("auto_itaigi.utils.fetch_itaigi_json", return_value="Error: 500"),
+        patch("auto_itaigi.utils.fetch_moedict_entry", return_value=("han-tsî", ["地瓜"])),
+        patch("auto_itaigi.utils.fetch_chhoetaigi_entry") as mock_chhoe,
+    ):
+        res = lookup_itaigi("番薯")
+        assert res == ("han-tsî", ["地瓜"])
+        assert not mock_chhoe.called
+
+
+def test_lookup_itaigi_tier1_2_fail_tier3_success():
+    with (
+        patch("auto_itaigi.utils.fetch_itaigi_json", return_value="Error: 500"),
+        patch("auto_itaigi.utils.fetch_moedict_entry", return_value=None),
+        patch("auto_itaigi.utils.fetch_chhoetaigi_entry", return_value=("han-tsî", ["蕃薯"])),
+    ):
+        res = lookup_itaigi("番薯")
+        assert res == ("han-tsî", ["蕃薯"])
+

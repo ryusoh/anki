@@ -71,7 +71,10 @@ def test_apply_itaigi_no_back_field():
 def test_apply_itaigi_success_with_audio():
     editor = _editor_with_note()
     with (
-        patch("auto_itaigi.fetch_itaigi_json", return_value=_FIXTURE),
+        patch(
+            "auto_itaigi.lookup_itaigi",
+            return_value=("han-tsî/han-tsû", ["蕃薯", "甘薯", "地瓜"]),
+        ),
         patch("auto_itaigi.save_audio_to_media", return_value="itaigi_han-tsi.mp3"),
     ):
         _apply_itaigi(editor, "番薯")
@@ -85,7 +88,7 @@ def test_apply_itaigi_success_with_audio():
 
 def test_apply_itaigi_not_found():
     editor = _editor_with_note()
-    with patch("auto_itaigi.fetch_itaigi_json", return_value='{"列表": []}'):
+    with patch("auto_itaigi.lookup_itaigi", return_value=None):
         _apply_itaigi(editor, "番薯")
     assert editor.note.fields[1] == ""
     assert not editor.loadNoteKeepingFocus.called
@@ -95,7 +98,10 @@ def test_apply_itaigi_not_found():
 def test_apply_itaigi_audio_failure_still_writes_text():
     editor = _editor_with_note()
     with (
-        patch("auto_itaigi.fetch_itaigi_json", return_value=_FIXTURE),
+        patch(
+            "auto_itaigi.lookup_itaigi",
+            return_value=("han-tsî/han-tsû", ["蕃薯", "甘薯", "地瓜"]),
+        ),
         patch("auto_itaigi.save_audio_to_media", return_value=None),
     ):
         _apply_itaigi(editor, "番薯")
@@ -104,7 +110,7 @@ def test_apply_itaigi_audio_failure_still_writes_text():
 
 def test_apply_itaigi_fetch_error():
     editor = _editor_with_note()
-    with patch("auto_itaigi.fetch_itaigi_json", return_value="Error: 500"):
+    with patch("auto_itaigi.lookup_itaigi", return_value=None):
         _apply_itaigi(editor, "番薯")
     assert editor.note.fields[1] == ""
     assert sys.modules["aqt.utils"].tooltip.called
