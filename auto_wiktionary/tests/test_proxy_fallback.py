@@ -106,6 +106,21 @@ def test_detect_local_proxy_finds_astrill_openweb_port():
         assert proxy_fallback._detect_local_proxy() == 'http://127.0.0.1:3213'
 
 
+def test_detect_local_proxy_finds_dynamic_system_or_env_port():
+    """Custom port configured in system proxy or HTTP_PROXY env var is dynamically probed."""
+
+    def fake_connect(addr, timeout):
+        if addr[1] != 9999:
+            raise OSError('closed')
+        return MagicMock()
+
+    with (
+        patch('socket.create_connection', side_effect=fake_connect),
+        patch('urllib.request.getproxies', return_value={'http': 'http://127.0.0.1:9999'}),
+    ):
+        assert proxy_fallback._detect_local_proxy() == 'http://127.0.0.1:9999'
+
+
 def test_dead_cached_proxy_heals_back_to_direct():
     dead = MagicMock()
     dead.open.side_effect = OSError('proxy gone')

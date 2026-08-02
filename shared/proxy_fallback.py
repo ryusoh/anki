@@ -31,15 +31,36 @@ _proxy_opener = None  # cached opener routed through a detected local proxy
 
 def _detect_local_proxy(ports=_LOCAL_PROXY_PORTS):
     """Return a live local HTTP proxy URL worth falling back to, or None."""
+    import os
     import socket
+    from urllib.parse import urlparse
 
-    for port in ports:
+    candidate_ports = list(ports)
+
+    # Dynamically discover local proxy ports configured in system settings or env
+    for proxy_url in urllib.request.getproxies().values():
+        if proxy_url:
+            parsed = urlparse(proxy_url if '://' in proxy_url else f'http://{proxy_url}')
+            if parsed.hostname in ('127.0.0.1', 'localhost') and parsed.port:
+                if parsed.port not in candidate_ports:
+                    candidate_ports.insert(0, parsed.port)
+
+    for env_var in ('HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'http_proxy', 'https_proxy', 'all_proxy'):
+        val = os.environ.get(env_var)
+        if val:
+            parsed = urlparse(val if '://' in val else f'http://{val}')
+            if parsed.hostname in ('127.0.0.1', 'localhost') and parsed.port:
+                if parsed.port not in candidate_ports:
+                    candidate_ports.insert(0, parsed.port)
+
+    for port in candidate_ports:
         try:
             with socket.create_connection(('127.0.0.1', port), timeout=0.3):
                 return f'http://127.0.0.1:{port}'
         except OSError:
             continue
     return None
+
 
 
 def _build_direct_opener():
