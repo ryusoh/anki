@@ -225,14 +225,15 @@ def _iter_heading_divs(soup):
             yield div, level, h_tag
 
 
-def _remove_heading_div_block(div, level):
+def _remove_heading_div_block(div, level, stop_at_any_heading=False):
     # Heading divs are flat siblings of their content (no <section> nesting):
-    # drop everything up to the next heading div of the same or higher level.
+    # drop everything up to the next heading div of the same or higher level
+    # (or any next heading div when stop_at_any_heading is True).
     node = div.next_sibling
     while node is not None:
         nxt = node.next_sibling
         if isinstance(node, Tag) and _heading_div_level(node) is not None:
-            if _heading_div_level(node) <= level:
+            if stop_at_any_heading or _heading_div_level(node) <= level:
                 break
         node.extract()
         node = nxt
@@ -272,15 +273,18 @@ def _remove_unwanted_tags(soup):
         '関連項目',
         'anagram',
     ]
-    for section in soup.find_all('section'):
+    for section in list(soup.find_all('section')):
         h_tag = section.find(['h2', 'h3', 'h4', 'h5'])
         if h_tag:
             header_text = h_tag.get_text().lower()
             if any(kw in header_text for kw in skip_keywords):
+                child_sections = section.find_all('section', recursive=False)
+                for child in reversed(child_sections):
+                    section.insert_after(child)
                 section.decompose()
     for div, level, h_tag in _iter_heading_divs(soup):
         if any(kw in h_tag.get_text().lower() for kw in skip_keywords):
-            _remove_heading_div_block(div, level)
+            _remove_heading_div_block(div, level, stop_at_any_heading=True)
 
 
 def _extract_square_bracket_reading(p_tag):

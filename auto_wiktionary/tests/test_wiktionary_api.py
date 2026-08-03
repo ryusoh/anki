@@ -501,3 +501,69 @@ def test_fetch_wiktionary_html_error():
         )  # pyright: ignore[reportArgumentType]
         res = fetch_wiktionary_html("error_word", "en")
         assert res == "Error: 500"
+
+
+def test_parse_wiktionary_html_chope_etymology_subheadings():
+    """
+    English entries with Etymology 1 (h3) and POS sub-headings (Verb, Noun at h4)
+    must not have their definitions wiped out when the Etymology 1 heading is
+    removed as an unwanted section.
+    """
+    mock_html = """
+    <div class="mw-content-ltr mw-parser-output" lang="en" dir="ltr">
+        <div class="mw-heading mw-heading2"><h2 id="English">English</h2></div>
+        <div class="mw-heading mw-heading3"><h3 id="Etymology_1">Etymology 1</h3></div>
+        <p>From Malay chup.</p>
+        <div class="mw-heading mw-heading4"><h4 id="Pronunciation">Pronunciation</h4></div>
+        <ul><li>IPA: /tʃəʊp/</li></ul>
+        <div class="mw-heading mw-heading4"><h4 id="Verb">Verb</h4></div>
+        <p><strong>chope</strong> (<i>third-person singular simple present</i> <b>chopes</b>)</p>
+        <ol>
+            <li>(transitive, Singapore) To reserve a place, such as a seat.</li>
+        </ol>
+        <div class="mw-heading mw-heading3"><h3 id="Etymology_2">Etymology 2</h3></div>
+        <div class="mw-heading mw-heading4"><h4 id="Noun">Noun</h4></div>
+        <p><strong>chope</strong> (<i>plural</i> <b>chopes</b>)</p>
+        <ol>
+            <li>Obsolete form of chop.</li>
+        </ol>
+    </div>
+    """
+    parsed = parse_wiktionary_html(mock_html, lang="en")
+    assert "To reserve a place, such as a seat" in parsed
+    assert "Obsolete form of chop" in parsed
+
+
+def test_parse_wiktionary_html_chope_nested_sections():
+    """
+    REST v1 HTML (used by fetch_wiktionary_html) wraps sub-headings inside nested
+    <section> tags. Decomposing an Etymology 1 section must un-nest child sections
+    first so POS sections (Verb, Noun) under Etymology 1 are not destroyed.
+    """
+    mock_html = """
+    <section id="s1"><h2>English</h2>
+        <section id="s2"><h3>Etymology 1</h3>
+            <p>From Malay chup.</p>
+            <section id="s3"><h4>Pronunciation</h4>
+                <ul><li>IPA: /tʃəʊp/</li></ul>
+            </section>
+            <section id="s4"><h4>Verb</h4>
+                <p><strong>chope</strong> (<i>third-person singular simple present</i> <b>chopes</b>)</p>
+                <ol>
+                    <li>(transitive, Singapore) To reserve a place, such as a seat.</li>
+                </ol>
+            </section>
+        </section>
+        <section id="s5"><h3>Etymology 2</h3>
+            <section id="s6"><h4>Noun</h4>
+                <p><strong>chope</strong> (<i>plural</i> <b>chopes</b>)</p>
+                <ol>
+                    <li>Obsolete form of chop.</li>
+                </ol>
+            </section>
+        </section>
+    </section>
+    """
+    parsed = parse_wiktionary_html(mock_html, lang="en")
+    assert "To reserve a place, such as a seat" in parsed
+    assert "Obsolete form of chop" in parsed
