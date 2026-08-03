@@ -100,7 +100,9 @@ def test_detect_local_proxy_finds_astrill_openweb_port():
     def fake_connect(addr, timeout):
         if addr[1] != 3213:
             raise OSError('closed')
-        return MagicMock()
+        sock = MagicMock()
+        sock.recv.return_value = b'HTTP/1.1 200 Connection Established\r\n\r\n'
+        return sock
 
     with patch('socket.create_connection', side_effect=fake_connect):
         assert proxy_fallback._detect_local_proxy() == 'http://127.0.0.1:3213'
@@ -112,13 +114,29 @@ def test_detect_local_proxy_finds_dynamic_system_or_env_port():
     def fake_connect(addr, timeout):
         if addr[1] != 9999:
             raise OSError('closed')
-        return MagicMock()
+        sock = MagicMock()
+        sock.recv.return_value = b'HTTP/1.1 200 Connection Established\r\n\r\n'
+        return sock
 
     with (
         patch('socket.create_connection', side_effect=fake_connect),
         patch('urllib.request.getproxies', return_value={'http': 'http://127.0.0.1:9999'}),
     ):
         assert proxy_fallback._detect_local_proxy() == 'http://127.0.0.1:9999'
+
+
+def test_detect_local_proxy_finds_jms_port():
+    """JMS proxy listener on 127.0.0.1:19750 is detected when active."""
+
+    def fake_connect(addr, timeout):
+        if addr[1] != 19750:
+            raise OSError('closed')
+        sock = MagicMock()
+        sock.recv.return_value = b'HTTP/1.1 200 Connection Established\r\n\r\n'
+        return sock
+
+    with patch('socket.create_connection', side_effect=fake_connect):
+        assert proxy_fallback._detect_local_proxy() == 'http://127.0.0.1:19750'
 
 
 def test_dead_cached_proxy_heals_back_to_direct():

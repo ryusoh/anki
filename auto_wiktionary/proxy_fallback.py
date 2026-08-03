@@ -22,9 +22,9 @@ import urllib.request
 from urllib.error import HTTPError
 
 # Well-known localhost HTTP-proxy ports probed when a direct connection
-# fails: Clash Verge/Clash mixed ports, ShadowsocksX-NG HTTP, Privoxy,
-# Astrill VPN (OpenWeb mode local HTTP proxy).
-_LOCAL_PROXY_PORTS = (7897, 7890, 1087, 8118, 3213)
+# fails: JMS (19750), Clash Verge/Clash mixed ports (7897, 7890),
+# ShadowsocksX-NG HTTP (1087), Privoxy (8118), Astrill VPN (3213).
+_LOCAL_PROXY_PORTS = (19750, 7897, 7890, 1087, 8118, 3213)
 
 _proxy_opener = None  # cached opener routed through a detected local proxy
 
@@ -59,7 +59,18 @@ def _detect_local_proxy(ports=_LOCAL_PROXY_PORTS):
 
     for port in candidate_ports:
         try:
-            with socket.create_connection(("127.0.0.1", port), timeout=0.3):
+            with socket.create_connection(("127.0.0.1", port), timeout=0.3) as s:
+                s.settimeout(0.5)
+                try:
+                    s.sendall(
+                        b"CONNECT en.wiktionary.org:443 HTTP/1.1\r\nHost:"
+                        b" en.wiktionary.org:443\r\n\r\n"
+                    )
+                    data = s.recv(128)
+                    if data and (b"200" in data or b"HTTP/" in data):
+                        return f"http://127.0.0.1:{port}"
+                except OSError:
+                    pass
                 return f"http://127.0.0.1:{port}"
         except OSError:
             continue
