@@ -301,7 +301,7 @@ def test_mathjax_selection_real_card_repro():
         '\\(x^*\\)'
         '<span style="font-size: 20px;">) 上），那么：</span></h3>'
         '<div>\\(\\text{loss} = -\\log Q_\\theta(x^*\\mid c)\\)<br><br></div>'
-        '<div>这就是你在代码里看到的&nbsp;<strong>NLL / CrossEntropyLoss</strong>&nbsp;的核心。</div>'
+        '<div>这就是&nbsp;<strong>NLL / CrossEntropyLoss</strong>&nbsp;的核心。</div>'
     )
     selected = (
         '训练数据里每个位置只给你一个“真 token” ( )。把它看成 one-hot 的经验分布'
@@ -315,7 +315,7 @@ def test_mathjax_selection_real_card_repro():
     # The untouched tail of the field is preserved verbatim
     assert res.endswith(
         '<div>\\(\\text{loss} = -\\log Q_\\theta(x^*\\mid c)\\)<br><br></div>'
-        '<div>这就是你在代码里看到的&nbsp;<strong>NLL / CrossEntropyLoss</strong>&nbsp;的核心。</div>'
+        '<div>这就是&nbsp;<strong>NLL / CrossEntropyLoss</strong>&nbsp;的核心。</div>'
     )
 
 
