@@ -1070,3 +1070,27 @@ def test_bare_latex_min_max_commands():
     r"""\min, \max, \inf, \sup are recognized in BARE_LATEX_COMMAND_RE."""
     html = '$a \\min b$'
     assert _convert_dollar_to_mathjax(html) == '\\(a \\min b\\)'
+
+
+def test_mangled_mathjax_html_repair():
+    r"""Mangled HTML tags inside/around MathJax (e.g. \varepsilon^* turned into <i>) are repaired."""
+    html = (
+        r'<b>电位移矢量</b>（Electric Displacement Field，符号 <anki-mathjax>\mathbf{D}</anki-mathjax>），'
+        r'也叫<b>电通量密度</b>，是经典电磁学中的一个基本场量。'
+        r'它正是复介电常数 <anki-mathjax>\varepsilon^<i></i></anki-mathjax><i> 定义中直接关联的矢量：'
+        r'<anki-mathjax>\mathbf{D} = \varepsilon^</anki-mathjax></i> \mathbf{E}。'
+    )
+    expected = (
+        r'<b>电位移矢量</b>（Electric Displacement Field，符号 <anki-mathjax>\mathbf{D}</anki-mathjax>），'
+        r'也叫<b>电通量密度</b>，是经典电磁学中的一个基本场量。'
+        r'它正是复介电常数 <anki-mathjax>\varepsilon^*</anki-mathjax> 定义中直接关联的矢量：'
+        r'<anki-mathjax>\mathbf{D} = \varepsilon^* \mathbf{E}</anki-mathjax>。'
+    )
+    assert _convert_dollar_to_mathjax(html) == expected
+
+
+def test_mangled_mathjax_delim_repair():
+    r"""Mangled HTML tags in \(...\) delimiters are also repaired cleanly."""
+    html = r'\(x^<i>\)<i> text \(\mathbf{y} = z^\)</i> \mathbf{w}'
+    expected = r'\(x^*\) text \(\mathbf{y} = z^* \mathbf{w}\)'
+    assert _convert_dollar_to_mathjax(html) == expected

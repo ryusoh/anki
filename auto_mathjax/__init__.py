@@ -377,6 +377,81 @@ def _clean_mathjax_nbsp(html_str):
     return MATHJAX_DELIM_RE.sub(_scrub_delim, html_str)
 
 
+# Regex patterns to match mangled MathJax blocks where rich-text editors
+# (Anki/browser) auto-italicized ^* or _* across math delimiters.
+MANGLED_ANKI_WITH_LATEX_RE = re.compile(
+    '(<anki-mathjax[^>]*>)'
+    '((?:(?!</anki-mathjax>).)*?)'
+    '(</anki-mathjax>)'
+    '(?:</?(?:i|em)>)*'
+    '(\\s*\\\\[a-zA-Z]+(?:\\s*\\{[^{}]*\\})*)',
+    re.DOTALL | re.IGNORECASE,
+)
+ANKI_MATH_BLOCK_RE = re.compile(
+    '(<anki-mathjax[^>]*>)' '((?:(?!</anki-mathjax>).)*?)' '(</anki-mathjax>)' '(?:</?(?:i|em)>)*',
+    re.DOTALL | re.IGNORECASE,
+)
+
+MANGLED_DELIM_WITH_LATEX_RE = re.compile(
+    '(\\\\\\[|\\\\\\()'
+    '((?:(?!\\\\\\)|\\\\]).)*?)'
+    '(\\\\]|\\\\\\))'
+    '(?:</?(?:i|em)>)*'
+    '(\\s*\\\\[a-zA-Z]+(?:\\s*\\{[^{}]*\\})*)',
+    re.DOTALL,
+)
+DELIM_MATH_BLOCK_RE = re.compile(
+    '(\\\\\\[|\\\\\\()' '((?:(?!\\\\\\)|\\\\]).)*?)' '(\\\\]|\\\\\\))' '(?:</?(?:i|em)>)*',
+    re.DOTALL,
+)
+
+
+def _fix_mangled_mathjax(html_str):
+    """Repair mangled HTML tags inside/around MathJax blocks.
+
+    Covers rich-text editor auto-italicization where '^*' or '_*' was
+    split into '<i>...</i>' or '<em>...</em>' across math delimiters,
+    leaving dangling '^' inside and pushing trailing LaTeX runs outside.
+    """
+
+    def _fix_block(m):
+        opener = m.group(1)
+        content = m.group(2)
+        closer = m.group(3)
+        trailing_latex = m.group(4) if len(m.groups()) >= 4 else ''
+
+        # Strip empty formatting tags inside math content
+        content = re.sub(
+            r'<(?:i|em|b|strong|span)[^>]*>\s*</(?:i|em|b|strong|span)>',
+            '',
+            content,
+            flags=re.IGNORECASE,
+        )
+
+        # Fix superscript/subscript operators ending with mangled HTML tag or bare '^'/'_'
+        if re.search(r'[\^_](?:<(?:i|em)>)*\s*$', content):
+            content = re.sub(r'([\^_])(?:<(?:i|em)>)*\s*$', r'\1*', content)
+            if trailing_latex:
+                content += trailing_latex
+                trailing_latex = ''
+
+        return opener + content + closer + (trailing_latex or '')
+
+    html_str = MANGLED_ANKI_WITH_LATEX_RE.sub(_fix_block, html_str)
+    html_str = ANKI_MATH_BLOCK_RE.sub(_fix_block, html_str)
+    html_str = MANGLED_DELIM_WITH_LATEX_RE.sub(_fix_block, html_str)
+    html_str = DELIM_MATH_BLOCK_RE.sub(_fix_block, html_str)
+
+    # Clean dangling <i> or </i> right after math closer if followed by prose
+    html_str = re.sub(
+        '(</anki-mathjax>|\\\\\\)|\\\\])\\s*</?(?:i|em)>(\\s*[\\u4e00-\\u9fff\\s\\w.,;!?])',
+        r'\1\2',
+        html_str,
+        flags=re.IGNORECASE,
+    )
+    return html_str
+
+
 def _unwrap_mathjax_from_pre(html_str):
     """Unwrap MathJax blocks that are trapped inside ``<pre>`` tags.
 
@@ -522,6 +597,7 @@ def _convert_dollar_to_mathjax(html_str):
     converted_html = ''.join(result_parts)
     converted_html = _clean_mathjax_nbsp(converted_html)
     converted_html = _fix_mathjax_braces(converted_html)
+    converted_html = _fix_mangled_mathjax(converted_html)
     converted_html = _unwrap_mathjax_from_pre(converted_html)
     return _inject_macro_defs(converted_html)
 
