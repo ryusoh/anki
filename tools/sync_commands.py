@@ -4,12 +4,19 @@
 Skills format, read natively by Antigravity, Kimi, and Codex.
 `.claude/commands/*.md` is generated from it for Claude Code. Edit the SKILL.md
 files, never the generated commands; `make sync-check` fails in the gate if the
-generated copy is stale.
+generated copy is stale. The check mode regenerates into a temp dir and diffs —
+the precommit gate runs targets in parallel, so a check that deleted and
+rebuilt `.claude/commands/` in place raced concurrent readers (markdownlint
+hit ENOENT on a file it had just been handed) and flaked CI.
 """
 
+import argparse
+import filecmp
 import os
 import shutil
 import subprocess
+import sys
+import tempfile
 from typing import Dict, Tuple
 
 # Constants
@@ -38,16 +45,16 @@ def parse_markdown(content: str) -> Tuple[Dict[str, str], str]:
     return yaml_data, body
 
 
-def main() -> None:
-    """Regenerate .claude/commands from the canonical .agents/skills sources."""
+def generate(skills_dir: str, target_dir: str) -> None:
+    """Regenerate commands from the canonical .agents/skills sources."""
     # Ensure target directory exists and is clean
-    if os.path.exists(COMMANDS_DIR):
-        shutil.rmtree(COMMANDS_DIR)
-    os.makedirs(COMMANDS_DIR, exist_ok=True)
+    if os.path.exists(target_dir):
+        shutil.rmtree(target_dir)
+    os.makedirs(target_dir, exist_ok=True)
 
-    if os.path.exists(SKILLS_DIR):
-        for entry in sorted(os.listdir(SKILLS_DIR)):
-            skill_dir = os.path.join(SKILLS_DIR, entry)
+    if os.path.exists(skills_dir):
+        for entry in sorted(os.listdir(skills_dir)):
+            skill_dir = os.path.join(skills_dir, entry)
             skill_md_path = os.path.join(skill_dir, "SKILL.md")
             if not os.path.isdir(skill_dir) or not os.path.exists(skill_md_path):
                 continue
@@ -62,7 +69,7 @@ def main() -> None:
             # Agent Skills use {{args}} placeholders; Claude uses $ARGUMENTS.
             body = body.replace("{{args}}", "$ARGUMENTS")
 
-            command_path = os.path.join(COMMANDS_DIR, f"{entry}.md")
+            command_path = os.path.join(target_dir, f"{entry}.md")
             with open(command_path, "w", encoding="utf-8") as f:
                 f.write("---\n")
                 f.write(f"description: {description}\n")
@@ -75,12 +82,20 @@ def main() -> None:
                 f.write(body)
                 f.write("\n")
 
-    format_generated_commands()
-
-    print("Successfully synchronized Agent Skills to Claude commands.")
+    format_generated_commands(target_dir)
 
 
-def format_generated_commands() -> None:
+def check(skills_dir: str, commands_dir: str) -> bool:
+    """True if commands_dir matches a fresh regeneration; never mutates it."""
+    if not os.path.isdir(commands_dir):
+        return False
+    with tempfile.TemporaryDirectory() as tmp:
+        generate(skills_dir, tmp)
+        comparison = filecmp.dircmp(commands_dir, tmp)
+        return not (comparison.left_only or comparison.right_only or comparison.diff_files)
+
+
+def format_generated_commands(target_dir: str) -> None:
     """Format generated commands with prettier so output matches `make fmt`.
 
     Without this, the prettier pass in `make fmt` reformats the generated
@@ -91,7 +106,7 @@ def format_generated_commands() -> None:
     """
     try:
         subprocess.run(
-            ["npx", "prettier", "--write", "--ignore-path", ".gitignore", COMMANDS_DIR],
+            ["npx", "prettier", "--write", "--ignore-path", ".gitignore", target_dir],
             cwd=WORKSPACE_ROOT,
             check=True,
             capture_output=True,
@@ -101,6 +116,27 @@ def format_generated_commands() -> None:
         print("Warning: npx not found; skipping prettier formatting of generated commands.")
     except subprocess.CalledProcessError as exc:
         print(f"Warning: prettier failed on generated commands:\n{exc.stderr}")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="exit 0 if .claude/commands is up to date, 1 on drift (read-only)",
+    )
+    args = parser.parse_args()
+    if args.check:
+        if check(SKILLS_DIR, COMMANDS_DIR):
+            print("sync-check: .claude/commands is up to date")
+            sys.exit(0)
+        print(
+            "sync-check FAIL: .claude/commands is stale — regenerate with "
+            "python3 tools/sync_commands.py and commit the result."
+        )
+        sys.exit(1)
+    generate(SKILLS_DIR, COMMANDS_DIR)
+    print("Successfully synchronized Agent Skills to Claude commands.")
 
 
 if __name__ == "__main__":

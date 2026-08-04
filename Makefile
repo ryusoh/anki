@@ -731,19 +731,15 @@ fmt-check:
 	fi
 
 # .claude/commands/ is generated from .agents/skills/ (the canonical source) by
-# tools/sync_commands.py. Fail if regeneration is not a no-op (content hash of
-# the tree before vs after), so the generated copy can never silently go stale.
-# Comparing against git HEAD would false-fail on legitimate uncommitted syncs.
+# tools/sync_commands.py. --check regenerates into a temp dir and diffs — the
+# gate runs targets in parallel, so an in-place regenerate here would delete
+# .claude/commands/ under concurrent readers (lint-md/fmt-check) and flake CI.
 sync-check:
-	@before=$$(find .claude/commands -type f | LC_ALL=C sort | xargs shasum | shasum | cut -d' ' -f1); \
-	$(PYTHON) tools/sync_commands.py >/dev/null; \
-	after=$$(find .claude/commands -type f | LC_ALL=C sort | xargs shasum | shasum | cut -d' ' -f1); \
-	if [ "$$before" = "$$after" ]; then \
-		echo "sync-check: .claude/commands is up to date"; \
-	else \
-		echo "sync-check FAIL: .claude/commands was stale and has been regenerated — commit the updated files (python3 tools/sync_commands.py)."; \
+	@$(PYTHON) tools/sync_commands.py --check >/dev/null || { \
+		echo "sync-check FAIL: .claude/commands is stale — regenerate with python3 tools/sync_commands.py and commit the result."; \
 		exit 1; \
-	fi
+	}
+	@echo "sync-check: .claude/commands is up to date"
 
 # -----------------------------------------------------------------------------
 # Linting
