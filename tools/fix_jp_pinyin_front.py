@@ -1,16 +1,16 @@
-"""Collapse 日語 sentence-card fronts to the Japanese line, moving the rest to the back.
+"""Collapse language sentence-card fronts to the target line, moving the rest to the back.
 
-In the 言語::日語 deck, sentence cards carry a multi-line front: a Chinese
-line, the Japanese sentence with spaces between words, then a
+In the 言語 decks (日語, 粤語, ...), sentence cards carry a multi-line front: a
+Chinese line, the target-language sentence with spaces between words, then a
 拼音練習/發音/音標 practice block. This script rewrites each such note via
-AnkiConnect so the front is only the Japanese sentence (spaces stripped) and
+AnkiConnect so the front is only the target sentence (spaces stripped) and
 everything else moves to the top of the back field, above the [sound:] line.
 
 Usage (from the repo root, Anki with AnkiConnect running):
 
     python3 tools/fix_jp_pinyin_front.py                 # dry run: print planned changes
     python3 tools/fix_jp_pinyin_front.py --apply         # write via AnkiConnect
-    python3 tools/fix_jp_pinyin_front.py --query 'deck:言語::日語 front:*拼音練習*'
+    python3 tools/fix_jp_pinyin_front.py --query 'deck:言語::粤語 front:*拼音練習*'
 """
 
 from __future__ import annotations
@@ -28,6 +28,7 @@ MARKER = "拼音練習"
 # A "line" in these fields is a leaf <div> (no nested <div> inside). Wrapper
 # <div>s only group lines, so they never match this pattern.
 LEAF_DIV_RE = re.compile(r"<div\b[^>]*>((?:(?!</?div\b).)*?)</div>", re.DOTALL)
+BR_RE = re.compile(r"<br\s*/?>")
 RT_RE = re.compile(r"<rt\b[^>]*>.*?</rt>", re.DOTALL)
 TAG_RE = re.compile(r"<[^>]+>")
 
@@ -37,15 +38,11 @@ def _plain_text(fragment: str) -> str:
     return html.unescape(TAG_RE.sub("", RT_RE.sub("", fragment)))
 
 
-def transform(front: str, back: str) -> tuple[str, str] | None:
-    """Return (new_front, new_back) for a practice-block card, else None.
+def _strip_spacing(text: str) -> str:
+    return text.replace(" ", "").replace("\xa0", "").strip()
 
-    new_front is the Japanese line (the leaf <div> right before the 拼音練習
-    block) with word-spacing stripped; new_back is the rest of the old front
-    prepended above the old back's [sound:] line.
-    """
-    if MARKER not in front:
-        return None
+
+def _transform_divs(front: str, back: str) -> tuple[str, str] | None:
     lines = list(LEAF_DIV_RE.finditer(front))
     for i, line in enumerate(lines):
         if MARKER in line.group(0):
@@ -55,11 +52,42 @@ def transform(front: str, back: str) -> tuple[str, str] | None:
             break
     else:
         return None
-    sentence = _plain_text(jp_line.group(1)).replace(" ", "").replace("\xa0", "").strip()
+    sentence = _strip_spacing(_plain_text(jp_line.group(1)))
     if not sentence:
         return None
     rest = front[: jp_line.start()] + front[jp_line.end() :]
     return sentence, rest + back
+
+
+def _transform_br(front: str, back: str) -> tuple[str, str] | None:
+    """Variant for fronts that separate lines with <br> instead of <div>."""
+    lines = BR_RE.split(front)
+    for i, line in enumerate(lines):
+        if MARKER in line:
+            if i == 0:
+                return None
+            sentence = _strip_spacing(_plain_text(lines[i - 1]))
+            if not sentence:
+                return None
+            rest = "<br>".join(lines[: i - 1] + lines[i:])
+            return sentence, rest + back
+    return None
+
+
+def transform(front: str, back: str) -> tuple[str, str] | None:
+    """Return (new_front, new_back) for a practice-block card, else None.
+
+    new_front is the target-language line (the line right before the 拼音練習
+    block) with word-spacing stripped; new_back is the rest of the old front
+    prepended above the old back's [sound:] line. A back that already embeds a
+    copy of the practice block is left untouched (only the front changes).
+    """
+    if MARKER not in front:
+        return None
+    result = _transform_divs(front, back) or _transform_br(front, back)
+    if result is not None and MARKER in back:
+        return result[0], back
+    return result
 
 
 def plan_updates(notes: list[dict]) -> list[dict]:

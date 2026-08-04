@@ -46,6 +46,56 @@ def test_transform_strips_only_spacing_from_japanese_line():
     assert new_front == "abcd"
 
 
+CANTONESE_FRONT = (
+    "<div><div><div>我們 該 走 了 。</div>"
+    "<div>我哋 要 走 喇 。</div>"
+    '<div><div><span style="font-weight: 700;">拼音練習</span><i></i>'
+    "&nbsp;:&nbsp;Typing: ngo5 dei6 jiu3 zau2 laa3.<br>"
+    "To view more transcriptions for speaking, turn on recording or switch "
+    "to listening mode.</div>"
+    '<div><span style="font-weight: 700;">發音</span><i></i>'
+    "&nbsp;:&nbsp;ngo5 dei6 jiu3 zau2 laa3.</div>"
+    '<div><span style="font-weight: 700;">音標</span><i></i>'
+    "&nbsp;:&nbsp;ŋɔ̗ːt˭e̱ʲ ji̟ːʷ ʦ˭ɐ́ʷ la̟ː</div></div></div>"
+    "<div><i></i><div></div></div></div><div><div><div><br></div></div></div></div>"
+)
+
+
+def test_transform_cantonese_card_keeps_typing_block_in_back():
+    back = "[sound:1732-b500cd9641324e6068ea31a09edb15cd36a85f66.mp3]"
+    new_front, new_back = transform(CANTONESE_FRONT, back)
+    assert new_front == "我哋要走喇。"
+    assert new_back.endswith(back)
+    rest = new_back[: -len(back)]
+    assert "我們 該 走 了 。" in rest
+    assert "Typing: ngo5 dei6 jiu3 zau2 laa3." in rest
+    assert "我哋 要 走 喇 。" not in rest
+
+
+def test_transform_leaves_back_alone_when_it_already_has_the_practice_block():
+    back = '<div><div><div>她的 小孩 在 學校 。</div><div>拼音練習 : Typing: keoi5...</div></div></div><div>[sound:8.mp3]</div>'
+    new_front, new_back = transform(CANTONESE_FRONT, back)
+    assert new_front == "我哋要走喇。"
+    assert new_back == back
+
+
+def test_transform_handles_br_separated_front():
+    front = (
+        "抱歉 我 遲到 了 。<br>"
+        "對唔住 我 遲到 。<br>"
+        "拼音練習 : Typing: deoi3 m4 zyu6 ngo5 ci4 dou3.<br>"
+        "To view more transcriptions for speaking, turn on recording or switch "
+        "to listening mode.<br>"
+        "發音 : deoi3 m4 zyu6 ngo5 ci4 dou3.<br>"
+        "音標 : t˭ø̟ᶣm̖ʦ˭y̱ː ŋɔ̗ː ʦʰi̖ːt˭o̟ʷ"
+    )
+    new_front, new_back = transform(front, "[sound:x.mp3]")
+    assert new_front == "對唔住我遲到。"
+    rest = new_back[: -len("[sound:x.mp3]")]
+    assert rest.startswith("抱歉 我 遲到 了 。<br>拼音練習 : Typing:")
+    assert "對唔住 我 遲到 。" not in rest
+
+
 def test_transform_drops_ruby_readings_from_japanese_line():
     front = (
         "<div>中文。</div>"
