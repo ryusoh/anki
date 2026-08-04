@@ -1,8 +1,18 @@
+import http.client
 import os
 import sys
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
-from fix_jp_pinyin_front import plan_updates, run, transform
+import fix_jp_pinyin_front as fixmod
+from fix_jp_pinyin_front import (
+    ankiconnect_invoke,
+    fix_glued_sound,
+    plan_tidy,
+    plan_updates,
+    run,
+    strip_trailing_blank_lines,
+    transform,
+)
 
 REAL_FRONT = (
     "<div><div><div>您的 通訊 地址 是 ？</div>"
@@ -201,3 +211,99 @@ def test_run_apply_writes_each_planned_note():
     assert summary == {"matched": 2, "planned": 1, "written": 1}
     assert written[0]["id"] == 1
     assert written[0]["fields"]["Front"] == "現住所はどこですか？"
+
+
+def test_fix_glued_sound_detaches_from_preceding_text():
+    assert (
+        fix_glued_sound("…tʰa̟u-lo̟u.[sound:2657.mp3]</div>")
+        == "…tʰa̟u-lo̟u.<br>[sound:2657.mp3]</div>"
+    )
+
+
+def test_fix_glued_sound_replaces_separating_space_with_break():
+    assert fix_glued_sound("手覆。” [sound:f.mp3]") == "手覆。”<br>[sound:f.mp3]"
+
+
+def test_fix_glued_sound_leaves_line_bounded_refs_alone():
+    assert fix_glued_sound("<br>[sound:x.mp3]") == "<br>[sound:x.mp3]"
+    assert fix_glued_sound("</div>[sound:x.mp3]") == "</div>[sound:x.mp3]"
+    assert fix_glued_sound("[sound:x.mp3]<div>y</div>") == "[sound:x.mp3]<div>y</div>"
+    assert fix_glued_sound("[sound:x.mp3]") == "[sound:x.mp3]"
+
+
+def test_fix_glued_sound_treats_inline_tags_as_glued():
+    assert fix_glued_sound("<b>word</b>[sound:x.mp3]") == "<b>word</b><br>[sound:x.mp3]"
+
+
+def test_fix_glued_sound_detaches_from_following_text():
+    assert fix_glued_sound("text[sound:a.mp3]more") == "text<br>[sound:a.mp3]<br>more"
+
+
+def test_fix_glued_sound_separates_consecutive_refs():
+    assert fix_glued_sound("[sound:a.mp3][sound:b.mp3]") == "[sound:a.mp3]<br>[sound:b.mp3]"
+
+
+def test_strip_trailing_blank_lines_removes_breaks_and_whitespace():
+    assert strip_trailing_blank_lines("abc<br><br>") == "abc"
+    assert strip_trailing_blank_lines("abc&nbsp; ") == "abc"
+
+
+def test_strip_trailing_blank_lines_unwraps_empty_div_nests():
+    assert strip_trailing_blank_lines("abc<div><div><div><br></div></div></div>") == "abc"
+    assert strip_trailing_blank_lines("abc<div><i></i><div></div></div>") == "abc"
+
+
+def test_strip_trailing_blank_lines_keeps_content_divs():
+    assert strip_trailing_blank_lines("abc<div>content</div>") == "abc<div>content</div>"
+
+
+def test_plan_tidy_fixes_every_dirty_field_and_skips_clean_notes():
+    notes = [
+        _note(1, "你好<br>", "text[sound:x.mp3]<br>"),
+        _note(2, "clean", "[sound:x.mp3]"),
+    ]
+    updates = plan_tidy(notes)
+    assert updates == [{"id": 1, "fields": {"Front": "你好", "Back": "text<br>[sound:x.mp3]"}}]
+
+
+def test_run_uses_supplied_plan():
+    seen = []
+
+    def invoke(action, params=None):
+        if action == "findNotes":
+            return [1]
+        if action == "notesInfo":
+            return [_note(1, "你好<br>", "[sound:x.mp3]")]
+        if action == "updateNoteFields":
+            seen.append(params["note"])
+            return None
+        raise AssertionError(action)
+
+    summary = run(invoke, "deck:x", apply=True, plan=plan_tidy)
+    assert summary == {"matched": 1, "planned": 1, "written": 1}
+    assert seen[0]["fields"] == {"Front": "你好"}
+
+
+def test_ankiconnect_invoke_retries_after_remote_disconnect(monkeypatch):
+    attempts = []
+
+    class _Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return b'{"result": null, "error": null}'
+
+    def fake_urlopen(req, timeout):
+        attempts.append(1)
+        if len(attempts) == 1:
+            raise http.client.RemoteDisconnected("gone")
+        return _Resp()
+
+    monkeypatch.setattr(fixmod.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(fixmod.time, "sleep", lambda s: None)
+    assert ankiconnect_invoke("version") is None
+    assert len(attempts) == 2
