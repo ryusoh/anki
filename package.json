@@ -9,7 +9,9 @@
     "test": "NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" jest"
   },
   "dependencies": {
-    "jsdom": "27.0.0"
+    "jsdom": "27.0.0",
+    "markdownlint-cli": "^0.49.1",
+    "prettier": "^3.9.6"
   },
   "overrides": {
     "undici": "^7.28.0",

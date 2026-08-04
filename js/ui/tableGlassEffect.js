@@ -333,7 +333,8 @@ export class TableGlassEffect {
     this.state.continuousPhase += delta * speed;
 
     this.state.ambientPhase += delta * 0.5;
-    if (this.state.ambientPhase >= 1) this.state.ambientPhase -= Math.floor(this.state.ambientPhase);
+    if (this.state.ambientPhase >= 1)
+      this.state.ambientPhase -= Math.floor(this.state.ambientPhase);
 
     // Smooth pointer
     const damping = 0.1;
