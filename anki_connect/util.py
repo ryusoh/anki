@@ -83,7 +83,7 @@ DEFAULT_CONFIG = {
 def setting(key):
     try:
         return aqt.mw.addonManager.getConfig(__name__).get(key, DEFAULT_CONFIG[key])
-    except:
+    except Exception as e:
         raise Exception('setting {} not found'.format(key))
 
 

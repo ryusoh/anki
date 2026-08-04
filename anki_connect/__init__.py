@@ -81,7 +81,8 @@ class AnkiConnect:
             self.timer = QTimer()
             self.timer.timeout.connect(self.advance)
             self.timer.start(util.setting('apiPollInterval'))
-        except:
+        except Exception as e:
+            import logging; logging.getLogger('anki_connect').warning('swallowed exception: %s', e)
             QMessageBox.critical(
                 self.window(),
                 'AnkiConnect',
@@ -628,7 +629,8 @@ class AnkiConnect:
         try:
             collection.decks.save(config)
             collection.decks.update_config(config)
-        except:
+        except Exception as e:
+            import logging; logging.getLogger('anki_connect').warning('swallowed exception: %s', e)
             return False
         return True
 
@@ -648,7 +650,8 @@ class AnkiConnect:
                 deck_dict = aqt.mw.col.decks.decks[did]
                 deck_dict['conf'] = configId
                 collection.decks.save(deck_dict)
-            except:
+            except Exception as e:
+                import logging; logging.getLogger('anki_connect').warning('swallowed exception: %s', e)
                 return False
 
         return True
@@ -804,7 +807,8 @@ class AnkiConnect:
     def canAddNote(self, note):
         try:
             return bool(self.createNote(note))
-        except:
+        except Exception as e:
+            import logging; logging.getLogger('anki_connect').warning('swallowed exception: %s', e)
             return False
 
     @util.api()
@@ -2141,7 +2145,7 @@ class AnkiConnect:
                 self.startEditing()
                 importer = AnkiPackageImporter(collection, path)
                 importer.run()
-            except:
+            except Exception as e:
                 raise
             else:
                 return True

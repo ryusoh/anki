@@ -77,7 +77,8 @@ class WebClient:
                 if not self.writeBuff:
                     self.close()
                     return False
-            except:
+            except Exception as e:
+                import logging; logging.getLogger('anki_connect').warning('swallowed exception: %s', e)
                 self.close()
                 return False
         return True
