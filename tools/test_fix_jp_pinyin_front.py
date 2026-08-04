@@ -72,6 +72,27 @@ def test_transform_cantonese_card_keeps_typing_block_in_back():
     assert "我哋 要 走 喇 。" not in rest
 
 
+TAIWANESE_FRONT = (
+    "<div>我 怎麼 都 沒有 想到 ？</div>"
+    "<div>我 哪會 攏 無 想 著 ?</div>"
+    '<div><div><span style="font-weight: 700;">拼音練習</span><i></i>'
+    "&nbsp;:&nbsp;gua2 na2-e7 long2 bo5 siunn7 tioh8?</div>"
+    '<div><span style="font-weight: 700;">發音</span><i></i>'
+    "&nbsp;:&nbsp;ghuà nā-e̟ lòng bhó xiu̟nn diōh?</div>"
+    '<div><span style="font-weight: 700;">音標</span><i></i>'
+    "&nbsp;:&nbsp;ɡuà nā-e̟ lòŋ p⁼ó ɕiu̟ⁿ t⁼iōh?</div></div>"
+)
+
+
+def test_transform_taiwanese_card_with_self_contained_back():
+    # 台語 backs already embed the whole front copy above the [sound:] line;
+    # collapsing the front must not duplicate the block into the back.
+    back = "[sound:x.mp3]<div>" + TAIWANESE_FRONT + "</div>"
+    new_front, new_back = transform(TAIWANESE_FRONT, back)
+    assert new_front == "我哪會攏無想著?"
+    assert new_back == back
+
+
 def test_transform_leaves_back_alone_when_it_already_has_the_practice_block():
     back = '<div><div><div>她的 小孩 在 學校 。</div><div>拼音練習 : Typing: keoi5...</div></div></div><div>[sound:8.mp3]</div>'
     new_front, new_back = transform(CANTONESE_FRONT, back)
