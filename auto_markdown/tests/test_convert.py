@@ -445,6 +445,23 @@ def test_leaf_div_code_block_idempotent():
     assert first == second
 
 
+def test_code_block_with_code_tag_wrapped_lines():
+    """Code block lines wrapped in <code>...</code> are cleaned of nested <code> tags."""
+    html = (
+        'Intro text:<br>'
+        '```<br>'
+        '<code>apiVersion: v1</code><br>'
+        '<code>kind: Pod</code><br>'
+        '```<br>'
+        'Outro text.'
+    )
+    out = convert_markdown_field(html)
+    assert '<pre style=' in out
+    assert '<code>apiVersion: v1<br>kind: Pod</code>' in out
+    assert '<code><code>' not in out
+    assert '```' not in out
+
+
 # ---------------------------------------------------------------------------
 # Markdown Tables
 # ---------------------------------------------------------------------------

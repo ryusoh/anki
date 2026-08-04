@@ -159,9 +159,11 @@ def _convert_line(line: str) -> tuple[str, str]:
 # artifact as the table-row case below (e.g. `</ul>```assembly`). Without
 # splitting, `_parse_code_blocks` never sees the fence start the part.
 _BLOCK_BOUNDARY_CODE_FENCE_RE = re.compile(
-    r"^(.*</?(?:div|ul|ol|li|p|blockquote|h[1-6])\b[^>]*>)\s*(```[^\n]*)$",
+    r"^(.*</?(?:div|ul|ol|li|p|blockquote|h[1-6])\b[^>]*>)\s*((?:<code\b[^>]*>)?```[^\n]*)$",
     re.IGNORECASE | re.DOTALL,
 )
+
+_STRIP_CODE_TAGS_RE = re.compile(r"</?(?:code|span)\b[^>]*>", re.IGNORECASE)
 
 
 def _split_glued_code_fences(parts: list[tuple[str, bool]]) -> list[tuple[str, bool]]:
@@ -194,7 +196,8 @@ def _parse_code_blocks(parts: list[tuple[str, bool]]) -> list[tuple[str, str]]:
             i += 1
             continue
 
-        stripped = content.strip()
+        clean_content = _STRIP_CODE_TAGS_RE.sub("", content)
+        stripped = clean_content.strip()
         if stripped.startswith("```"):
             lang = stripped[3:].strip()
             # Find the closing ```
@@ -207,10 +210,11 @@ def _parse_code_blocks(parts: list[tuple[str, bool]]) -> list[tuple[str, str]]:
                     code_lines.append(c2)
                     j += 1
                     continue
-                if c2.strip() == "```":
+                clean_c2 = _STRIP_CODE_TAGS_RE.sub("", c2)
+                if clean_c2.strip() == "```":
                     closed = True
                     break
-                code_lines.append(c2)
+                code_lines.append(clean_c2)
                 j += 1
 
             if closed:
@@ -280,7 +284,7 @@ def _strip_trailing_br(content: str) -> str:
 
 def _has_block_markdown(content: str) -> bool:
     """Return True if a leaf <div>'s content starts with a block markdown marker."""
-    stripped = content.strip()
+    stripped = _STRIP_CODE_TAGS_RE.sub("", content).strip()
     return (
         stripped.startswith("```")
         or _HEADING_RE.match(stripped) is not None
