@@ -8,12 +8,15 @@
   "scripts": {
     "test": "NODE_OPTIONS=\"--experimental-vm-modules --no-warnings\" jest"
   },
+  "dependencies": {
+    "jsdom": "27.0.0"
+  },
   "overrides": {
     "undici": "^7.28.0",
-    "@asamuzakjp/css-color": "4.1.0",
-    "brace-expansion": "^2.0.2"
+    "@asamuzakjp/css-color": "4.1.0"
   },
   "devDependencies": {
+    "c8": "^12.0.0",
     "dependency-cruiser": "^18.1.0",
     "eslint": "^10.8.0",
     "jest": "^30.4.2",
@@ -35,8 +38,5 @@
     "branches": 90,
     "functions": 85,
     "statements": 70
-  },
-  "dependencies": {
-    "jsdom": "27.0.0"
   }
 }
