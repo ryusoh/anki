@@ -21,6 +21,7 @@
 - [limited-network.md](limited-network.md) — slow-uplink survival: push retry/chunking, NET_DEADLINE upload caps, `make -n` refusal
 - [delegation-specs.md](delegation-specs.md) — how to write a design spec for another agent to implement
 - [anki-editor-mathjax-undo.md](anki-editor-mathjax-undo.md) — why Cmd+Z can't restore deleted MathJax in the editor; workarounds
+- [missing-media.md](missing-media.md) — why a `[sound:]` ref can play nothing; diagnosis, causes, recovery
 
 ## Historical records
 
