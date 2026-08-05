@@ -326,9 +326,15 @@ export class TableGlassEffect {
     this.state.lastTime = time;
 
     const speed = this.options.threeD?.reflection?.speed || 0.05;
-    this.state.phase = (this.state.phase + delta * speed) % 1;
+    // Bolt: Replace slow modulo with subtraction in hot loop for better performance
+    this.state.phase += delta * speed;
+    if (this.state.phase >= 1) this.state.phase -= Math.floor(this.state.phase);
+
     this.state.continuousPhase += delta * speed;
-    this.state.ambientPhase = (this.state.ambientPhase + delta * 0.5) % 1;
+
+    this.state.ambientPhase += delta * 0.5;
+    if (this.state.ambientPhase >= 1)
+      this.state.ambientPhase -= Math.floor(this.state.ambientPhase);
 
     // Smooth pointer
     const damping = 0.1;
@@ -341,7 +347,9 @@ export class TableGlassEffect {
     const particles = this.state.energyParticles;
     for (let i = 0; i < particles.length; i++) {
       const p = particles[i];
-      p.progress = (p.progress + delta * p.speed * 0.5) % 1;
+      // Bolt: Replace slow modulo with subtraction in hot loop for better performance
+      p.progress += delta * p.speed * 0.5;
+      if (p.progress >= 1) p.progress -= Math.floor(p.progress);
     }
   }
 
@@ -472,10 +480,9 @@ export class TableGlassEffect {
   }
 
   getPointAtProgress(progress, radius, out = { x: 0, y: 0 }) {
-    progress = progress % 1;
-    if (progress < 0) {
-      progress += 1;
-    }
+    // Bolt: Replace slow modulo with subtraction in hot loop for better performance
+    if (progress >= 1) progress -= Math.floor(progress);
+    else if (progress < 0) progress += Math.ceil(-progress);
 
     if (radius === 0) {
       return this.getPointAtProgressZeroRadius(progress, out);
@@ -650,7 +657,9 @@ export class TableGlassEffect {
       const offset =
         paletteIdx / activePaletteLength +
         this.state.continuousPhase * (electric.streakSpeedMultiplier || 1);
-      const headProgress = offset % 1;
+      // Bolt: Replace slow modulo with subtraction in hot loop for better performance
+      let headProgress = offset;
+      if (headProgress >= 1) headProgress -= Math.floor(headProgress);
 
       // Bolt: Hoist static canvas state assignments out of the inner render loop
       this.ctx.shadowColor = color;
