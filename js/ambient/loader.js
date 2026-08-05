@@ -3,6 +3,11 @@
 (function () {
   "use strict";
 
+  /**
+   * @param {string} src
+   * @param {boolean} [defer]
+   * @returns {Promise<Event>}
+   */
   function loadScript(src, defer) {
     const script = document.createElement("script");
     script.src = src;
@@ -15,6 +20,9 @@
     });
   }
 
+  /**
+   * @param {string} href
+   */
   function loadCss(href) {
     const link = document.createElement("link");
     link.rel = "stylesheet";

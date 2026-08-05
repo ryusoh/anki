@@ -6,7 +6,11 @@
     "target": "ES2020",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2020",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "types": [],
     "strict": true
   },
@@ -17,7 +21,11 @@
     "js/ui/table_keyboard_nav.js",
     "js/ui/scroll_control.js",
     "js/ambient/config.js",
-    "js/loader/imageFallback.js"
+    "js/loader/imageFallback.js",
+    "js/ambient/loader.js"
   ],
-  "exclude": ["node_modules", "js/vendor"]
+  "exclude": [
+    "node_modules",
+    "js/vendor"
+  ]
 }
