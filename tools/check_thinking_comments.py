@@ -54,9 +54,15 @@ JS_INLINE_MARKER_RE = re.compile(r"(?<![:\w/])(//|/\*)")
 
 # it('...', () => {}) / test("...", function () {}) with a body of only
 # whitespace or comments — the JS form of the abandoned `pass`-only test.
+# Quoted strings are explicitly unrolled for single, double, and backtick quotes
+# to avoid ReDoS / exponential backtracking (py/redos).
 JS_EMPTY_TEST_RE = re.compile(
     r"\b(?:it|test)\s*\(\s*"
-    r"(['\"`])((?:\\.|(?!\1).)*?)\1\s*,\s*"
+    r"(?:"
+    r"'([^'\\]*(?:\\.[^'\\]*)*)'|"
+    r'"([^"\\]*(?:\\.[^"\\]*)*)"|'
+    r"`([^`\\]*(?:\\.[^`\\]*)*)`"
+    r")\s*,\s*"
     r"(?:async\s+)?"
     r"(?:\(\s*\)\s*=>|function\s*\(\s*\))\s*"
     r"\{(?P<body>[^{}]*)\}",
@@ -75,8 +81,9 @@ def scan_js_empty_tests(src):
     for match in JS_EMPTY_TEST_RE.finditer(src):
         body = JS_COMMENT_STRIP_RE.sub("", match.group("body")).strip()
         if not body:
+            title = match.group(1) or match.group(2) or match.group(3)
             lineno = src.count("\n", 0, match.start()) + 1
-            yield lineno, match.group(2)
+            yield lineno, title
 
 
 def thinking_in_comment(text):
