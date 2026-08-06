@@ -93,6 +93,7 @@ def test_unsuspend_leech_ignores_non_suspended_card():
 
     card.col.sched.unsuspend_cards.assert_not_called()
 
+
 def test_save_config_no_saver():
     suspend = {"lapse": {"leechAction": 0}}
     col = _make_col([suspend])
@@ -136,6 +137,7 @@ def test_unsuspend_leech_no_col():
 
 def test_imports_handle_import_error():
     import sys
+
     # To test lines 76-77 (except block), we need to reload the module while anki.hooks fails to import.
     mock_aqt = MagicMock()
     sys.modules['aqt'] = mock_aqt
@@ -149,9 +151,11 @@ def test_imports_handle_import_error():
             return None
 
     import importlib
+
     sys.meta_path.insert(0, FakeImporter())
     try:
         import no_leech_suspend
+
         importlib.reload(no_leech_suspend)
     finally:
         sys.meta_path.pop(0)

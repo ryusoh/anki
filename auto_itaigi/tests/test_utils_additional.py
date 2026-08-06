@@ -24,6 +24,8 @@ def test_save_audio_to_media_none():
 
 
 def test_fetch_itaigi_json_exception():
-    with patch('auto_itaigi.utils.urlopen_with_proxy_fallback', side_effect=Exception("Test Error")):
+    with patch(
+        'auto_itaigi.utils.urlopen_with_proxy_fallback', side_effect=Exception("Test Error")
+    ):
         result = fetch_itaigi_json("word")
         assert result == "Error: Test Error"

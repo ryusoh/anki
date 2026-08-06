@@ -78,9 +78,7 @@ def test_apply_itaigi_success_with_audio():
         patch("auto_itaigi.save_audio_to_media", return_value="itaigi_han-tsi.mp3"),
     ):
         _apply_itaigi(editor, "番薯")
-    expected = (
-        "han-tsî/han-tsû<br>華語：蕃薯 甘薯 地瓜<br>[sound:itaigi_han-tsi.mp3]"
-    )
+    expected = "han-tsî/han-tsû<br>華語：蕃薯 甘薯 地瓜<br>[sound:itaigi_han-tsi.mp3]"
     assert editor.note.fields[1] == expected
     assert editor.loadNoteKeepingFocus.called
     assert sys.modules["aqt.utils"].tooltip.called

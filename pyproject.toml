@@ -67,6 +67,10 @@ ignore = [
 "hide_deck_collapse/**" = ["F403", "F405", "F821", "E402"]
 "toggle_bottom_pane/**" = ["F403", "F405", "F821", "E402"]
 "anki_connect/**" = ["F403", "F405", "F821", "E402", "E702", "E703", "E721", "E711", "E713", "F841", "B010", "B904", "I001"]
+"auto_itaigi/**" = ["F403", "F405", "F821", "E402"]
+"auto_markdown/**" = ["F403", "F405", "F821", "E402"]
+"no_leech_suspend/**" = ["F403", "F405", "F821", "E402"]
+"reflow_paragraphs/**" = ["F403", "F405", "F821", "E402"]
 
 
 # Dependency-structure gate for Python (`make imports-py`, part of quality-py).
@@ -100,6 +104,10 @@ root_packages = [
     "hide_deck_collapse",
     "toggle_bottom_pane",
     "anki_connect",
+    "auto_itaigi",
+    "auto_markdown",
+    "no_leech_suspend",
+    "reflow_paragraphs",
 ]
 
 [[tool.importlinter.contracts]]
@@ -129,7 +137,12 @@ modules = [
     "hide_deck_collapse",
     "toggle_bottom_pane",
     "anki_connect",
+    "auto_itaigi",
+    "auto_markdown",
+    "no_leech_suspend",
+    "reflow_paragraphs",
 ]
+
 
 ignore_imports = [
     # Optional runtime integrations: tabbed_stats reuses these siblings when

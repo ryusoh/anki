@@ -49,9 +49,7 @@ def test_network_failure_retries_via_local_proxy_and_caches_it():
     opener.open.return_value = response
     with (
         patch("urllib.request.urlopen", side_effect=URLError("offline")),
-        patch.object(
-            proxy_fallback, "_build_direct_opener", return_value=direct_opener
-        ),
+        patch.object(proxy_fallback, "_build_direct_opener", return_value=direct_opener),
         patch.object(proxy_fallback, "_detect_local_proxy", return_value=PROXY),
         patch("urllib.request.build_opener", return_value=opener) as build,
     ):
@@ -59,9 +57,7 @@ def test_network_failure_retries_via_local_proxy_and_caches_it():
     assert build.call_args[0][0].proxies == {"http": PROXY, "https": PROXY}
     assert proxy_fallback._proxy_opener is opener
 
-    with patch(
-        "urllib.request.urlopen", side_effect=AssertionError("dialed direct")
-    ):
+    with patch("urllib.request.urlopen", side_effect=AssertionError("dialed direct")):
         assert urlopen_with_proxy_fallback("req2") is response
     assert opener.open.call_count == 2
 
@@ -75,9 +71,7 @@ def test_stale_cached_system_proxy_heals_via_proxy_free_retry():
             "urllib.request.urlopen",
             side_effect=URLError("stale proxy refused"),
         ),
-        patch.object(
-            proxy_fallback, "_build_direct_opener", return_value=direct_opener
-        ),
+        patch.object(proxy_fallback, "_build_direct_opener", return_value=direct_opener),
         patch.object(proxy_fallback, "_detect_local_proxy") as detect,
     ):
         assert urlopen_with_proxy_fallback("req") is response
@@ -89,9 +83,7 @@ def test_network_failure_without_proxy_raises_original_error():
     direct_opener.open.side_effect = URLError("still offline")
     with (
         patch("urllib.request.urlopen", side_effect=URLError("offline")),
-        patch.object(
-            proxy_fallback, "_build_direct_opener", return_value=direct_opener
-        ),
+        patch.object(proxy_fallback, "_build_direct_opener", return_value=direct_opener),
         patch.object(proxy_fallback, "_detect_local_proxy", return_value=None),
     ):
         with pytest.raises(URLError):
@@ -126,7 +118,6 @@ def test_detect_local_proxy_finds_dynamic_system_or_env_port():
         ),
     ):
         assert proxy_fallback._detect_local_proxy() == "http://127.0.0.1:9999"
-
 
 
 def test_dead_cached_proxy_heals_back_to_direct():

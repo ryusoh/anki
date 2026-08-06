@@ -86,9 +86,7 @@ def test_save_audio_to_media_writes_and_returns_filename():
         sys.modules["aqt"].mw = mock_mw
         try:
             assert save_audio_to_media("han-tsî/han-tsû") == "itaigi_han-tsi.mp3"
-            mock_mw.col.media.write_data.assert_called_once_with(
-                "itaigi_han-tsi.mp3", mp3
-            )
+            mock_mw.col.media.write_data.assert_called_once_with("itaigi_han-tsi.mp3", mp3)
         finally:
             del sys.modules["aqt"].mw
 

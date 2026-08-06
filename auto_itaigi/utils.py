@@ -62,9 +62,7 @@ def parse_itaigi_json(body: str, query: str) -> tuple[str, list[str]] | None:
     return None
 
 
-def format_itaigi_result(
-    tailo: str, mandarin: list[str], sound_name: str | None
-) -> str | None:
+def format_itaigi_result(tailo: str, mandarin: list[str], sound_name: str | None) -> str | None:
     """Build the Back-field HTML. Returns None when there is nothing to show."""
     lines: list[str] = []
     if tailo:
@@ -101,9 +99,7 @@ def hapsing_url(tailo: str) -> str:
 def media_filename(tailo: str) -> str:
     """itaigi_<ascii-slug of first variant>.mp3."""
     first = tailo.split("/")[0]
-    ascii_form = (
-        unicodedata.normalize("NFKD", first).encode("ascii", "ignore").decode("ascii")
-    )
+    ascii_form = unicodedata.normalize("NFKD", first).encode("ascii", "ignore").decode("ascii")
     slug = re.sub(r"[^a-z0-9-]+", "-", ascii_form.lower()).strip("-")
     return f"itaigi_{slug or 'audio'}.mp3"
 
@@ -118,9 +114,7 @@ def download_audio(tailo: str, fallback_url: str | None = None) -> bytes | None:
         try:
             req = Request(
                 url,
-                headers={
-                    "User-Agent": "AnkiAutoItaigi/1.0 (https://github.com/ryusoh/anki)"
-                },
+                headers={"User-Agent": "AnkiAutoItaigi/1.0 (https://github.com/ryusoh/anki)"},
             )
             with urlopen_with_proxy_fallback(req, timeout=10) as resp:
                 data = resp.read()
@@ -131,9 +125,7 @@ def download_audio(tailo: str, fallback_url: str | None = None) -> bytes | None:
     return None
 
 
-def save_audio_to_media(
-    tailo: str, fallback_url: str | None = None
-) -> str | None:
+def save_audio_to_media(tailo: str, fallback_url: str | None = None) -> str | None:
     """Download + store. Returns the media filename for [sound:], or None."""
     data = download_audio(tailo, fallback_url=fallback_url)
     if data is None:
@@ -158,9 +150,7 @@ def fetch_itaigi_json(word: str) -> str:
     """
     req = Request(
         itaigi_lookup_url(word),
-        headers={
-            "User-Agent": "AnkiAutoItaigi/1.0 (https://github.com/ryusoh/anki)"
-        },
+        headers={"User-Agent": "AnkiAutoItaigi/1.0 (https://github.com/ryusoh/anki)"},
     )
     try:
         with urlopen_with_proxy_fallback(req, timeout=5) as response:
@@ -182,9 +172,7 @@ def fetch_moedict_entry(
     url = f"https://www.moedict.tw/t/{quote(word)}.json"
     req = Request(
         url,
-        headers={
-            "User-Agent": "AnkiAutoItaigi/1.0 (https://github.com/ryusoh/anki)"
-        },
+        headers={"User-Agent": "AnkiAutoItaigi/1.0 (https://github.com/ryusoh/anki)"},
     )
     try:
         with urlopen_with_proxy_fallback(req, timeout=5) as response:
@@ -198,11 +186,7 @@ def fetch_moedict_entry(
     h0 = heteronyms[0]
     tailo = (h0.get("T") or "").strip()
     audio_id = str(h0.get("_") or "").strip()
-    audio_url = (
-        f"https://r2-assets.moedict.tw/audio/t/{audio_id}.mp3"
-        if audio_id
-        else None
-    )
+    audio_url = f"https://r2-assets.moedict.tw/audio/t/{audio_id}.mp3" if audio_id else None
 
     defs = h0.get("d") or []
     mandarin: list[str] = []
@@ -223,9 +207,7 @@ def fetch_chhoetaigi_entry(word: str) -> tuple[str, list[str]] | None:
         url = "https://raw.githubusercontent.com/ChhoeTaigi/ChhoeTaigiDatabase/master/ChhoeTaigiDatabase/ChhoeTaigi_iTaigiHoataiTuichiautian.csv"
         req = Request(
             url,
-            headers={
-                "User-Agent": "AnkiAutoItaigi/1.0 (https://github.com/ryusoh/anki)"
-            },
+            headers={"User-Agent": "AnkiAutoItaigi/1.0 (https://github.com/ryusoh/anki)"},
         )
         try:
             with urlopen_with_proxy_fallback(req, timeout=10) as resp:
@@ -245,9 +227,7 @@ def fetch_chhoetaigi_entry(word: str) -> tuple[str, list[str]] | None:
                     tailos.append(kip)
                 if taibun and taibun not in taibuns:
                     taibuns.append(taibun)
-            _chhoetaigi_cache = {
-                k: ("/".join(v[0]), v[1]) for k, v in cache.items()
-            }
+            _chhoetaigi_cache = {k: ("/".join(v[0]), v[1]) for k, v in cache.items()}
         except Exception:
             _chhoetaigi_cache = {}
 
@@ -282,4 +262,3 @@ def lookup_itaigi(word: str) -> tuple[str, list[str], str | None] | None:
         return tailo, mandarin, None
 
     return None
-

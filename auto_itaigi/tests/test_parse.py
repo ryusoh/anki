@@ -30,9 +30,7 @@ _FIXTURE = json.dumps(
                         "新詞文本項目編號": "96764",
                         "文本資料": "金薯",
                         "音標資料": "kim-tsî/kim-tsû",
-                        "按呢講的外語列表": [
-                            {"外語項目編號": 75162, "外語資料": "蕃薯"}
-                        ],
+                        "按呢講的外語列表": [{"外語項目編號": 75162, "外語資料": "蕃薯"}],
                     },
                 ],
             }
@@ -111,15 +109,7 @@ def test_parse_removes_duplicate_mandarin_words():
 
 def test_parse_missing_mandarin_list():
     body = json.dumps(
-        {
-            "列表": [
-                {
-                    "新詞文本": [
-                        {"文本資料": "蕃薯", "音標資料": "han-tsî", "按呢講好": 1}
-                    ]
-                }
-            ]
-        },
+        {"列表": [{"新詞文本": [{"文本資料": "蕃薯", "音標資料": "han-tsî", "按呢講好": 1}]}]},
         ensure_ascii=False,
     )
     assert parse_itaigi_json(body, "蕃薯") == ("han-tsî", [])
