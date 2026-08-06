@@ -61,7 +61,8 @@ export class TableGlassEffect {
     this._headerHeight = 0;
     // Bolt: Call getComputedStyle once and cache the object to avoid
     // redundant synchronous style recalculations that block the main thread.
-    const computedStyle = window.getComputedStyle(this.container);
+    this._computedStyle = window.getComputedStyle(this.container);
+    const computedStyle = this._computedStyle;
 
     const computedRadius = parseInt(computedStyle.borderRadius, 10) || 8;
     this._borderRadius = computedRadius;
@@ -172,7 +173,7 @@ export class TableGlassEffect {
 
     // Re-evaluate whether content actually overflows and update positioning
     // Bolt: Cache getComputedStyle to avoid redundant synchronous style recalculations
-    const containerStyle = window.getComputedStyle(this.container);
+    const containerStyle = this._computedStyle || window.getComputedStyle(this.container);
     const overflowStyle = containerStyle.overflow + containerStyle.overflowY;
     const nowScrollable =
       /auto|scroll/.test(overflowStyle) &&
