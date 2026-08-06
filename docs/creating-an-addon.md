@@ -329,7 +329,8 @@ expects YAML), which the Makefile already passes.
   run in-process: `@patch('concurrent.futures.ProcessPoolExecutor',
 concurrent.futures.ThreadPoolExecutor)` keeps real `Future`/`as_completed`
   semantics while the mocks apply. See `graph/tests/test_export_data.py::test_compute_layout`.
-- **Every `<addon>/tests/` is auto-gated.** `PY_TEST_SUITES` is discovered from
-  `git ls-files '*/test_*.py'`, so a new addon's tests join `make check-py` the moment
-  they're committed — nothing to register. `tests/test_makefile_test_gate.py` fails if
-  that discovery ever silently drops to empty.
+- **Every `<addon>/tests/` is auto-gated for pytest, BUT `quality-py` requires `PY_SRC`.**
+  `PY_TEST_SUITES` is discovered from `git ls-files '*/test_*.py'`, so a new addon's tests join `make check-py` the moment they're committed. However, `make quality-py` (Ruff, Mypy, Bandit, Xenon) and `importlinter` require registering the addon:
+  1. Append `<addon>` to `PY_SRC` in `Makefile`.
+  2. Append `<addon>` to `root_packages` and `modules` under `[tool.importlinter]` in `pyproject.toml`.
+  3. If the addon requires per-file ignores for legacy imports, add an entry under `[tool.ruff.lint.per-file-ignores]` in `pyproject.toml`.

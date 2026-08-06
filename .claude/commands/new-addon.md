@@ -25,7 +25,10 @@ The knowledge lives in the repo — read it, don't guess:
    goes in its own module with the corner cases pinned in `<addon>/tests/`;
    the `aqt` wiring stays thin.
 
-4. **Verify from the repo root**: `python3 -m pytest <addon>/tests/ -q`,
-   re-run under `.venv/bin/python3`, then `make quality-py`. Remember the
+4. **Register in CI gate**: Append `<addon>` to `PY_SRC` in `Makefile` and
+   to `root_packages` and `modules` under `[tool.importlinter]` in `pyproject.toml`.
+   If the addon has legacy linting issues, add a per-file-ignore entry in `pyproject.toml`.
+
+5. **Verify from the repo root**: `make precommit SKIP=1`. Remember the
    mocked suite cannot prove real-Anki behavior — the user restarts Anki and
    exercises the feature before anything is committed.
