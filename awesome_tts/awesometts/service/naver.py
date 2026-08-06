@@ -171,8 +171,13 @@ UUID = str(uuid.uuid4())
 
 def _compute_token(timestamp, uuid_str):
     msg = uuid_str + '\n' + TRANSLATE_MKID + '\n' + timestamp
+
     # codeql[py/weak-cryptographic-hash] MD5 required by Naver Papago API for auth signature
-    signature = hmac.new(bytes(HMAC_KEY, 'ascii'), bytes(msg, 'ascii'), hashlib.md5).digest()
+    def md5_func(msg_bytes=b""):
+        return hashlib.md5(msg_bytes, usedforsecurity=False)
+
+    signature = hmac.new(bytes(HMAC_KEY, "ascii"), bytes(msg, "ascii"), md5_func).digest()
+
     signature = base64.b64encode(signature).decode()
     auth = 'PPG ' + uuid_str + ':' + signature
     return auth
