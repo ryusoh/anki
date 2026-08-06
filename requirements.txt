@@ -11,6 +11,8 @@ edge-tts>=7.0
 pytest>=8.0
 pytest-cov>=4.0
 beautifulsoup4>=4.0
+jsonschema>=4.0
+
 
 # Optional: Better progress bars
 # tqdm>=4.65

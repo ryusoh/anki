@@ -24,6 +24,7 @@ from . import util
 # WebRequest
 #
 
+
 class WebRequest:
     def __init__(self, method, headers, body):
         self.method = method
@@ -35,13 +36,13 @@ class WebRequest:
 # WebClient
 #
 
+
 class WebClient:
     def __init__(self, sock, handler):
         self.sock = sock
         self.handler = handler
         self.readBuff = bytes()
         self.writeBuff = bytes()
-
 
     def advance(self, recvSize=1024):
         if self.sock is None:
@@ -68,8 +69,6 @@ class WebClient:
                     self.writeBuff += self.handler(req)
                     break
 
-
-
         if wlist and self.writeBuff:
             try:
                 length = self.sock.send(self.writeBuff)
@@ -78,11 +77,12 @@ class WebClient:
                     self.close()
                     return False
             except Exception as e:
-                import logging; logging.getLogger('anki_connect').warning('swallowed exception: %s', e)
+                import logging
+
+                logging.getLogger('anki_connect').warning('swallowed exception: %s', e)
                 self.close()
                 return False
         return True
-
 
     def close(self):
         if self.sock is not None:
@@ -91,7 +91,6 @@ class WebClient:
 
         self.readBuff = bytes()
         self.writeBuff = bytes()
-
 
     def parseRequest(self, data):
         parts = data.split('\r\n\r\n'.encode('utf-8'), 1)
@@ -117,12 +116,14 @@ class WebClient:
         if totalLength > len(data):
             return None, 0
 
-        body = data[headerLength : totalLength]
+        body = data[headerLength:totalLength]
         return WebRequest(method, headers, body), totalLength
+
 
 #
 # WebServer
 #
+
 
 class WebServer:
     def __init__(self, handler):
@@ -130,12 +131,10 @@ class WebServer:
         self.clients = []
         self.sock = None
 
-
     def advance(self):
         if self.sock is not None:
             self.acceptClients()
             self.advanceClients()
-
 
     def acceptClients(self):
         rlist = select.select([self.sock], [], [], 0)[0]
@@ -147,10 +146,8 @@ class WebServer:
             clientSock.setblocking(False)
             self.clients.append(WebClient(clientSock, self.handlerWrapper))
 
-
     def advanceClients(self):
         self.clients = list(filter(lambda c: c.advance(), self.clients))
-
 
     def listen(self):
         self.close()
@@ -161,7 +158,6 @@ class WebServer:
         self.sock.bind((util.setting('webBindAddress'), util.setting('webBindPort')))
         self.sock.listen(util.setting('webBacklog'))
 
-
     def handlerWrapper(self, req):
         allowed, corsOrigin = self.allowOrigin(req)
 
@@ -170,20 +166,23 @@ class WebServer:
             headers = self.buildHeaders(corsOrigin, body)
 
             if b'access-control-request-private-network' in req.headers and (
-            req.headers[b'access-control-request-private-network'] == b'true'):
+                req.headers[b'access-control-request-private-network'] == b'true'
+            ):
                 # include this header so that if a public origin is included in the whitelist,
                 # then browsers won't fail requests due to the private network access check
                 headers.append(['Access-Control-Allow-Private-Network', 'true'])
 
             return self.buildResponse(headers, body)
-    
+
         try:
             params = json.loads(req.body.decode('utf-8'))
             jsonschema.validate(params, request_schema)
         except (ValueError, jsonschema.ValidationError) as e:
             if allowed:
                 if len(req.body) == 0:
-                    body = json.dumps({"apiVersion": f"AnkiConnect v.{util.setting('apiVersion')}"}).encode('utf-8')
+                    body = json.dumps(
+                        {"apiVersion": f"AnkiConnect v.{util.setting('apiVersion')}"}
+                    ).encode('utf-8')
                 else:
                     reply = format_exception_reply(util.setting('apiVersion'), e)
                     body = json.dumps(reply).encode('utf-8')
@@ -196,22 +195,23 @@ class WebServer:
             if params.get('action', '') == 'requestPermission':
                 params['params'] = params.get('params', {})
                 params['params']['allowed'] = allowed
-                params['params']['origin'] = b'origin' in req.headers and req.headers[b'origin'].decode() or ''
-                if not allowed :
+                params['params']['origin'] = (
+                    b'origin' in req.headers and req.headers[b'origin'].decode() or ''
+                )
+                if not allowed:
                     corsOrigin = params['params']['origin']
-                        
+
             body = json.dumps(self.handler(params)).encode('utf-8')
             headers = self.buildHeaders(corsOrigin, body)
-        else :
+        else:
             headers = [
                 ['HTTP/1.1 403 Forbidden', None],
                 ['Access-Control-Allow-Origin', corsOrigin],
-                ['Access-Control-Allow-Headers', '*']
+                ['Access-Control-Allow-Headers', '*'],
             ]
             body = ''.encode('utf-8')
 
         return self.buildResponse(headers, body)
-
 
     def allowOrigin(self, req):
         # handle multiple cors origins by checking the 'origin'-header against the allowed origin list from the config
@@ -225,26 +225,30 @@ class WebServer:
         allowed = False
         corsOrigin = 'http://localhost'
         allowAllCors = '*' in webCorsOriginList  # allow CORS for all domains
-        
+
         if allowAllCors:
             corsOrigin = '*'
             allowed = True
         elif b'origin' in req.headers:
             originStr = req.headers[b'origin'].decode()
-            if originStr in webCorsOriginList :
+            if originStr in webCorsOriginList:
                 corsOrigin = originStr
                 allowed = True
-            elif 'http://localhost' in webCorsOriginList and ( 
-            originStr == 'http://127.0.0.1' or originStr == 'https://127.0.0.1' or # allow 127.0.0.1 if localhost allowed
-            originStr.startswith('http://127.0.0.1:') or originStr.startswith('http://127.0.0.1:') or
-            originStr.startswith('chrome-extension://') or originStr.startswith('moz-extension://') or originStr.startswith('safari-web-extension://') ) : # allow chrome, firefox and safari extension if localhost allowed
+            elif 'http://localhost' in webCorsOriginList and (
+                originStr == 'http://127.0.0.1'
+                or originStr == 'https://127.0.0.1'  # allow 127.0.0.1 if localhost allowed
+                or originStr.startswith('http://127.0.0.1:')
+                or originStr.startswith('http://127.0.0.1:')
+                or originStr.startswith('chrome-extension://')
+                or originStr.startswith('moz-extension://')
+                or originStr.startswith('safari-web-extension://')
+            ):  # allow chrome, firefox and safari extension if localhost allowed
                 corsOrigin = originStr
                 allowed = True
         else:
             allowed = True
-        
+
         return allowed, corsOrigin
-    
 
     def buildHeaders(self, corsOrigin, body):
         return [
@@ -252,9 +256,8 @@ class WebServer:
             ['Content-Type', 'application/json'],
             ['Access-Control-Allow-Origin', corsOrigin],
             ['Access-Control-Allow-Headers', '*'],
-            ['Content-Length', str(len(body))]
+            ['Content-Length', str(len(body))],
         ]
-
 
     def buildResponse(self, headers, body):
         resp = bytes()
@@ -267,7 +270,6 @@ class WebServer:
         resp += '\r\n'.encode('utf-8')
         resp += body
         return resp
-
 
     def close(self):
         if self.sock is not None:

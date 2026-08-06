@@ -26,6 +26,7 @@ import itertools
 # Utilities
 #
 
+
 class MediaType(enum.Enum):
     Audio = 1
     Video = 2
@@ -80,6 +81,7 @@ DEFAULT_CONFIG = {
     'webTimeout': 10000,
 }
 
+
 def setting(key):
     try:
         return aqt.mw.addonManager.getConfig(__name__).get(key, DEFAULT_CONFIG[key])
@@ -98,6 +100,7 @@ def patch_anki_2_1_50_having_null_stdout_on_windows():
 if sys.version_info >= (3, 12):
     batched = itertools.batched
 else:
+
     def batched(iterable, n):
         iterator = iter(iterable)
         while True:

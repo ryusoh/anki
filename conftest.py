@@ -3,24 +3,93 @@ import sys
 import types
 from unittest.mock import MagicMock
 
-sys.modules['aqt'] = MagicMock()
-sys.modules['aqt.addcards'] = MagicMock()
-sys.modules['aqt.addons'] = MagicMock()
-sys.modules['aqt.browser'] = MagicMock()
-sys.modules['aqt.dialogs'] = MagicMock()
-sys.modules['aqt.editor'] = MagicMock()
-sys.modules['aqt.gui_hooks'] = MagicMock()
-sys.modules['aqt.main'] = MagicMock()
-sys.modules['aqt.sound'] = MagicMock()
-sys.modules['aqt.taskman'] = MagicMock()
-sys.modules['aqt.tts'] = MagicMock()
-sys.modules['aqt.utils'] = MagicMock()
-sys.modules['aqt.webview'] = MagicMock()
+aqt_mock = MagicMock()
+aqt_mock.appVersion = '24.11.0'
+sys.modules['aqt'] = aqt_mock
+
+for _mod in [
+    'addcards',
+    'addons',
+    'browser',
+    'browser.previewer',
+    'dialogs',
+    'editor',
+    'editcurrent',
+    'forms',
+    'forms.editcurrent',
+    'gui_hooks',
+    'import_export',
+    'import_export.importing',
+    'main',
+    'sound',
+    'taskman',
+    'tts',
+    'utils',
+    'webview',
+]:
+    _m = MagicMock()
+    sys.modules[f'aqt.{_mod}'] = _m
+    _curr = aqt_mock
+    _parts = _mod.split('.')
+    for _p in _parts[:-1]:
+        _curr = getattr(_curr, _p)
+    setattr(_curr, _parts[-1], _m)
+
 sys.modules['anki'] = MagicMock()
+sys.modules['anki.cards'] = MagicMock()
 sys.modules['anki.consts'] = MagicMock()
+sys.modules['anki.decks'] = MagicMock()
+sys.modules['anki.errors'] = MagicMock()
+
+
+class NotFoundError(Exception):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
+sys.modules['anki.errors'].NotFoundError = NotFoundError
+sys.modules['anki'].errors.NotFoundError = NotFoundError
+sys.modules['anki.exporting'] = MagicMock()
 sys.modules['anki.hooks'] = MagicMock()
+sys.modules['anki.importing'] = MagicMock()
+sys.modules['anki.media'] = MagicMock()
+sys.modules['anki.models'] = MagicMock()
+sys.modules['anki.notes'] = MagicMock()
+sys.modules['anki.scheduler'] = MagicMock()
+sys.modules['anki.scheduler.base'] = MagicMock()
 sys.modules['anki.sound'] = MagicMock()
+sys.modules['anki.storage'] = MagicMock()
+sys.modules['anki.sync'] = MagicMock()
 sys.modules['anki.utils'] = MagicMock()
+
+
+def ids2str_fn(ids):
+    return f"({','.join(str(x) for x in ids)})" if ids else "()"
+
+
+def int_time_fn():
+    return 1234567890
+
+
+def field_checksum_fn(val):
+    return 12345
+
+
+sys.modules['anki.utils'].ids2str = ids2str_fn
+sys.modules['anki'].utils.ids2str = ids2str_fn
+sys.modules['anki.utils'].int_time = int_time_fn
+sys.modules['anki'].utils.int_time = int_time_fn
+sys.modules['anki.utils'].field_checksum = field_checksum_fn
+sys.modules['anki'].utils.field_checksum = field_checksum_fn
+
+
+class _FakeMultiCardPreviewer:
+    class Adapter:
+        pass
+
+
+sys.modules['aqt.browser.previewer'].MultiCardPreviewer = _FakeMultiCardPreviewer
+sys.modules['aqt'].browser.previewer.MultiCardPreviewer = _FakeMultiCardPreviewer
 
 
 class _FakeQtModule(types.ModuleType):
@@ -45,6 +114,10 @@ class _FakeQtBase:
 
     def __getattr__(self, name):
         return MagicMock()
+
+
+sys.modules['aqt.editcurrent'].EditCurrent = type('EditCurrent', (_FakeQtBase,), {})
+sys.modules['aqt'].editcurrent.EditCurrent = type('EditCurrent', (_FakeQtBase,), {})
 
 
 _QT_SUBCLASSABLE = [
