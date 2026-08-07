@@ -27,7 +27,9 @@ def test_empty_input_returns_none():
     assert detect_language('') is None
     assert detect_language('   \n\t  ') is None
 
+
 def test_is_ja_char_invalid_length():
     from awesome_tts.awesometts.langdetect import _is_ja_char
+
     assert _is_ja_char('') is False
     assert _is_ja_char('ab') is False

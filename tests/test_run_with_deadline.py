@@ -80,12 +80,15 @@ def test_main_no_command_given_with_dash_dash(capsys):
         run_with_deadline.main(['--seconds', '10', '--'])
     assert excinfo.value.code == 2
 
+
 def test_run_as_main():
     import runpy
     import sys
+
     with patch.object(sys, 'argv', ['run_with_deadline.py', '--seconds', '0.1', '--', 'true']):
         # If we use run_module, it executes the __main__ block
         import pytest
+
         with pytest.raises(SystemExit) as excinfo:
             runpy.run_module('tools.run_with_deadline', run_name='__main__')
         assert excinfo.value.code == 0
