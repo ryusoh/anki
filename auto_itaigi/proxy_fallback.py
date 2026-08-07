@@ -77,6 +77,28 @@ def _detect_local_proxy(ports=_LOCAL_PROXY_PORTS):
     return None
 
 
+def _fresh_request(req):
+    """Return a pristine clone of a urllib Request for a retry attempt.
+
+    A failed attempt through a ProxyHandler mutates the Request in place
+    (``req.host`` is rewritten to the proxy host, ``req._tunnel_host`` keeps
+    the real one), so retrying with the same object keeps dialing the dead
+    proxy and the fallback can never heal. ``full_url`` is untouched by the
+    mutation, so a clone built from it is clean. Non-Request placeholders
+    (tests pass plain strings) pass through unchanged.
+    """
+    if not isinstance(req, urllib.request.Request):
+        return req
+    return urllib.request.Request(
+        req.full_url,
+        data=req.data,
+        headers=dict(req.header_items()),
+        origin_req_host=req.origin_req_host,
+        unverifiable=req.unverifiable,
+        method=req.get_method(),
+    )
+
+
 def _build_direct_opener():
     """Opener that bypasses all proxies — a truly direct connection.
 
@@ -108,6 +130,7 @@ def urlopen_with_proxy_fallback(req, timeout=10):
             raise
         except OSError:
             _proxy_opener = None  # proxy died — fall back to direct
+            req = _fresh_request(req)  # undo the dead proxy's req mutation
     try:
         return urllib.request.urlopen(req, timeout=timeout)
     except HTTPError:
@@ -115,8 +138,10 @@ def urlopen_with_proxy_fallback(req, timeout=10):
     except OSError as direct_err:
         # A stale proxy cached in the global opener can be the real failure —
         # retry once with a proxy-free opener before probing local ports.
+        # The failed attempt mutated req (req.host now points at the dead
+        # proxy), so every retry must use a pristine clone.
         try:
-            return _build_direct_opener().open(req, timeout=timeout)
+            return _build_direct_opener().open(_fresh_request(req), timeout=timeout)
         except HTTPError:
             raise
         except OSError:
@@ -126,6 +151,6 @@ def urlopen_with_proxy_fallback(req, timeout=10):
             opener = urllib.request.build_opener(
                 urllib.request.ProxyHandler({'http': proxy, 'https': proxy})
             )
-            response = opener.open(req, timeout=timeout)
+            response = opener.open(_fresh_request(req), timeout=timeout)
             _proxy_opener = opener
             return response

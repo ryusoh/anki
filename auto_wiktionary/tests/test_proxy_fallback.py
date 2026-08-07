@@ -2,6 +2,7 @@
 first, one retry through a detected local proxy (Clash/Shadowsocks/Astrill-style
 localhost listener), HTTP errors passed through untouched."""
 
+import urllib.request
 from unittest.mock import MagicMock, patch
 from urllib.error import HTTPError, URLError
 
@@ -62,6 +63,36 @@ def test_network_failure_retries_via_local_proxy_and_caches_it():
     with patch('urllib.request.urlopen', side_effect=AssertionError('dialed direct')):
         assert urlopen_with_proxy_fallback('req2', timeout=5) is response
     assert opener.open.call_count == 2
+
+
+def test_retry_uses_pristine_request_after_proxy_mutation():
+    """A failed attempt through a ProxyHandler mutates the Request in place
+    (req.host is rewritten to the dead proxy host, req._tunnel_host keeps the
+    real one), so a retry with the same object keeps dialing the dead proxy
+    and the stale-proxy healing never kicks in (errno 61 Connection refused
+    even though the direct network is fine). Retries must use a pristine
+    clone of the original Request."""
+    req = urllib.request.Request('https://en.wiktionary.org/wiki/x')
+
+    def dead_proxy(req_obj, timeout=None):
+        # what ProxyHandler.proxy_open does to the request before the
+        # connection to the dead proxy fails
+        req_obj.set_proxy('127.0.0.1:7890', 'http')
+        raise URLError(ConnectionRefusedError(61, 'Connection refused'))
+
+    response = MagicMock()
+    direct_opener = MagicMock()
+    direct_opener.open.return_value = response
+    with (
+        patch('urllib.request.urlopen', side_effect=dead_proxy),
+        patch.object(proxy_fallback, '_build_direct_opener', return_value=direct_opener),
+        patch.object(proxy_fallback, '_detect_local_proxy') as detect,
+    ):
+        assert urlopen_with_proxy_fallback(req, timeout=5) is response
+        detect.assert_not_called()
+    retried = direct_opener.open.call_args[0][0]
+    assert retried.host == 'en.wiktionary.org'
+    assert getattr(retried, '_tunnel_host', None) is None
 
 
 def test_stale_cached_system_proxy_heals_via_proxy_free_retry():
