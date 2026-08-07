@@ -98,6 +98,7 @@ class VocalWare(Service):
             # CS = md5 (EID + LID + VID + TXT + EXT + FX_TYPE + FX_LEVEL + ACC + API+ SESSION + HTTP_ERR + SECRET PHRASE)
             checksum_input = f"""{voice_key['engine_id']}{voice_key['language_id']}{voice_key['voice_id']}{text}{account_id}{api_id}{secret_phrase}"""
             # codeql[py/weak-cryptographic-hash] MD5 required by Vocalware API for auth signature, not for security
+            # codeql[py/weak-sensitive-data-hashing] MD5 required by Vocalware API for auth signature, not for security
             checksum = hashlib.md5(
                 checksum_input.encode('utf-8'), usedforsecurity=False
             ).hexdigest()  # nosec
