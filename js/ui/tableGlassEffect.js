@@ -173,7 +173,8 @@ export class TableGlassEffect {
 
     // Re-evaluate whether content actually overflows and update positioning
     // Bolt: Cache getComputedStyle to avoid redundant synchronous style recalculations
-    const containerStyle = this._computedStyle || window.getComputedStyle(this.container);
+    const containerStyle =
+      this._computedStyle || window.getComputedStyle(this.container);
     const overflowStyle = containerStyle.overflow + containerStyle.overflowY;
     const nowScrollable =
       /auto|scroll/.test(overflowStyle) &&
