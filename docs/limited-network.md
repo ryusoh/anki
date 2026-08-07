@@ -103,9 +103,9 @@ proxy that is no longer listening — observed 2026-07-17, when a dead proxy
 env var failed **every** upload in a run with
 `Failed to connect to proxy URL`. Network callers in this repo therefore
 self-heal in **both** directions: try the configured route first, and on
-failure probe well-known localhost proxy ports (`7897`, `7890` — Clash
-Verge/Clash mixed; `1087` — ShadowsocksX-NG HTTP; `8118` — Privoxy; `3213` —
-Astrill OpenWeb) or fall back to a direct connection.
+failure probe well-known localhost proxy ports (`19750` — JMS; `7897`,
+`7890` — Clash Verge/Clash mixed; `1087` — ShadowsocksX-NG HTTP; `8118` —
+Privoxy; `3213` — Astrill OpenWeb) or fall back to a direct connection.
 
 `shared/proxy_fallback.py` is the canonical implementation. Anki add-ons
 must be self-contained (AnkiWeb packages ship a single add-on dir), so each
@@ -117,8 +117,9 @@ to the canonical file and the port lists everywhere identical — edit the
 canonical file, re-copy it to every add-on, and sync the port list in
 `data/anki/upload-to-r2`:
 
-- `shared/proxy_fallback.py` (+ vendored copies in `auto_wiktionary/` and
-  `auto_image/`) — `urlopen_with_proxy_fallback()` runs **inside Anki**, so
+- `shared/proxy_fallback.py` (+ vendored copies in `auto_wiktionary/`,
+  `auto_image/`, `auto_itaigi/`, and `awesome_tts/`) —
+  `urlopen_with_proxy_fallback()` runs **inside Anki**, so
   the proxy is scoped to a cached urllib opener instead of `os.environ`
   (never leak a proxy to the whole Anki process). HTTP 4xx/5xx bypass the
   fallback (they reached the server); a dead cached proxy heals back to
@@ -129,6 +130,14 @@ canonical file, re-copy it to every add-on, and sync the port list in
   WireGuard/tunnel mode) otherwise breaks every later call with
   `Network connection failed` even though browsers work (observed
   2026-08-01). Pinned by each addon's `tests/test_proxy_fallback.py`.
+  One more urllib landmine (observed 2026-08-07): `ProxyHandler` **mutates
+  the `Request` in place** on a failed proxied attempt (`req.host` is
+  rewritten to the dead proxy host), so a retry with the same `Request`
+  keeps dialing the dead proxy and the healing chain can never heal
+  (errno 61 on a healthy network). Every retry therefore clones a pristine
+  `Request` via `_fresh_request()` — pinned by
+  `test_retry_uses_pristine_request_after_proxy_mutation`. Debug recipe:
+  `.agents/skills/debug-proxy/`.
 - `data/anki/upload-to-r2` — standalone script with its own inline helper:
   `enable_proxy_fallback()` exports the detected proxy into
   `HTTPS_PROXY`/`HTTP_PROXY` for the rest of the process (botocore reads env
@@ -209,7 +218,7 @@ patch the new path everywhere.
 rule the environment in or out before touching code:
 
 ```sh
-for p in 7897 7890 1087 8118 3213; do nc -z -w 1 127.0.0.1 $p && echo "$p open"; done
+for p in 19750 7897 7890 1087 8118 3213; do nc -z -w 1 127.0.0.1 $p && echo "$p open"; done
 python3 -c "import urllib.request; print(urllib.request.getproxies())"
 curl -sS -o /dev/null -w '%{http_code} total=%{time_total}s\n' --max-time 15 \
   'https://en.wiktionary.org/api/rest_v1/page/html/test'
