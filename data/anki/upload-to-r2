@@ -42,6 +42,13 @@ try:
 except ImportError:
     HAS_BOTO3 = False
 
+# Notes are tiny latency-bound PUTs; higher concurrency is safe and much faster.
+MAX_UPLOAD_WORKERS = 32
+
+# Save the hash map every N completed note uploads so a killed run (e.g. the
+# network deadline) keeps its progress and the next run resumes incrementally.
+HASH_MAP_SAVE_INTERVAL = 1000
+
 
 def mask_value(value, visible_chars=8):
     """Mask sensitive value showing only start and end."""
@@ -508,7 +515,7 @@ def upload_from_staging(staging_dir, creds, verbose, notes_count, sync=False):
 
     s3_client = get_s3_client(creds) if HAS_BOTO3 else None
     note_bytes = 0
-    n_workers = min(8, max(1, len(note_files)))
+    n_workers = min(MAX_UPLOAD_WORKERS, max(1, len(note_files)))
 
     def _upload_one_note(note_file):
         key = f"notes/{note_file.name}"
@@ -778,7 +785,14 @@ R2 Directory Structure:
         # Upload individual notes
         s3_client = get_s3_client(creds) if HAS_BOTO3 else None
         note_bytes = 0
-        n_workers = min(8, max(1, len(notes_to_upload)))
+        n_workers = min(MAX_UPLOAD_WORKERS, max(1, len(notes_to_upload)))
+
+        # Start from the old map plus the collection files that uploaded
+        # successfully (collection failures are already in failed_keys here).
+        new_hash_map = dict(old_hash_map)
+        new_hash_map.update(
+            {k: v for k, v in new_collection_hashes.items() if k not in failed_keys}
+        )
 
         def _upload_one_note(note_tuple):
             guid, note_file, current_hash = note_tuple
@@ -789,16 +803,21 @@ R2 Directory Structure:
                 creds['bucket'], key, content, creds,
                 args.verbose, quiet=True, s3_client=s3_client
             )
-            return guid, success, size
+            return guid, success, size, current_hash
 
         with ThreadPoolExecutor(max_workers=n_workers) as executor:
             futures = [executor.submit(_upload_one_note, t) for t in notes_to_upload]
             for i, future in enumerate(as_completed(futures), 1):
-                guid, success, size = future.result()
+                guid, success, size, current_hash = future.result()
                 if success:
                     note_bytes += size
+                    new_hash_map[guid] = current_hash
                 else:
                     failed_keys.add(guid)
+
+                # Periodic save: a killed run resumes from here next time.
+                if i % HASH_MAP_SAVE_INTERVAL == 0:
+                    save_hash_map(new_hash_map, hash_map_file)
 
                 # Progress
                 if i % 100 == 0 or i == len(notes_to_upload):
@@ -811,15 +830,8 @@ R2 Directory Structure:
         if notes_to_upload:
             print()  # Newline after progress
 
-        # Update hash map with successful uploads only, so failed files are
-        # retried on the next run instead of being silently skipped.
-        new_hash_map = dict(old_hash_map)
-        new_hash_map.update(
-            {k: v for k, v in new_collection_hashes.items() if k not in failed_keys}
-        )
-        for guid, _, current_hash in notes_to_upload:
-            if guid not in failed_keys:
-                new_hash_map[guid] = current_hash
+        # Final save covers the tail since the last periodic save and, when no
+        # notes needed uploading, the collection-only updates.
         save_hash_map(new_hash_map, hash_map_file)
 
         if args.verbose:
