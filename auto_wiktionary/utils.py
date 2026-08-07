@@ -142,6 +142,12 @@ def detect_kanji_redirect(html_text):
         match = re.match(r'^(.+?)(?:の漢字表記。|(?:[\s　]+|を|["”」』])参照。?)$', li_text)
         if match:
             reading = match.group(1)
+            # One <li> may pack several quoted readings together
+            # (e.g. 馬酔木 → 「あせび」「あしび」の漢字表記。) — split them.
+            quoted = re.findall(r'[「『"“]([^「」『』"“”]+)[」』"”]', reading)
+            if len(quoted) > 1:
+                readings.extend(q.strip() for q in quoted)
+                continue
             # Some pages wrap the reading in quotes/corner brackets
             # (e.g. 関脇 → 「せきわけ」の漢字表記。, 物語 → "ものがたり"参照).
             # Strip them so the follow-up fetch uses the bare reading.

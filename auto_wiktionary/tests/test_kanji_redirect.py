@@ -889,3 +889,71 @@ def test_full_redirect_flow_tempai():
     assert "を参照" not in parsed
     assert "上がり" in parsed
     assert "テンパイ" in parsed
+
+
+# ---- 馬酔木 (あせび / あしび) multi-reading single-<li> redirect fixtures ----
+
+# Real HTML from ja.wiktionary for 馬酔木.
+# New wrinkle vs. the other multi-reading redirects: both readings are packed
+# into ONE <li> ('「あせび」「あしび」の漢字表記。') instead of one reading per
+# <li> (着く style). The naive bracket-strip leaves 'あせび」「あしび', which 404s.
+ASEBI_REDIRECT_HTML = """
+<html>
+    <body>
+        <section>
+            <h2>日本語</h2>
+            <section>
+                <h3>和語の漢字表記</h3>
+                <p><span lang="ja"><b><a href="./馬#日本語" title="馬">馬</a></b>&#160;<b><a href="./酔#日本語" title="酔">酔</a></b>&#160;<b><a href="./木#日本語" title="木">木</a></b></span></p>
+                <ol><li>「<b><a href="./あせび" title="あせび">あせび</a></b>」「あしび」の漢字表記。</li></ol>
+            </section>
+        </section>
+    </body>
+</html>
+"""
+
+# Real HTML from ja.wiktionary for あせび (the redirect target).
+ASEBI_REAL_HTML = """
+<html>
+    <body>
+        <section>
+            <h2>日本語</h2>
+            <section>
+                <h3>名詞</h3>
+                <p><b>あせび</b></p>
+                <ol><li>ツツジ目アセビ属に属する常緑樹。学名:Pieris japonica subsp. japonica。別名、毒柴、あしび、あしみ、あせぼ、あせみ、ひささき。花の季語は春。</li></ol>
+            </section>
+        </section>
+    </body>
+</html>
+"""
+
+
+def test_detect_kanji_redirect_asebi_multi_reading_single_li():
+    """馬酔木 redirects to both あせび and あしび, packed into a single <li> as
+    '「あせび」「あしび」の漢字表記。'. Each quoted reading must be extracted
+    separately — the raw bracket-stripped 'あせび」「あしび' 404s."""
+    result = detect_kanji_redirect(ASEBI_REDIRECT_HTML)
+    assert (
+        result is not None
+    ), "detect_kanji_redirect should detect multi-reading single-<li> redirects"
+    reading, all_readings = result
+    assert reading == "あせび"
+    assert all_readings == ["あせび", "あしび"]
+
+
+def test_full_redirect_flow_asebi():
+    """Full flow: 馬酔木 (multi-reading single-<li> redirect) → fetch あせび →
+    real definition. Must NOT leak the junk 'あせび」「あしび' reading."""
+    result = detect_kanji_redirect(ASEBI_REDIRECT_HTML)
+    assert result is not None
+    reading, all_readings = result
+    assert reading == "あせび"
+
+    parsed = parse_wiktionary_html(ASEBI_REAL_HTML, lang="ja")
+    parsed = inject_redirect_pronunciation(parsed, all_readings)
+    assert "漢字表記" not in parsed
+    assert "」" not in parsed
+    assert "ツツジ目" in parsed
+    assert "あせび" in parsed
+    assert "あしび" in parsed
