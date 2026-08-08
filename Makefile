@@ -648,7 +648,7 @@ precommit-fix: .make/pip.stamp .make/npm-ci.stamp $(if $(filter 1,$(SKIP_FETCH) 
 		fi; \
 		if [ "$$SEC_OK" = "1" ]; then \
 			_msg="$(MSG)"; \
-			if [ -z "$$_msg" ]; then _msg="chore: データ取得・整形・リント修正・テスト・グラフ更新"; fi; \
+			if [ -z "$$_msg" ]; then _msg="chore(data): データ取得・整形・リント修正・テスト・グラフ更新"; fi; \
 			_rebase_flag=""; \
 			if [ "$(YOLO)" = "1" ] || [ -n "$(MSG)" ]; then _rebase_flag="--auto-rebase"; fi; \
 			if [ "$(YOLO)" = "1" ] || [ -n "$(MSG)" ]; then \
@@ -680,7 +680,7 @@ precommit-fix: .make/pip.stamp .make/npm-ci.stamp $(if $(filter 1,$(SKIP_FETCH) 
 			echo "   see docs/incremental-staging.md) — committing separately, since the main"; \
 			echo "   commit above already ran before this background job finished:"; \
 			git add data/cloudflare/hash_map.json && \
-			git commit -m "chore: update R2 hash map after sync" && \
+			git commit -m "chore(data): update R2 hash map after sync" && \
 			$(PYTHON) tools/git_push_retry.py $$_rebase_flag && \
 			echo "✅ Hash map committed and pushed." || \
 			echo "⚠️  Failed to commit/push the updated hash map — it will be picked up by the next run's git add -A."; \
