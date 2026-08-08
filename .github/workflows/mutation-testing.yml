@@ -49,7 +49,7 @@ jobs:
       - name: Upload kill report
         if: always()
         # codeql[js/unpinned-tag] Pinned to actions/upload-artifact@v4 SHA: ea165f8d65b6e75b540449e92b4886f43607fa02
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: mutmut-report
           path: mutmut-report.txt
