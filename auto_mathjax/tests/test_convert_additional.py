@@ -50,3 +50,10 @@ def test_unwrap_math_pre_blocks():
     assert _unwrap_mathjax_from_pre(html2) == "\\( math \\)"
     html3 = "<pre>text</pre><pre></pre>"
     assert _unwrap_mathjax_from_pre(html3) == "<pre>text</pre>"
+
+
+def test_wrap_embedded_latex_empty_core(monkeypatch):
+    import auto_mathjax
+
+    monkeypatch.setattr(auto_mathjax, '_RUN_TRIM_CHARS', '\\to ')
+    assert _wrap_embedded_latex(' \\to ') == ' \\to '
