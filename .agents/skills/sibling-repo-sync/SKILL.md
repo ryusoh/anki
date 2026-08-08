@@ -25,6 +25,10 @@ The siblings:
   `tests/js/__mocks__/vendor/` are FIRST-PARTY (not vendored — the real
   exclusions are `assets/vendor/`, `js/vendor/`, `tests/js/vendor/`); has a
   diff-coverage gate (90% on PR diff) so new scripts need thorough tests;
+  `make precommit-fix` auto-fixes but never commits/pushes (safe to run) —
+  but its final step is `git checkout data/transactions.csv || true`, which
+  silently discards uncommitted changes to that generated file (check
+  `git status` before running it in a shared tree);
   same `.agents/skills/` canonical + generated `.claude/commands/`
   convention as here.
 - `~/dev/networking` — multi-language net-tools monorepo (JS Chrome extension,
@@ -40,12 +44,16 @@ The siblings:
   explicit user direction are exempt, note it in the PR body; `.jules/` is in
   its `.prettierignore`, so persona-file edits are never gate-checked there
   (verify them with `prettier --check --ignore-path /dev/null` instead).
+  AGENTS.md itself is NOT prettierignored; there is no markdownlint —
+  `prettier --check` is the entire markdown gate.
 - `~/dev/ryusoh.github.io` — JS-only static site; primary branch is **`master`**
   (not `main`); CI-parity gate = `make precommit` (the fail-capable verify path
   CI executes — `precommit-fix` runs the same `.pre-commit-config.yaml` hooks
   with `|| true` auto-fix semantics and can't fail); eslint/stylelint use
   `--max-warnings=0`; `package-lock.json` is authoritative and `pnpm-lock.yaml`
-  is secondary — it drifts by convention, don't regenerate it.
+  is secondary — it drifts by convention, don't regenerate it. `make precommit`
+  is quick (~1 min) — prefer it over subsets for verification; note its own
+  AGENTS.md non-negotiable #1 still points PR authors at `precommit-fix`.
 
 Verify these facts against each repo's current AGENTS.md/Makefile before
 relying on them — they drift.
