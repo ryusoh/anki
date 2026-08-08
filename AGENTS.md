@@ -275,6 +275,12 @@ is false. Confirm both pytest **and** the JS runner execute.
   data" rule means _agents shouldn't create manual edits there_, not that an
   agent may freely revert whatever is uncommitted. If you see uncommitted
   changes and don't know their origin, ask before resetting.
+- **The user commits reviewed changes themselves.** The user's work pattern is:
+  back-and-forth in chat → they review the diff in VSCode → they commit it
+  themselves and move on. So if your edits vanish from `git status` between
+  turns, run `git log --oneline -3` FIRST — a fresh user commit containing them
+  means the work was accepted. Don't re-verify, re-explain, or dig into "where
+  did my changes go"; check the log once and continue from HEAD.
 - **Graph scripts are executed as standalone scripts**, not as `python3 -m graph.x`.
   Any script under `graph/` that imports sibling modules (`from graph.builder
 import ...`) must insert the repo root into `sys.path` _before_ those imports.
