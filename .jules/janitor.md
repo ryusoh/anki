@@ -60,6 +60,10 @@ success, not a reason to invent work or reach into another lane.
   nothing, and the symbol is not a hook/entry point). `make precommit SKIP=1` green —
   the full JS + Python suite still passes.
 - If you resolved a TODO that adds behaviour, a test covers the changed lines.
+- Don't rerun a failed gate on an unchanged tree — a red gate over an untouched
+  worktree cannot go green. `python3 tools/gate_guard.py` (`snapshot` before
+  the run, `check <hash>` before a retry); unchanged means edit something first
+  (AGENTS.md non-negotiable #1).
 
 ## Commit and pull request
 

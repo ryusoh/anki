@@ -65,6 +65,10 @@ judge goes out as a **draft** flagged "visual review required."
   attribute/role now present, the ID now resolving). `make precommit SKIP=1` green.
 - If you added behaviour (a keyboard handler), ship a test covering the changed
   lines; if the payoff is purely visual, open the PR as a draft and say so.
+- Don't rerun a failed gate on an unchanged tree — a red gate over an untouched
+  worktree cannot go green. `python3 tools/gate_guard.py` (`snapshot` before
+  the run, `check <hash>` before a retry); unchanged means edit something first
+  (AGENTS.md non-negotiable #1).
 
 ## Commit and pull request
 

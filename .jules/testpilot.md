@@ -158,6 +158,10 @@ Instead:
 - `make precommit SKIP=1` green (`fmt-check` + `lint` + `quality-py` + `check`);
   coverage on each target file increased (state before → after per file); zero
   production-file changes in the diff; no stray scratch files.
+- Don't rerun a failed gate on an unchanged tree — a red gate over an untouched
+  worktree cannot go green. `python3 tools/gate_guard.py` (`snapshot` before
+  the run, `check <hash>` before a retry); unchanged means edit something first
+  (AGENTS.md non-negotiable #1).
 
 ## Commit and pull request
 

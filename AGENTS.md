@@ -40,7 +40,11 @@ Writing a design spec for another agent to implement? See
 
 1. **Open a PR only if `make precommit SKIP=1` is green.** It is the CI gate
    (`fmt-check` + `lint` + `typecheck-js` + `quality-py` + `check` +
-   `sync-check` + `thinking-check`). Red = don't open it.
+   `sync-check` + `thinking-check`). Red = don't open it. And don't rerun a red
+   gate on an unchanged tree — a failed gate over an untouched worktree cannot
+   go green, so edit something first. `python3 tools/gate_guard.py` enforces
+   this: `snapshot` before the run, `check <hash>` before a retry (exit 1 =
+   unchanged).
 2. **One concern, smallest possible diff.** No drive-by edits, no scope creep.
    Diff size is inversely proportional to approval — keep it tiny.
 3. **Stay in your lane** (see "Lanes" below). If two routines touch the same files,
@@ -119,23 +123,24 @@ a valid Conventional Commit subject**.
 
 ## Command interface — prefer `make` (matches CI)
 
-| Need                                                      | Command                            |
-| --------------------------------------------------------- | ---------------------------------- |
-| Full CI gate (fmt + lint + quality + tests)               | `make precommit SKIP=1`            |
-| All tests (JS c8 + per-addon pytest, coverage)            | `make check`                       |
-| Python lint/format/type/security (ruff/black/mypy/bandit) | `make quality-py`                  |
-| Auto-fix Python format                                    | `make fmt-py`                      |
-| Lint (JS + CSS + Markdown)                                | `make lint`                        |
-| JS dependency-structure gate (dependency-cruiser)         | `make depcheck`                    |
-| Auto-fix lint findings                                    | `make lint-fix`                    |
-| Format JS/CSS/**MD**/JSON/HTML (Prettier)                 | `make fmt`                         |
-| Scoped, fast Python test (tight loop, no coverage)        | `make test-py SUITE=<addon>/tests` |
-| Scoped test for one add-on (`test-py SUITE=<dir>/tests`)  | `make test-addon ADDON=<dir>`      |
-| Scoped mypy for one add-on                                | `make typecheck-addon ADDON=<dir>` |
-| JS test suite (c8 coverage)                               | `make check-node`                  |
-| Mutation smoke run (mutmut, NOT part of any gate)         | `make mutate-py`                   |
-| JS strict type check (whitelist)                          | `make typecheck-js`                |
-| Stream-of-consciousness scan (comments, abandoned tests)  | `make thinking-check`              |
+| Need                                                       | Command                                |
+| ---------------------------------------------------------- | -------------------------------------- |
+| Full CI gate (fmt + lint + quality + tests)                | `make precommit SKIP=1`                |
+| All tests (JS c8 + per-addon pytest, coverage)             | `make check`                           |
+| Python lint/format/type/security (ruff/black/mypy/bandit)  | `make quality-py`                      |
+| Auto-fix Python format                                     | `make fmt-py`                          |
+| Lint (JS + CSS + Markdown)                                 | `make lint`                            |
+| JS dependency-structure gate (dependency-cruiser)          | `make depcheck`                        |
+| Auto-fix lint findings                                     | `make lint-fix`                        |
+| Format JS/CSS/**MD**/JSON/HTML (Prettier)                  | `make fmt`                             |
+| Scoped, fast Python test (tight loop, no coverage)         | `make test-py SUITE=<addon>/tests`     |
+| Worktree snapshot guard (don't rerun a red gate unchanged) | `python3 tools/gate_guard.py snapshot` |
+| Scoped test for one add-on (`test-py SUITE=<dir>/tests`)   | `make test-addon ADDON=<dir>`          |
+| Scoped mypy for one add-on                                 | `make typecheck-addon ADDON=<dir>`     |
+| JS test suite (c8 coverage)                                | `make check-node`                      |
+| Mutation smoke run (mutmut, NOT part of any gate)          | `make mutate-py`                       |
+| JS strict type check (whitelist)                           | `make typecheck-js`                    |
+| Stream-of-consciousness scan (comments, abandoned tests)   | `make thinking-check`                  |
 
 - **Complexity ratchet** — the gate freezes cyclomatic complexity in both
   languages: ESLint `complexity` errors above 20 with `eslint-suppressions.json`
@@ -254,6 +259,14 @@ is false. Confirm both pytest **and** the JS runner execute.
   message (this happened: 2026-07-13, commit `e3800278`). Check `git status`
   before running `precommit-fix` with `YOLO=1`/`MSG=`, and prefer worktree
   isolation for any spawned session that might invoke it.
+- **Concurrent agents sharing one worktree.** When you run parallel subagents
+  (swarms, background agents) in this checkout: stage only files you changed
+  (`git add <specific-files>`, never `git add -A`), never `git stash`,
+  `git reset --hard`, or `git commit --no-verify` — a sibling agent's work may
+  be sitting in the same tree. Keep concurrent agents on disjoint file sets; if
+  a rebase/conflict lands mid-run, resolve only files your task owns. And never
+  let a spawned session run `precommit-fix` with `YOLO=1`/`MSG=` against the
+  shared checkout — its commit step is `git add -A` (see the gotcha above).
 - **Limited/slow network:** `precommit-fix` pushes via `tools/git_push_retry.py`
   (backoff retries + per-commit chunking; run it directly to drain unpushed
   commits) and caps its backgrounded R2/graph uploads at `NET_DEADLINE` seconds

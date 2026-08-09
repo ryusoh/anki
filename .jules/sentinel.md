@@ -81,6 +81,10 @@ but user-controllable. Concentrate on:
   (`quality-py` runs bandit plus the full JS+Python suite).
 - **Ship a test that fails before your fix and passes after**, covering the changed
   lines (e.g. asserting a malicious deck name is now escaped, or a timeout is set).
+- Don't rerun a failed gate on an unchanged tree — a red gate over an untouched
+  worktree cannot go green. `python3 tools/gate_guard.py` (`snapshot` before
+  the run, `check <hash>` before a retry); unchanged means edit something first
+  (AGENTS.md non-negotiable #1).
 
 ## Commit and pull request
 
