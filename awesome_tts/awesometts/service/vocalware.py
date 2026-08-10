@@ -97,11 +97,9 @@ class VocalWare(Service):
             # checksum calculation
             # CS = md5 (EID + LID + VID + TXT + EXT + FX_TYPE + FX_LEVEL + ACC + API+ SESSION + HTTP_ERR + SECRET PHRASE)
             checksum_input = f"""{voice_key['engine_id']}{voice_key['language_id']}{voice_key['voice_id']}{text}{account_id}{api_id}{secret_phrase}"""
-            # codeql[py/weak-cryptographic-hash] MD5 required by Vocalware API for auth signature, not for security
-            # codeql[py/weak-sensitive-data-hashing] MD5 required by Vocalware API for auth signature, not for security
-            checksum = hashlib.md5(
-                checksum_input.encode('utf-8'), usedforsecurity=False
-            ).hexdigest()  # nosec
+            checksum_bytes = checksum_input.encode('utf-8')
+            # codeql[py/weak-cryptographic-hash] codeql[py/weak-sensitive-data-hashing] MD5 required by Vocalware API for auth signature, not for security
+            checksum = hashlib.md5(checksum_bytes, usedforsecurity=False).hexdigest()  # nosec
 
             url_parameters = f"""EID={voice_key['engine_id']}&LID={voice_key['language_id']}&VID={voice_key['voice_id']}&TXT={urlencoded_text}&ACC={account_id}&API={api_id}&CS={checksum}"""
             url = f"""http://www.vocalware.com/tts/gen.php?{url_parameters}"""
