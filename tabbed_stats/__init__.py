@@ -170,6 +170,12 @@ def _open_deck_chooser() -> None:
     if not ret.name:
         return
 
+    # Make the chosen deck the current deck too, so the deck browser and
+    # overview show the same deck the stats are filtered to.
+    did = mw.col.decks.id_for_name(ret.name)
+    if did:
+        mw.col.decks.select(did)
+
     if _stats_web is None:
         return
 

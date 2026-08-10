@@ -156,6 +156,41 @@ def test_on_stats_bridge_cmd_choose_deck():
         mock_open_deck.assert_called_once()
 
 
+def test_open_deck_chooser_selects_chosen_deck_as_current():
+    import aqt
+
+    import tabbed_stats
+    from tabbed_stats import _open_deck_chooser
+
+    studydeck_mod = MagicMock()
+    studydeck_mod.StudyDeck.return_value.name = "Japanese::Core"
+    sys.modules['aqt.studydeck'] = studydeck_mod
+
+    aqt.mw.col.decks.id_for_name.return_value = 12345
+    tabbed_stats._stats_web = MagicMock()
+    try:
+        _open_deck_chooser()
+    finally:
+        tabbed_stats._stats_web = None
+
+    aqt.mw.col.decks.id_for_name.assert_called_once_with("Japanese::Core")
+    aqt.mw.col.decks.select.assert_called_once_with(12345)
+
+
+def test_open_deck_chooser_cancel_does_not_change_current_deck():
+    import aqt
+
+    from tabbed_stats import _open_deck_chooser
+
+    studydeck_mod = MagicMock()
+    studydeck_mod.StudyDeck.return_value.name = ""
+    sys.modules['aqt.studydeck'] = studydeck_mod
+
+    _open_deck_chooser()
+
+    aqt.mw.col.decks.select.assert_not_called()
+
+
 def test_on_stats_bridge_cmd_browser_search():
     import aqt
 
