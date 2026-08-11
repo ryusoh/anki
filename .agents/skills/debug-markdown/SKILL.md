@@ -20,9 +20,10 @@ failure category before touching code.
 2. **Classify the failure category in `auto_markdown/core.py`:**
    - **Code Block & Tag Wrapping** — code fence lines or inner lines wrapped in
      HTML tags (`<code>`, `<span>`, `<div>`), nested `<code>` tags inside
-     `<pre>`, glued fences (`</ul>```assembly`), or missing language
+     `<pre>`, glued fences (`</ul>```assembly`, ` ```<ol>…`, or separated by
+     `&nbsp;` entities instead of whitespace), or missing language
      identifiers (`_parse_code_blocks`, `_split_glued_code_fences`,
-     `_STRIP_CODE_TAGS_RE`).
+     `_CODE_FENCE_RE`, `_STRIP_CODE_TAGS_RE`).
    - **Leaf `<div>` Line Normalization** — multi-line fields stored as
      `<div>line</div>` runs instead of `<br>` separators where block markers
      were not recognized (`_normalize_top_level_leaf_div_runs`,
@@ -53,7 +54,10 @@ failure category before touching code.
 4. **Fix test-first leveraging the `tdd` skill (repo hard rule).** Add tests to
    `auto_markdown/tests/test_convert.py` in the matching category section with
    a realistic HTML fixture. Confirm the test fails (**red**) before editing
-   `auto_markdown/core.py`.
+   `auto_markdown/core.py`. If the bug already reached a stored field, add a
+   second test converting the **broken intermediate the buggy code wrote** —
+   users re-trigger conversion on exactly that state, so it is a real input
+   shape (a loosened check must not misread a previous partial pass's HTML).
 
 5. **Minimal fix in `auto_markdown/core.py`.** Extend the pipeline helpers, and
    ensure all tests pass (**green**).
@@ -75,5 +79,9 @@ failure category before touching code.
    ```
 
 8. **Report plainly**: root cause (one line), the fix, pasted verification
-   output, and remind the user to reload the add-on in Anki and re-trigger
-   `auto_markdown` on the field.
+   output, and remind the user to reload the add-on in Anki. If the bug
+   already mangled a stored field, offer to repair it directly — convert the
+   dumped pristine source with the fixed code and write it back via
+   AnkiConnect `updateNoteFields` (see "Repairing a mangled field" in
+   `docs/creating-an-addon.md`); do NOT tell the user to just re-trigger the
+   old code on the mangled field, that compounds the damage.

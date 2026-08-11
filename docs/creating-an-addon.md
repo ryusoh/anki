@@ -127,6 +127,23 @@ cashtags like `$INTC … $SOI` pairing into math, `$$` money slang matching the
 block branch). Review every diff line before shipping; heuristics earn trust
 by their blast radius, not by the one card they were written for.
 
+**A fix must also convert the buggy version's output.** Once a transform bug
+reaches a real field, that field is left half-converted — and the user will
+re-trigger the transform on exactly that state, so the broken intermediate is
+a real input shape. Regression-test the fix against both the pristine source
+_and_ the output the buggy code actually wrote (2026-08: loosening
+auto_markdown's fence detection for `&nbsp;`-indented fences made a closing
+fence glued to a previous pass's `<ol>` HTML — ` ```<ol><li>…` — misread as
+an opening fence, swallowing the list into `class="language-<ol>…"`).
+
+**Repairing a mangled field** is a one-pass write-back, no Anki restart: dump
+the last good source (`tools/dump_field.py`), convert it offline with the
+fixed code (`import conftest` first), then write the result back via
+AnkiConnect `updateNoteFields` (Anki must be running; see the
+`batch-card-edit` skill for the calling pattern) and verify with `notesInfo`.
+Never re-trigger the old add-on code on a mangled field to "fix" it — that
+compounds the damage.
+
 What real fields look like (each of these was found in production cards, and
 `reflow_paragraphs/` pins them all as regression tests):
 
