@@ -21,11 +21,6 @@ def test_assertEqual_gen_first_difference_none(capsys):
         assertEqual(GenMock(), GenMock())
 
 
-# To cover lines 82-84 we need to trigger AssertionError without hitting TypeError!
-# We CANNOT do that, because `isinstance(pair, None)` ALWAYS raises TypeError.
-# Thus lines 82-84 are truly unreachable!
-
-
 def test_assertEqual_only_first_gen(capsys):
     class GenMock:
         def firstDifference(self, other):
