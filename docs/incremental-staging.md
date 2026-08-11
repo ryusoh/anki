@@ -73,6 +73,24 @@ Two invariants keep the map trustworthy:
 - **`make verify-r2`** audits the map against the live bucket (read-only)
   and lists any entry the bucket cannot back.
 
+## Collection Files Share the Same Map
+
+Collection files (`collection/notes.json.gz`, `collection/reviews/YYYY-MM.json.gz`,
+etc.) live in the same `hash_map.json`, keyed by their R2 path. The contract:
+
+- **Both sides hash the canonical JSON content** —
+  `sha256(json.dumps(content, sort_keys=True, ensure_ascii=False))` — computed
+  by `fetch` when staging and by `upload-to-r2` (`_canonical_collection_hash`)
+  when deciding what to upload.
+- **Never hash the gzip bytes.** gzip embeds the compression mtime, so every
+  rewrite produces different bytes for identical content. When the uploader
+  hashed bytes while the stager hashed JSON, the two never matched and every
+  daily sync re-staged and re-uploaded all ~80 historical monthly review
+  files (fixed 2026-08; pinned end-to-end by
+  `data/anki/tests/test_upload_only_content_hash.py`).
+
+A healthy daily run stages/uploads only the current month's review file.
+
 ## Benefits
 
 ### Speed
