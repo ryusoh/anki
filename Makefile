@@ -655,7 +655,7 @@ precommit-fix: .make/pip.stamp .make/npm-ci.stamp $(if $(filter 1,$(SKIP_FETCH) 
 				echo ""; \
 				echo "📝 Committing: $$_msg"; \
 				git add -A && \
-				{ git diff --cached --quiet || git commit -m "$$_msg"; } && \
+				{ git diff --cached --quiet || git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "$$_msg"; } && \
 				echo "" && \
 				echo "🚀 Pushing to remote..." && \
 				$(PYTHON) tools/git_push_retry.py $$_rebase_flag && \
@@ -680,7 +680,7 @@ precommit-fix: .make/pip.stamp .make/npm-ci.stamp $(if $(filter 1,$(SKIP_FETCH) 
 			echo "   see docs/incremental-staging.md) — committing separately, since the main"; \
 			echo "   commit above already ran before this background job finished:"; \
 			git add data/cloudflare/hash_map.json && \
-			git commit -m "chore(data): update R2 hash map after sync" && \
+			git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "chore(data): R2同期に伴うハッシュマップ更新" && \
 			$(PYTHON) tools/git_push_retry.py $$_rebase_flag && \
 			echo "✅ Hash map committed and pushed." || \
 			echo "⚠️  Failed to commit/push the updated hash map — it will be picked up by the next run's git add -A."; \
