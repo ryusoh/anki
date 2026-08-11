@@ -96,15 +96,27 @@ PROXY_ENV_VARS = ('HTTPS_PROXY', 'https_proxy', 'HTTP_PROXY', 'http_proxy')
 
 
 def _probe_proxy(proxy_url):
-    """Return True if the proxy URL accepts TCP connections."""
+    """Return True if the proxy URL can actually establish a CONNECT tunnel.
+
+    A bare TCP check is not enough: a half-dead proxy keeps accepting
+    connections while refusing the tunnel (observed 2026-08-11: the local
+    proxy on 127.0.0.1:1082 answered every CONNECT with '503 Service
+    Unavailable'). Judging it alive makes enable_proxy_fallback() keep
+    routing uploads through it until they fail.
+    """
     import socket
     from urllib.parse import urlparse
     parsed = urlparse(proxy_url if '://' in proxy_url else f'http://{proxy_url}')
     if not parsed.hostname:
         return False
     try:
-        with socket.create_connection((parsed.hostname, parsed.port or 80), timeout=0.3):
-            return True
+        with socket.create_connection((parsed.hostname, parsed.port or 80), timeout=0.3) as s:
+            s.settimeout(0.5)
+            s.sendall(
+                b'CONNECT en.wiktionary.org:443 HTTP/1.1\r\n'
+                b'Host: en.wiktionary.org:443\r\n\r\n'
+            )
+            return b' 200 ' in s.recv(128)
     except OSError:
         return False
 

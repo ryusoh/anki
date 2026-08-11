@@ -111,10 +111,38 @@ def test_detect_returns_none_when_nothing_listens():
         assert r2.detect_local_proxy() is None
 
 
+def _fake_proxy_socket(response_line):
+    """A socket mock usable as a context manager, answering CONNECT with the
+    given HTTP response line."""
+    fake = MagicMock()
+    fake.__enter__.return_value = fake
+    fake.recv.return_value = response_line + b'\r\n\r\n'
+    return fake
+
+
 def test_probe_proxy_true_when_listening():
-    with patch('socket.create_connection', return_value=MagicMock()) as probe:
+    fake = _fake_proxy_socket(b'HTTP/1.1 200 Connection established')
+    with patch('socket.create_connection', return_value=fake) as probe:
         assert r2._probe_proxy(PROXY) is True
     assert probe.call_args[0][0] == ('127.0.0.1', 7897)
+
+
+def test_probe_proxy_false_when_tunnel_refused():
+    """A half-dead proxy keeps accepting TCP but refuses the CONNECT tunnel
+    (observed 2026-08-11: 127.0.0.1:1082 answering 503). Judging it alive on
+    TCP alone keeps uploads routing through it until they fail."""
+    fake = _fake_proxy_socket(b'HTTP/1.1 503 Service Unavailable')
+    with patch('socket.create_connection', return_value=fake):
+        assert r2._probe_proxy(PROXY) is False
+
+
+def test_enable_drops_proxy_that_refuses_tunnel(monkeypatch):
+    monkeypatch.setenv('HTTPS_PROXY', PROXY)
+    monkeypatch.setattr(r2, 'detect_local_proxy', lambda ports=None: None)
+    fake = _fake_proxy_socket(b'HTTP/1.1 503 Service Unavailable')
+    with patch('socket.create_connection', return_value=fake):
+        assert r2.enable_proxy_fallback() == 'direct'
+    assert 'HTTPS_PROXY' not in os.environ
 
 
 def test_probe_proxy_false_when_refused_or_malformed():
