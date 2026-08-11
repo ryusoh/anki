@@ -511,6 +511,53 @@ def test_code_block_with_code_tag_wrapped_lines():
     assert '```' not in out
 
 
+def test_code_block_closing_fence_in_own_div():
+    """Closing fence in its own nested <div>: div tags must not leak into <pre><code>.
+
+    Mirrors the real 'sizeof in C' card back field: the code lines live in one
+    nested <div> and the closing ``` fence in the next, so the last code line
+    is glued to the `</div><div>` boundary. The glue split isolates the fence
+    but left the structural div tags on the code line, emitting malformed
+    `<pre><code>...</div><div></code></pre>` that Anki's parser then mangled.
+    """
+    html = (
+        'sizeof是C/C++中的一个运算符。<div><br><div>例1：<br><br></div>'
+        '<div>```<br>'
+        'char str[20] = "0123456789";<br>'
+        'int a = strlen(str); /<i>a = 10</i>/<br>'
+        'int b = sizeof(str);/<i>b = 20</i>/</div>'
+        '<div>```</div>'
+        '<div><br>上面结果为a = 10。<br></div></div>'
+    )
+    out = convert_markdown_field(html)
+    assert '<pre style=' in out
+    assert 'char str[20] = "0123456789";' in out
+    assert 'int b = sizeof(str);/<i>b = 20</i>/</code></pre>' in out
+    assert '<div></code></pre>' not in out
+    assert '```' not in out
+
+
+def test_code_block_stray_div_tags_inside_pre_repaired():
+    """Re-conversion repairs the malformed <pre> a previous buggy pass wrote.
+
+    The buggy pass emitted `<pre ...><code>...</div><div></code></pre>` (see
+    test_code_block_closing_fence_in_own_div). Users re-trigger conversion on
+    exactly that stored state, so the stray structural div tags inside the
+    <pre> must be stripped — literal <div> in code is stored escaped, so real
+    div tags inside <pre> are never intended content.
+    """
+    html = (
+        '<div><pre style="background-color: #1e1e1e; color: #d4d4d4; padding: 12px 16px; '
+        'border-radius: 6px; overflow-x: auto; font-family: SFMono-Regular, Consolas, '
+        'Liberation Mono, Menlo, monospace; font-size: 0.85em; line-height: 1.5; margin: 10px 0;">'
+        '<code>char str[20] = "0123456789";<br>'
+        'int b = sizeof(str);/<i>b = 20</i>/</div><div></code></pre></div>'
+    )
+    out = convert_markdown_field(html)
+    assert '<div></code></pre>' not in out
+    assert 'int b = sizeof(str);/<i>b = 20</i>/</code></pre>' in out
+
+
 # ---------------------------------------------------------------------------
 # Markdown Tables
 # ---------------------------------------------------------------------------

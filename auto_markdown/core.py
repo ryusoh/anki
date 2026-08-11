@@ -174,6 +174,12 @@ _BLOCK_BOUNDARY_CODE_FENCE_PREFIX_RE = re.compile(
 
 _STRIP_CODE_TAGS_RE = re.compile(r"</?(?:code|span)\b[^>]*>", re.IGNORECASE)
 
+# Structural <div> boundary tags glued onto a code line (e.g. the last code
+# line when the closing fence lives in its own nested <div>:
+# `int b = sizeof(str);</div><div>`). Literal <div> in code is stored escaped,
+# so real div tags inside a fence are Anki line wrappers, not code content.
+_CODE_LINE_DIV_EDGE_RE = re.compile(r"^(?:</?div\b[^>]*>)+|(?:</?div\b[^>]*>)+$", re.IGNORECASE)
+
 # Fences pasted with &nbsp; indentation (e.g. `&nbsp;&nbsp; ```go`) — the
 # entity is not whitespace, so str.strip() alone cannot reveal the fence.
 _STRIP_EDGE_WS_RE = re.compile(r"^(?:\s|&nbsp;)+|(?:\s|&nbsp;)+$")
@@ -239,7 +245,9 @@ def _parse_code_blocks(parts: list[tuple[str, bool]]) -> list[tuple[str, str]]:
                 if _STRIP_EDGE_WS_RE.sub("", clean_c2) == "```":
                     closed = True
                     break
-                code_lines.append(clean_c2)
+                line = _CODE_LINE_DIV_EDGE_RE.sub("", clean_c2)
+                if line:
+                    code_lines.append(line)
                 j += 1
 
             if closed:
@@ -645,6 +653,22 @@ def _upgrade_existing_code_blocks(html: str) -> str:
     return html
 
 
+# Stray structural <div> tags inside a <pre> block — the broken intermediate
+# older code wrote when a closing fence lived in its own <div> and the div
+# boundary tags were glued onto the last code line
+# (`<pre ...><code>...</div><div></code></pre>`). Literal <div> in code is
+# stored escaped, so real div tags inside <pre> are never intended content.
+_PRE_BLOCK_RE = re.compile(r"<pre\b[^>]*>.*?</pre>", re.IGNORECASE | re.DOTALL)
+_DIV_TAG_ANY_RE = re.compile(r"</?div\b[^>]*>", re.IGNORECASE)
+
+
+def _clean_stray_div_tags_in_pre(html: str) -> str:
+    """Strips stray structural <div> tags from inside <pre> blocks."""
+    if "<pre" not in html.lower() or "<div" not in html.lower():
+        return html
+    return _PRE_BLOCK_RE.sub(lambda m: _DIV_TAG_ANY_RE.sub("", m.group(0)), html)
+
+
 def _upgrade_existing_blockquotes(html: str) -> str:
     """Upgrades old unstyled <blockquote> elements to the new styled layout."""
     if "<blockquote" not in html.lower():
@@ -730,6 +754,9 @@ def convert_markdown_field(html: str) -> str:
 
     # Upgrade any old unstyled HTML code blocks.
     result = _upgrade_existing_code_blocks(result)
+
+    # Repair stray structural <div> tags left inside <pre> by older passes.
+    result = _clean_stray_div_tags_in_pre(result)
 
     # Upgrade any old unstyled HTML blockquotes.
     result = _upgrade_existing_blockquotes(result)
