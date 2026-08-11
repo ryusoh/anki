@@ -145,6 +145,21 @@ canonical file, re-copy it to every add-on, and sync the port list in
   configured-but-dead proxy is dropped and the run retries direct. Also used
   by `graph/upload_public.py`. Pinned by
   `data/anki/tests/test_proxy_fallback.py`.
+  One more shape (observed 2026-08-11): a **half-dead proxy** — the local
+  proxy (`127.0.0.1:1082`, set as the macOS system proxy) kept accepting TCP
+  but answered every CONNECT with `503 Service Unavailable`. A bare
+  TCP-connect liveness probe judges that "alive", `enable_proxy_fallback()`
+  then declines to act ("the failure lies elsewhere"), and every retry loops
+  through the same dead proxy until the upload fails
+  (`Tunnel connection failed: 503` → `Broken pipe`). `_probe_proxy()`
+  therefore does a real CONNECT handshake and requires a `200` response —
+  pinned by `test_probe_proxy_false_when_tunnel_refused` and
+  `test_enable_drops_proxy_that_refuses_tunnel`. Note the deliberate
+  asymmetry with the shared module: `_detect_local_proxy()` there treats any
+  listening candidate port as worth _trying_ (its CONNECT probe is advisory
+  — the caller immediately attempts a real request through it anyway), while
+  `_probe_proxy()` here gates whether to keep trusting an explicitly
+  configured proxy, where a false "alive" verdict silently sinks the run.
 
 ### Which VPN mode needs what (observed 2026-07-18)
 

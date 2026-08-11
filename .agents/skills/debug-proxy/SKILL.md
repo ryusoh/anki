@@ -1,6 +1,6 @@
 ---
 name: debug-proxy
-description: Debug an add-on network failure (errno 61 connection refused, timeouts) when the browser works but the add-on doesn't — rule the environment in or out, reproduce Anki's stale-proxy process state live, TDD a fix in shared/proxy_fallback.py, and re-vendor the copies. Use when auto_wiktionary/auto_image/auto_itaigi/awesome_tts report "Network connection failed" on a healthy network.
+description: Debug an add-on network failure (errno 61 connection refused, timeouts) when the browser works but the add-on doesn't — rule the environment in or out, reproduce Anki's stale-proxy process state live, TDD a fix in shared/proxy_fallback.py, and re-vendor the copies. Use when auto_wiktionary/auto_image/auto_itaigi/awesome_tts report "Network connection failed" on a healthy network, or when an R2 upload (upload-to-r2 / graph-push / precommit-fix) fails with proxy errors like "Failed to connect to proxy URL" or "Tunnel connection failed: 503" (that path lives in data/anki/upload-to-r2, not the shared module).
 ---
 
 # Debug an add-on proxy/network failure
@@ -12,6 +12,20 @@ localhost proxy; timeout = poisoned direct route; DNS = resolution. Full
 background: `docs/limited-network.md`, failure mode 4.
 
 Work environment-first: prove the network healthy before touching code.
+
+**R2-upload symptoms take a different path.** If the failure is an upload
+log instead of an add-on tooltip — boto3 `Failed to connect to proxy URL`,
+urllib `Tunnel connection failed: 503`, or `Broken pipe` from
+`precommit-fix` / `graph-push` / `upload-to-r2` — the buggy code is
+`data/anki/upload-to-r2`'s own `enable_proxy_fallback()` / `_probe_proxy()`
+(reached via `graph/upload_public.py` → SourceFileLoader), NOT
+`shared/proxy_fallback.py`. The add-on repro recipe below doesn't apply;
+tests live in `data/anki/tests/test_proxy_fallback.py`. Also note the probe
+semantics differ on purpose: `upload-to-r2`'s `_probe_proxy` requires a 200
+CONNECT (a half-dead proxy that accepts TCP but 503s the tunnel must be
+judged dead), while the shared module's `_detect_local_proxy` treats any
+listening candidate port as worth trying. See `docs/limited-network.md`,
+failure mode 4.
 
 1. **Rule the environment in or out.** Check the live proxy state and direct
    reachability:
