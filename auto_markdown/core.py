@@ -158,25 +158,50 @@ def _convert_line(line: str) -> tuple[str, str]:
 # A code fence glued onto preceding HTML with no <br> before it — same paste
 # artifact as the table-row case below (e.g. `</ul>```assembly`). Without
 # splitting, `_parse_code_blocks` never sees the fence start the part.
+# The separator between the tag and the fence may be &nbsp; entities, not
+# just whitespace (e.g. `</ol>&nbsp;&nbsp; ```go`).
 _BLOCK_BOUNDARY_CODE_FENCE_RE = re.compile(
-    r"^(.*</?(?:div|ul|ol|li|p|blockquote|h[1-6])\b[^>]*>)\s*((?:<code\b[^>]*>)?```[^\n]*)$",
+    r"^(.*</?(?:div|ul|ol|li|p|blockquote|h[1-6])\b[^>]*>)(?:\s|&nbsp;)*((?:<code\b[^>]*>)?```[^\n]*)$",
+    re.IGNORECASE | re.DOTALL,
+)
+
+# The mirror image: a (possibly &nbsp;-indented) fence glued onto FOLLOWING
+# block HTML with no <br> (e.g. a closing fence as `&nbsp;&nbsp; ```<ol>...`).
+_BLOCK_BOUNDARY_CODE_FENCE_PREFIX_RE = re.compile(
+    r"^((?:\s|&nbsp;)*(?:<code\b[^>]*>)?```[A-Za-z0-9_+#.-]*)((?:\s|&nbsp;)*</?(?:div|ul|ol|li|p|blockquote|h[1-6])\b[^\n]*)$",
     re.IGNORECASE | re.DOTALL,
 )
 
 _STRIP_CODE_TAGS_RE = re.compile(r"</?(?:code|span)\b[^>]*>", re.IGNORECASE)
 
+# Fences pasted with &nbsp; indentation (e.g. `&nbsp;&nbsp; ```go`) — the
+# entity is not whitespace, so str.strip() alone cannot reveal the fence.
+_STRIP_EDGE_WS_RE = re.compile(r"^(?:\s|&nbsp;)+|(?:\s|&nbsp;)+$")
+
+# An opening fence is only ever a bare fence plus a simple language token;
+# anything richer after the ``` (HTML tags, prose) means the fence is glued
+# to adjacent content and must not open a code block.
+_CODE_FENCE_RE = re.compile(r"^```[A-Za-z0-9_+#.-]*$")
+
 
 def _split_glued_code_fences(parts: list[tuple[str, bool]]) -> list[tuple[str, bool]]:
-    """Splits an opening fence glued onto preceding HTML into two parts."""
+    """Splits opening/closing fences glued onto adjacent HTML into own parts."""
     result: list[tuple[str, bool]] = []
     for content, is_br in parts:
-        if not is_br:
-            m = _BLOCK_BOUNDARY_CODE_FENCE_RE.match(content)
-            if m:
-                result.append((m.group(1), False))
-                result.append((m.group(2), False))
-                continue
-        result.append((content, is_br))
+        if is_br:
+            result.append((content, is_br))
+            continue
+        pieces = [content]
+        m = _BLOCK_BOUNDARY_CODE_FENCE_RE.match(content)
+        if m:
+            pieces = [m.group(1), m.group(2)]
+        for piece in pieces:
+            m2 = _BLOCK_BOUNDARY_CODE_FENCE_PREFIX_RE.match(piece)
+            if m2:
+                result.append((m2.group(1), False))
+                result.append((m2.group(2), False))
+            else:
+                result.append((piece, False))
     return result
 
 
@@ -197,9 +222,9 @@ def _parse_code_blocks(parts: list[tuple[str, bool]]) -> list[tuple[str, str]]:
             continue
 
         clean_content = _STRIP_CODE_TAGS_RE.sub("", content)
-        stripped = clean_content.strip()
-        if stripped.startswith("```"):
-            lang = stripped[3:].strip()
+        stripped = _STRIP_EDGE_WS_RE.sub("", clean_content)
+        if _CODE_FENCE_RE.match(stripped):
+            lang = stripped[3:]
             # Find the closing ```
             j = i + 1
             code_lines: list[str] = []
@@ -211,7 +236,7 @@ def _parse_code_blocks(parts: list[tuple[str, bool]]) -> list[tuple[str, str]]:
                     j += 1
                     continue
                 clean_c2 = _STRIP_CODE_TAGS_RE.sub("", c2)
-                if clean_c2.strip() == "```":
+                if _STRIP_EDGE_WS_RE.sub("", clean_c2) == "```":
                     closed = True
                     break
                 code_lines.append(clean_c2)

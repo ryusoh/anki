@@ -445,6 +445,55 @@ def test_leaf_div_code_block_idempotent():
     assert first == second
 
 
+def test_code_block_fence_indented_with_nbsp():
+    """Fences indented with &nbsp; entities are still recognized.
+
+    Mirrors the real 'How to Generate a Heap Profile in a Kubernetes Pod'
+    card back field, where every fenced block (including the fences
+    themselves) is indented with leading `&nbsp;&nbsp; ` entities — the fence
+    does not start the part, so `_parse_code_blocks` misses it.
+    """
+    html = (
+        '1. **Import the `runtime/pprof` Package**: Ensure your application includes the necessary package.<br><br>'
+        '&nbsp;&nbsp; ```go<br>'
+        '&nbsp;&nbsp; import (<br>'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "net/http"<br>'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; _ "net/http/pprof"<br>'
+        '&nbsp;&nbsp; )<br>'
+        '&nbsp;&nbsp; ```'
+    )
+    out = convert_markdown_field(html)
+    assert '<pre style=' in out
+    assert '<code class="language-go">' in out
+    assert '"net/http"' in out
+    assert '```' not in out
+
+
+def test_code_block_fences_glued_to_lists_with_nbsp():
+    """Re-conversion of a partially converted field: fences glued to <ol> tags.
+
+    Mirrors the 'Heap Profile in a Kubernetes Pod' field after an earlier
+    pass converted only the list items: the opening fence is glued onto
+    `</ol>` through `&nbsp;` entities, and the closing fence is glued
+    directly onto the following `<ol>`. Both must be split off — otherwise
+    the fence+list part is misread as an opening fence whose "language"
+    swallows the list HTML into the class attribute.
+    """
+    html = (
+        '<ol><li><b>Step one</b>: do it.</li></ol>'
+        '&nbsp;&nbsp; ```go<br>'
+        '&nbsp;&nbsp; import "net/http"<br>'
+        '&nbsp;&nbsp; ```'
+        '<ol><li><b>Step two</b>: done.</li></ol>'
+    )
+    out = convert_markdown_field(html)
+    assert '<code class="language-go">' in out
+    assert 'import "net/http"' in out
+    assert '<ol><li><b>Step two</b>: done.</li></ol>' in out
+    assert 'class="language-<' not in out
+    assert '```' not in out
+
+
 def test_code_block_with_code_tag_wrapped_lines():
     """Code block lines wrapped in <code>...</code> are cleaned of nested <code> tags."""
     html = (
