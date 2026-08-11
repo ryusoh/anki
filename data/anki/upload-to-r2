@@ -344,6 +344,30 @@ def _review_collection_keys(staging_dir):
     return [f"collection/reviews/{f.name}" for f in sorted(reviews_dir.glob("*.json.gz"))]
 
 
+def _canonical_collection_hash(file_path):
+    """Content hash of a staged collection file, matching `fetch`'s staging hash.
+
+    `fetch` decides what to re-stage by hashing the JSON content
+    (json.dumps(..., sort_keys=True)), so the uploader must hash the same
+    representation. Hashing raw file bytes instead never matches the stager's
+    hash (gzip also embeds a fresh mtime on every rewrite), which forced a
+    full re-upload of every monthly review file on each run.
+    """
+    try:
+        if file_path.suffix == '.gz':
+            with gzip.open(file_path, 'rt', encoding='utf-8') as f:
+                data = json.load(f)
+        else:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        content_str = json.dumps(data, sort_keys=True, ensure_ascii=False).encode('utf-8')
+    except (OSError, ValueError):
+        # Unreadable or non-JSON staged file: fall back to its bytes hash.
+        with open(file_path, 'rb') as f:
+            content_str = f.read()
+    return hashlib.sha256(content_str).hexdigest()
+
+
 def _delete_old_reviews_monolith(creds):
     """Best-effort delete of the pre-partition R2 object. Idempotent and free."""
     if not HAS_BOTO3:
@@ -690,13 +714,11 @@ R2 Directory Structure:
 
         # Helper to check if file needs upload
         def file_needs_upload(key, file_path):
-            """Check if file needs to be uploaded based on hash."""
+            """Check if file needs to be uploaded based on content hash."""
             if not file_path.exists():
                 return False, None
-            
-            with open(file_path, 'rb') as f:
-                content = f.read()
-            current_hash = hashlib.sha256(content).hexdigest()
+
+            current_hash = _canonical_collection_hash(file_path)
             old_hash = old_hash_map.get(key)
             return old_hash is None or old_hash != current_hash, current_hash
 
