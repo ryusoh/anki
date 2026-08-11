@@ -8,8 +8,9 @@
  *     for app-like navigation between pages, refresh the cache in the
  *     background so the next visit picks up deploys.
  *
- * Bump CACHE_NAME whenever the core asset list changes so the install event
- * precaches the new shell and the activate event prunes the old cache.
+ * The Pages workflow (.github/workflows/pages.yml) stamps CACHE_NAME with the
+ * deploy SHA on every deploy, so the install event precaches the new shell and
+ * the activate event prunes the old cache — no manual bump needed.
  */
 const CACHE_NAME = "anki-cache-2026-07-27a";
 const CORE_ASSETS = [
