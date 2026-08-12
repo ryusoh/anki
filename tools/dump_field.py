@@ -12,9 +12,12 @@ Usage (from the repo root):
     python3 tools/dump_field.py 'anguish'                 # front field == text
     python3 tools/dump_field.py --contains 'Raskolnikov'  # any field contains
     python3 tools/dump_field.py 'word' --collection /path/to/collection.anki2
+    python3 tools/dump_field.py --contains 'x' --out /tmp/fields  # full bytes
 
 The live collection is locked while Anki runs, so it is copied to a temp
-file first; nothing is ever written to the real database.
+file first (WAL sidecars included, so recent writes are visible); nothing
+is ever written to the real database. Long fields truncate in terminal
+output — use --out to write full field bytes to files instead.
 """
 
 from __future__ import annotations
@@ -61,12 +64,34 @@ def default_collection() -> str:
     return max(candidates, key=os.path.getmtime)
 
 
-def dump(collection: str, text: str, contains: bool) -> None:
-    # Copy first: the live database is locked while Anki is running.
+def snapshot_collection(collection: str) -> str:
+    """Copy the collection (and its WAL sidecars) to a temp file.
+
+    Reading the live file directly — even read-only — can hit "database is
+    locked" while Anki runs, and a long-held connection can coincide with
+    Anki's startup lock. Copying only the main file is not enough either:
+    with Anki open, recent writes sit in the -wal sidecar, so a main-file-
+    only copy silently reads a stale snapshot.
+    """
     with tempfile.NamedTemporaryFile(suffix=".anki2", delete=False) as tmp:
         tmp_path = tmp.name
+    shutil.copyfile(collection, tmp_path)
+    for suffix in ("-wal", "-shm"):
+        if os.path.exists(collection + suffix):
+            shutil.copyfile(collection + suffix, tmp_path + suffix)
+    return tmp_path
+
+
+def remove_snapshot(tmp_path: str) -> None:
+    """Delete a snapshot and any copied WAL sidecars."""
+    for suffix in ("", "-wal", "-shm"):
+        if os.path.exists(tmp_path + suffix):
+            os.unlink(tmp_path + suffix)
+
+
+def dump(collection: str, text: str, contains: bool, out: str | None = None) -> None:
+    tmp_path = snapshot_collection(collection)
     try:
-        shutil.copyfile(collection, tmp_path)
         con = sqlite3.connect(tmp_path)
         try:
             notes = find_notes(con, text, contains)
@@ -75,13 +100,21 @@ def dump(collection: str, text: str, contains: bool) -> None:
         if not notes:
             print(f"No note matched {text!r} (try --contains).")
             return
+        if out is not None:
+            os.makedirs(out, exist_ok=True)
         for nid, fields in notes:
             print(f"=== note {nid}: {len(fields)} fields ===")
             for i, field in enumerate(fields):
-                print(f"--- field {i} ({len(field)} chars) ---")
-                print(repr(field))
+                if out is not None:
+                    path = os.path.join(out, f"{nid}_field{i}.html")
+                    with open(path, "w") as f:
+                        f.write(field)
+                    print(f"--- field {i} ({len(field)} chars) -> {path}")
+                else:
+                    print(f"--- field {i} ({len(field)} chars) ---")
+                    print(repr(field))
     finally:
-        os.unlink(tmp_path)
+        remove_snapshot(tmp_path)
 
 
 def main() -> None:
@@ -93,8 +126,14 @@ def main() -> None:
     parser.add_argument(
         "--collection", default=None, help="path to collection.anki2 (default: newest profile)"
     )
+    parser.add_argument(
+        "--out",
+        default=None,
+        metavar="DIR",
+        help="write full field bytes to DIR/<note_id>_field<N>.html (for long fields)",
+    )
     args = parser.parse_args()
-    dump(args.collection or default_collection(), args.text, args.contains)
+    dump(args.collection or default_collection(), args.text, args.contains, args.out)
 
 
 if __name__ == "__main__":

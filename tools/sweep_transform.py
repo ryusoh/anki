@@ -26,16 +26,19 @@ import difflib
 import importlib
 import os
 import re
-import shutil
 import sqlite3
 import sys
-import tempfile
 from dataclasses import dataclass
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # tools/
 sys.path.insert(0, os.path.dirname(sys.path[0]))  # repo root (addon modules)
 
-from dump_field import default_collection, split_fields  # noqa: E402
+from dump_field import (  # noqa: E402
+    default_collection,
+    remove_snapshot,
+    snapshot_collection,
+    split_fields,
+)
 
 # Break field HTML after these so diffs show one logical line per row.
 SEGMENT_BREAK_RE = re.compile(r"(?<=</div>)|(?<=<br>)|(?<=<br/>)")
@@ -142,11 +145,8 @@ def main() -> None:
     transform = load_transform(args.transform)
     collection = args.collection or default_collection()
 
-    # Copy first: the live database is locked while Anki is running.
-    with tempfile.NamedTemporaryFile(suffix=".anki2", delete=False) as tmp:
-        tmp_path = tmp.name
+    tmp_path = snapshot_collection(collection)
     try:
-        shutil.copyfile(collection, tmp_path)
         con = sqlite3.connect(tmp_path)
         try:
             total = con.execute("SELECT COUNT(*) FROM notes").fetchone()[0]
@@ -154,7 +154,7 @@ def main() -> None:
         finally:
             con.close()
     finally:
-        os.unlink(tmp_path)
+        remove_snapshot(tmp_path)
 
     for nid, changes in results[: args.limit]:
         for change in changes:

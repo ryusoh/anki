@@ -15,6 +15,8 @@ failure category before touching code.
 
    ```sh
    python3 tools/dump_field.py --contains '<some text from the card>'
+   # long fields truncate in terminal output — write full bytes to files:
+   python3 tools/dump_field.py --contains '<some text>' --out /tmp/fields
    ```
 
 2. **Classify the failure category in `auto_markdown/core.py`:**
@@ -62,14 +64,27 @@ failure category before touching code.
 5. **Minimal fix in `auto_markdown/core.py`.** Extend the pipeline helpers, and
    ensure all tests pass (**green**).
 
-6. **Verify with the repo gate from repo root:**
+6. **Harden against the whole collection** — the reported card is never the
+   only shape in the deck. Sweep the fixed transform over every field and
+   review the output before shipping:
+
+   ```sh
+   python3 tools/sweep_transform.py auto_markdown.core:convert_markdown_field --limit 20
+   ```
+
+   Any `!! NOT IDEMPOTENT` or `!! transform raised` line is a must-fix
+   regression — TDD it (step 4) before shipping. Spot-review the printed
+   diffs too: every changed field should be a change you intended. When in
+   doubt, run the same sweep on the pre-change code and compare summaries.
+
+7. **Verify with the repo gate from repo root:**
 
    ```sh
    make test-addon ADDON=auto_markdown
    make typecheck-addon ADDON=auto_markdown
    ```
 
-7. **Sync commands and verify workflow files:**
+8. **Sync commands and verify workflow files:**
 
    ```sh
    make fmt
@@ -78,7 +93,7 @@ failure category before touching code.
    make precommit SKIP=1
    ```
 
-8. **Report plainly**: root cause (one line), the fix, pasted verification
+9. **Report plainly**: root cause (one line), the fix, pasted verification
    output, and remind the user to reload the add-on in Anki. If the bug
    already mangled a stored field, offer to repair it directly — convert the
    dumped pristine source with the fixed code and write it back via

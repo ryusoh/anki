@@ -92,9 +92,18 @@ python3 tools/dump_field.py 'front text'          # exact front-field match
 python3 tools/dump_field.py --contains 'passage'  # any field contains
 ```
 
-(It copies the collection to a temp file, so it's safe while Anki runs. It also
+(It snapshots the collection — main file **and** `-wal`/`-shm` sidecars — to a
+temp file, so it's safe while Anki runs and still sees recent writes. It also
 auto-picks the most-recently-modified profile, so you don't need to hunt for the
-collection path — pass `--collection` only to override that.)
+collection path — pass `--collection` only to override that. Long fields
+truncate in terminal output; use `--out DIR` to write full field bytes to
+`DIR/<note_id>_field<N>.html`.)
+
+Never open the live `collection.anki2` directly, even with `mode=ro`: a held
+read connection can hit "database is locked" mid-query and can coincide with
+Anki's startup lock ("Anki already open"). Every collection read must go
+through a snapshot — `tools/dump_field.py:snapshot_collection` is the shared
+helper (used by `tools/sweep_transform.py` too).
 
 If a search substring matches many unrelated notes, search on the exact card
 title/phrase the user gave you first (with `--contains`) rather than a broad
