@@ -211,6 +211,38 @@ def _split_glued_code_fences(parts: list[tuple[str, bool]]) -> list[tuple[str, b
     return result
 
 
+# An existing <pre> block spans multiple <br>-separated parts when it was
+# produced by an earlier conversion (code lines are joined with <br>). Such a
+# span must pass through untouched: `#` comment lines inside would otherwise
+# convert to <h1> headings on a repeat pass.
+_PRE_OPEN_RE = re.compile(r"<pre\b", re.IGNORECASE)
+_PRE_CLOSE_RE = re.compile(r"</pre\s*>", re.IGNORECASE)
+
+
+def _collect_existing_pre(parts: list[tuple[str, bool]], i: int) -> tuple[str, int] | None:
+    """Join a <pre>…</pre> span split across parts back into one part.
+
+    Returns (joined_html, next_index) when parts[i] opens a <pre> that only
+    closes in a later part, else None.
+    """
+    content, is_br = parts[i]
+    if is_br:
+        return None
+    # The relevant <pre> is the LAST one opened in this part: earlier ones
+    # closed within the part, while the last may only close in a later part.
+    opens = list(_PRE_OPEN_RE.finditer(content))
+    if not opens or _PRE_CLOSE_RE.search(content, opens[-1].end()):
+        return None
+    collected = [content]
+    j = i + 1
+    while j < len(parts):
+        collected.append(parts[j][0])
+        j += 1
+        if _PRE_CLOSE_RE.search(parts[j - 1][0]):
+            return "".join(collected), j
+    return None
+
+
 def _parse_code_blocks(parts: list[tuple[str, bool]]) -> list[tuple[str, str]]:
     """Identifies code blocks in the parts list.
 
@@ -225,6 +257,12 @@ def _parse_code_blocks(parts: list[tuple[str, bool]]) -> list[tuple[str, str]]:
         if is_br:
             result.append((content, "br"))
             i += 1
+            continue
+
+        existing_pre = _collect_existing_pre(parts, i)
+        if existing_pre is not None:
+            pre_html, i = existing_pre
+            result.append((pre_html, "code_block"))
             continue
 
         clean_content = _STRIP_CODE_TAGS_RE.sub("", content)
@@ -329,17 +367,8 @@ def _has_block_markdown(content: str) -> bool:
     )
 
 
-def _normalize_top_level_leaf_div_runs(html: str) -> str:
-    """Unwrap consecutive top-level leaf <div> lines into <br>-separated text.
-
-    Anki sometimes stores multi-line fields as `<div>line</div><div>line</div>`
-    instead of `line<br>line`. The rest of the markdown pipeline only splits on
-    `<br>`, so those lines are invisible. This helper converts a run of leaf
-    `<div>` elements into the `<br>` representation the pipeline expects, but
-    only when the run contains a block-level markdown marker (code fence,
-    heading, list, blockquote, HR, or table). Plain prose stays untouched so
-    the byte-identical no-op guarantee is preserved for non-markdown fields.
-    """
+def _top_level_divs(html: str) -> list[tuple[int, int, str, bool]]:
+    """Return (start, end, content, is_leaf) for each top-level <div>."""
     intervals: list[tuple[int, int, str, bool]] = []
     depth = 0
     top_start: int | None = None
@@ -359,6 +388,21 @@ def _normalize_top_level_leaf_div_runs(html: str) -> str:
                 top_start = m.start()
                 content_start = m.end()
             depth += 1
+    return intervals
+
+
+def _normalize_top_level_leaf_div_runs(html: str) -> str:
+    """Unwrap consecutive top-level leaf <div> lines into <br>-separated text.
+
+    Anki sometimes stores multi-line fields as `<div>line</div><div>line</div>`
+    instead of `line<br>line`. The rest of the markdown pipeline only splits on
+    `<br>`, so those lines are invisible. This helper converts a run of leaf
+    `<div>` elements into the `<br>` representation the pipeline expects, but
+    only when the run contains a block-level markdown marker (code fence,
+    heading, list, blockquote, HR, or table). Plain prose stays untouched so
+    the byte-identical no-op guarantee is preserved for non-markdown fields.
+    """
+    intervals = _top_level_divs(html)
 
     if not intervals:
         return html
@@ -397,6 +441,68 @@ def _normalize_top_level_leaf_div_runs(html: str) -> str:
             run_start = None
 
     flush()
+    result_parts.append(html[last:])
+    return "".join(result_parts)
+
+
+# ---------------------------------------------------------------------------
+# Un-fenced code pastes in a single leaf <div>
+# ---------------------------------------------------------------------------
+
+# A line indented with at least two &nbsp; groups — pasted-code indentation.
+_CODE_DIV_INDENT_RE = re.compile(r"^(?:(?:\s|&nbsp;)*&nbsp;){2}")
+
+# Unambiguous code-declaration keywords at the start of a (dedented) line.
+_CODE_DIV_KEYWORD_RE = re.compile(
+    r"^(?:class|def|import|from|public|private|protected|static|void|function|package)\b"
+)
+
+_LEADING_WS_NBSP_RE = re.compile(r"^(?:\s|&nbsp;)+")
+
+
+def _is_code_like_leaf_div(content: str) -> bool:
+    """True if a leaf <div>'s <br>-separated lines look like un-fenced code.
+
+    Requires several non-empty lines, multiple lines indented with &nbsp;
+    entities (pasted-code indentation), and at least one line starting with
+    a code keyword — so plain prose never qualifies.
+    """
+    non_empty = 0
+    indented = 0
+    keywords = 0
+    for part in _BR_SPLIT_RE.split(content):
+        if _BR_SPLIT_RE.match(part):
+            continue
+        text = _STRIP_CODE_TAGS_RE.sub("", part)
+        if not text.replace("&nbsp;", "").strip():
+            continue
+        non_empty += 1
+        if _CODE_DIV_INDENT_RE.match(text):
+            indented += 1
+        if _CODE_DIV_KEYWORD_RE.match(_LEADING_WS_NBSP_RE.sub("", text)):
+            keywords += 1
+    return non_empty >= 4 and indented >= 3 and keywords >= 1
+
+
+def _wrap_code_like_leaf_divs(html: str) -> str:
+    """Wrap un-fenced code pastes stored in a single leaf <div> in ``` fences.
+
+    LeetCode-style starter code pasted without fences is stored as one <div>
+    with <br> line breaks and &nbsp; indentation; its `# comment` lines would
+    otherwise convert to <h1> headings. Wrapping the div in fences lets the
+    regular code-block pipeline render it.
+    """
+    if "<div" not in html.lower() or "<br" not in html.lower():
+        return html
+    result_parts: list[str] = []
+    last = 0
+    for start, end, content, is_leaf in _top_level_divs(html):
+        if is_leaf and _is_code_like_leaf_div(content):
+            result_parts.append(html[last:start])
+            result_parts.append("```<br>" + _strip_trailing_br(content) + "<br>```")
+            last = end
+    if not result_parts:
+        return html
     result_parts.append(html[last:])
     return "".join(result_parts)
 
@@ -712,6 +818,10 @@ def convert_markdown_field(html: str) -> str:
     # Convert leaf-<div>-per-line fields (common after Anki paste) into the
     # <br>-separated representation the rest of the pipeline understands.
     html = _normalize_top_level_leaf_div_runs(html)
+
+    # Fence un-fenced code pastes stored in a single leaf <div> so their
+    # `# comment` lines are not converted to headings.
+    html = _wrap_code_like_leaf_divs(html)
 
     # Split on <br>, preserving delimiters.
     split_parts = _BR_SPLIT_RE.split(html)

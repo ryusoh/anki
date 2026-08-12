@@ -558,6 +558,78 @@ def test_code_block_stray_div_tags_inside_pre_repaired():
     assert 'int b = sizeof(str);/<i>b = 20</i>/</code></pre>' in out
 
 
+def test_unfenced_code_leaf_div_wrapped_as_code_block():
+    """An un-fenced code paste in a single leaf <div> becomes a code block.
+
+    Mirrors the real note 1639716063357 ('307. Range Sum Query - Mutable')
+    field: LeetCode starter code pasted as one <div> with <br> line breaks
+    and &nbsp; indentation, no ``` fences. Without detection the trailing
+    `# ...` comment lines convert to <h1> headings.
+    """
+    html = (
+        '<ul><li><code>NumArray(int[] nums)</code>&nbsp;Initializes.</li></ul>'
+        '<div>class NumArray(object):<br><br>'
+        '&nbsp;&nbsp;&nbsp; def __init__(self, nums):<br>'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; """<br>'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; :type nums: List[int]<br>'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; """<br>'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <br><br>'
+        '&nbsp;&nbsp;&nbsp; def update(self, index, val):<br>'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; """<br>'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; :rtype: None<br>'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; """<br>'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>'
+        '# Your NumArray object will be instantiated and called as such:<br>'
+        '# obj = NumArray(nums)<br>'
+        '# obj.update(index,val)<br>'
+        '# param_2 = obj.sumRange(left,right)<br>'
+        '</div>'
+    )
+    out = convert_markdown_field(html)
+    assert '<pre style=' in out
+    assert '<code>' in out
+    assert 'class NumArray(object):' in out
+    assert '# obj = NumArray(nums)' in out
+    assert '<h1>' not in out
+    assert out.startswith('<ul><li><code>NumArray(int[] nums)</code>')
+
+
+def test_unfenced_code_leaf_div_idempotent():
+    """Converting a detected un-fenced code <div> twice yields the same result."""
+    html = (
+        '<div>class Foo(object):<br>'
+        '&nbsp;&nbsp;&nbsp; def bar(self):<br>'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; """docstring"""<br>'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; pass<br>'
+        '# construct it<br>'
+        '# foo = Foo()<br>'
+        '</div>'
+    )
+    first = convert_markdown_field(html)
+    assert '<pre style=' in first
+    assert convert_markdown_field(first) == first
+
+
+def test_pre_block_with_hash_comment_lines_idempotent():
+    """A code block whose lines start with '#' survives a second pass.
+
+    The produced <pre> keeps <br> line breaks inside, so a repeat conversion
+    splits it back into parts — without a pass-through the '#' comment lines
+    would convert to <h1> headings inside the <pre>.
+    """
+    html = '```python<br>' 'class A:<br>' '# a comment<br>' 'x = 1<br>' '```'
+    first = convert_markdown_field(html)
+    assert convert_markdown_field(first) == first
+
+
+def test_prose_leaf_div_with_hash_heading_not_treated_as_code():
+    """A prose <div> with a real '# heading' line is still a heading, not code."""
+    html = '<div># Real heading<br>Just prose here, no indentation.</div>'
+    out = convert_markdown_field(html)
+    assert '<h1>Real heading</h1>' in out
+    assert '<pre' not in out
+
+
 # ---------------------------------------------------------------------------
 # Markdown Tables
 # ---------------------------------------------------------------------------
