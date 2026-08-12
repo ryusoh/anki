@@ -37,6 +37,39 @@ new = {nid: flds.count('[sound:') for nid, flds in live.execute('SELECT id, flds
 lost = [nid for nid in old if new.get(nid, 0) < old[nid]]  # [] means no refs lost
 ```
 
+## Zero-byte files (poisoned TTS cache)
+
+A different failure mode: the file **exists** but is 0 bytes, so the card
+plays silence. Cause: a TTS download fails mid-stream and leaves an empty file
+at AwesomeTTS's cache path; the next fetch treated it as a cache hit and copied
+the empty file onto the card. Fixed at the source on 2026-08-12
+(`awesome_tts/awesometts/router.py` — a cache hit now requires a non-empty
+file), but files poisoned before the fix stay broken until repaired.
+
+Sweep for them (both locations):
+
+```bash
+find ~/Library/Application\ Support/Anki2/addons21/awesome_tts/user_files/cache \
+     ~/Library/Application\ Support/Anki2/LZ/collection.media -size 0 -name "*.mp3"
+```
+
+Repair one (Anki running, AnkiConnect up): delete the 0-byte file from both
+the cache and `collection.media`, regenerate the clip with the same voice the
+add-on uses, then store it and re-point the note's `[sound:]` tag:
+
+```bash
+# edge-tts is importable from the add-on's deps dir; afinfo confirms real audio
+PYTHONPATH=~/Library/Application\ Support/Anki2/awesome_tts_deps python3 -c "
+import asyncio, edge_tts
+asyncio.run(edge_tts.Communicate('WORD', voice='en-US-AvaNeural').save('/tmp/word.mp3'))"
+afinfo /tmp/word.mp3  # 'estimated duration' must be > 0
+```
+
+```python
+rpc('storeMediaFile', filename='edgetts-WORD.mp3', data=<base64 of the mp3>)
+rpc('updateNoteFields', note={'id': NOTE_ID, 'fields': {'Back': back.replace(dead_tag, f'[sound:{fname}]')}})
+```
+
 ## What actually causes missing files
 
 - **Illegal-in-filenames characters (`*`, `?`, `:`, `"`, `<`, `>`, `|`).**
