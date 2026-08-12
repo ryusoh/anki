@@ -142,6 +142,12 @@ a valid Conventional Commit subject**.
 | JS strict type check (whitelist)                           | `make typecheck-js`                    |
 | Stream-of-consciousness scan (comments, abandoned tests)   | `make thinking-check`                  |
 
+- **The full gate is slow** — `precommit SKIP=1` runs ~6+ min serial (measured
+  baseline in `docs/precommit-speed.md`). Background it with a generous timeout
+  (≥ 15 min, not the 5-min default) and tee full output to a file
+  (`make precommit SKIP=1 > /tmp/precommit.log 2>&1`): piping through `tail`
+  throws away which suite failed, forcing a full re-run just to see the error.
+
 - **Complexity ratchet** — the gate freezes cyclomatic complexity in both
   languages: ESLint `complexity` errors above 20 with `eslint-suppressions.json`
   baselining the legacy violations (any NEW or worsened one fails; shrink the
