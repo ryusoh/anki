@@ -67,7 +67,18 @@ class TestApplyImage:
             patch("auto_image.fetch_image_results", return_value=[]),
         ):
             _apply_image(editor, "asjdflk")
-        sys.modules['aqt.utils'].tooltip.assert_called()
+        tooltip_calls = [str(c) for c in sys.modules['aqt.utils'].tooltip.call_args_list]
+        assert any("No image found" in c for c in tooltip_calls)
+
+    def test_search_failure_shows_distinct_tooltip(self):
+        editor = _make_editor()
+        with (
+            patch("auto_image.clean_html_text", return_value="cat"),
+            patch("auto_image.fetch_image_results", return_value=None),
+        ):
+            _apply_image(editor, "cat")
+        tooltip_calls = [str(c) for c in sys.modules['aqt.utils'].tooltip.call_args_list]
+        assert any("search failed" in c for c in tooltip_calls)
 
     def test_appends_image_to_back_field_plain(self):
         editor = _make_editor(fields=["cat", "existing content"])

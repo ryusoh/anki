@@ -34,6 +34,9 @@ def _apply_image(editor, text_to_search):
     # Get or use cached results
     if text not in _image_cache:
         urls = fetch_image_results(text)
+        if urls is None:
+            tooltip(f"Image search failed for '{text}' (network/proxy error) — try again.")
+            return
         if not urls:
             tooltip(f"No image found for '{text}'.")
             return

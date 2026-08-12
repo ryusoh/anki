@@ -42,6 +42,9 @@ def fetch_image_results(query):
     """
     Fetches candidate image URLs using DuckDuckGo's image search API.
     Returns raw URLs without downloading — validation is done lazily per click.
+    Returns None when the search itself failed (network error, rate-limit,
+    missing vqd token) so callers can tell it apart from a genuine empty
+    result list.
     """
     if not query:
         return []
@@ -49,7 +52,8 @@ def fetch_image_results(query):
     try:
         vqd = _get_vqd_token(query)
         if not vqd:
-            return []
+            logger.warning(f"No vqd token for query '{query}' (rate-limit or anomaly page?)")
+            return None
 
         encoded_query = urllib.parse.quote_plus(query)
         api_url = (
@@ -68,9 +72,7 @@ def fetch_image_results(query):
         return [r["thumbnail"] for r in data.get("results", [])[:20] if r.get("thumbnail")]
     except Exception as e:
         logger.warning(f"Failed to fetch image results for query '{query}': {e}")
-        pass
-
-    return []
+        return None
 
 
 def download_image(url):

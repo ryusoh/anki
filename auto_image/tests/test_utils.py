@@ -102,21 +102,21 @@ class TestFetchImageResults:
         with patch("auto_image.utils.urllib.request.urlopen", side_effect=fake_urlopen):
             assert fetch_image_results("asjdflkajsdflkajsdf") == []
 
-    def test_returns_empty_list_on_network_error(self):
+    def test_returns_none_on_network_error(self):
         with (
             patch("auto_image.utils.urllib.request.urlopen", side_effect=Exception("timeout")),
             patch("auto_image.utils.logger.warning") as mock_warning,
         ):
-            assert fetch_image_results("cat") == []
+            assert fetch_image_results("cat") is None
             mock_warning.assert_called_once()
             assert "Failed to fetch image results for query 'cat'" in mock_warning.call_args[0][0]
 
-    def test_returns_empty_list_when_no_vqd_token(self):
+    def test_returns_none_when_no_vqd_token(self):
         with patch(
             "auto_image.utils.urllib.request.urlopen",
             return_value=_mock_response(b'<html>nothing</html>'),
         ):
-            assert fetch_image_results("cat") == []
+            assert fetch_image_results("cat") is None
 
     def test_filters_empty_thumbnails(self):
         api_response = json.dumps(
