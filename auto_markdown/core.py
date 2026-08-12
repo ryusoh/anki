@@ -219,11 +219,17 @@ _PRE_OPEN_RE = re.compile(r"<pre\b", re.IGNORECASE)
 _PRE_CLOSE_RE = re.compile(r"</pre\s*>", re.IGNORECASE)
 
 
-def _collect_existing_pre(parts: list[tuple[str, bool]], i: int) -> tuple[str, int] | None:
+def _collect_existing_pre(
+    parts: list[tuple[str, bool]], i: int
+) -> tuple[list[tuple[str, str]], int] | None:
     """Join a <pre>…</pre> span split across parts back into one part.
 
-    Returns (joined_html, next_index) when parts[i] opens a <pre> that only
-    closes in a later part, else None.
+    Returns (pieces, next_index) when parts[i] opens a <pre> that only
+    closes in a later part, else None. Content before the opening tag and
+    after the closing tag is split off as 'text' so it converts normally;
+    the span itself is emitted as 'normal' (pass-through, non-block) so
+    spacing around it is treated exactly as if the parts had never been
+    joined — keeping repeat conversions byte-stable.
     """
     content, is_br = parts[i]
     if is_br:
@@ -233,13 +239,23 @@ def _collect_existing_pre(parts: list[tuple[str, bool]], i: int) -> tuple[str, i
     opens = list(_PRE_OPEN_RE.finditer(content))
     if not opens or _PRE_CLOSE_RE.search(content, opens[-1].end()):
         return None
-    collected = [content]
+    prefix = content[: opens[-1].start()]
+    collected = [content[opens[-1].start() :]]
     j = i + 1
     while j < len(parts):
-        collected.append(parts[j][0])
+        c2 = parts[j][0]
+        close = _PRE_CLOSE_RE.search(c2)
         j += 1
-        if _PRE_CLOSE_RE.search(parts[j - 1][0]):
-            return "".join(collected), j
+        if close:
+            collected.append(c2[: close.end()])
+            pieces: list[tuple[str, str]] = []
+            if prefix:
+                pieces.append((prefix, "text"))
+            pieces.append(("".join(collected), "normal"))
+            if c2[close.end() :]:
+                pieces.append((c2[close.end() :], "text"))
+            return pieces, j
+        collected.append(c2)
     return None
 
 
@@ -247,7 +263,8 @@ def _parse_code_blocks(parts: list[tuple[str, bool]]) -> list[tuple[str, str]]:
     """Identifies code blocks in the parts list.
 
     parts is a list of (content, is_br).
-    Returns a list of (content, type) where type is 'code_block', 'br', or 'text'.
+    Returns a list of (content, type) where type is 'code_block', 'br',
+    'text', or 'normal' (pass-through for existing <pre> spans).
     """
     result: list[tuple[str, str]] = []
     i = 0
@@ -261,8 +278,8 @@ def _parse_code_blocks(parts: list[tuple[str, bool]]) -> list[tuple[str, str]]:
 
         existing_pre = _collect_existing_pre(parts, i)
         if existing_pre is not None:
-            pre_html, i = existing_pre
-            result.append((pre_html, "code_block"))
+            pieces, i = existing_pre
+            result.extend(pieces)
             continue
 
         clean_content = _STRIP_CODE_TAGS_RE.sub("", content)
@@ -494,10 +511,13 @@ def _wrap_code_like_leaf_divs(html: str) -> str:
     """
     if "<div" not in html.lower() or "<br" not in html.lower():
         return html
+    low = html.lower()
     result_parts: list[str] = []
     last = 0
     for start, end, content, is_leaf in _top_level_divs(html):
-        if is_leaf and _is_code_like_leaf_div(content):
+        # A <div> nested inside a <pre> is pre content, not a paste wrapper.
+        in_pre = low.rfind("<pre", 0, start) > low.rfind("</pre", 0, start)
+        if is_leaf and not in_pre and _is_code_like_leaf_div(content):
             result_parts.append(html[last:start])
             result_parts.append("```<br>" + _strip_trailing_br(content) + "<br>```")
             last = end

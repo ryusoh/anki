@@ -630,6 +630,63 @@ def test_prose_leaf_div_with_hash_heading_not_treated_as_code():
     assert '<pre' not in out
 
 
+def test_code_like_div_inside_pre_not_wrapped():
+    """A code-looking <div> nested inside a <pre> is pre content, not a paste.
+
+    Mirrors the real note 1620417286877 field 3: an old-style <pre><code>
+    block holds prose spans, an image, and a code <div>. Wrapping that div
+    in fences would inject literal ``` into the <pre>.
+    """
+    html = (
+        '<pre><code><img src="a.png"><br>'
+        '<span style="color: rgb(66, 66, 66);">Some prose.</span><br>'
+        '<div>class Solution:<br>'
+        '&nbsp;&nbsp;&nbsp; def buildTree(self, preorder):<br>'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; # base case<br>'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if left &gt; right: return None<br>'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; root = TreeNode(preorder[0])<br>'
+        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return root<br>'
+        '</div></code></pre>'
+    )
+    out = convert_markdown_field(html)
+    assert '```' not in out
+    assert convert_markdown_field(out) == out
+
+
+def test_existing_pre_span_spacing_stable_across_passes():
+    """Spacing around an existing <pre> span must not drift per conversion.
+
+    Mirrors the real note 1649567940098 field 1: prose followed by
+    `<div><br><div>例1：<br><br></div><div><pre ...>`. Joining the pre span
+    as a block part made _clean_spacings trim one more adjacent <br> on
+    every pass.
+    """
+    html = (
+        'sizeofを説明する prose。<div><br><div>例1：<br><br></div>'
+        '<div><pre style="background-color: #1e1e1e; color: #d4d4d4; padding: 12px 16px; '
+        'border-radius: 6px; overflow-x: auto; font-family: SFMono-Regular, Consolas, '
+        'Liberation Mono, Menlo, monospace; font-size: 0.85em; line-height: 1.5; margin: 10px 0;">'
+        '<code>int a = 1;<br>int b = 2;</code></pre></div>'
+    )
+    first = convert_markdown_field(html)
+    assert first == html
+    assert convert_markdown_field(first) == first
+
+
+def test_existing_pre_span_trailing_prose_preserved():
+    """Prose glued after </pre> in the same part keeps its surrounding <br>s."""
+    html = (
+        '<pre style="background-color: #1e1e1e; color: #d4d4d4; padding: 12px 16px; '
+        'border-radius: 6px; overflow-x: auto; font-family: SFMono-Regular, Consolas, '
+        'Liberation Mono, Menlo, monospace; font-size: 0.85em; line-height: 1.5; margin: 10px 0;">'
+        '<code>val x = 1;<br>val y = 2;</code></pre>对比 MapReduce：<br><br>'
+        '-&nbsp;&nbsp; <b>不需固化</b>：说明文字'
+    )
+    first = convert_markdown_field(html)
+    assert '对比 MapReduce：<br><br>' in first
+    assert convert_markdown_field(first) == first
+
+
 # ---------------------------------------------------------------------------
 # Markdown Tables
 # ---------------------------------------------------------------------------
