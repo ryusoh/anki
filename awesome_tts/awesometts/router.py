@@ -417,7 +417,9 @@ class Router(object):
             if not text:
                 raise ValueError("Text not usable by " + service['class'].NAME)
             path = self._validate_path(svc_id, text, options)
-            cache_hit = os.path.exists(path)
+            # A 0-byte leftover from a failed download is not a cache hit;
+            # the service call below overwrites it with real audio.
+            cache_hit = os.path.exists(path) and os.path.getsize(path) > 0
 
             self._logger.debug(
                 "Parsed call to '%s' w/ %s and \"%s\" at %s (cache %s)",
