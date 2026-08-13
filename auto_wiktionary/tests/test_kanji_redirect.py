@@ -957,3 +957,73 @@ def test_full_redirect_flow_asebi():
     assert "ツツジ目" in parsed
     assert "あせび" in parsed
     assert "あしび" in parsed
+
+
+# ---- 暗い (くらい) gloss-embedded redirect test fixtures ----
+
+# Real HTML from ja.wiktionary for 暗い.
+# New wrinkle vs. the other 参照 redirects: the <li> is a full gloss sentence
+# with the pointer embedded at the end —
+# '光の量がすくないこと。詳細は くらい を参照。' — not a bare 'X を参照'
+# notice. The naive match grabs the whole gloss as the "reading"
+# ('光の量がすくないこと。詳細は くらい'), which 404s.
+KURAI_REDIRECT_HTML = """
+<html>
+    <body>
+        <section>
+            <h2>日本語</h2>
+            <section>
+                <h3>和語の漢字表記</h3>
+                <p><b><a href="./暗" title="暗">暗</a>い</b> (くらい)</p>
+                <ol><li><a href="./ひかり" title="ひかり">光</a>の量が<a href="./すくない" title="すくない">すくない</a>こと。詳細は <b><a href="./くらい#形容詞" title="くらい">くらい</a></b> を参照。</li></ol>
+            </section>
+        </section>
+    </body>
+</html>
+"""
+
+# Real HTML from ja.wiktionary for くらい (the redirect target).
+KURAI_REAL_HTML = """
+<html>
+    <body>
+        <section>
+            <h2>日本語</h2>
+            <section>
+                <h3>形容詞</h3>
+                <p><strong class="Jpan headword" lang="ja">くらい</strong>【<a href="./暗#日本語" title="暗">暗</a>い】</p>
+                <ol>
+                    <li>光が乏しい。光が遮られている。</li>
+                    <li>色が濃く、他との区別がしにくい。</li>
+                </ol>
+            </section>
+        </section>
+    </body>
+</html>
+"""
+
+
+def test_detect_kanji_redirect_kurai_gloss_embedded_sanshou():
+    """暗い redirects to くらい via a gloss with an embedded pointer —
+    '光の量がすくないこと。詳細は くらい を参照。'. Only the phrase between
+    詳細は and を参照 is the reading; the whole gloss 404s."""
+    result = detect_kanji_redirect(KURAI_REDIRECT_HTML)
+    assert result is not None, "detect_kanji_redirect should detect gloss-embedded redirects"
+    reading, all_readings = result
+    assert reading == "くらい"
+    assert all_readings == ["くらい"]
+
+
+def test_full_redirect_flow_kurai():
+    """Full flow: 暗い (gloss-embedded redirect) → fetch くらい → real definition.
+    Must NOT show the '詳細は … を参照。' notice."""
+    result = detect_kanji_redirect(KURAI_REDIRECT_HTML)
+    assert result is not None
+    reading, all_readings = result
+    assert reading == "くらい"
+
+    parsed = parse_wiktionary_html(KURAI_REAL_HTML, lang="ja")
+    parsed = inject_redirect_pronunciation(parsed, all_readings)
+    assert "を参照" not in parsed
+    assert "詳細は" not in parsed
+    assert "乏しい" in parsed
+    assert "くらい" in parsed
