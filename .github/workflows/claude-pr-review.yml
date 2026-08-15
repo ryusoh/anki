@@ -15,7 +15,7 @@ jobs:
             pull-requests: write
             id-token: write
         steps:
-            - uses: anthropics/claude-code-action@c038e4dcdedfbbca18dfb17df35a17e40ded4ddc # v1
+            - uses: anthropics/claude-code-action@239e3a730883eeb5c53db12b0fc9573b3024b126 # v1
 
               with:
                   prompt: |
