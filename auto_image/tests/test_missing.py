@@ -51,7 +51,7 @@ def test_use_front_field_none_note():
 
 def test_save_to_media():
     auto_image.mw = MagicMock()
-    auto_image.mw.col.media.write_data = MagicMock()
+    auto_image.mw.col.media.write_data = MagicMock(return_value='auto_image_test_query____1.jpg')
 
     filename = _save_to_media(b'dummy_data', 'test query!@#', 1)
 

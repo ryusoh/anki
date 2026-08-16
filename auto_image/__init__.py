@@ -17,11 +17,11 @@ _AUTO_IMAGE_PATTERN = re.compile(r'<div class="auto-image">.*?</div>')
 
 
 def _save_to_media(data, query, index):
-    """Save image bytes to Anki's media collection. Returns the filename."""
+    """Save image bytes to Anki's media collection. Returns the filename
+    Anki actually used (long names get truncated with a hash appended)."""
     safe_query = re.sub(r'[^\w]', '_', query)[:50]
     filename = f"auto_image_{safe_query}_{index}.jpg"
-    mw.col.media.write_data(filename, data)
-    return filename
+    return mw.col.media.write_data(filename, data)
 
 
 def _apply_image(editor, text_to_search):

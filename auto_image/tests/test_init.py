@@ -14,6 +14,7 @@ from auto_image import (
     _apply_image,
     _image_cache,
     _on_selection_result,
+    _save_to_media,
     _use_front_field,
     on_auto_image,
     on_editor_did_init_buttons,
@@ -257,6 +258,19 @@ class TestSaveToMedia:
     def setup_method(self):
         _image_cache.clear()
         sys.modules['aqt.utils'].tooltip.reset_mock()
+
+    def test_uses_filename_returned_by_write_data(self):
+        """Anki truncates long media names and appends a hash; the img src
+        must reference the name write_data actually used, not the desired one."""
+        with patch("auto_image.mw") as mock_mw:
+            mock_mw.col.media.write_data.return_value = (
+                "auto_image_半波带奇偶性导致多焦点_本质上是波带片对不-029f4a4f.jpg"
+            )
+            result = _save_to_media(b'\xff\xd8 img', "半波带奇偶性" * 20, 0)
+        assert result == "auto_image_半波带奇偶性导致多焦点_本质上是波带片对不-029f4a4f.jpg"
+        desired = mock_mw.col.media.write_data.call_args[0][0]
+        assert desired.startswith("auto_image_")
+        assert desired.endswith("_0.jpg")
 
     def test_saves_image_and_uses_local_filename(self):
         """Image should be saved to media and referenced locally."""
