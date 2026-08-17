@@ -159,7 +159,9 @@ def export_to_dict(G):
     """
     # Optimize dict construction with list comprehensions instead of append loops
     nodes = [{'id': node_id, **data} for node_id, data in G.nodes(data=True)]
-    edges = [{'source': source, 'target': target, **data} for source, target, data in G.edges(data=True)]
+    edges = [
+        {'source': source, 'target': target, **data} for source, target, data in G.edges(data=True)
+    ]
 
     return {
         'nodes': nodes,
