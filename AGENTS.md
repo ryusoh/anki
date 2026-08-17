@@ -226,6 +226,9 @@ is false. Confirm both pytest **and** the JS runner execute.
   `tests/`. New add-on? See `docs/creating-an-addon.md`.
 - `graph/` — Python graph pipeline (networkx). `data/anki/` — stats generators.
 - `tests/` — root-level node tests (`*.test.cjs` / `*.test.mjs`).
+- `tools/` — shared repository tooling (`gate_guard.py`, `check_thinking_comments.py`,
+  `sync_commands.py`, `coverage_rank.py`, `dump_field.py`, etc.). Scripts referenced across
+  agent docs and skills are verified by `tools/test_doc_tool_references.py`.
 - `docs/` — cross-cutting how-tos and gotchas. **Read the relevant doc before deep
   work**: `docs/creating-an-addon.md`, `docs/lint-and-quality.md`,
   `docs/js-typing-strategy.md`.
@@ -374,15 +377,15 @@ and verification commands.
 
 ## Lanes (keep PRs disjoint to avoid collisions)
 
-| Routine     | Owns                                                       | Must NOT touch                            |
-| ----------- | ---------------------------------------------------------- | ----------------------------------------- |
-| Testpilot   | test-only additions/coverage, no prod-code change          | any production file                       |
-| Refactoring | cyclomatic-complexity refactors (behaviour-preserving)     | error-handling/security, tests, features  |
-| Sentinel    | security + error-handling (XSS, injection, silent catches) | complexity refactors, features            |
-| Palette     | accessibility (ARIA, keyboard, focus) in `js/` + CSS       | security, perf, complexity                |
-| Janitor     | dead code, stale deps, real TODOs only                     | complexity, error-handling, tests         |
-| Bolt        | measurable performance/efficiency on a real hot path       | anything another lane owns in the same PR |
-| Typist      | JS strict-type annotations (JSDoc) + whitelist expansion   | runtime behaviour                         |
+| Routine     | Owns                                                       | Must NOT touch                                                                                                                        |
+| ----------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Testpilot   | test-only additions/coverage, no prod-code change          | any production file                                                                                                                   |
+| Refactoring | cyclomatic-complexity refactors (behaviour-preserving)     | error-handling/security, tests, features                                                                                              |
+| Sentinel    | security + error-handling (XSS, injection, silent catches) | complexity refactors, features                                                                                                        |
+| Palette     | accessibility (ARIA, keyboard, focus) in `js/` + CSS       | security, perf, complexity                                                                                                            |
+| Janitor     | dead code, stale deps, real TODOs only                     | complexity, error-handling, tests, infrastructure/tools (`tools/`, `scripts/`, `bin/`, `.agents/`, `.jules/`, `.github/`, `Makefile`) |
+| Bolt        | measurable performance/efficiency on a real hot path       | anything another lane owns in the same PR                                                                                             |
+| Typist      | JS strict-type annotations (JSDoc) + whitelist expansion   | runtime behaviour                                                                                                                     |
 
 If your finding belongs to another lane, **skip it** — that lane will get it. If a
 scan finds nothing actionable in your lane, **open no PR**; an empty pass is a

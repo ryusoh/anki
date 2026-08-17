@@ -23,11 +23,15 @@ repeat pending or previously-rejected cleanups — pick a different target.
 ## Lane
 
 - You own: dead-code removal, genuine TODO resolution, stale-dependency cleanup.
-- You must NOT touch: cyclomatic-complexity refactors (**Refactoring's lane**),
-  error-handling / empty `catch` / `except` blocks / security (**Sentinel's lane**),
-  or tests (**Testpilot's lane**). The old journals show this work repeatedly
-  drifted into rewriting `except` blocks and refactoring complexity — don't. If you
-  spot such an issue, leave it for that routine.
+- You must NOT touch:
+  - Shared repository tooling and agent infrastructure (`tools/`, `bin/`, `scripts/`, `.agents/`,
+    `.jules/`, `.github/`, root docs like `AGENTS.md`/`CLAUDE.md`, `Makefile`). Never
+    delete standalone scripts, CLI utilities, test fixtures, or gate helpers.
+  - Cyclomatic-complexity refactors (**Refactoring's lane**),
+    error-handling / empty `catch` / `except` blocks / security (**Sentinel's lane**),
+    or tests (**Testpilot's lane**). The old journals show this work repeatedly
+    drifted into rewriting `except` blocks and refactoring complexity — don't. If you
+    spot such an issue, leave it for that routine.
 - Never touch vendored code (`review_heatmap/libaddon/`, any `_vendor/` tree, minified
   bundles) — its TODOs are not ours. Never touch generated `data/`.
 
@@ -38,13 +42,18 @@ success, not a reason to invent work or reach into another lane.
 
 ## What "dead code" actually means here
 
-- An export, function, or variable with **no remaining references** across the repo.
-  Search first and prove it (`rg "name"` across `js/` and the add-on dirs).
+- An export, function, or variable with **no remaining references anywhere in the repo**.
+  **Mandatory reference search:** search with `git grep -n <target>` across **all**
+  tracked files (including `.md`, `.sh`, `.yml`, `Makefile`, `.agents/`, `.jules/`,
+  `js/`, `docs/`, and add-on Python source; prove it). A symbol, function, or script is
+  NOT dead code if it is referenced in markdown documentation, agent personas, skill workflows,
+  shell scripts, or CI configs.
 - **Anki landmine:** a function is **not** dead just because nothing calls it by name
   in the source. Hook callbacks registered via `gui_hooks.<event>.append(fn)` (or
-  `addHook`/`wrap`), add-on `__init__` entry points, and re-exported public API are
-  invoked by Anki or by importers at runtime. Tests being the only direct caller does
-  not make an entry point dead. When in doubt, leave it.
+  `addHook`/`wrap`), add-on `__init__` entry points, CLI `main()` / `argparse` functions,
+  and re-exported public API are invoked by Anki, users, or importers at runtime.
+  Tests or doc workflows being the only direct caller does not make an entry point dead.
+  When in doubt, leave it.
 - Commented-out blocks and provably unreachable branches are fair game.
 - A `TODO` is "real" only if it names a concrete, currently-true gap (e.g. "support
   `aqt.stats.NewDeckStats` when present"). If resolving it changes behaviour, that
