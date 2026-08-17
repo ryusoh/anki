@@ -63,3 +63,13 @@ def test_check_false_when_commands_dir_missing(tmp_path, monkeypatch):
     monkeypatch.setattr(sync_commands, "format_generated_commands", lambda d: None)
     skills = _make_skills(tmp_path)
     assert sync_commands.check(str(skills), str(tmp_path / "nope")) is False
+
+
+def test_ensure_skills_symlink_creates_link(tmp_path):
+    link_path = tmp_path / ".claude" / "skills"
+    sync_commands.ensure_skills_symlink(str(link_path))
+    assert link_path.is_symlink()
+    assert os.readlink(str(link_path)) == os.path.join("..", ".agents", "skills")
+    # Idempotent call
+    sync_commands.ensure_skills_symlink(str(link_path))
+    assert link_path.is_symlink()

@@ -4,7 +4,8 @@ Single source of truth for agent guidance on this repo — **edit this file, not
 `CLAUDE.md`** (that is a stub that imports this one). Deeper how-tos live in
 `docs/`; slash-command workflows live in `.agents/skills/` (canonical — the
 open Agent Skills format; `.claude/commands/` is generated from it by
-`tools/sync_commands.py`, and the gate drift-checks it via `make sync-check`).
+`tools/sync_commands.py`, `.claude/skills` is symlinked to `.agents/skills`,
+and the gate drift-checks it via `make sync-check`).
 
 ## Two audiences (do not mix these up)
 
@@ -354,6 +355,34 @@ import ...`) must insert the repo root into `sys.path` _before_ those imports.
   Literal ones are invisible in diffs and reviews, and the Edit tool can't match
   them reliably afterwards (an `old_string` containing them normalizes
   differently), forcing shell workarounds for later edits.
+
+## Skills and slash commands
+
+- **`.agents/skills/<name>/SKILL.md` is canonical** — the open Agent Skills
+  format: YAML frontmatter declaring `name` and `description` (used for
+  triggering), instructions in the markdown body. Edit skills there.
+- **Self-contained skill bundles:** Each skill is a directory containing its
+  `SKILL.md`, plus any skill-scoped helper scripts (`scripts/`) or prompt/data
+  references (`references/`). Keep skill-specific logic bundled within its skill
+  directory rather than placing one-off scripts in global `tools/` or `bin/`.
+- **Progressive disclosure:** only the frontmatter `name` + `description` enter
+  an agent's system prompt; the body is read on demand once the skill triggers.
+  So the `description` is the only always-loaded surface — write it as a
+  discriminative trigger ("Use when ..."), and don't contort the body to save
+  prompt space; length there is free until the skill fires.
+- **Never put a `---` horizontal rule in a skill body** — the generator's
+  frontmatter parser is a naive `content.split("---", 2)`, so a `---` line in
+  the body mangles the generated command.
+- **`.claude/skills` is symlinked to `../.agents/skills`** for autonomous agent
+  discovery across tools (Claude Code, DeepSeek Harness, etc.).
+- **`.claude/commands/<name>.md` is generated** from the skills by
+  `tools/sync_commands.py` for Claude Code interactive slash commands. Never edit
+  the generated files by hand — run `python3 tools/sync_commands.py` after editing
+  a skill, and note that `make sync-check` (wired into `make precommit`) fails if
+  regeneration is not a no-op.
+- **Skill schema validation:** `tools/test_skills.py` (run by `make check`)
+  enforces schema validity, non-empty descriptions, directory-name matching, and
+  symlink resolution across all skills.
 
 ## Sibling repositories
 

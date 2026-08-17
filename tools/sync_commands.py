@@ -23,6 +23,7 @@ from typing import Dict, Tuple
 WORKSPACE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SKILLS_DIR = os.path.join(WORKSPACE_ROOT, ".agents", "skills")
 COMMANDS_DIR = os.path.join(WORKSPACE_ROOT, ".claude", "commands")
+CLAUDE_SKILLS_LINK = os.path.join(WORKSPACE_ROOT, ".claude", "skills")
 
 
 def parse_markdown(content: str) -> Tuple[Dict[str, str], str]:
@@ -118,6 +119,17 @@ def format_generated_commands(target_dir: str) -> None:
         print(f"Warning: prettier failed on generated commands:\n{exc.stderr}")
 
 
+def ensure_skills_symlink(target_link: str = CLAUDE_SKILLS_LINK) -> None:
+    """Ensure .claude/skills symlink exists pointing to ../.agents/skills."""
+    claude_base = os.path.dirname(target_link)
+    os.makedirs(claude_base, exist_ok=True)
+    if not os.path.exists(target_link) and not os.path.islink(target_link):
+        try:
+            os.symlink(os.path.join("..", ".agents", "skills"), target_link)
+        except OSError:
+            pass
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument(
@@ -136,6 +148,7 @@ def main() -> None:
         )
         sys.exit(1)
     generate(SKILLS_DIR, COMMANDS_DIR)
+    ensure_skills_symlink()
     print("Successfully synchronized Agent Skills to Claude commands.")
 
 
