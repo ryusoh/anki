@@ -681,7 +681,7 @@ export const TABLE_GLASS_EFFECT = {
 };
 
 export const MARQUEE_CONFIG = {
-  enabled: true,
+  enabled: false,
   // Size multiplier for marquee content (1 = normal, 2 = twice as large)
   sizeMultiplier: 2,
   animationDuration: 20, // seconds for one full loop
