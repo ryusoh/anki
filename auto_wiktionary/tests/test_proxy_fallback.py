@@ -195,3 +195,75 @@ def test_fetch_wiktionary_html_falls_back_to_proxy():
         patch('urllib.request.build_opener', return_value=opener),
     ):
         assert utils.fetch_wiktionary_html('word', 'en') == '<p>definition</p>'
+
+def test_detect_local_proxy_oserror_during_probe():
+    def fake_connect(addr, timeout):
+        sock = MagicMock()
+        sock.sendall.side_effect = OSError('write error')
+        return sock
+
+    with (
+        patch('socket.create_connection', side_effect=fake_connect),
+        patch('urllib.request.getproxies', return_value={'http': 'http://127.0.0.1:9999'}),
+    ):
+        assert proxy_fallback._detect_local_proxy() == 'http://127.0.0.1:9999'
+
+def test_urlopen_fallback_direct_opener_httperror():
+    direct_opener = MagicMock()
+    err = HTTPError('url', 404, 'not found', None, None)
+    direct_opener.open.side_effect = err
+
+    with (
+        patch('urllib.request.urlopen', side_effect=OSError('stale proxy connection')),
+        patch.object(proxy_fallback, '_build_direct_opener', return_value=direct_opener),
+        patch.object(proxy_fallback, '_detect_local_proxy') as detect,
+    ):
+        with pytest.raises(HTTPError):
+            urlopen_with_proxy_fallback('req', timeout=5)
+        detect.assert_not_called()
+
+def test_detect_local_proxy_invalid_url():
+    # If the URL parser encounters an invalid format, it shouldn't crash
+    # urlparse on raw without scheme adds 'http://', and if the netloc is invalid
+    # we want to cover the branch where parsed.hostname or parsed.port is falsy
+    with (
+        patch('socket.create_connection', side_effect=OSError('closed')),
+        patch('urllib.request.getproxies', return_value={'http': 'http://invalid.local'}),
+    ):
+        assert proxy_fallback._detect_local_proxy() is None
+
+def test_urlopen_fallback_cached_proxy_httperror():
+    dead = MagicMock()
+    dead.open.side_effect = HTTPError('url', 404, 'not found', None, None)
+    proxy_fallback._proxy_opener = dead
+
+    with pytest.raises(HTTPError):
+        urlopen_with_proxy_fallback('req', timeout=5)
+
+def test_detect_local_proxy_oserror_during_recv():
+    def fake_connect(addr, timeout):
+        sock = MagicMock()
+        sock.recv.side_effect = OSError('read error')
+        return sock
+
+    with (
+        patch('socket.create_connection', side_effect=fake_connect),
+        patch('urllib.request.getproxies', return_value={'http': 'http://127.0.0.1:9999'}),
+    ):
+        assert proxy_fallback._detect_local_proxy() == 'http://127.0.0.1:9999'
+
+def test_detect_local_proxy_recv_success():
+    def fake_connect(addr, timeout):
+        sock = MagicMock()
+        sock.recv.return_value = b'HTTP/1.1 200 OK\r\n'
+        return sock
+
+    with (
+        patch('socket.create_connection', side_effect=fake_connect),
+        patch('urllib.request.getproxies', return_value={'http': 'http://127.0.0.1:9999'}),
+    ):
+        assert proxy_fallback._detect_local_proxy() == 'http://127.0.0.1:9999'
+
+def test_build_direct_opener():
+    opener = proxy_fallback._build_direct_opener()
+    assert opener is not None
