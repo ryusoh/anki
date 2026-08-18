@@ -209,3 +209,53 @@ def test_is_network_error_classification():
     assert edgetts_module._is_network_error(OSError('x'))
     assert not edgetts_module._is_network_error(_http_error(403))
     assert not edgetts_module._is_network_error(RuntimeError('x'))
+
+
+def test_desc():
+    assert EdgeTTS.NAME == "★ Edge-TTS (free)"
+    svc = EdgeTTS(
+        temp_dir="tmp",
+        lame_flags=lambda: '--quiet -q 2',
+        normalize=lambda x: x,
+        logger=Bundle(debug=print, info=print, warn=print, error=print),
+        ecosystem=Bundle(web='http://test', agent='test'),
+        languagetools=Bundle(use_plus_mode=lambda: False),
+        config={},
+    )
+    assert svc.desc() == "Edge-TTS (free neural; Internet required)"
+
+
+def test_options():
+    svc = EdgeTTS(
+        temp_dir="tmp",
+        lame_flags=lambda: '--quiet -q 2',
+        normalize=lambda x: x,
+        logger=Bundle(debug=print, info=print, warn=print, error=print),
+        ecosystem=Bundle(web='http://test', agent='test'),
+        languagetools=Bundle(use_plus_mode=lambda: False),
+        config={},
+    )
+    options = svc.options()
+    assert len(options) == 1
+    assert options[0]['key'] == 'voice'
+    assert options[0]['transform']("x") == "x"
+
+
+def test_cached_proxy_non_network_error_reraises(svc, tmp_path, monkeypatch):
+    path = tmp_path / 'out.mp3'
+    _mock_edge_tts_scripted(monkeypatch, [ValueError('non network error')])
+    edgetts_module._working_proxy = 'http://127.0.0.1:7890'
+    with pytest.raises(ValueError, match='non network error'):
+        svc.run('hello', {'voice': 'en-US-AvaNeural'}, str(path))
+
+
+def test_proxy_fallback_non_network_error_reraises(svc, tmp_path, monkeypatch):
+    path = tmp_path / 'out.mp3'
+    _mock_edge_tts_scripted(
+        monkeypatch,
+        [aiohttp.ClientConnectionError('direct blocked'), ValueError('non network error')],
+    )
+    monkeypatch.setattr(edgetts_module, '_detect_local_proxy', lambda: 'http://127.0.0.1:7897')
+
+    with pytest.raises(ValueError, match='non network error'):
+        svc.run('hello', {'voice': 'en-US-AvaNeural'}, str(path))
