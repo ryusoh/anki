@@ -103,6 +103,7 @@ def test_run_propagates_generation_failure(svc, tmp_path, monkeypatch):
     with pytest.raises(ValueError, match='Kokoro generation failed'):
         svc.run('hello', {'voice': 'af_heart'}, str(tmp_path / 'out.mp3'))
 
+
 def test_desc():
     svc = Kokoro(
         temp_dir="tmp",
@@ -114,6 +115,7 @@ def test_desc():
         config={},
     )
     assert svc.desc() == "Kokoro-82M (free local English TTS; manual install required)"
+
 
 def test_options():
     svc = Kokoro(
@@ -130,12 +132,14 @@ def test_options():
     assert options[0]['key'] == 'voice'
     assert options[0]['transform']("x") == "x"
 
+
 def test_run_rejects_no_audio(svc, tmp_path, monkeypatch):
     path = tmp_path / 'out.mp3'
     _install_fake_kokoro(monkeypatch, [])
 
     with pytest.raises(ValueError, match='Kokoro produced no audio'):
         svc.run('hello', {'voice': 'af_heart'}, str(path))
+
 
 def test_run_rejects_empty_output(svc, tmp_path, monkeypatch):
     path = tmp_path / 'out.mp3'

@@ -196,6 +196,7 @@ def test_fetch_wiktionary_html_falls_back_to_proxy():
     ):
         assert utils.fetch_wiktionary_html('word', 'en') == '<p>definition</p>'
 
+
 def test_detect_local_proxy_oserror_during_probe():
     def fake_connect(addr, timeout):
         sock = MagicMock()
@@ -207,6 +208,7 @@ def test_detect_local_proxy_oserror_during_probe():
         patch('urllib.request.getproxies', return_value={'http': 'http://127.0.0.1:9999'}),
     ):
         assert proxy_fallback._detect_local_proxy() == 'http://127.0.0.1:9999'
+
 
 def test_urlopen_fallback_direct_opener_httperror():
     direct_opener = MagicMock()
@@ -222,6 +224,7 @@ def test_urlopen_fallback_direct_opener_httperror():
             urlopen_with_proxy_fallback('req', timeout=5)
         detect.assert_not_called()
 
+
 def test_detect_local_proxy_invalid_url():
     # If the URL parser encounters an invalid format, it shouldn't crash
     # urlparse on raw without scheme adds 'http://', and if the netloc is invalid
@@ -232,6 +235,7 @@ def test_detect_local_proxy_invalid_url():
     ):
         assert proxy_fallback._detect_local_proxy() is None
 
+
 def test_urlopen_fallback_cached_proxy_httperror():
     dead = MagicMock()
     dead.open.side_effect = HTTPError('url', 404, 'not found', None, None)
@@ -239,6 +243,7 @@ def test_urlopen_fallback_cached_proxy_httperror():
 
     with pytest.raises(HTTPError):
         urlopen_with_proxy_fallback('req', timeout=5)
+
 
 def test_detect_local_proxy_oserror_during_recv():
     def fake_connect(addr, timeout):
@@ -252,6 +257,7 @@ def test_detect_local_proxy_oserror_during_recv():
     ):
         assert proxy_fallback._detect_local_proxy() == 'http://127.0.0.1:9999'
 
+
 def test_detect_local_proxy_recv_success():
     def fake_connect(addr, timeout):
         sock = MagicMock()
@@ -263,6 +269,7 @@ def test_detect_local_proxy_recv_success():
         patch('urllib.request.getproxies', return_value={'http': 'http://127.0.0.1:9999'}),
     ):
         assert proxy_fallback._detect_local_proxy() == 'http://127.0.0.1:9999'
+
 
 def test_build_direct_opener():
     opener = proxy_fallback._build_direct_opener()
