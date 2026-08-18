@@ -127,7 +127,7 @@ def test_run_missing_dependency_raises(svc, tmp_path, monkeypatch):
 
 def test_network_error_retries_via_detected_proxy(svc, tmp_path, monkeypatch):
     path = tmp_path / 'out.mp3'
-    _mock_edge_tts_scripted(
+    calls = _mock_edge_tts_scripted(
         monkeypatch, [aiohttp.ClientConnectionError('blocked'), b'fake mp3']
     )
     monkeypatch.setattr(edgetts_module, '_detect_local_proxy', lambda: 'http://127.0.0.1:7897')
@@ -141,7 +141,7 @@ def test_network_error_retries_via_detected_proxy(svc, tmp_path, monkeypatch):
 
 
 def test_network_error_without_proxy_reraises(svc, tmp_path, monkeypatch):
-    _mock_edge_tts_scripted(monkeypatch, [aiohttp.ClientConnectionError('blocked')])
+    calls = _mock_edge_tts_scripted(monkeypatch, [aiohttp.ClientConnectionError('blocked')])
     monkeypatch.setattr(edgetts_module, '_detect_local_proxy', lambda: None)
 
     with pytest.raises(ValueError, match='edge-tts failed'):
@@ -152,7 +152,7 @@ def test_network_error_without_proxy_reraises(svc, tmp_path, monkeypatch):
 
 def test_cached_proxy_is_used_first(svc, tmp_path, monkeypatch):
     path = tmp_path / 'out.mp3'
-    _mock_edge_tts_scripted(monkeypatch, [b'fake mp3'])
+    calls = _mock_edge_tts_scripted(monkeypatch, [b'fake mp3'])
     edgetts_module._working_proxy = 'http://127.0.0.1:7890'
 
     svc.run('hello', {'voice': 'en-US-AvaNeural'}, str(path))
@@ -162,7 +162,7 @@ def test_cached_proxy_is_used_first(svc, tmp_path, monkeypatch):
 
 def test_dead_cached_proxy_heals_back_to_direct(svc, tmp_path, monkeypatch):
     path = tmp_path / 'out.mp3'
-    _mock_edge_tts_scripted(
+    calls = _mock_edge_tts_scripted(
         monkeypatch, [aiohttp.ClientConnectionError('proxy died'), b'fake mp3']
     )
     edgetts_module._working_proxy = 'http://127.0.0.1:7890'
@@ -178,7 +178,7 @@ def test_dead_cached_proxy_heals_back_to_direct(svc, tmp_path, monkeypatch):
 
 
 def test_http_error_is_not_retried(svc, tmp_path, monkeypatch):
-    _mock_edge_tts_scripted(monkeypatch, [_http_error(403)])
+    calls = _mock_edge_tts_scripted(monkeypatch, [_http_error(403)])
     detect = MagicMock(return_value='http://127.0.0.1:7897')
     monkeypatch.setattr(edgetts_module, '_detect_local_proxy', detect)
 
