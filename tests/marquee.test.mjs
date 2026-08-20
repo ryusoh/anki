@@ -278,7 +278,7 @@ describe("Marquee", () => {
     let callCount = 0;
     dom.window.Element.prototype.getBoundingClientRect = function () {
       callCount++;
-      if (callCount === 1) {
+      if (this.className === "quantum-widget") {
         return { width: 10, height: 10, top: 0, left: 0, right: 10, bottom: 10 };
       }
       return { width: 10, height: 10, top: 0, left: -50, right: -40, bottom: 10 };
