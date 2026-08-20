@@ -113,6 +113,11 @@ function initGravitationalDistortion(widget, charGroups) {
   let wAbsoluteCy = 0;
   let widgetVisible = false;
 
+  // Pre-allocate arrays for container bounds to prevent object allocations inside ticker
+  const containerBounds = new Array(charGroups.length);
+  // Cache absolute container positions to avoid getBoundingClientRect inside ticker
+  const containerAbsoluteBounds = new Array(charGroups.length);
+
   const updateWidgetLayout = () => {
     const wRect = widget.getBoundingClientRect();
     widgetVisible = wRect.width > 0;
@@ -120,17 +125,17 @@ function initGravitationalDistortion(widget, charGroups) {
       wAbsoluteCx = wRect.left + window.scrollX + wRect.width / 2;
       wAbsoluteCy = wRect.top + window.scrollY + wRect.height / 2;
     }
-  };
 
-  updateWidgetLayout();
-
-  if (typeof window !== "undefined" && window.addEventListener) {
-    window.addEventListener("resize", updateWidgetLayout);
-    if (typeof window.ResizeObserver === "function") {
-      const resizeObserver = new window.ResizeObserver(updateWidgetLayout);
-      resizeObserver.observe(document.body);
+    for (let g = 0; g < charGroups.length; g++) {
+      if (charGroups[g] && charGroups[g].container) {
+        const rect = charGroups[g].container.getBoundingClientRect();
+        containerAbsoluteBounds[g] = {
+          left: rect.left + window.scrollX,
+          top: rect.top + window.scrollY,
+        };
+      }
     }
-  }
+  };
 
   charGroups.forEach((group) => {
     if (group.spans.length === 0) return;
@@ -152,8 +157,15 @@ function initGravitationalDistortion(widget, charGroups) {
     }
   });
 
-  // Pre-allocate array for container bounds to prevent object allocations inside ticker
-  const containerBounds = new Array(charGroups.length);
+  updateWidgetLayout();
+
+  if (typeof window !== "undefined" && window.addEventListener) {
+    window.addEventListener("resize", updateWidgetLayout);
+    if (typeof window.ResizeObserver === "function") {
+      const resizeObserver = new window.ResizeObserver(updateWidgetLayout);
+      resizeObserver.observe(document.body);
+    }
+  }
 
   window.gsap.ticker.add(() => {
     if (!widgetVisible) {
@@ -162,14 +174,19 @@ function initGravitationalDistortion(widget, charGroups) {
 
     // Convert cached absolute center back to viewport-relative
     // Reading scrollY doesn't cause layout thrashing
-    const wcx = wAbsoluteCx - window.scrollX;
-    const wcy = wAbsoluteCy - window.scrollY;
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    const wcx = wAbsoluteCx - scrollX;
+    const wcy = wAbsoluteCy - scrollY;
 
-    // Bolt: Phase 1 (READ) - Query all parent container bounds before writing any styles.
-    // Separating DOM reads from writes prevents O(N) layout thrashing across multiple groups.
+    // Bolt: Read container positions from absolute cache to eliminate getBoundingClientRect
+    // from the high-frequency ticker loop.
     for (let g = 0; g < charGroups.length; g++) {
-      const rect = charGroups[g].container.getBoundingClientRect();
-      containerBounds[g] = { left: rect.left, top: rect.top };
+      const absBounds = containerAbsoluteBounds[g];
+      containerBounds[g] = {
+        left: absBounds.left - scrollX,
+        top: absBounds.top - scrollY
+      };
     }
 
     // Bolt: Phase 2 (WRITE) - Batch write transforms based on dynamically computed absolute positions.
