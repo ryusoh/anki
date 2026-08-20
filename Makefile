@@ -1,6 +1,6 @@
 .PHONY: help fetch fetch-r2 verify-r2 check precommit precommit-fix fmt fmt-check sync-check lint lint-js lint-css lint-fix depcheck typecheck-js hooks \
 	quality-py lint-py fmt-py fmt-py-check typecheck security-py install-dev coverage-rank verify mutate-py mutate-js \
-	complexity-py imports-py thinking-check
+	complexity-py imports-py thinking-check images
 
 PYTHON := $(if $(wildcard .venv/bin/python3),"$(CURDIR)/.venv/bin/python3",python3)
 NPM := npm
@@ -73,6 +73,7 @@ help:
 	@echo "  typecheck-js   JS strict type check (tsc --checkJs on whitelist)"
 	@echo "  quality-py     Python lint/format/type/security/complexity/imports (ruff/black/mypy/bandit/xenon/import-linter)"
 	@echo "  thinking-check Stream-of-consciousness scan (thinking comments, abandoned test bodies)"
+	@echo "  images         Build AVIF/WebP tiers for site CSS backgrounds (tools/build_images.mjs)"
 	@echo "  mutate-py      Mutation smoke run (mutmut on strip_html_tags; NOT part of any gate)"
 	@echo "  fmt-py         Auto-format Python (black + ruff --fix)"
 	@echo "  hooks          Install git pre-commit hook"
@@ -712,6 +713,17 @@ fetch-prompt-fix:
 			echo "   ⊘ Fetch skipped"; \
 		fi; \
 	fi
+
+# -----------------------------------------------------------------------------
+# Site assets
+# -----------------------------------------------------------------------------
+
+# Rebuilds the AVIF/WebP tiers for the GitHub Pages site's CSS background
+# images (manifest: IMAGE_MANIFEST in tools/build_images.mjs). Run this after
+# replacing any listed JPEG, then commit the regenerated .avif/.webp files —
+# Pages deploys the repo as-is (no build step).
+images:
+	@node tools/build_images.mjs
 
 # -----------------------------------------------------------------------------
 # Formatting

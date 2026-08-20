@@ -142,6 +142,7 @@ a valid Conventional Commit subject**.
 | Mutation smoke run (mutmut, NOT part of any gate)          | `make mutate-py`                       |
 | JS strict type check (whitelist)                           | `make typecheck-js`                    |
 | Stream-of-consciousness scan (comments, abandoned tests)   | `make thinking-check`                  |
+| Build AVIF/WebP tiers for site CSS backgrounds             | `make images`                          |
 
 - **The full gate is slow** — `precommit SKIP=1` runs ~6+ min serial (measured
   baseline in `docs/precommit-speed.md`). Background it with a generous timeout
