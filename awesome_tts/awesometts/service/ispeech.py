@@ -170,5 +170,3 @@ class ISpeech(Service):
                     "Failed to parse iSpeech error payload: %s", e
                 )
             raise error
-
-        self.net_reset()  # no throttle; FIXME should be controlled by trait
