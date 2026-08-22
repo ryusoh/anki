@@ -51,7 +51,11 @@ export function initMarquee() {
     const direction = configDirection * elementDirection;
 
     if (widget) {
-      const spans = Array.from(wrapper.querySelectorAll(".mq-char"));
+      const charNodes = wrapper.querySelectorAll(".mq-char");
+      const spans = new Array(charNodes.length);
+      for (let i = 0; i < charNodes.length; i++) {
+        spans[i] = charNodes[i];
+      }
       charGroups.push({ spans, direction });
     }
 
