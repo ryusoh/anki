@@ -1,7 +1,10 @@
-import pytest
 import socket
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
+
 from auto_wiktionary.proxy_fallback import _detect_local_proxy
+
 
 def test_detect_local_proxy_oserror_on_sendall():
     with patch('socket.create_connection') as mock_conn:

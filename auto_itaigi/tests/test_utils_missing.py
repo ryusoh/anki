@@ -1,13 +1,16 @@
-import pytest
 import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+import auto_itaigi.utils
 from auto_itaigi.utils import (
+    download_audio,
     fetch_chhoetaigi_entry,
     fetch_moedict_entry,
-    download_audio,
-    media_filename
+    media_filename,
 )
-import auto_itaigi.utils
+
 
 def test_fetch_chhoetaigi_entry_success():
     auto_itaigi.utils._chhoetaigi_cache = None
