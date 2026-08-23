@@ -15,6 +15,7 @@ def test_detect_local_proxy_oserror_on_sendall():
         result = _detect_local_proxy(ports=[1234])
         assert result == "http://127.0.0.1:1234"
 
+
 def test_detect_local_proxy_http_success():
     with patch('socket.create_connection') as mock_conn:
         mock_sock = MagicMock()

@@ -24,23 +24,20 @@ def test_fetch_chhoetaigi_entry_success():
         result = fetch_chhoetaigi_entry("你好")
         assert result == ("liho", ["你好"])
 
+
 def test_fetch_chhoetaigi_entry_exception():
     auto_itaigi.utils._chhoetaigi_cache = None
-    with patch('auto_itaigi.utils.urlopen_with_proxy_fallback', side_effect=Exception("Test error")):
+    with patch(
+        'auto_itaigi.utils.urlopen_with_proxy_fallback', side_effect=Exception("Test error")
+    ):
         result = fetch_chhoetaigi_entry("你好")
         assert result is None
+
 
 def test_fetch_moedict_entry_success():
     data = {
         "h": [
-            {
-                "T": "tailo1",
-                "_": "audio123",
-                "d": [
-                    {"f": "definition 1"},
-                    {"f": "`definition 2~"}
-                ]
-            }
+            {"T": "tailo1", "_": "audio123", "d": [{"f": "definition 1"}, {"f": "`definition 2~"}]}
         ]
     }
 
@@ -50,7 +47,12 @@ def test_fetch_moedict_entry_success():
         mock_urlopen.return_value.__enter__.return_value = mock_response
 
         result = fetch_moedict_entry("word")
-        assert result == ("tailo1", ["definition 1", "definition 2"], "https://r2-assets.moedict.tw/audio/t/audio123.mp3")
+        assert result == (
+            "tailo1",
+            ["definition 1", "definition 2"],
+            "https://r2-assets.moedict.tw/audio/t/audio123.mp3",
+        )
+
 
 def test_fetch_moedict_entry_empty_h():
     with patch('auto_itaigi.utils.urlopen_with_proxy_fallback') as mock_urlopen:
@@ -61,15 +63,9 @@ def test_fetch_moedict_entry_empty_h():
         result = fetch_moedict_entry("word")
         assert result is None
 
+
 def test_fetch_moedict_entry_empty_tailo_and_mandarin():
-    data = {
-        "h": [
-            {
-                "T": "",
-                "d": []
-            }
-        ]
-    }
+    data = {"h": [{"T": "", "d": []}]}
     with patch('auto_itaigi.utils.urlopen_with_proxy_fallback') as mock_urlopen:
         mock_response = MagicMock()
         mock_response.read.return_value = json.dumps(data).encode("utf-8")
@@ -77,6 +73,7 @@ def test_fetch_moedict_entry_empty_tailo_and_mandarin():
 
         result = fetch_moedict_entry("word")
         assert result is None
+
 
 def test_download_audio_success_with_fallback():
     with patch('auto_itaigi.utils.urlopen_with_proxy_fallback') as mock_urlopen:
@@ -88,27 +85,23 @@ def test_download_audio_success_with_fallback():
         assert result == b'ID3_test_audio'
         assert mock_urlopen.call_count == 1
 
+
 def test_download_audio_failure_continue():
-    with patch('auto_itaigi.utils.urlopen_with_proxy_fallback', side_effect=Exception("Test error")) as mock_urlopen:
+    with patch(
+        'auto_itaigi.utils.urlopen_with_proxy_fallback', side_effect=Exception("Test error")
+    ) as mock_urlopen:
         result = download_audio("tailo", fallback_url="http://fallback.com")
         assert result is None
         assert mock_urlopen.call_count == 2
 
+
 def test_media_filename():
     assert media_filename("laha") == "itaigi_laha.mp3"
 
+
 def test_fetch_moedict_entry_duplicate_mandarin():
     data = {
-        "h": [
-            {
-                "T": "tailo1",
-                "_": "audio123",
-                "d": [
-                    {"f": "definition 1"},
-                    {"f": "definition 1"}
-                ]
-            }
-        ]
+        "h": [{"T": "tailo1", "_": "audio123", "d": [{"f": "definition 1"}, {"f": "definition 1"}]}]
     }
 
     with patch('auto_itaigi.utils.urlopen_with_proxy_fallback') as mock_urlopen:
@@ -117,7 +110,12 @@ def test_fetch_moedict_entry_duplicate_mandarin():
         mock_urlopen.return_value.__enter__.return_value = mock_response
 
         result = fetch_moedict_entry("word")
-        assert result == ("tailo1", ["definition 1"], "https://r2-assets.moedict.tw/audio/t/audio123.mp3")
+        assert result == (
+            "tailo1",
+            ["definition 1"],
+            "https://r2-assets.moedict.tw/audio/t/audio123.mp3",
+        )
+
 
 def test_fetch_chhoetaigi_entry_empty_hoabun():
     auto_itaigi.utils._chhoetaigi_cache = None
@@ -130,6 +128,7 @@ def test_fetch_chhoetaigi_entry_empty_hoabun():
 
         result = fetch_chhoetaigi_entry("你好")
         assert result == ("liho", ["你好"])
+
 
 def test_fetch_chhoetaigi_entry_use_cache():
     auto_itaigi.utils._chhoetaigi_cache = {"你好": ("liho", ["你好"])}
