@@ -1,4 +1,5 @@
 import socket
+import urllib.request
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -7,7 +8,10 @@ from auto_wiktionary.proxy_fallback import _detect_local_proxy
 
 
 def test_detect_local_proxy_oserror_on_sendall():
-    with patch('socket.create_connection') as mock_conn:
+    with (
+        patch('urllib.request.getproxies', return_value={}),
+        patch('socket.create_connection') as mock_conn,
+    ):
         mock_sock = MagicMock()
         mock_sock.sendall.side_effect = OSError("Test error")
         mock_conn.return_value.__enter__.return_value = mock_sock
@@ -17,7 +21,10 @@ def test_detect_local_proxy_oserror_on_sendall():
 
 
 def test_detect_local_proxy_http_success():
-    with patch('socket.create_connection') as mock_conn:
+    with (
+        patch('urllib.request.getproxies', return_value={}),
+        patch('socket.create_connection') as mock_conn,
+    ):
         mock_sock = MagicMock()
         mock_sock.recv.return_value = b'HTTP/1.1 200 OK'
         mock_conn.return_value.__enter__.return_value = mock_sock
