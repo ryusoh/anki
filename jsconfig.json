@@ -18,7 +18,8 @@
     "js/ui/scroll_control.js",
     "js/ambient/config.js",
     "js/loader/imageFallback.js",
-    "js/ambient/loader.js"
+    "js/ambient/loader.js",
+    "js/cursor-init.js"
   ],
   "exclude": ["node_modules", "js/vendor"]
 }
