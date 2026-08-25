@@ -1094,3 +1094,42 @@ def test_mangled_mathjax_delim_repair():
     html = r'\(x^<i>\)<i> text \(\mathbf{y} = z^\)</i> \mathbf{w}'
     expected = r'\(x^*\) text \(\mathbf{y} = z^* \mathbf{w}\)'
     assert _convert_dollar_to_mathjax(html) == expected
+
+
+# --- Subscript and Greek LaTeX Command Tests (e.g. \beta_j) ---
+
+
+def test_subscript_latex_commands_dollar_conversion():
+    r"""LaTeX commands with underscore subscripts ($...$) must convert to \(...\)."""
+    assert _convert_dollar_to_mathjax(r'$\beta_j$') == r'\(\beta_j\)'
+    assert _convert_dollar_to_mathjax(r'$\beta_{j}$') == r'\(\beta_{j}\)'
+    assert _convert_dollar_to_mathjax(r'$\sum_i x_i$') == r'\(\sum_i x_i\)'
+    assert _convert_dollar_to_mathjax(r'$\alpha_1 + \beta_j = 1$') == r'\(\alpha_1 + \beta_j = 1\)'
+
+
+def test_bare_subscript_latex_line_conversion():
+    r"""A bare line consisting of LaTeX commands with subscripts wraps in \[...\]."""
+    assert _convert_dollar_to_mathjax(r'<div>\beta_j</div>') == r'<div>\[\beta_j\]</div>'
+    assert _convert_dollar_to_mathjax(r'\beta_{j}') == r'\[\beta_{j}\]'
+    assert (
+        _convert_dollar_to_mathjax(r'\sum_{j=1}^{p} \beta_j^2') == r'\[\sum_{j=1}^{p} \beta_j^2\]'
+    )
+
+
+def test_subscript_latex_table_cell_conversion():
+    r"""Table cell containing bare \beta_j is wrapped in \[...\]."""
+    html = '<tr><td style="border: 1px solid #ccc;">\\beta_j</td></tr>'
+    expected = '<tr><td style="border: 1px solid #ccc;">\\[\\beta_j\\]</td></tr>'
+    assert _convert_dollar_to_mathjax(html) == expected
+
+
+def test_subscript_latex_code_tag_conversion():
+    r"""<code>\beta_j</code> is converted to inline MathJax \(...\)."""
+    assert _convert_dollar_to_mathjax(r'<code>\beta_j</code>') == r'\(\beta_j\)'
+
+
+def test_embedded_subscript_latex_conversion():
+    r"""Embedded \beta_j in English prose is wrapped inline in \(...\)."""
+    html = r'where \beta_j is the regression coefficient'
+    expected = r'where \(\beta_j\) is the regression coefficient'
+    assert _convert_dollar_to_mathjax(html) == expected

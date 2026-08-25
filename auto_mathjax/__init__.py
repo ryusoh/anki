@@ -55,9 +55,10 @@ BARE_LATEX_COMMAND_RE = re.compile(
     r'leq?|geq?|neq|approx|equiv|propto|infty|log|ln|exp|sin|cos|tan|lim|min|max|inf|sup|argmin|argmax|'
     r'partial|nabla|to|rightarrow|Rightarrow|left|right|over|hat|bar|vec|'
     r'mathbb|mathrm|mathbf|mathit|operatorname|'
-    r'alpha|beta|gamma|Gamma|delta|Delta|epsilon|theta|lambdabar|lambda|mu|pi|rho|'
-    r'sigma|Sigma|tau|phi|Phi|omega|Omega'
-    r')\b'
+    r'alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|vartheta|iota|kappa|'
+    r'lambdabar|lambda|Lambda|mu|nu|xi|Xi|pi|Pi|varpi|rho|varrho|sigma|Sigma|varsigma|tau|upsilon|Upsilon|'
+    r'phi|Phi|varphi|chi|psi|Psi|omega|Omega'
+    r')(?![a-zA-Z])'
 )
 
 CODE_TAG_RE = re.compile(r'<code>(.*?)</code>', re.IGNORECASE | re.DOTALL)
@@ -83,10 +84,14 @@ MATH_DELIM_RE = re.compile(r'\\([\[\]()])')
 _MATH_CLOSER = {'[': ']', '(': ')'}
 
 # A "math run" embedded in a prose line: one or more \command tokens (brace
-# arguments, nesting depth <= 2) linked by numbers/operators/whitespace.
-# Letters are deliberately excluded from the filler so prose words never get
-# pulled into a run, and <, >, & break a run so HTML tags/entities stay out.
-_EMBEDDED_TOKEN = r'\\[a-zA-Z]+(?:\s*\{(?:[^{}<>&]|\{[^{}<>&]*\})*\})*'
+# arguments, nesting depth <= 2, or attached subscripts/superscripts) linked
+# by numbers/operators/whitespace. Letters are deliberately excluded from the
+# filler so prose words never get pulled into a run, and <, >, & break a run
+# so HTML tags/entities stay out.
+_EMBEDDED_TOKEN = (
+    r'\\[a-zA-Z]+(?:[_^]\s*(?:\{(?:[^{}<>&]|\{[^{}<>&]*\})*\}|\\[a-zA-Z]+|[a-zA-Z0-9])'
+    r'|\s*\{(?:[^{}<>&]|\{[^{}<>&]*\})*\})*'
+)
 _EMBEDDED_FILLER = r'[0-9\s=+\-*/^_().,%]'
 EMBEDDED_RUN_RE = re.compile(
     _EMBEDDED_FILLER + r'*(?:' + _EMBEDDED_TOKEN + _EMBEDDED_FILLER + r'*)+'
@@ -233,6 +238,8 @@ def _wrap_embedded_latex(segment):
     tags and entities are untouched.
     """
     segment = _convert_code_latex(segment)
+    if ALREADY_MATHJAX_RE.search(segment):
+        return segment
     # A CJK prose line is not a formula card: letters break embedded runs,
     # so wrapping fragments there mangles shapes like (E\ln(1+r)>0).
     # Standalone integral symbols (\oint & friends) are still wrapped —
@@ -252,10 +259,10 @@ def _wrap_embedded_latex(segment):
         core = run.strip(_RUN_TRIM_CHARS)
         if not core:
             return run
-        # A bare \command with no braced or numeric operand (Wikipedia's
-        # {\displaystyle O(\log N)} pastes) is not a self-contained formula —
-        # unless it is a standalone integral symbol (\oint & friends).
-        if not re.search(r'[{0-9]', core) and not STANDALONE_SYMBOL_RE.fullmatch(core):
+        # A bare \command with no braced, subscript/superscript, or numeric operand
+        # (Wikipedia's {\displaystyle O(\log N)} pastes) is not a self-contained
+        # formula — unless it is a standalone integral symbol (\oint & friends).
+        if not re.search(r'[{0-9_^]', core) and not STANDALONE_SYMBOL_RE.fullmatch(core):
             return run
         start = run.find(core)
         return run[:start] + '\\(' + core + '\\)' + run[start + len(core) :]
