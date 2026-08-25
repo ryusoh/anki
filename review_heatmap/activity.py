@@ -347,16 +347,15 @@ class ActivityReporter:
 
     def _valid_decks(self, excluded: List[DeckId]) -> List[DeckId]:
         deck_manager = self._col.decks
-        all_excluded = []
+        # Bolt: O(1) over O(N) lookup. Use a set for all_excluded instead of a list.
+        all_excluded = set(excluded)
 
         for did in excluded:
             try:
                 children = [d[1] for d in deck_manager.children(did)]
             except NotFoundError:  # 2.1.28+
                 continue
-            all_excluded.extend(children)
-
-        all_excluded.extend(excluded)
+            all_excluded.update(children)
 
         return [d["id"] for d in self._col.decks.all() if d["id"] not in all_excluded]
 
