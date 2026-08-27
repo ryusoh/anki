@@ -19,7 +19,8 @@
     "js/ambient/config.js",
     "js/loader/imageFallback.js",
     "js/ambient/loader.js",
-    "js/cursor-init.js"
+    "js/cursor-init.js",
+    "js/ui/service_worker_register.js"
   ],
   "exclude": ["node_modules", "js/vendor"]
 }
