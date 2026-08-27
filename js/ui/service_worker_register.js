@@ -1,3 +1,7 @@
+/**
+ * @param {string} hostname
+ * @returns {boolean}
+ */
 function isLocalHostname(hostname) {
   const localPrefixes = [
     "10.",
@@ -26,6 +30,9 @@ function isLocalHostname(hostname) {
   );
 }
 
+/**
+ * @returns {string}
+ */
 function getHostname() {
   const forcedHostname =
     typeof window !== "undefined" &&
