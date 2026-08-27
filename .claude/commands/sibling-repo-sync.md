@@ -35,8 +35,12 @@ The siblings:
   (no `VERIFY_GATE` variable — checks are direct prerequisites:
   `fmt-check lint type test test-py test-ebpf test-nas sync-check`);
   `Dockerfile.precommit` mirrors the CI runner; gate output is noisy on purpose
-  (judge by exit code, not the log); `test-py` hardcodes its pytest dir list —
-  a new test dir (e.g. `tools/`) must be added there or CI never runs it;
+  (judge by exit code, not the log); `test-py` hardcodes its pytest dir list,
+  but `tools` is already in it — `tools/__tests__/` runs with no Makefile edit
+  (checked 2026-08); a genuinely NEW top-level test dir still needs adding;
+  its `ci.yml` has a "Reject empty pull request" step that
+  hard-fails empty PRs; its AGENTS.md Lanes table lists Sentinel but `.jules/`
+  has no sentinel persona (stale, like the subproject names);
   gate docs live in AGENTS.md's "Repo conventions" section (no
   docs/lint-and-quality.md equivalent); its AGENTS.md non-negotiable #6 forbids
   JULES ROUTINES from touching build/lint config — interactive agents acting on
@@ -48,11 +52,16 @@ The siblings:
 - `~/dev/ryusoh.github.io` — JS-only static site; primary branch is **`master`**
   (not `main`); CI-parity gate = `make precommit` (the fail-capable verify path
   CI executes — `precommit-fix` runs the same `.pre-commit-config.yaml` hooks
-  with `|| true` auto-fix semantics and can't fail); eslint/stylelint use
+  with `|| true` auto-fix semantics and can't fail, and stages auto-fixes via
+  `git add -u` — use `make gate`, the non-staging variant, when the tree holds
+  uncommitted work); eslint/stylelint use
   `--max-warnings=0`; `package-lock.json` is authoritative and `pnpm-lock.yaml`
   is secondary — it drifts by convention, don't regenerate it. `make precommit`
   is quick (~1 min) — prefer it over subsets for verification; note its own
   AGENTS.md non-negotiable #1 still points PR authors at `precommit-fix`.
+  Its pytest suite (`tools/__tests__/`) runs in NO Makefile gate but IS wired
+  into a **pre-push** pre-commit hook (`pytest -q || [ $? -eq 5 ]`; checked
+  2026-08).
 
 Verify these facts against each repo's current AGENTS.md/Makefile before
 relying on them — they drift.
