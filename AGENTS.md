@@ -59,14 +59,21 @@ Writing a design spec for another agent to implement? See
 8. **Don't write a command/example you haven't actually run this session.** Verify
    behaviour; don't infer it from a name or a `case` label.
 9. **Check open and recently-closed PRs before you start, and don't repeat them**
-   (`gh pr list --state all --limit 30`). A closed PR was closed for a reason; an
-   open one already claims that work. Pick something new.
+   (`python3 tools/prior_prs.py`; `--stats` prints per-lane accept rates). A
+   closed PR was closed for a reason; an open one already claims that work.
+   Pick something new.
 10. **No stream-of-consciousness in the diff.** Your reasoning stays out of
     committed code: no thinking-out-loud comments ("Wait, ...", "Ah, ..."), no
     abandoned `pass`-only tests. If an approach fails mid-write, delete the
     attempt — don't commit the trail. Code comments state facts about behaviour.
     Enforced deterministically by `make thinking-check`
     (`tools/check_thinking_comments.py`) over all tracked py/js/css sources.
+11. **Never open an empty PR.** If the run produces no diff (zero changed
+    files), end the run with no PR — an empty PR can't be merged and costs the
+    reviewer a manual close. This includes when your task's goal turns out to
+    be already satisfied by the current repo state (e.g. a stale scheduled-task
+    prompt): a satisfied goal is a no-op, not a PR. (The fund sibling repo
+    hand-closed six zero-file Typist PRs from exactly this, 2026-08.)
 
 ## You cannot see the rendered page
 
@@ -436,6 +443,11 @@ an unattended run. They are **not logs**.
   The change must still be a single-concern PR or direct commit with a green
   `make precommit SKIP=1`, and the agent must note in the commit/PR body that
   the edit is to a persona file.
+- **Keep the Jules scheduled-task prompt generic** ("read `AGENTS.md` and your
+  persona, work your lane"). A stale task-specific prompt is worse than the
+  generic one: the routine satisfies the goal vacuously and still publishes the
+  empty PR (non-negotiable #11). If a lane is finished, pause its schedule —
+  don't leave a satisfied goal running.
 
 Capture durable learnings in this file or `docs/` instead of leaving the persona
 files as the only source of truth.
