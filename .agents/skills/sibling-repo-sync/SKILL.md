@@ -8,7 +8,7 @@ Propagate an improvement made in this repo (`~/dev/anki`) to the sibling repos.
 
 This repo: monorepo of Anki add-ons (Python) + a JS/graph data pipeline; CI gate
 = `make precommit SKIP=1` (fmt-check lint typecheck-js quality-py check
-sync-check thinking-check); **no** `.pre-commit-config.yaml`; run everything from the repo root
+sync-check thinking-check bot-pr-check); **no** `.pre-commit-config.yaml`; run everything from the repo root
 with `python3` (root `conftest.py` mocks `aqt`/`anki`); run `make fmt` after
 hand-authoring Markdown — Prettier owns MD table/list formatting and `fmt-check`
 fails otherwise.
@@ -30,7 +30,11 @@ The siblings:
   silently discards uncommitted changes to that generated file (check
   `git status` before running it in a shared tree);
   same `.agents/skills/` canonical + generated `.claude/commands/`
-  convention as here.
+  convention as here. Agent tooling lives in `scripts/agents/` (no `tools/`
+  dir — `gate_guard.py`/`prior_prs.py` are there); Python tests in
+  `tests/python/`; no `VERIFY_GATE` variable — wire checks into `verify`
+  deps + the `precommit-fix` phase list; its ci.yml checkout already has
+  `fetch-depth: 0` (checked 2026-08).
 - `~/dev/networking` — multi-language net-tools monorepo (JS Chrome extension,
   Python, C, eBPF); **no** `.pre-commit-config.yaml`; gate = `make precommit`
   (no `VERIFY_GATE` variable — checks are direct prerequisites:
@@ -41,7 +45,12 @@ The siblings:
   (checked 2026-08); a genuinely NEW top-level test dir still needs adding;
   its `ci.yml` has a "Reject empty pull request" step that
   hard-fails empty PRs; its AGENTS.md Lanes table lists Sentinel but `.jules/`
-  has no sentinel persona (stale, like the subproject names);
+  has no sentinel persona (stale, like the subproject names — AGENTS.md says
+  `clean_adblock/`/`tianditu_bypass` but the real dirs are
+  `adblock/`/`gov_bypass`, checked 2026-08); its ci.yml checkout already has
+  `fetch-depth: 0`; after a `precommit-docker` run, a local `make precommit`
+  can fail with `Exec format error` in nas_tools (Linux-ELF binaries left
+  behind, gitignored) — fix: `make -C nas_tools clean && make -C nas_proxy clean`;
   gate docs live in AGENTS.md's "Repo conventions" section (no
   docs/lint-and-quality.md equivalent); its AGENTS.md non-negotiable #6 forbids
   JULES ROUTINES from touching build/lint config — interactive agents acting on
@@ -51,14 +60,17 @@ The siblings:
   AGENTS.md itself is NOT prettierignored; there is no markdownlint —
   `prettier --check` is the entire markdown gate.
 - `~/dev/ryusoh.github.io` — JS-only static site; primary branch is **`master`**
-  (not `main`); CI-parity gate = `make precommit` (the fail-capable verify path
-  CI executes — `precommit-fix` runs the same `.pre-commit-config.yaml` hooks
-  with `|| true` auto-fix semantics and can't fail, and stages auto-fixes via
-  `git add -u` — use `make gate`, the non-staging variant, when the tree holds
-  uncommitted work); eslint/stylelint use
+  (not `main`); **CI does NOT run `make` at all** — the web-ci job runs
+  `pre-commit run --all-files` plus individual npx steps directly (checked
+  2026-08), so a Makefile-wired check also needs a dedicated workflow step for
+  CI enforcement; `make precommit` is still the local CI-parity gate (quick,
+  ~1 min — prefer it over subsets) and `precommit-fix` runs the same
+  `.pre-commit-config.yaml` hooks with `|| true` auto-fix semantics and can't
+  fail, and stages auto-fixes via `git add -u` — use `make gate`, the
+  non-staging variant, when the tree holds uncommitted work; its checkout
+  already has `fetch-depth: 0` and a Setup Python step (3.12); eslint/stylelint use
   `--max-warnings=0`; `package-lock.json` is authoritative and `pnpm-lock.yaml`
-  is secondary — it drifts by convention, don't regenerate it. `make precommit`
-  is quick (~1 min) — prefer it over subsets for verification; note its own
+  is secondary — it drifts by convention, don't regenerate it; note its own
   AGENTS.md non-negotiable #1 still points PR authors at `precommit-fix`.
   Its pytest suite (`tools/__tests__/`) runs in NO Makefile gate but IS wired
   into a **pre-push** pre-commit hook (`pytest -q || [ $? -eq 5 ]`; checked
