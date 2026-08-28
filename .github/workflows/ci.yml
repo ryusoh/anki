@@ -19,6 +19,11 @@ jobs:
     steps:
       # codeql[js/unpinned-tag] Pinned to actions/checkout@v4.2.2 SHA: 11bd71901bbe5b1630ceea73d27597364c9af683
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          # Full history: the bot-PR-hygiene step inspects individual commits
+          # in origin/<base>..HEAD; a shallow checkout hides the branch commits
+          # behind the merge commit.
+          fetch-depth: 0
 
       # Hard guard: unattended Jules routines historically opened empty PRs in
       # sibling repos when mis-detecting a "finalize" state. Fail fast so an empty
@@ -26,11 +31,19 @@ jobs:
       - name: Reject empty pull request
         if: ${{ github.event_name == 'pull_request' }}
         run: |
-          git fetch origin ${{ github.base_ref }} --depth=1
+          git fetch origin ${{ github.base_ref }}
           if git diff --quiet origin/${{ github.base_ref }}; then
             echo "::error::PR contains no changes. Empty PRs are not allowed."
             exit 1
           fi
+
+      # Machine enforcement of AGENTS.md non-negotiable #11 for bot-authored
+      # commits (wording alone did not stop PR #494's empty churn commits):
+      # fails on empty commits, zero-content placeholder files, and test
+      # deletions in any commit by google-labs-jules[bot].
+      - name: Reject bot PR hygiene violations
+        if: ${{ github.event_name == 'pull_request' }}
+        run: python3 tools/check_bot_pr_hygiene.py --base "origin/${{ github.base_ref }}"
 
       - name: Setup Node.js
         # codeql[js/unpinned-tag] Pinned to actions/setup-node@v4.1.0 SHA: 39370e3970a6d050c480ffad4ff0ed4d3fdee5af

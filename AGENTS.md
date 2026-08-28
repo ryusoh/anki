@@ -41,7 +41,7 @@ Writing a design spec for another agent to implement? See
 
 1. **Open a PR only if `make precommit SKIP=1` is green.** It is the CI gate
    (`fmt-check` + `lint` + `typecheck-js` + `quality-py` + `check` +
-   `sync-check` + `thinking-check`). Red = don't open it. A failure "in a file
+   `sync-check` + `thinking-check` + `bot-pr-check`). Red = don't open it. A failure "in a file
    you didn't touch" or a "pre-existing environment issue" is still red — not an
    exemption; report it and open no PR. And don't rerun a red
    gate on an unchanged tree — a failed gate over an untouched worktree cannot
@@ -82,7 +82,9 @@ Writing a design spec for another agent to implement? See
     message and, when responding to review feedback, actually addresses it.
     If you have nothing real to push, push nothing. (PR #494: five churn/empty
     commits pushed after review questions, none answering them — closed
-    unmerged.)
+    unmerged.) Machine-enforced for bot-authored commits by
+    `tools/check_bot_pr_hygiene.py` (`make bot-pr-check`, part of the
+    precommit gate and PR CI).
 
 ## You cannot see the rendered page
 
@@ -158,6 +160,7 @@ a valid Conventional Commit subject**.
 | Mutation smoke run (mutmut, NOT part of any gate)          | `make mutate-py`                       |
 | JS strict type check (whitelist)                           | `make typecheck-js`                    |
 | Stream-of-consciousness scan (comments, abandoned tests)   | `make thinking-check`                  |
+| Bot commit hygiene (empty commits, test deletions)         | `make bot-pr-check`                    |
 | Build AVIF/WebP tiers for site CSS backgrounds             | `make images`                          |
 
 - **The full gate is slow** — `precommit SKIP=1` runs ~6+ min serial (measured

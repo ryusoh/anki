@@ -95,6 +95,21 @@ The scanner's own source is scanned too: only **comments** are matched
 docstring and paraphrase in trailing `#` comments — a quoted `"Wait, ..."`
 example in a `#` comment self-matches.
 
+## Bot PR hygiene gate
+
+`make bot-pr-check` (part of `VERIFY_GATE`) deterministically enforces AGENTS.md
+non-negotiable #11 on commits authored by the Jules bot
+(`google-labs-jules[bot]`) in `origin/main..HEAD`. Wording alone did not stop
+PR #494 (existing tests deleted in a coverage PR, then five empty churn
+commits), so `tools/check_bot_pr_hygiene.py` fails the gate on bot commits
+that change no files, touch files with zero content lines (the
+`dummy_file.txt` placeholder pattern), or delete lines from test files — bot
+lanes are append-only in `tests/` (Testpilot owns tests; no other bot lane may
+touch them). Human-authored commits are skipped: interactive agents may
+legitimately rewrite tests on request. CI runs the same check on every PR
+(`ci.yml` checks out with `fetch-depth: 0` so the branch commits are visible
+behind the merge commit).
+
 ## Mutation testing
 
 Scaffold only — **not part of any gate** (a full run multiplies the suite

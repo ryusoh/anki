@@ -1,6 +1,6 @@
 .PHONY: help fetch fetch-r2 verify-r2 check precommit precommit-fix fmt fmt-check sync-check lint lint-js lint-css lint-fix depcheck typecheck-js hooks \
 	quality-py lint-py fmt-py fmt-py-check typecheck security-py install-dev coverage-rank verify mutate-py mutate-js \
-	complexity-py imports-py thinking-check images
+	complexity-py imports-py thinking-check bot-pr-check images
 
 PYTHON := $(if $(wildcard .venv/bin/python3),"$(CURDIR)/.venv/bin/python3",python3)
 NPM := npm
@@ -73,6 +73,7 @@ help:
 	@echo "  typecheck-js   JS strict type check (tsc --checkJs on whitelist)"
 	@echo "  quality-py     Python lint/format/type/security/complexity/imports (ruff/black/mypy/bandit/xenon/import-linter)"
 	@echo "  thinking-check Stream-of-consciousness scan (thinking comments, abandoned test bodies)"
+	@echo "  bot-pr-check   Jules bot commit hygiene (empty commits, placeholder files, test deletions)"
 	@echo "  images         Build AVIF/WebP tiers for site CSS backgrounds (tools/build_images.mjs)"
 	@echo "  mutate-py      Mutation smoke run (mutmut on strip_html_tags; NOT part of any gate)"
 	@echo "  fmt-py         Auto-format Python (black + ruff --fix)"
@@ -452,6 +453,16 @@ thinking-check:
 	@echo "🧠 Stream-of-consciousness scan (py/js/css)..."
 	@$(PYTHON) tools/check_thinking_comments.py
 
+# Bot PR hygiene gate (AGENTS.md non-negotiable #11): deterministic check that
+# every Jules-bot-authored commit in origin/main..HEAD is real — no empty
+# commits, no zero-content placeholder files, no deletions in test files (bot
+# lanes are append-only in tests). Wording alone did not stop PR #494's churn
+# commits; this fails the gate instead. Human commits are skipped.
+# Implementation: tools/check_bot_pr_hygiene.py.
+bot-pr-check:
+	@echo "🤖 Bot PR hygiene (Jules commit checks)..."
+	@$(PYTHON) tools/check_bot_pr_hygiene.py
+
 # Mutation-testing scaffold (docs/lint-and-quality.md) — deliberately NOT part
 # of VERIFY_GATE: a full run multiplies the suite runtime by the mutant count.
 # mutmut works incrementally (cache: .mutmut-cache/, sandbox: mutants/) and is
@@ -477,7 +488,7 @@ mutate-js:
 # BOTH `precommit` (verify-only, what CI runs) and `precommit-fix` (fix-then-verify)
 # reference this, so they can never silently diverge. Add a gate here once and it
 # applies everywhere; CI runs `make precommit SKIP=1`.
-VERIFY_GATE := fmt-check lint typecheck-js quality-py check sync-check thinking-check
+VERIFY_GATE := fmt-check lint typecheck-js quality-py check sync-check thinking-check bot-pr-check
 
 # Output buffering for the parallel verify gate: macOS ships GNU Make 3.81 which
 # lacks --output-sync, so each gate member's output is captured in a log file

@@ -182,4 +182,6 @@ Conventional Commits.
   commit whose message doesn't match its diff. Before pushing, check
   `git show --stat HEAD`: if it doesn't visibly address the feedback, don't
   push. If you cannot address the feedback, leave the PR alone; silence is
-  cheaper than noise (AGENTS.md non-negotiable #11).
+  cheaper than noise (AGENTS.md non-negotiable #11). Machine-enforced:
+  `tools/check_bot_pr_hygiene.py` (`make bot-pr-check`, in the gate) fails on
+  bot commits that are empty, add zero-content files, or delete test lines.
