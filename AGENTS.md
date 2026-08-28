@@ -41,7 +41,9 @@ Writing a design spec for another agent to implement? See
 
 1. **Open a PR only if `make precommit SKIP=1` is green.** It is the CI gate
    (`fmt-check` + `lint` + `typecheck-js` + `quality-py` + `check` +
-   `sync-check` + `thinking-check`). Red = don't open it. And don't rerun a red
+   `sync-check` + `thinking-check`). Red = don't open it. A failure "in a file
+   you didn't touch" or a "pre-existing environment issue" is still red — not an
+   exemption; report it and open no PR. And don't rerun a red
    gate on an unchanged tree — a failed gate over an untouched worktree cannot
    go green, so edit something first. `python3 tools/gate_guard.py` enforces
    this: `snapshot` before the run, `check <hash>` before a retry (exit 1 =
@@ -74,6 +76,13 @@ Writing a design spec for another agent to implement? See
     be already satisfied by the current repo state (e.g. a stale scheduled-task
     prompt): a satisfied goal is a no-op, not a PR. (The fund sibling repo
     hand-closed six zero-file Typist PRs from exactly this, 2026-08.)
+    **The same holds mid-PR: never push an empty or no-op commit** — including
+    add-then-remove placeholder files (`dummy_file.txt`). Before every push,
+    `git show --stat HEAD` must show a real diff that matches the commit
+    message and, when responding to review feedback, actually addresses it.
+    If you have nothing real to push, push nothing. (PR #494: five churn/empty
+    commits pushed after review questions, none answering them — closed
+    unmerged.)
 
 ## You cannot see the rendered page
 
@@ -414,15 +423,15 @@ and verification commands.
 
 ## Lanes (keep PRs disjoint to avoid collisions)
 
-| Routine     | Owns                                                       | Must NOT touch                                                                                                                        |
-| ----------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Testpilot   | test-only additions/coverage, no prod-code change          | any production file                                                                                                                   |
-| Refactoring | cyclomatic-complexity refactors (behaviour-preserving)     | error-handling/security, tests, features                                                                                              |
-| Sentinel    | security + error-handling (XSS, injection, silent catches) | complexity refactors, features                                                                                                        |
-| Palette     | accessibility (ARIA, keyboard, focus) in `js/` + CSS       | security, perf, complexity                                                                                                            |
-| Janitor     | dead code, stale deps, real TODOs only                     | complexity, error-handling, tests, infrastructure/tools (`tools/`, `scripts/`, `bin/`, `.agents/`, `.jules/`, `.github/`, `Makefile`) |
-| Bolt        | measurable performance/efficiency on a real hot path       | anything another lane owns in the same PR                                                                                             |
-| Typist      | JS strict-type annotations (JSDoc) + whitelist expansion   | runtime behaviour                                                                                                                     |
+| Routine     | Owns                                                                                                    | Must NOT touch                                                                                                                        |
+| ----------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Testpilot   | test-only additions/coverage, append-only (never delete or rewrite existing tests), no prod-code change | any production file                                                                                                                   |
+| Refactoring | cyclomatic-complexity refactors (behaviour-preserving)                                                  | error-handling/security, tests, features                                                                                              |
+| Sentinel    | security + error-handling (XSS, injection, silent catches)                                              | complexity refactors, features                                                                                                        |
+| Palette     | accessibility (ARIA, keyboard, focus) in `js/` + CSS                                                    | security, perf, complexity                                                                                                            |
+| Janitor     | dead code, stale deps, real TODOs only                                                                  | complexity, error-handling, tests, infrastructure/tools (`tools/`, `scripts/`, `bin/`, `.agents/`, `.jules/`, `.github/`, `Makefile`) |
+| Bolt        | measurable performance/efficiency on a real hot path                                                    | anything another lane owns in the same PR                                                                                             |
+| Typist      | JS strict-type annotations (JSDoc) + whitelist expansion                                                | runtime behaviour                                                                                                                     |
 
 If your finding belongs to another lane, **skip it** — that lane will get it. If a
 scan finds nothing actionable in your lane, **open no PR**; an empty pass is a

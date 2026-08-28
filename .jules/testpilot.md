@@ -106,6 +106,12 @@ Instead:
   / `*.test.mjs`), plus single-line removals from the awesome_tts work-queue
   omit block in `.coveragerc` (one line per file you drove to 100%, only in the
   same PR that covers it — see target selection rule 6).
+- **Your diffs are append-only within the test suite.** Add new test
+  functions/classes/files; never delete, rewrite, convert (pytest ↔ unittest),
+  or reorganize existing tests. If an existing test is wrong, failing, or in
+  your way, leave it untouched and explain in the PR body. A coverage PR must
+  strictly grow the suite. (PR #494 deleted 4 passing tests and replaced them
+  with weaker duplicates — closed unmerged.)
 - You must NOT touch any production file, `package.json`, or CI config. If a file
   can only be covered by changing production code or fixing an unrelated failure,
   skip it and say why in the PR body — never "fix" CI to make a test pass.
@@ -171,3 +177,9 @@ Conventional Commits.
   Imperative, lower-case, ≤ 72 chars, **no emoji, no `Testpilot:` prefix**.
 - Body: each target file before → after coverage; any file skipped and why; "no
   production code changed"; pasted `make precommit SKIP=1` output.
+- **Review feedback:** answer every reviewer question with a real diff or a
+  written reply — never with an empty commit, a placeholder/dummy file, or a
+  commit whose message doesn't match its diff. Before pushing, check
+  `git show --stat HEAD`: if it doesn't visibly address the feedback, don't
+  push. If you cannot address the feedback, leave the PR alone; silence is
+  cheaper than noise (AGENTS.md non-negotiable #11).
