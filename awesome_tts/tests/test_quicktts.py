@@ -180,6 +180,10 @@ def test_both_engines_fail_shows_error_tooltip(_mock_tooltip):
     tooltip = _mock_tooltip[0]
     assert 'edgetts failed' in tooltip
     assert 'voicevox failed' in tooltip
+    # Both underlying errors must surface; dropping the main error leaves the
+    # user staring at the backup's error with no clue why the main failed.
+    assert 'network down' in tooltip
+    assert 'engine not running' in tooltip
 
 
 def test_empty_front_field_no_engine_call(_mock_tooltip):

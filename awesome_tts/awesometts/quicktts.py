@@ -142,10 +142,12 @@ def run_single_click_flow(editor, router, strip=None):
         _refresh_editor(editor)
         _show_tooltip(f'added audio ({backup_id} — {main_id} failed)')
 
-    def on_backup_fail(exception, _text):
-        _show_tooltip(f'{main_id} failed; {backup_id} failed ({exception})')
-
     def on_main_fail(exception, _text):
+        def on_backup_fail(backup_exception, _text):
+            _show_tooltip(
+                f'{main_id} failed ({exception}); {backup_id} failed ({backup_exception})'
+            )
+
         router(
             backup_id,
             text,
