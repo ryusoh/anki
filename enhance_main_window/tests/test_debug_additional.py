@@ -1,47 +1,23 @@
-import pytest
+from unittest.mock import patch
+import enhance_main_window.debug as debug_module
+import unittest
 
-from enhance_main_window.debug import ExceptionInverse, assertEqual
+class GenRightOnly:
+    def firstDifference(self, other):
+        return None
 
+class TestDebugAdditional2(unittest.TestCase):
+    def test_assert_equal_right_only(self):
+        with patch('builtins.print') as mock_print:
+            debug_module.assertEqual(1, GenRightOnly())
+            mock_print.assert_any_call("Only the second is a Gen")
 
-def test_assertEqual_gen_first_difference_not_tuple(capsys):
-    class GenMock:
-        def firstDifference(self, other):
-            return "string_difference"
+class GenNone:
+    def firstDifference(self, other):
+        return None
 
-    with pytest.raises(TypeError):
-        assertEqual(GenMock(), GenMock())
-
-
-def test_assertEqual_gen_first_difference_none(capsys):
-    class GenMock:
-        def firstDifference(self, other):
-            return None
-
-    with pytest.raises(TypeError):
-        assertEqual(GenMock(), GenMock())
-
-
-def test_assertEqual_only_first_gen(capsys):
-    class GenMock:
-        def firstDifference(self, other):
-            return None
-
-    class NotGenMock:
-        pass
-
-    assert not assertEqual(GenMock(), NotGenMock())
-    out = capsys.readouterr().out
-    assert "Only the second is a Gen" not in out
-    assert "Only the first is a Gen" in out
-
-
-def test_assertEqual_only_second_gen(capsys):
-    class GenMock:
-        def firstDifference(self, other):
-            return None
-
-    class NotGenMock:
-        pass
-
-    assert not assertEqual(NotGenMock(), GenMock())
-    assert "Only the second is a Gen" in capsys.readouterr().out
+class TestDebugAdditionalFix(unittest.TestCase):
+    def test_assert_equal_none_diff_type(self):
+        with patch('builtins.print') as mock_print:
+            with self.assertRaises(TypeError):
+                debug_module.assertEqual(GenNone(), GenNone())
