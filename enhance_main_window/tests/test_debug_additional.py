@@ -11,7 +11,7 @@ class GenRightOnly:
 
 class TestDebugAdditional2(unittest.TestCase):
     def test_assert_equal_right_only(self):
-        with patch('builtins.print'):
+        with patch('builtins.print') as mock_print:
             debug_module.assertEqual(1, GenRightOnly())
             mock_print.assert_any_call("Only the second is a Gen")
 
