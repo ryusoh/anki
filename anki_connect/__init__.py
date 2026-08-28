@@ -1682,10 +1682,9 @@ class AnkiConnect:
     def insertReviews(self, reviews):
         if len(reviews) > 0:
             sql = 'insert into revlog(id,cid,usn,ease,ivl,lastIvl,factor,time,type) values '
-            for row in reviews:
-                sql += '(%s),' % ','.join(map(str, row))
-            sql = sql[:-1]
-            self.database().execute(sql)
+            sql += ','.join(['(?,?,?,?,?,?,?,?,?)'] * len(reviews))
+            flat_params = [item for row in reviews for item in row]
+            self.database().execute(sql, *flat_params)
 
     @util.api()
     def notesInfo(self, notes=None, query=None):
