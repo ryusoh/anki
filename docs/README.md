@@ -15,6 +15,7 @@
 ## Repo-wide conventions
 
 - [creating-an-addon.md](creating-an-addon.md) — anatomy of a self-contained addon + test pattern
+- [gotchas.md](gotchas.md) — cross-cutting operational gotchas: worktree concurrency, precommit-fix commit behavior, slow network, make -n guard
 - [js-testing.md](js-testing.md) — which JS test suites actually run
 - [js-typing-strategy.md](js-typing-strategy.md) — `jsconfig.json`/`checkJs` strict-mode whitelist strategy
 - [lint-and-quality.md](lint-and-quality.md) — formatting/lint/type/security gate
