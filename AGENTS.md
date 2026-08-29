@@ -163,55 +163,24 @@ a valid Conventional Commit subject**.
 | Bot commit hygiene (empty commits, test deletions)         | `make bot-pr-check`                    |
 | Build AVIF/WebP tiers for site CSS backgrounds             | `make images`                          |
 
-- **The full gate is slow** — `precommit SKIP=1` runs ~6+ min serial (measured
-  baseline in `docs/precommit-speed.md`). Background it with a generous timeout
-  (≥ 15 min, not the 5-min default) and tee full output to a file
-  (`make precommit SKIP=1 > /tmp/precommit.log 2>&1`): piping through `tail`
-  throws away which suite failed, forcing a full re-run just to see the error.
+Gate internals, complexity ratchet, dependency-structure rules, coverage
+floors, and tool-config conventions live in `docs/lint-and-quality.md`. The
+measured `precommit` baseline and parallelization notes live in
+`docs/precommit-speed.md`. JS test discovery rules live in `docs/js-testing.md`.
+Add-on coding standards (imports, config pattern, Python version/dependency
+rules, Unicode hygiene) live in `docs/creating-an-addon.md`.
 
-- **Complexity ratchet** — the gate freezes cyclomatic complexity in both
-  languages: ESLint `complexity` errors above 20 with `eslint-suppressions.json`
-  baselining the legacy violations (any NEW or worsened one fails; shrink the
-  baseline with `npx eslint --prune-suppressions`), and `make complexity-py`
-  (xenon, part of `quality-py`) freezing Python's ranks
-  (`--max-average A --max-modules F --max-absolute F`). Never raise the ceilings
-  or hand-edit the suppressions file. See `docs/lint-and-quality.md`.
-- **Dependency structure** — `make depcheck` (dependency-cruiser, part of
-  `lint`) fails on circular imports in `js/`; `make imports-py` (import-linter,
-  part of `quality-py`) fails on any new cross-addon import (addons are
-  self-contained; the two intentional `tabbed_stats` integrations are
-  whitelisted in `pyproject.toml`). Alias resolution for `#js/`/`#ui/` lives in
-  `.dependency-cruiser.webpack.cjs` — keep it in sync with package.json
-  `imports` and the import maps. See `docs/lint-and-quality.md`.
-- **Coverage floor** — whole-suite minimums stop silent erosion: JS floors in
-  package.json's `"c8"` key (enforced by `check-node`), Python `--fail-under=75`
-  on the combined report in `check-py` (not in `.coveragerc` — pytest-cov would
-  apply it per-suite). Ratchet up only, never down. See
-  `docs/lint-and-quality.md`.
 - **Run everything from the repo ROOT.** The root `conftest.py` mocks `aqt`/`anki`;
   running `pytest` inside an add-on subdir fails to import them. Use **`python3`**,
   never `python` (not on PATH).
-- **Don't run one combined `pytest`** over the whole repo — each add-on bootstraps
-  its own `sys.path`, so suites only collect in isolation. `make check-py` runs them
-  one at a time and accumulates coverage.
-- A `coverage/` **directory** at the repo root shadows the `coverage` command —
-  invoke it as `python3 -m coverage`, never bare `coverage`.
 - **Verify with the same python `make` uses.** `make` runs the repo-local
-  `.venv/bin/python3`, which may have a different package set than your shell's
-  `python3`. A test green under a bare `python3 -m pytest` can be red under
-  `make check` — so a "verified" claim only counts if `make precommit SKIP=1`
-  passed, not a hand-run pytest. (Also: never spawn a real `ProcessPoolExecutor`
-  in a test — spawn children re-import the module and drop your mocks; patch it to
-  `ThreadPoolExecutor`. See `docs/creating-an-addon.md`.)
+  `.venv/bin/python3`; a test green under a bare `python3 -m pytest` can be red
+  under `make check`. A "verified" claim only counts if `make precommit SKIP=1`
+  passed.
 - **Run `make fmt` after hand-authoring any `docs/*.md`** — Prettier owns Markdown
   table/list formatting and `fmt-check` fails otherwise.
-- **Run `make fmt-py` after hand-editing Python** — black owns formatting (e.g.
-  trailing blank lines after a deletion); scoped test runs don't catch a format
-  miss, `fmt-py-check` does.
-- **JS tests: only root `tests/` (node runner, `node:test`) and
-  `review_heatmap/tests/` (jest) are executed** — a `*.test.js` anywhere else
-  silently never runs. Browser-side scripts are pinned with source-level regression
-  tests. See `docs/js-testing.md`.
+- **Run `make fmt-py` after hand-editing Python** — black owns formatting; scoped
+  test runs don't catch a format miss, `fmt-py-check` does.
 
 ### Workflow maintenance
 
@@ -252,7 +221,7 @@ is false. Confirm both pytest **and** the JS runner execute.
   agent docs and skills are verified by `tools/test_doc_tool_references.py`.
 - `docs/` — cross-cutting how-tos and gotchas. **Read the relevant doc before deep
   work**: `docs/creating-an-addon.md`, `docs/lint-and-quality.md`,
-  `docs/js-typing-strategy.md`.
+  `docs/js-typing-strategy.md`, `docs/gotchas.md`.
 
 ## Gotchas
 
@@ -283,98 +252,10 @@ is false. Confirm both pytest **and** the JS runner execute.
   — unquoted, `/bin/sh` word-splits at the space and tries to _execute_ the tail
   of the path instead of setting the var. Pinned by
   `tests/test_makefile_curdir_quoting.py`.
-- **`precommit-fix`'s `YOLO=1`/`MSG=` commit step runs `git add -A`.** If another
-  process has unrelated uncommitted changes sitting in this working tree when it
-  runs — a concurrent agent session sharing the checkout, a background task not
-  given worktree isolation — they get swept into that commit under an unrelated
-  message (this happened: 2026-07-13, commit `e3800278`). Check `git status`
-  before running `precommit-fix` with `YOLO=1`/`MSG=`, and prefer worktree
-  isolation for any spawned session that might invoke it.
-- **Concurrent agents sharing one worktree.** When you run parallel subagents
-  (swarms, background agents) in this checkout: stage only files you changed
-  (`git add <specific-files>`, never `git add -A`), never `git stash`,
-  `git reset --hard`, or `git commit --no-verify` — a sibling agent's work may
-  be sitting in the same tree. Keep concurrent agents on disjoint file sets; if
-  a rebase/conflict lands mid-run, resolve only files your task owns. And never
-  let a spawned session run `precommit-fix` with `YOLO=1`/`MSG=` against the
-  shared checkout — its commit step is `git add -A` (see the gotcha above).
-- **Limited/slow network:** `precommit-fix` pushes via `tools/git_push_retry.py`
-  (backoff retries + per-commit chunking; run it directly to drain unpushed
-  commits) and caps its backgrounded R2/graph uploads at `NET_DEADLINE` seconds
-  (default 900; raise with `NET_DEADLINE=3600` to let a slow upload finish).
-  Failures are loud, never silent, and reruns resume incrementally. Full map:
-  `docs/limited-network.md`.
-- **`make -n precommit-fix` is NOT a dry run** — GNU make executes
-  `$(MAKE)`-bearing recipe lines under `-n`, so it used to really commit. The
-  Makefile now refuses `-n`/`-q`/`-t` for this target at parse time (pinned by
-  `tests/test_makefile_dryrun_guard.py`); don't try to "syntax check" it that way.
-- **A running agent session sees skills as of session start.** Editing or
-  syncing `.agents/skills/` mid-session does not change what the running session
-  has loaded — an invoked skill still uses the pre-edit text (observed: `/retro`
-  loading a pre-consolidation copy). Start a new session to pick up skill edits.
-- **Never discard uncommitted user work without explicit confirmation.**
-  `git checkout -- <file>`, `git reset --hard`, and similar destructive resets
-  can destroy changes the user made in another session or is still reviewing.
-  This is especially risky in `data/`, where the "never hand-edit generated
-  data" rule means _agents shouldn't create manual edits there_, not that an
-  agent may freely revert whatever is uncommitted. If you see uncommitted
-  changes and don't know their origin, ask before resetting.
-- **The user commits reviewed changes themselves.** The user's work pattern is:
-  back-and-forth in chat → they review the diff in VSCode → they commit it
-  themselves and move on. So if your edits vanish from `git status` between
-  turns, run `git log --oneline -3` FIRST — a fresh user commit containing them
-  means the work was accepted. Don't re-verify, re-explain, or dig into "where
-  did my changes go"; check the log once and continue from HEAD.
-- **Graph scripts are executed as standalone scripts**, not as `python3 -m graph.x`.
-  Any script under `graph/` that imports sibling modules (`from graph.builder
-import ...`) must insert the repo root into `sys.path` _before_ those imports.
-  See `docs/graph-analysis-guide.md`.
-
-## Coding standards
-
-### Anki imports
-
-- **Explicit imports:** avoid wildcard imports (`from aqt.qt import *`). Use
-  explicit imports: `from aqt.qt import Qt, QAction, QDialog, ...`.
-- `anki` and `aqt` modules are provided by the Anki runtime and are not available
-  in the local dev environment; use `# type: ignore` on those imports to suppress
-  unresolved-import warnings in editors.
-- **Never bind `mw` at module top level** (`from aqt import mw` at module root):
-  when the module is first imported by Anki, `aqt.mw` is `None`, so the local
-  reference stays bound to `None` permanently. Look up `mw` dynamically inside
-  functions or methods (`import aqt; mw = aqt.mw`, or `from aqt import mw` inside
-  the function).
-
-### Configuration pattern
-
-- **Dictionary-first:** always ensure config objects are initialized to a dict,
-  even if `getUserOption()` returns `None`:
-  `conf = getUserOption() or getDefaultConfig()` or `conf = getUserOption() or {}`.
-- Use `Dict[str, Any]` for config objects to avoid "None type is not
-  subscriptable" errors.
-
-### Python version & dependencies
-
-- The CI workflow (`.github/workflows/ci.yml`) is pinned to Python **3.13** to
-  match the local development venv and avoid issues with newer/pre-release Python
-  (e.g. Bandit crashing on 3.14 due to AST deprecations).
-- Any third-party package used in add-on code or tests that is not in the standard
-  library (e.g. `beautifulsoup4`) must be listed in `requirements.txt`. Anki
-  bundles packages like `beautifulsoup4` and `requests` at runtime, but they are
-  not available in local/CI test runs outside Anki unless declared.
-- Runtime deps Anki doesn't bundle can't be pip-installed into it (frozen
-  Python — and its version varies per build: 25.02.5 "ao" is 3.9, not 3.13).
-  See `docs/creating-an-addon.md` → "Runtime third-party dependencies" for the
-  external-pip + deps-dir pattern (awesome_tts uses it for edge-tts).
-
-### Source-file hygiene
-
-- **Never write invisible Unicode characters literally into source.** Zero-width
-  spaces (`\u200b`–`\u200d`, `\ufeff`) and exotic spaces (`\u2000`–`\u200a`) in
-  regexes must use escaped forms (`r'[\u200b\u200c]'`, `r'[\s\xa0\u2000-\u200a]'`).
-  Literal ones are invisible in diffs and reviews, and the Edit tool can't match
-  them reliably afterwards (an `old_string` containing them normalizes
-  differently), forcing shell workarounds for later edits.
+- **Cross-cutting operational gotchas** (`precommit-fix` `YOLO=1` `git add -A`,
+  concurrent agents sharing one worktree, limited network retry, `make -n`
+  guard, skill regeneration, standalone graph scripts) live in
+  `docs/gotchas.md`.
 
 ## Skills and slash commands
 

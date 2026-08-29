@@ -337,6 +337,52 @@ mocks; `pytest` inside an addon subdir fails to import them. Invoke the quality
 tools via `make`, not by hand: e.g. Bandit needs `--ini .bandit` (its `-c`
 expects YAML), which the Makefile already passes.
 
+## Coding standards
+
+### Anki imports
+
+- **Explicit imports:** avoid wildcard imports (`from aqt.qt import *`). Use
+  explicit imports: `from aqt.qt import Qt, QAction, QDialog, ...`.
+- `anki` and `aqt` modules are provided by the Anki runtime and are not available
+  in the local dev environment; use `# type: ignore` on those imports to suppress
+  unresolved-import warnings in editors.
+- **Never bind `mw` at module top level** (`from aqt import mw` at module root):
+  when the module is first imported by Anki, `aqt.mw` is `None`, so the local
+  reference stays bound to `None` permanently. Look up `mw` dynamically inside
+  functions or methods (`import aqt; mw = aqt.mw`, or `from aqt import mw` inside
+  the function).
+
+### Configuration pattern
+
+- **Dictionary-first:** always ensure config objects are initialized to a dict,
+  even if `getUserOption()` returns `None`:
+  `conf = getUserOption() or getDefaultConfig()` or `conf = getUserOption() or {}`.
+- Use `Dict[str, Any]` for config objects to avoid "None type is not
+  subscriptable" errors.
+
+### Python version & dependencies
+
+- The CI workflow (`.github/workflows/ci.yml`) is pinned to Python **3.13** to
+  match the local development venv and avoid issues with newer/pre-release Python
+  (e.g. Bandit crashing on 3.14 due to AST deprecations).
+- Any third-party package used in add-on code or tests that is not in the standard
+  library (e.g. `beautifulsoup4`) must be listed in `requirements.txt`. Anki
+  bundles packages like `beautifulsoup4` and `requests` at runtime, but they are
+  not available in local/CI test runs outside Anki unless declared.
+- Runtime deps Anki doesn't bundle can't be pip-installed into it (frozen
+  Python — and its version varies per build: 25.02.5 "ao" is 3.9, not 3.13).
+  See "Runtime third-party dependencies" above for the external-pip + deps-dir
+  pattern (`awesome_tts` uses it for edge-tts).
+
+### Source-file hygiene
+
+- **Never write invisible Unicode characters literally into source.** Zero-width
+  spaces (`\u200b`–`\u200d`, `\ufeff`) and exotic spaces (`\u2000`–`\u200a`) in
+  regexes must use escaped forms (`r'[\u200b\u200c]'`, `r'[\s\xa0\u2000-\u200a]'`).
+  Literal ones are invisible in diffs and reviews, and the Edit tool can't match
+  them reliably afterwards (an `old_string` containing them normalizes
+  differently), forcing shell workarounds for later edits.
+
 ## Test gotchas that pass in your shell but fail under `make`
 
 - **`make` runs the repo-local `.venv/bin/python3`, not your shell's `python3`.**
