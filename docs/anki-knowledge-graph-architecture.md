@@ -23,7 +23,7 @@ This system builds a **knowledge relationship graph** from Anki cards while keep
 │  │  │  - mid      │  │  - reps     │  │  - ...              │   │   │
 │  │  └─────────────┘  └─────────────┘  └─────────────────────┘   │   │
 │  │                                                              │   │
-│  │  collection.media/ (images, audio)                          │   │
+│  │  collection.media/ (images, audio)                           │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
                               │
