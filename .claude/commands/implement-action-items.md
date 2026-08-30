@@ -54,7 +54,7 @@ When resumed, invoked on an in-progress task, or recovering from context compact
 1. **Never trust conversation memory** for progress tracking.
 2. **Inspect authoritative ground truth**:
    - Run `git status --short` and `git log -n 5 --oneline`.
-   - Read the external task state artifact or findings doc.
+   - Query the task state ledger: `python3 -m tools.task_harness status <task-id>` (or check `.agents/state/<task>.json` / governing doc).
 3. **Locate the Program Counter**:
    - Identify the first work order where the corresponding commit/verification is missing.
 4. **Re-anchor working memory**:

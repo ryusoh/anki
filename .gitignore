@@ -200,3 +200,7 @@ reflow_paragraphs/last_click_debug.json
 # Mutation-testing scaffold artifacts (`make mutate-py`)
 mutants/
 .mutmut-cache/
+
+# Agent task state ledgers
+.agents/state/
+
