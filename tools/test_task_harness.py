@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
-from tools.task_harness import (
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from task_harness import (
     GateItem,
     TaskState,
     load_state,
