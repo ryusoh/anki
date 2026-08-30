@@ -101,13 +101,17 @@ def format_generated_commands(target_dir: str) -> None:
 
     Without this, the prettier pass in `make fmt` reformats the generated
     Markdown after it lands, so a fresh sync always shows phantom drift against
-    the committed files. Mirror the Makefile's invocation (--ignore-path
-    .gitignore) to keep sync idempotent. Degrade gracefully if prettier/npx is
-    unavailable (script stays stdlib-only).
+    the committed files. Mirror the Makefile's invocation to keep sync idempotent.
+    Degrade gracefully if prettier/npx is unavailable (script stays stdlib-only).
     """
+    if not os.path.isdir(target_dir):
+        return
+    files = [os.path.join(target_dir, f) for f in sorted(os.listdir(target_dir)) if f.endswith(".md")]
+    if not files:
+        return
     try:
         subprocess.run(
-            ["npx", "prettier", "--write", "--ignore-path", ".gitignore", target_dir],
+            ["npx", "prettier", "--write", *files],
             cwd=WORKSPACE_ROOT,
             check=True,
             capture_output=True,
