@@ -284,13 +284,15 @@ is false. Confirm both pytest **and** the JS runner execute.
 - **Skill schema validation:** `tools/test_skills.py` (run by `make check`)
   enforces schema validity, non-empty descriptions, directory-name matching, and
   symlink resolution across all skills.
-- **Externalized state & transaction boundaries:** On multi-step workflows (action-item
-  sweeps, TDD loops, bug diagnosis), never rely on conversation memory as an execution
-  ledger. Track task progress in disk-backed state files (`.agents/state/`) or in
-  the governing findings document. At each transaction boundary (after commits or gate
-  checks) and on session resumption, follow the skill's `## Resume protocol`: re-anchor
-  working memory directly from authoritative ground truth (`git status`, `git log`,
-  state file) before dispatching tools.
+- **Externalized state & transaction boundaries (State-Oriented Architecture):**
+  On multi-step workflows (action-item sweeps, TDD loops, bug diagnosis), never rely on
+  conversation memory as an execution ledger ($P = p^N$ failure). Follow Arista EOS's
+  SysDB design: the disk-backed state ledger (`.agents/state/` or governing findings doc)
+  is the single source of truth; worker agents are ephemeral, stateless transforms
+  ($O(1)$ context) reading only their active gate slice. At each transaction boundary
+  (after commits or gate checks) and on session resumption, follow the skill's
+  `## Resume protocol`: re-anchor working memory directly from authoritative ground
+  truth (`git status`, `git log`, state file) before dispatching tools.
 
 ## Sibling repositories
 
