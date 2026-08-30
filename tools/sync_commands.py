@@ -106,7 +106,9 @@ def format_generated_commands(target_dir: str) -> None:
     """
     if not os.path.isdir(target_dir):
         return
-    files = [os.path.join(target_dir, f) for f in sorted(os.listdir(target_dir)) if f.endswith(".md")]
+    files = [
+        os.path.join(target_dir, f) for f in sorted(os.listdir(target_dir)) if f.endswith(".md")
+    ]
     if not files:
         return
     try:
