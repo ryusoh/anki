@@ -8,6 +8,7 @@ Usage::
 
     python3 -m tools.task_harness init docs/research/task.md
     python3 -m tools.task_harness current
+    python3 -m tools.task_harness reconcile
     python3 -m tools.task_harness render-worker-prompt 1
     python3 -m tools.task_harness record-commit 1 <commit_sha>
     python3 -m tools.task_harness status
@@ -174,6 +175,20 @@ def validate_commit(repo_root: Path, commit_sha: str) -> bool:
         return False
 
 
+def derive_scoped_tools(target_file: str) -> list[str]:
+    """Derive minimal required toolset based on target file type (Jupiter OCS routing)."""
+    p = target_file.lower().strip()
+    if p.endswith(".py"):
+        return ["ruff (lint)", "mypy (types)", "pytest (test)", "view_file", "replace_file_content"]
+    if p.endswith((".js", ".mjs", ".jsx")):
+        return ["eslint (lint)", "tsc (types)", "jest (test)", "view_file", "replace_file_content"]
+    if p.endswith(".css"):
+        return ["stylelint (lint)", "screenshot (visual)", "view_file", "replace_file_content"]
+    if p.endswith(".md"):
+        return ["markdownlint", "prettier", "thinking-check", "view_file", "replace_file_content"]
+    return ["view_file", "replace_file_content", "scoped verify command"]
+
+
 def render_worker_prompt(state: TaskState, gate_query: str) -> str:
     """Render a hermetic, zero-tacit-context prompt for an ephemeral worker agent."""
     query = str(gate_query).strip().lower()
@@ -187,6 +202,8 @@ def render_worker_prompt(state: TaskState, gate_query: str) -> str:
 
     target_file_str = target.file if target.file else "(see work order)"
     verify_str = target.verification if target.verification else "make verify"
+    scoped_tools = derive_scoped_tools(target_file_str)
+    tools_str = ", ".join(f"`{t}`" for t in scoped_tools)
 
     return f"""# Work Order Execution Task: Gate {target.number}
 
@@ -201,6 +218,7 @@ Do not assume any conversational history from previous steps. All state is exter
 - **Target File**: `{target_file_str}`
 - **Tag**: `[{target.tag}]`
 - **Verify Command**: `{verify_str}`
+- **Scoped Toolset (OCS Routing)**: {tools_str}
 
 ## Execution Instructions
 1. **Locate & Read**: Inspect the target file `{target_file_str}`.
@@ -208,6 +226,37 @@ Do not assume any conversational history from previous steps. All state is exter
 3. **Verify**: Execute the verification command `{verify_str}` and ensure all checks pass.
 4. **Report**: Return a concise summary of modified files and verification results.
 """
+
+
+def reconcile_state(state: TaskState, repo_root: Path) -> tuple[bool, GateItem | None, str]:
+    """Reconcile state against git repository ground truth (Orion state convergence)."""
+    # 1. Verify recorded commits
+    for g in state.gates:
+        if g.commit and g.status != "SKIPPED":
+            if validate_commit(repo_root, g.commit):
+                g.status = "DONE"
+
+    # 2. Find Program Counter (first uncompleted gate)
+    pending_gates = [g for g in state.gates if g.status in ("PENDING", "IN_PROGRESS")]
+    pc = pending_gates[0] if pending_gates else None
+    converged = pc is None
+
+    done_count = sum(1 for g in state.gates if g.status == "DONE")
+    skipped_count = sum(1 for g in state.gates if g.status == "SKIPPED")
+    pending_count = len(pending_gates)
+
+    lines = [
+        f"Reconciled task '{state.task_id}': {done_count}/{state.total_gates} DONE, {skipped_count} SKIPPED, {pending_count} PENDING."
+    ]
+    if pc:
+        lines.append(f"Program Counter -> Gate {pc.number} ({pc.id}): {pc.title}")
+        lines.append(
+            f"  Target File: {pc.file or '(unspecified)'} | Verify: {pc.verification or 'make verify'}"
+        )
+    else:
+        lines.append("Status: Fully converged to declared intent (100% complete).")
+
+    return converged, pc, "\n".join(lines)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -228,6 +277,11 @@ def main(argv: list[str] | None = None) -> int:
 
     # current
     sub.add_parser("current", help="Print current active gate as JSON.")
+
+    # reconcile
+    sub.add_parser(
+        "reconcile", help="Reconcile state ledger against git ground truth and advance PC."
+    )
 
     # render-worker-prompt <gate>
     prompt_parser = sub.add_parser(
@@ -300,6 +354,12 @@ def main(argv: list[str] | None = None) -> int:
         current_gate = pending_gates[0]
         print(json.dumps(asdict(current_gate), indent=2))
         return 0
+
+    if args.command == "reconcile":
+        converged, pc, summary = reconcile_state(state, repo)
+        save_state(state, state_file)
+        print(summary)
+        return 0 if converged else 0
 
     if args.command == "render-worker-prompt":
         try:
