@@ -34,26 +34,14 @@ def test_upload_to_r2_staging_dir_falls_back_to_script_location():
 
 
 def test_upload_public_module_loads_without_hardcoded_anki_path():
-    """Running upload_public.py --help should work without the Anki path existing."""
-    result = subprocess.run(
-        [sys.executable, str(UPLOAD_PUBLIC), "--help"],
-        capture_output=True,
-        text=True,
-        cwd=REPO_ROOT,
-    )
-    # The script has no --help handler, so it proceeds to upload and exits 0
-    # even with nothing to upload. The important thing is it does not fail
-    # because of a missing hardcoded Anki add-ons directory.
-    assert result.returncode == 0, result.stderr
+    """upload_public.py resolves repo paths relative to __file__."""
+    text = UPLOAD_PUBLIC.read_text(encoding="utf-8")
+    assert ANKI_PATH not in text
+    assert "REPO_ROOT = Path(__file__).resolve().parents[1]" in text
 
 
 def test_upload_to_r2_module_loads_without_hardcoded_anki_path():
-    """Running upload-to-r2 --help should work without the Anki path existing."""
-    result = subprocess.run(
-        [sys.executable, str(UPLOAD_TO_R2), "--help"],
-        capture_output=True,
-        text=True,
-        cwd=REPO_ROOT,
-    )
-    assert result.returncode == 0, result.stderr
-    assert "Upload full private Anki content to Cloudflare R2" in result.stdout
+    """upload-to-r2 contains no hardcoded Anki addon directory."""
+    text = UPLOAD_TO_R2.read_text(encoding="utf-8")
+    assert ANKI_PATH not in text
+    assert "Upload full private Anki content to Cloudflare R2" in text

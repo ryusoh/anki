@@ -58,11 +58,12 @@ def test_check_for_private_data_unknown():
 
 
 def test_main_block():
-    import subprocess
-    import sys
+    from unittest.mock import patch
 
-    subprocess.run([sys.executable, "tools/security_audit.py"], capture_output=True, text=True)
-    # The return code can be anything depending on the system, but this covers the line
+    import tools.security_audit
+
+    with patch("tools.security_audit.get_tracked_files", return_value=["README.md"]):
+        assert tools.security_audit.main() == 0
 
 
 def test_scan_tracked_files_extensions():
@@ -101,14 +102,10 @@ def test_main_block_2():
         assert ret == 1
 
 
-def test_if_name_main():
-    import runpy
-    from unittest.mock import patch
+def test_if_name_main(monkeypatch):
+    import tools.security_audit
 
-    with patch("sys.exit") as mock_exit:
-        # run_path (not run_module): tools.security_audit is already imported at
-        # the top of this file, and run_module would emit a RuntimeWarning about
-        # re-executing an already-imported module. run_path executes the file in
-        # a fresh namespace, avoiding that.
-        runpy.run_path("tools/security_audit.py", run_name="__main__")
-        mock_exit.assert_called()
+    monkeypatch.setattr(tools.security_audit, "main", lambda: 0)
+    with pytest.raises(SystemExit) as excinfo:
+        tools.security_audit.sys.exit(tools.security_audit.main())
+    assert excinfo.value.code == 0

@@ -1,5 +1,4 @@
 import os
-import subprocess
 import sys
 import tempfile
 from unittest.mock import patch
@@ -9,13 +8,15 @@ import security_audit
 
 
 def test_full_coverage():
-    # This test will mock nothing and just run the main method
-    # It will hit almost all lines
-    with patch('sys.exit'):
+    # This test runs the main method with representative files
+    with patch('security_audit.get_tracked_files', return_value=['README.md']), patch('sys.exit'):
         security_audit.main()
 
     # We also need to test with some mock errors
-    with patch('security_audit.check_gitignore_coverage', return_value=["missing dir"]):
+    with (
+        patch('security_audit.check_gitignore_coverage', return_value=["missing dir"]),
+        patch('security_audit.get_tracked_files', return_value=['README.md']),
+    ):
         with patch('sys.exit'):
             security_audit.main()
 
@@ -33,8 +34,8 @@ def test_check_functions():
 
 
 def test_script_execution():
-    script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "security_audit.py")
-    subprocess.run([sys.executable, script_path], check=False)
+    with patch('security_audit.get_tracked_files', return_value=['README.md']), patch('sys.exit'):
+        assert security_audit.main() == 0
 
 
 def test_module_main_exec():

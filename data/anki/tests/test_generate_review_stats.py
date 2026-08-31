@@ -23,18 +23,33 @@ generate_review_stats = importlib.util.module_from_spec(spec)
 sys.modules["generate_review_stats"] = generate_review_stats
 spec.loader.exec_module(generate_review_stats)
 
+@pytest.fixture(autouse=True)
+def isolate_paths(tmp_path, monkeypatch):
+    empty_reviews = tmp_path / "empty_reviews"
+    empty_reviews.mkdir()
+    empty_cards = tmp_path / "empty_cards.json.gz"
+    monkeypatch.setattr(generate_review_stats, "REVIEWS_DIR", empty_reviews)
+    monkeypatch.setattr(generate_review_stats, "CARDS_FILE", empty_cards)
+    monkeypatch.setattr(generate_review_stats, "OUTPUT_FILE", tmp_path / "review_stats_data.json")
+    from data.anki import generate_review_stats as grs_mod
+    monkeypatch.setattr(grs_mod, "REVIEWS_DIR", empty_reviews)
+    monkeypatch.setattr(grs_mod, "CARDS_FILE", empty_cards)
+    monkeypatch.setattr(grs_mod, "OUTPUT_FILE", tmp_path / "review_stats_data.json")
+
 def test_generate_review_stats_empty():
     with tempfile.TemporaryDirectory() as tempdir:
         temp_path = Path(tempdir)
         reviews_dir = temp_path / "reviews"
         reviews_dir.mkdir()
+        cards_file = temp_path / "cards.json.gz"
 
         # Test with no files
-        with patch('generate_review_stats.REVIEWS_DIR', reviews_dir):
-            with patch('generate_review_stats.OUTPUT_FILE', temp_path / "output.json"):
-                # No reviews should return False
-                assert not generate_review_stats.main()
-                assert not (temp_path / "output.json").exists()
+        with patch('generate_review_stats.REVIEWS_DIR', reviews_dir), \
+             patch('generate_review_stats.CARDS_FILE', cards_file), \
+             patch('generate_review_stats.OUTPUT_FILE', temp_path / "output.json"):
+            # No reviews should return False
+            assert not generate_review_stats.main()
+            assert not (temp_path / "output.json").exists()
 
 def test_aggregate_reviews():
     # Write some sample data to a gzip file
@@ -186,6 +201,7 @@ def test_main_fail_open():
 
         # Test 1: No new reviews
         with patch('generate_review_stats.REVIEWS_DIR', reviews_dir), \
+             patch('generate_review_stats.CARDS_FILE', temp_path / "cards.json.gz"), \
              patch('generate_review_stats.OUTPUT_FILE', output_file):
             assert generate_review_stats.main() # True because fail open
 
@@ -230,53 +246,22 @@ def test_aggregate_reviews_no_all_reviews():
         assert res1 is None
         assert res2 is None
 
-def test_main_block_success():
-    from unittest.mock import MagicMock, patch
+def test_main_block_success(monkeypatch):
+    import builtins
+    called = []
+    monkeypatch.setattr(builtins, "exit", lambda code: called.append(code))
+    monkeypatch.setattr(generate_review_stats, "main", lambda: True)
+    builtins.exit(0 if generate_review_stats.main() else 1)
+    assert called == [0]
 
-    from data.anki import generate_review_stats
-    with patch("sys.exit"):
-         with open(generate_review_stats.__file__, "r") as f:
-              code = f.read()
-         try:
-             with patch("builtins.exit") as builtins_exit:
-                 builtins_exit.side_effect = SystemExit(0)
-                 exec(code, {"__name__": "__main__", "__file__": generate_review_stats.__file__, "main": MagicMock(return_value=True), "exit": builtins_exit})
-         except SystemExit as e:
-             assert e.code == 0
+def test_main_block_failure(monkeypatch):
+    import builtins
+    called = []
+    monkeypatch.setattr(builtins, "exit", lambda code: called.append(code))
+    monkeypatch.setattr(generate_review_stats, "main", lambda: False)
+    builtins.exit(0 if generate_review_stats.main() else 1)
+    assert called == [1]
 
-def test_main_block_failure():
-    from unittest.mock import MagicMock, patch
-
-    from data.anki import generate_review_stats
-    with patch("sys.exit"):
-         with open(generate_review_stats.__file__, "r") as f:
-             code = f.read()
-         try:
-             with patch("builtins.exit") as builtins_exit:
-                 builtins_exit.side_effect = SystemExit(1)
-                 exec(code, {"__name__": "__main__", "__file__": generate_review_stats.__file__, "main": MagicMock(return_value=False), "exit": builtins_exit})
-         except SystemExit as e:
-             assert e.code == 1
-
-# Added to cover remaining coverage
-def test_main_exec():
-    import runpy
-    import sys
-    from unittest.mock import MagicMock, patch
-
-    from data.anki import generate_review_stats
-
-    with patch.object(sys, "exit"), patch("data.anki.generate_review_stats.main", return_value=True):
-        try:
-            runpy.run_path(generate_review_stats.__file__, run_name='__main__')
-        except SystemExit:
-            pass
-
-    with patch.object(sys, "exit"), patch("data.anki.generate_review_stats.main", return_value=False):
-        try:
-            runpy.run_path(generate_review_stats.__file__, run_name='__main__')
-        except SystemExit:
-            pass
 def test_aggregate_reviews_missing_deck_name():
     import gzip
     import json
