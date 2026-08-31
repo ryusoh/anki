@@ -67,7 +67,7 @@ def fetch_wiktionary_html(word, lang):
     )
 
     try:
-        with urlopen_with_proxy_fallback(req, timeout=5) as response:
+        with urlopen_with_proxy_fallback(req, timeout=15) as response:
             return response.read().decode('utf-8')
     except HTTPError as e:
         if e.code == 404:
@@ -554,7 +554,7 @@ def get_wiktionary_candidates(word, lang="en"):
     )
 
     try:
-        with urlopen_with_proxy_fallback(req, timeout=5) as response:
+        with urlopen_with_proxy_fallback(req, timeout=15) as response:
             data = json.loads(response.read().decode('utf-8'))
             if len(data) > 1 and isinstance(data[1], list):
                 return data[1]

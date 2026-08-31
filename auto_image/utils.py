@@ -31,7 +31,7 @@ def _get_vqd_token(query):
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
         },
     )
-    with urlopen_with_proxy_fallback(req, timeout=10) as response:
+    with urlopen_with_proxy_fallback(req, timeout=15) as response:
         html = response.read().decode('utf-8', errors='ignore')
 
     match = re.search(r'vqd="([^"]+)"', html) or re.search(r'vqd=([^&"]+)', html)
@@ -66,7 +66,7 @@ def fetch_image_results(query):
                 "Referer": "https://duckduckgo.com/",
             },
         )
-        with urlopen_with_proxy_fallback(req, timeout=10) as response:
+        with urlopen_with_proxy_fallback(req, timeout=15) as response:
             data = json.loads(response.read().decode('utf-8'))
 
         return [r["thumbnail"] for r in data.get("results", [])[:20] if r.get("thumbnail")]
@@ -86,7 +86,7 @@ def download_image(url):
         },
     )
     try:
-        with urlopen_with_proxy_fallback(req, timeout=10) as response:
+        with urlopen_with_proxy_fallback(req, timeout=15) as response:
             data = response.read()
             return data if data else None
     except Exception as e:

@@ -116,7 +116,7 @@ def download_audio(tailo: str, fallback_url: str | None = None) -> bytes | None:
                 url,
                 headers={"User-Agent": "AnkiAutoItaigi/1.0 (https://github.com/ryusoh/anki)"},
             )
-            with urlopen_with_proxy_fallback(req, timeout=10) as resp:
+            with urlopen_with_proxy_fallback(req, timeout=15) as resp:
                 data = resp.read()
             if data[:3] == b"ID3" or data[:2] in (b"\xff\xfb", b"\xff\xf3", b"\xff\xf2"):
                 return data
@@ -153,7 +153,7 @@ def fetch_itaigi_json(word: str) -> str:
         headers={"User-Agent": "AnkiAutoItaigi/1.0 (https://github.com/ryusoh/anki)"},
     )
     try:
-        with urlopen_with_proxy_fallback(req, timeout=5) as response:
+        with urlopen_with_proxy_fallback(req, timeout=15) as response:
             return response.read().decode("utf-8")
     except HTTPError as e:
         if e.code == 404:
@@ -175,7 +175,7 @@ def fetch_moedict_entry(
         headers={"User-Agent": "AnkiAutoItaigi/1.0 (https://github.com/ryusoh/anki)"},
     )
     try:
-        with urlopen_with_proxy_fallback(req, timeout=5) as response:
+        with urlopen_with_proxy_fallback(req, timeout=15) as response:
             data = json.loads(response.read().decode("utf-8"))
     except Exception:
         return None
@@ -210,7 +210,7 @@ def fetch_chhoetaigi_entry(word: str) -> tuple[str, list[str]] | None:
             headers={"User-Agent": "AnkiAutoItaigi/1.0 (https://github.com/ryusoh/anki)"},
         )
         try:
-            with urlopen_with_proxy_fallback(req, timeout=10) as resp:
+            with urlopen_with_proxy_fallback(req, timeout=15) as resp:
                 content = resp.read().decode("utf-8")
             reader = csv.DictReader(io.StringIO(content))
             cache: dict[str, tuple[list[str], list[str]]] = {}
