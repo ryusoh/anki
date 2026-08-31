@@ -22,15 +22,6 @@ migrating to TypeScript, and how the whitelist grows.
 - `package.json`'s `"imports"` field (`#js/*` → `./js/*`, `#ui/*` →
   `./js/ui/*`) resolves correctly under `moduleResolution: "bundler"` — no
   extra `paths` config needed in `jsconfig.json`.
-- **A real latent bug surfaced during a scratch resolution check (not yet
-  fixed — leave it for the next `typecheck-js` expand run):**
-  `js/config/assetClasses.js:61` — `error TS1117: An object literal cannot
-have multiple properties with the same name.` This came from transitively
-  type-checking `js/ui/tilt_effect.js` → `#js/config.js` →
-  `js/config/assetClasses.js` in a throwaway config; it is **not yet in the
-  committed whitelist**, so it won't fail `make typecheck-js` today. Whoever
-  (or whatever routine) next adds `js/config.js`/`js/config/assetClasses.js`
-  to `include` should fix this as part of that PR.
 - Everything else outside the whitelist is unchecked. Expand it
   incrementally: add a file's path to `include` and bring it to zero strict
   errors in the same change, one file at a time.

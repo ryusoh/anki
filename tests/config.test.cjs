@@ -68,6 +68,15 @@ async function runTests() {
     assert.strictEqual(getCalendarRange(), 3);
   });
 
+  const { CALENDAR_CONFIG, DATA_PATHS, CALENDAR_SELECTORS } = await import("../js/config.js");
+
+  runTest("CALENDAR_CONFIG subDomain functions and config objects", () => {
+    assert.strictEqual(CALENDAR_CONFIG.subDomain.label(), "");
+    assert.strictEqual(CALENDAR_CONFIG.subDomain.color(), "white");
+    assert.strictEqual(typeof DATA_PATHS.customStats, "string");
+    assert.strictEqual(typeof CALENDAR_SELECTORS.heatmap, "string");
+  });
+
   console.log("\n" + "=".repeat(60));
   console.log(`\n[SUMMARY] Results: ${passed} passed, ${failed} failed\n`);
 

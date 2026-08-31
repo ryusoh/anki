@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import sharp from "sharp";
-import { IMAGE_MANIFEST, buildImageTiers } from "../tools/build_images.mjs";
+import { IMAGE_MANIFEST, buildImageTiers, main } from "../tools/build_images.mjs";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..");
 
@@ -83,5 +83,17 @@ describe("tools/build_images.mjs", () => {
       result.avifBytes < result.sourceBytes,
       `avif (${result.avifBytes}) should be smaller than jpeg (${result.sourceBytes})`,
     );
+  });
+
+  test("main runs over manifest and logs summary", async () => {
+    const origLog = console.log;
+    const logs = [];
+    console.log = (...args) => logs.push(args.join(" "));
+    try {
+      await main();
+      assert.ok(logs.some((l) => l.includes("Image Tier Summary")));
+    } finally {
+      console.log = origLog;
+    }
   });
 });

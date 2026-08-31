@@ -37,7 +37,7 @@ export async function buildImageTiers(inputPath) {
 
 const kb = (bytes) => `${(bytes / 1024).toFixed(1)}KB`;
 
-async function main() {
+export async function main() {
   let totalSource = 0;
   let totalAvif = 0;
   let totalWebp = 0;

@@ -127,3 +127,91 @@ test('compound "16px 16px 0 0" parses to its leading component', () => {
   assert.deepStrictEqual(drawnRadii(effect), [16, 16, 16, 16]);
   effect.dispose();
 });
+
+test("throws error when container is not found", () => {
+  assert.throws(
+    () => new TableGlassEffect("#missing-element-selector"),
+    /Container not found/,
+  );
+});
+
+test("enabled: false disables initialization", () => {
+  const container = makeContainer();
+  const effect = new TableGlassEffect(`#${container.id}`, { enabled: false });
+  assert.strictEqual(effect.canvas, undefined);
+});
+
+test("pauseResize and resumeResize toggle resize state", () => {
+  const effect = createEffect("8px");
+  effect.pauseResize();
+  assert.strictEqual(effect.resizePaused, true);
+  effect.resumeResize();
+  assert.strictEqual(effect.resizePaused, false);
+  effect.dispose();
+});
+
+test("update, draw, and mouse events execute without errors", () => {
+  const effect = createEffect("8px", {
+    rowHoverEffect: { enabled: true, color: "rgba(255,255,255,0.1)", borderColor: "rgba(255,255,255,0.2)", spotlightRadius: 200 },
+    threeD: { electric: { enabled: true, arcCount: 4 }, reflection: { enabled: true, speed: 0.1 } },
+  });
+
+  // Call update steps
+  effect.update(1000);
+  effect.update(1100);
+
+  // Call mousemove and mouseleave
+  effect.containerRect = { left: 0, top: 0, width: 200, height: 200 };
+  const mockRow = effect.container.querySelector("tr");
+  effect.handleMouseMove({ pageX: 50, pageY: 50, target: mockRow });
+  assert.strictEqual(typeof effect.state.pointer.x, "number");
+
+  effect.draw();
+  effect.handleMouseLeave();
+  assert.strictEqual(effect.state.pointer.x, 0);
+  assert.strictEqual(effect.state.hoveredRowIndex, -1);
+
+  effect.draw();
+  effect.dispose();
+});
+
+test("draw branches for electric disabled and reflection fade multipliers", () => {
+  const effect = createEffect("8px", {
+    threeD: {
+      electric: { enabled: false, particlesEnabled: false },
+      reflection: { enabled: true, fadeZone: 0.2 },
+    },
+  });
+
+  // Test phase < fadeZone
+  effect.state.phase = 0.1;
+  effect.draw();
+
+  // Test phase > 1 - fadeZone
+  effect.state.phase = 0.9;
+  effect.draw();
+
+  // Test phase in middle
+  effect.state.phase = 0.5;
+  effect.draw();
+
+  effect.dispose();
+});
+
+test("drawParticles with particles with life property", () => {
+  const effect = createEffect("8px", {
+    threeD: {
+      electric: { enabled: true, particlesEnabled: true },
+    },
+  });
+
+  effect.state.energyParticles.push({
+    life: 0.5,
+    progress: 0.5,
+    speed: 1,
+    size: 2,
+    flickerOffset: 0,
+  });
+  effect.drawParticles(8);
+  effect.dispose();
+});

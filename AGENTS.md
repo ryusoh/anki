@@ -201,7 +201,7 @@ is false. Confirm both pytest **and** the JS runner execute.
 ## Layout
 
 - `js/` — frontend ES modules: `js/commands/` (terminal commands), `js/graph/`,
-  `js/transactions/`, `js/ui/`, `js/utils/`, `js/config.js`. No build step.
+  `js/ui/`, `js/utils/`, `js/config.js`. No build step.
   `js/types/*.d.ts` — type-only ambient declarations for `tsc --checkJs`
   (never shipped).
 - `sw.js` — root service worker. It precaches the core shell for `/`, `/terminal/`,
