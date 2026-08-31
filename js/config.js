@@ -6,7 +6,7 @@ export const DATA_PATHS = {
 
 export const TABLE_GLASS_EFFECT = {
   enabled: true,
-  excludeHeader: true,
+  excludeHeader: false,
   opacity: 0.75,
   responsiveOpacity: {
     desktop: 0.4,

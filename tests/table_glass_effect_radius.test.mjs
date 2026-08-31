@@ -231,3 +231,40 @@ test("drawElectricTrails with partial colors palette and dispose cancels animati
   effect.dispose();
   assert.strictEqual(effect.canvas.parentNode, null);
 });
+
+test("container events and phase wrap in update", () => {
+  dom.window.getComputedStyle = () => ({
+    borderRadius: "8px",
+    position: "static",
+    overflow: "auto",
+    overflowY: "auto",
+  });
+  const container = makeContainer();
+  Object.defineProperty(container, "scrollHeight", { value: 500, configurable: true });
+  Object.defineProperty(container, "clientHeight", { value: 200, configurable: true });
+
+  const effect = new TableGlassEffect(`#${container.id}`, {
+    rowHoverEffect: { enabled: true },
+  });
+  assert.strictEqual(effect._scrollable, true);
+
+  // Dispatch mouseenter, mousemove, mouseleave
+  container.dispatchEvent(new dom.window.Event("mouseenter"));
+  container.dispatchEvent(new dom.window.MouseEvent("mousemove", { bubbles: true }));
+  container.dispatchEvent(new dom.window.Event("mouseleave"));
+
+  // Target not inside a row
+  effect.handleMouseMove({ pageX: 10, pageY: 10, target: container });
+  assert.strictEqual(effect.state.hoveredRowIndex, -1);
+
+  // Target null
+  effect.handleMouseMove({ pageX: 10, pageY: 10, target: null });
+  assert.strictEqual(effect.state.hoveredRowIndex, -1);
+
+  // High delta to test wrapping
+  effect.state.lastTime = 1000;
+  effect.update(100000); // large time jump
+  assert.ok(effect.state.phase >= 0 && effect.state.phase < 1);
+
+  effect.dispose();
+});

@@ -14,7 +14,7 @@ test("DATA_PATHS exports valid data endpoints", () => {
 
 test("glass effect configs have valid 3D properties", () => {
   assert.strictEqual(TABLE_GLASS_EFFECT.enabled, true);
-  assert.strictEqual(TABLE_GLASS_EFFECT.excludeHeader, true);
+  assert.strictEqual(TABLE_GLASS_EFFECT.excludeHeader, false);
   assert.strictEqual(
     typeof TABLE_GLASS_EFFECT.threeD.depth.desktop,
     "number",
