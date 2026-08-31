@@ -1,4 +1,4 @@
-import { PIE_CHART_GLASS_EFFECT } from "#js/config.js";
+import { TABLE_GLASS_EFFECT } from "#js/config.js";
 
 export class TableGlassEffect {
   constructor(containerSelector, options = {}) {
@@ -10,12 +10,12 @@ export class TableGlassEffect {
     this.container.glassEffect = this;
 
     // Merge defaults with provided options
-    // If options has threeD, it overrides PIE_CHART_GLASS_EFFECT.threeD
+    // If options has threeD, it overrides TABLE_GLASS_EFFECT.threeD
     this.options = {
-      ...PIE_CHART_GLASS_EFFECT,
+      ...TABLE_GLASS_EFFECT,
       ...options,
       threeD: {
-        ...PIE_CHART_GLASS_EFFECT.threeD,
+        ...TABLE_GLASS_EFFECT.threeD,
         ...(options.threeD || {}),
       },
     };

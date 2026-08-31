@@ -2,7 +2,6 @@ import test from "node:test";
 import assert from "node:assert";
 import {
   DATA_PATHS,
-  PIE_CHART_GLASS_EFFECT,
   TABLE_GLASS_EFFECT,
   GRAPH_BACKGROUND_IMAGE,
 } from "../js/config.js";
@@ -14,13 +13,12 @@ test("DATA_PATHS exports valid data endpoints", () => {
 });
 
 test("glass effect configs have valid 3D properties", () => {
-  assert.strictEqual(PIE_CHART_GLASS_EFFECT.enabled, true);
-  assert.strictEqual(
-    typeof PIE_CHART_GLASS_EFFECT.threeD.depth.desktop,
-    "number",
-  );
   assert.strictEqual(TABLE_GLASS_EFFECT.enabled, true);
   assert.strictEqual(TABLE_GLASS_EFFECT.excludeHeader, true);
+  assert.strictEqual(
+    typeof TABLE_GLASS_EFFECT.threeD.depth.desktop,
+    "number",
+  );
 });
 
 test("UI feature toggles have boolean flags", () => {

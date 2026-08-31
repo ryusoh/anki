@@ -215,3 +215,19 @@ test("drawParticles with particles with life property", () => {
   effect.drawParticles(8);
   effect.dispose();
 });
+
+test("drawElectricTrails with partial colors palette and dispose cancels animation frame", () => {
+  const effect = createEffect("8px", {
+    threeD: {
+      electric: {
+        enabled: true,
+        colors: { primary: "rgba(255,255,255,0.8)" }, // only primary, no secondary/tertiary
+      },
+    },
+  });
+
+  effect.drawElectricTrails(8);
+  effect.animationFrame = 999;
+  effect.dispose();
+  assert.strictEqual(effect.canvas.parentNode, null);
+});
