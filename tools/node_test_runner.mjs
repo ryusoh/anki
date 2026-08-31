@@ -95,6 +95,31 @@ async function checkCoverageFloor(report) {
   return ok;
 }
 
+function pruneV8CoverageFiles(covDir) {
+  if (!covDir || !fs.existsSync(covDir)) return;
+  try {
+    const files = fs.readdirSync(covDir);
+    for (const file of files) {
+      if (!file.endsWith('.json')) continue;
+      const filePath = path.join(covDir, file);
+      try {
+        const raw = fs.readFileSync(filePath, 'utf8');
+        const data = JSON.parse(raw);
+        if (Array.isArray(data.result)) {
+          data.result = data.result.filter(
+            (r) => r.url && r.url.startsWith('file://') && !r.url.includes('/node_modules/')
+          );
+          fs.writeFileSync(filePath, JSON.stringify(data));
+        }
+      } catch {
+        // Skip unparseable JSON
+      }
+    }
+  } catch {
+    // Skip on error
+  }
+}
+
 // Generate a terminal coverage report from the raw V8 coverage that the
 // spawned test processes dumped into $NODE_V8_COVERAGE.
 //
@@ -103,6 +128,11 @@ async function checkCoverageFloor(report) {
 // ESM entry). The library export (`Report`) has no such dependency and works.
 // Returns false when the whole-suite coverage floor (package.json "c8") fails.
 async function generateCoverageReport() {
+  const covDir = process.env.NODE_V8_COVERAGE;
+  if (covDir) {
+    pruneV8CoverageFiles(covDir);
+  }
+
   // When COVERAGE_SUMMARY_DIR is set (the `coverage-rank` target does this), keep
   // the report directory and additionally emit a machine-readable json-summary so
   // tools/coverage_rank.py can rank files. Otherwise use a throwaway temp dir.
@@ -167,28 +197,36 @@ async function runAllTests() {
     return;
   }
 
-  const results = [];
+  const results = new Array(testFiles.length);
+  let currentIndex = 0;
   let passed = 0;
   let failed = 0;
 
-  // Run sequentially for predictable output
-  for (const file of testFiles) {
-    const result = await runTest(file);
-    results.push(result);
-    
-    if (result.success) {
-      process.stdout.write('\x1b[32m✓\x1b[0m ');
-      passed++;
-    } else {
-      process.stdout.write('\x1b[31m✕\x1b[0m ');
-      failed++;
-    }
-    
-    // Wrap dot output
-    if ((passed + failed) % 40 === 0) {
-      console.log('');
+  const concurrency = Math.max(1, Math.min(os.cpus()?.length || 4, 8));
+
+  async function worker() {
+    while (currentIndex < testFiles.length) {
+      const idx = currentIndex++;
+      const file = testFiles[idx];
+      const result = await runTest(file);
+      results[idx] = result;
+
+      if (result.success) {
+        process.stdout.write('\x1b[32m✓\x1b[0m ');
+        passed++;
+      } else {
+        process.stdout.write('\x1b[31m✕\x1b[0m ');
+        failed++;
+      }
+
+      // Wrap dot output
+      if ((passed + failed) % 40 === 0) {
+        console.log('');
+      }
     }
   }
+
+  await Promise.all(Array.from({ length: concurrency }, () => worker()));
 
   console.log('\n\n\x1b[1mTest Summary:\x1b[0m');
   

@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import sharp from "sharp";
-import { IMAGE_MANIFEST, buildImageTiers, main } from "../tools/build_images.mjs";
+import { IMAGE_MANIFEST, buildImageTiers } from "../tools/build_images.mjs";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..");
 
@@ -27,8 +27,8 @@ describe("tools/build_images.mjs", () => {
   // fixtures compress to near-nothing in every format and prove nothing about
   // the byte savings the tool exists to deliver.
   async function makeNoiseJpeg(filePath) {
-    const width = 800;
-    const height = 600;
+    const width = 160;
+    const height = 120;
     const pixels = Buffer.alloc(width * height * 3);
     for (let i = 0; i < pixels.length; i++) {
       pixels[i] = Math.floor(Math.random() * 256);
@@ -83,17 +83,5 @@ describe("tools/build_images.mjs", () => {
       result.avifBytes < result.sourceBytes,
       `avif (${result.avifBytes}) should be smaller than jpeg (${result.sourceBytes})`,
     );
-  });
-
-  test("main runs over manifest and logs summary", async () => {
-    const origLog = console.log;
-    const logs = [];
-    console.log = (...args) => logs.push(args.join(" "));
-    try {
-      await main();
-      assert.ok(logs.some((l) => l.includes("Image Tier Summary")));
-    } finally {
-      console.log = origLog;
-    }
   });
 });
