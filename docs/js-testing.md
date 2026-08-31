@@ -204,10 +204,10 @@ landing first (otherwise the gate is born red).
 When testing ES modules in Node, we often bypass ESM import caching by appending a unique timestamp query parameter:
 
 ```javascript
-await import(`../js/ui/marquee.js?t=${Date.now()}`);
+await import(`../js/ambient/config.js?t=${Date.now()}`);
 ```
 
-While this allows importing clean/fresh module states, **`c8` (V8 coverage) ignores/discards coverage mapping for URLs with query parameters**. The coverage tracker observes execution under the exact URL with the query string (e.g. `file:///.../marquee.js?t=1720518338300`), which fails to resolve directly to the local filesystem path.
+While this allows importing clean/fresh module states, **`c8` (V8 coverage) ignores/discards coverage mapping for URLs with query parameters**. The coverage tracker observes execution under the exact URL with the query string (e.g. `file:///.../config.js?t=1720518338300`), which fails to resolve directly to the local filesystem path.
 
 - **Effect:** First-party source files loaded this way will appear as having **0% coverage** (or won't appear at all) in the coverage report.
 - **Workaround:** If coverage tracking is strictly required for a module, import it once statically or dynamically without a query parameter (ensuring no test-state pollution occurs).

@@ -16,7 +16,6 @@ describe("tilt_effect", () => {
       <body>
         <nav class="container"></nav>
         <div class="quantum-widget"></div>
-        <div class="marquee-container"></div>
       </body>
       </html>
     `, { url: "http://localhost" });

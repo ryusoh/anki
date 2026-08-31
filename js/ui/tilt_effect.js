@@ -11,7 +11,7 @@ export function initTiltEffect() {
     return;
   }
   const tiltContainers = document.querySelectorAll(
-    "nav.container, .quantum-widget, .marquee-container",
+    "nav.container, .quantum-widget",
   );
   tiltContainers.forEach((container) => {
     let rect = null;
