@@ -165,10 +165,6 @@ export const TABLE_GLASS_EFFECT = {
   },
 };
 
-export const TILT_EFFECT = {
-  enabled: false,
-};
-
 export const GRAPH_BACKGROUND_IMAGE = {
   enabled: true,
 };

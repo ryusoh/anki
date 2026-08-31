@@ -40,7 +40,6 @@ const CORE_ASSETS = [
   "/js/ui/icon_font_ready.js",
   "/js/ui/reduced_motion.js",
   "/js/ui/magnetic_nav.js",
-  "/js/ui/tilt_effect.js",
   "/js/ui/tableGlassEffect.js",
   "/js/ui/videoFallback.js",
   "/js/ui/video_warmup.js",

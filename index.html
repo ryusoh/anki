@@ -86,13 +86,11 @@
     ></script>
     <script type="module" data-cfasync="false">
       import { initMagneticNav } from "#ui/magnetic_nav.js?v=2";
-      import { initTiltEffect } from "#ui/tilt_effect.js?v=2";
 
       window.addEventListener("DOMContentLoaded", () => {
         const loading = document.getElementById("loading");
         try {
           initMagneticNav();
-          initTiltEffect();
 
           // Reveal content and hide spinner
           const appContent = document.getElementById("appContent");
