@@ -1,3 +1,4 @@
+/** @type {Record<string, string>} */
 export const ASSET_CLASS_OVERRIDES = {
   // Broad market ETFs / funds
   VT: "etf",
@@ -58,7 +59,6 @@ export const ASSET_CLASS_OVERRIDES = {
   FSGGX: "etf",
   FSKAX: "etf",
   VFIAX: "etf",
-  VTSAX: "etf",
   VBTLX: "etf",
   VTIAX: "etf",
   VFFSX: "etf",
@@ -68,6 +68,10 @@ export const ASSET_CLASS_OVERRIDES = {
   VGSNX: "etf",
 };
 
+/**
+ * @param {string} ticker
+ * @returns {boolean}
+ */
 export function isLikelyFundTicker(ticker) {
   if (typeof ticker !== "string") {
     return false;
