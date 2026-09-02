@@ -6,7 +6,11 @@
     "target": "ES2020",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2020",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "types": [],
     "strict": true
   },
@@ -21,7 +25,11 @@
     "js/ambient/loader.js",
     "js/cursor-init.js",
     "js/ui/service_worker_register.js",
-    "js/config/assetClasses.js"
+    "js/config/assetClasses.js",
+    "js/ui/videoFallback.js"
   ],
-  "exclude": ["node_modules", "js/vendor"]
+  "exclude": [
+    "node_modules",
+    "js/vendor"
+  ]
 }
