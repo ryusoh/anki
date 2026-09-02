@@ -21,7 +21,8 @@
     "js/ambient/loader.js",
     "js/cursor-init.js",
     "js/ui/service_worker_register.js",
-    "js/config/assetClasses.js"
+    "js/config/assetClasses.js",
+    "js/ui/videoFallback.js"
   ],
   "exclude": ["node_modules", "js/vendor"]
 }

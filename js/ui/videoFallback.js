@@ -4,7 +4,9 @@
  */
 
 export function initVideoFallback() {
+  /** @type {HTMLElement | null} */
   const videoContainer = document.querySelector(".video-background");
+  /** @type {HTMLVideoElement | null | undefined} */
   const video = videoContainer?.querySelector("video");
 
   if (!video || !videoContainer) {
