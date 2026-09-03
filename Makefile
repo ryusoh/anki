@@ -73,7 +73,7 @@ help:
 	@echo "  typecheck-js   JS strict type check (tsc --checkJs on whitelist)"
 	@echo "  quality-py     Python lint/format/type/security/complexity/imports (ruff/black/mypy/bandit/xenon/import-linter)"
 	@echo "  thinking-check Stream-of-consciousness scan (thinking comments, abandoned test bodies)"
-	@echo "  bot-pr-check   Jules bot commit hygiene (empty commits, placeholder files, test deletions)"
+	@echo "  bot-pr-check   Jules bot commit hygiene (empty commits, placeholder files, test deletions, stray artifacts, ratchet)"
 	@echo "  images         Build AVIF/WebP tiers for site CSS backgrounds (tools/build_images.mjs)"
 	@echo "  mutate-py      Mutation smoke run (mutmut on strip_html_tags; NOT part of any gate)"
 	@echo "  fmt-py         Auto-format Python (black + ruff --fix)"
@@ -456,8 +456,9 @@ thinking-check:
 # Bot PR hygiene gate (AGENTS.md non-negotiable #11): deterministic check that
 # every Jules-bot-authored commit in origin/main..HEAD is real — no empty
 # commits, no zero-content placeholder files, no deletions in test files (bot
-# lanes are append-only in tests). Wording alone did not stop PR #494's churn
-# commits; this fails the gate instead. Human commits are skipped.
+# lanes are append-only in tests), no stray bot artifacts, and no complexity
+# ratchet violations. Wording alone did not stop PR #494's churn commits; this
+# fails the gate instead. Human commits are skipped.
 # Implementation: tools/check_bot_pr_hygiene.py.
 bot-pr-check:
 	@echo "🤖 Bot PR hygiene (Jules commit checks)..."

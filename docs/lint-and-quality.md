@@ -103,12 +103,14 @@ non-negotiable #11 on commits authored by the Jules bot
 PR #494 (existing tests deleted in a coverage PR, then five empty churn
 commits), so `tools/check_bot_pr_hygiene.py` fails the gate on bot commits
 that change no files, touch files with zero content lines (the
-`dummy_file.txt` placeholder pattern), or delete lines from test files — bot
+`dummy_file.txt` placeholder pattern), delete lines from test files — bot
 lanes are append-only in `tests/` (Testpilot owns tests; no other bot lane may
-touch them). Human-authored commits are skipped: interactive agents may
-legitimately rewrite tests on request. CI runs the same check on every PR
-(`ci.yml` checks out with `fetch-depth: 0` so the branch commits are visible
-behind the merge commit).
+touch them), commit stray bot artifacts (e.g. `pr_body.txt`, scratch/temp files),
+or touch `eslint-suppressions.json` from a non-refactor lane or increase
+suppressions (complexity ratchet violation). Human-authored commits are
+skipped: interactive agents may legitimately rewrite tests on request. CI
+runs the same check on every PR (`ci.yml` checks out with `fetch-depth: 0`
+so the branch commits are visible behind the merge commit).
 
 ## Mutation testing
 

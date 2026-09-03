@@ -84,7 +84,11 @@ Writing a design spec for another agent to implement? See
     commits pushed after review questions, none answering them — closed
     unmerged.) Machine-enforced for bot-authored commits by
     `tools/check_bot_pr_hygiene.py` (`make bot-pr-check`, part of the
-    precommit gate and PR CI).
+    precommit gate and PR CI): the gate fails on bot commits that are empty,
+    add zero-content files, delete lines from test files (bot lanes are
+    append-only in tests), commit stray bot artifacts (`pr_body.txt`, scratch
+    files), or violate the complexity ratchet (no added suppressions in
+    `eslint-suppressions.json`; only Refactoring may touch it to prune).
 
 ## You cannot see the rendered page
 
@@ -142,26 +146,26 @@ a valid Conventional Commit subject**.
 
 ## Command interface — prefer `make` (matches CI)
 
-| Need                                                       | Command                                |
-| ---------------------------------------------------------- | -------------------------------------- |
-| Full CI gate (fmt + lint + quality + tests)                | `make precommit SKIP=1`                |
-| All tests (JS c8 + per-addon pytest, coverage)             | `make check`                           |
-| Python lint/format/type/security (ruff/black/mypy/bandit)  | `make quality-py`                      |
-| Auto-fix Python format                                     | `make fmt-py`                          |
-| Lint (JS + CSS + Markdown)                                 | `make lint`                            |
-| JS dependency-structure gate (dependency-cruiser)          | `make depcheck`                        |
-| Auto-fix lint findings                                     | `make lint-fix`                        |
-| Format JS/CSS/**MD**/JSON/HTML (Prettier)                  | `make fmt`                             |
-| Scoped, fast Python test (tight loop, no coverage)         | `make test-py SUITE=<addon>/tests`     |
-| Worktree snapshot guard (don't rerun a red gate unchanged) | `python3 tools/gate_guard.py snapshot` |
-| Scoped test for one add-on (`test-py SUITE=<dir>/tests`)   | `make test-addon ADDON=<dir>`          |
-| Scoped mypy for one add-on                                 | `make typecheck-addon ADDON=<dir>`     |
-| JS test suite (c8 coverage)                                | `make check-node`                      |
-| Mutation smoke run (mutmut, NOT part of any gate)          | `make mutate-py`                       |
-| JS strict type check (whitelist)                           | `make typecheck-js`                    |
-| Stream-of-consciousness scan (comments, abandoned tests)   | `make thinking-check`                  |
-| Bot commit hygiene (empty commits, test deletions)         | `make bot-pr-check`                    |
-| Build AVIF/WebP tiers for site CSS backgrounds             | `make images`                          |
+| Need                                                                     | Command                                |
+| ------------------------------------------------------------------------ | -------------------------------------- |
+| Full CI gate (fmt + lint + quality + tests)                              | `make precommit SKIP=1`                |
+| All tests (JS c8 + per-addon pytest, coverage)                           | `make check`                           |
+| Python lint/format/type/security (ruff/black/mypy/bandit)                | `make quality-py`                      |
+| Auto-fix Python format                                                   | `make fmt-py`                          |
+| Lint (JS + CSS + Markdown)                                               | `make lint`                            |
+| JS dependency-structure gate (dependency-cruiser)                        | `make depcheck`                        |
+| Auto-fix lint findings                                                   | `make lint-fix`                        |
+| Format JS/CSS/**MD**/JSON/HTML (Prettier)                                | `make fmt`                             |
+| Scoped, fast Python test (tight loop, no coverage)                       | `make test-py SUITE=<addon>/tests`     |
+| Worktree snapshot guard (don't rerun a red gate unchanged)               | `python3 tools/gate_guard.py snapshot` |
+| Scoped test for one add-on (`test-py SUITE=<dir>/tests`)                 | `make test-addon ADDON=<dir>`          |
+| Scoped mypy for one add-on                                               | `make typecheck-addon ADDON=<dir>`     |
+| JS test suite (c8 coverage)                                              | `make check-node`                      |
+| Mutation smoke run (mutmut, NOT part of any gate)                        | `make mutate-py`                       |
+| JS strict type check (whitelist)                                         | `make typecheck-js`                    |
+| Stream-of-consciousness scan (comments, abandoned tests)                 | `make thinking-check`                  |
+| Bot commit hygiene (empty commits, test deletions, stray files, ratchet) | `make bot-pr-check`                    |
+| Build AVIF/WebP tiers for site CSS backgrounds                           | `make images`                          |
 
 Gate internals, complexity ratchet, dependency-structure rules, coverage
 floors, and tool-config conventions live in `docs/lint-and-quality.md`. The
