@@ -7,6 +7,7 @@
 
   function disableCurrentPageLinks() {
     const currentPath = window.location.pathname;
+    /** @type {NodeListOf<HTMLAnchorElement>} */
     const navLinks = document.querySelectorAll(
       ".container a, .nav-container a",
     );
