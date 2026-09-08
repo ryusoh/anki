@@ -87,6 +87,14 @@ TARGET an open PR already claims or a closed PR already attempted.
   global (e.g. `gsap`) surfaces as `TS2304`/`TS2339` in a first-party file,
   declare a precise ambient in `js/types/` — never include the vendor file
   itself.
+- **Ambient `.d.ts` files must never contain `export {}` or `import`** — any
+  top-level import or export turns the `.d.ts` into an ES module, causing
+  `declare module "..."` to be treated as module augmentation (which cannot
+  introduce new ambient modules or pattern modules).
+- **Web-root-absolute imports (`/js/...`)**: TypeScript treats leading `/` as a
+  filesystem root, not an ambient module name. To type web-root imports without
+  pulling untyped targets transitively into compilation, declare them via pattern
+  match in an ambient `.d.ts`: `declare module "*/<filename>.js" { ... }`.
 
 ## Verification gate (before opening a PR)
 

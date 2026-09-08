@@ -35,7 +35,14 @@ migrating to TypeScript, and how the whitelist grows.
   ambient types aren't needed and can drag in unrelated globals.
 - `js/vendor/**` is permanently excluded (third-party, not ours to type).
 - Shared/global type declarations go in `js/types/*.d.ts` (type-only, `.d.ts`
-  files are never served).
+  files are never served). **Never put `export {}` or `import` in ambient
+  declaration files** — any top-level import or export turns a `.d.ts` into an
+  ES module, causing `declare module "..."` to be treated as module augmentation
+  (which cannot introduce new ambient modules).
+- **Web-root-absolute dynamic imports (`/js/...`)**: TypeScript treats a leading `/`
+  as an absolute filesystem path. To type web-root imports without pulling untyped
+  scripts into compilation, use wildcard pattern declarations (`declare module "*/<file>.js"`)
+  in a pure ambient `.d.ts`.
 
 ## Expanding the whitelist
 

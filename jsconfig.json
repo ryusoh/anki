@@ -23,7 +23,8 @@
     "js/ui/service_worker_register.js",
     "js/config/assetClasses.js",
     "js/ui/videoFallback.js",
-    "js/ui/nav_current_page.js"
+    "js/ui/nav_current_page.js",
+    "js/mobile_ambient_bootstrap.js"
   ],
   "exclude": ["node_modules", "js/vendor"]
 }

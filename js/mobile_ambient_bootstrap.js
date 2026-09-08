@@ -3,6 +3,7 @@ const MOBILE_QUERY = "(max-width: 768px)";
 if (typeof window !== "undefined" && window.matchMedia(MOBILE_QUERY).matches) {
   const head = document.head || document.getElementsByTagName("head")[0];
 
+  /** @param {string} src */
   const loadScript = (src) =>
     new Promise((resolve, reject) => {
       const script = document.createElement("script");
