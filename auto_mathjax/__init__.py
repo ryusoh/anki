@@ -67,6 +67,12 @@ CODE_TAG_RE = re.compile(r'<code>(.*?)</code>', re.IGNORECASE | re.DOTALL)
 # not count against the "leftover prose" check below.
 TEXT_GROUP_RE = re.compile(r'\\(?:text|textbf|textit|mathrm|mathbf|operatorname)\s*\{[^{}]*\}')
 
+# Subscript and superscript groups whose braces hold multi-letter indices or
+# labels (e.g. ^{abc} in Lie algebra structure constants, _{max}, _{abcd}).
+# These are mathematical indices, not prose, and must not count against the
+# short-word variable check.
+SUB_SUPER_GROUP_RE = re.compile(r'[_^]\s*\{(?:[^{}]|\{[^{}]*\})*\}')
+
 # Any \command token (for stripping when measuring leftover prose)
 ANY_LATEX_COMMAND_RE = re.compile(r'\\[a-zA-Z]+')
 
@@ -132,6 +138,12 @@ ANKI_MATHJAX_RE = re.compile(
 # Matches \[...\] and \(...\) MathJax delimiter blocks
 MATHJAX_DELIM_RE = re.compile(r'(\\\[)(.*?)(\\\])|(\\\()(.*?)(\\\))', re.DOTALL)
 
+# Matches self-contained MathJax blocks on a line (<anki-mathjax>, \[...\], \(...\))
+EXISTING_MATHJAX_BLOCK_RE = re.compile(
+    r'(<anki-mathjax[^>]*>.*?</anki-mathjax>|\\\[.*?\\\]|\\\(.*?\\\))',
+    re.DOTALL | re.IGNORECASE,
+)
+
 
 def _is_purely_numeric(s):
     """Check if the text content (tags stripped) is purely numeric/currency-like.
@@ -179,6 +191,7 @@ def _looks_like_math_content(inner):
     core = stripped.strip()
     if core and (core[0] in '^_' or core[-1] in '^_'):
         return False
+    stripped = SUB_SUPER_GROUP_RE.sub(' ', stripped)
     if re.fullmatch(r'[a-zA-Z]+', text):
         return True
     return all(len(word) <= 2 for word in re.findall(r'[a-zA-Z]+', stripped))
@@ -213,6 +226,7 @@ def _looks_like_bare_latex(segment):
     stripped = ANY_LATEX_COMMAND_RE.sub(' ', stripped)
     if CJK_RE.search(stripped):
         return False
+    stripped = SUB_SUPER_GROUP_RE.sub(' ', stripped)
     return all(len(word) <= 2 for word in re.findall(r'[a-zA-Z]+', stripped))
 
 
@@ -534,10 +548,17 @@ def _convert_dollar_to_mathjax(html_str):
             open_delim = _track_math_state(open_delim, segment)
             continue
 
-        # Skip segments that already contain MathJax notation
-        if ALREADY_MATHJAX_RE.search(segment):
+        # If this segment starts an unclosed multi-line MathJax block, track state and pass through.
+        new_open = _track_math_state(open_delim, segment)
+        if new_open is not None:
             result_parts.append(segment)
-            open_delim = _track_math_state(open_delim, segment)
+            open_delim = new_open
+            continue
+
+        # If the segment already contains MathJax and has no dollar signs,
+        # pass through unchanged (prevents bare-LaTeX logic from re-wrapping).
+        if '$' not in segment and ALREADY_MATHJAX_RE.search(segment):
+            result_parts.append(segment)
             continue
 
         # Find and replace $$...$$ and $...$ pairs in this segment
@@ -582,7 +603,16 @@ def _convert_dollar_to_mathjax(html_str):
             # Convert to MathJax inline
             return '\\(' + inner + '\\)'
 
-        converted = DOLLAR_PAIR_RE.sub(replace_match, segment)
+        if not ALREADY_MATHJAX_RE.search(segment):
+            converted = DOLLAR_PAIR_RE.sub(replace_match, segment)
+        else:
+            parts = []
+            for piece in EXISTING_MATHJAX_BLOCK_RE.split(segment):
+                if piece and not EXISTING_MATHJAX_BLOCK_RE.fullmatch(piece):
+                    parts.append(DOLLAR_PAIR_RE.sub(replace_match, piece))
+                else:
+                    parts.append(piece)
+            converted = ''.join(parts)
 
         # Bare LaTeX (no $ anywhere): a whole-line formula becomes display
         # math; otherwise wrap just the embedded fragments inline.

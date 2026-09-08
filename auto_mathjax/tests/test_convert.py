@@ -585,6 +585,22 @@ def test_single_word_pair_still_converts():
     assert _convert_dollar_to_mathjax('$math$') == '\\(math\\)'
 
 
+def test_multiletter_sub_superscripts_still_convert():
+    """$f^{abc}$, $x_{max}$, $R_{abcd}$ — multi-letter index groupings in
+    subscripts and superscripts must convert despite prose length checks."""
+    assert _convert_dollar_to_mathjax('$f^{abc}$') == '\\(f^{abc}\\)'
+    assert _convert_dollar_to_mathjax('$x_{max}$') == '\\(x_{max}\\)'
+    assert _convert_dollar_to_mathjax('$R_{abcd}$') == '\\(R_{abcd}\\)'
+
+
+def test_dollar_conversion_on_line_with_existing_mathjax():
+    """Note 1788832739484: A line already containing \\(...\\) MathJax blocks
+    must still convert remaining $...$ pairs outside those blocks."""
+    html = '<i>(其中 \\(A\\) 是规范场（比如胶子），\\(g\\) 是耦合常数,$f^{abc}$ 是李代数的结构常数)</i>'
+    expected = '<i>(其中 \\(A\\) 是规范场（比如胶子），\\(g\\) 是耦合常数,\\(f^{abc}\\) 是李代数的结构常数)</i>'
+    assert _convert_dollar_to_mathjax(html) == expected
+
+
 # --- Wikipedia {\displaystyle ...} pastes (note 1639716063357) ---
 
 
