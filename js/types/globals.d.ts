@@ -7,4 +7,9 @@ declare global {
     };
   }
 }
+declare module "/js/ambient/quantum_shader.js" {}
+declare module "/js/ui/videoFallback.js" {
+  export function initVideoFallback(): void;
+}
+
 export {};
