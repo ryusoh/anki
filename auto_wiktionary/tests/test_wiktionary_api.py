@@ -567,3 +567,88 @@ def test_parse_wiktionary_html_chope_nested_sections():
     parsed = parse_wiktionary_html(mock_html, lang="en")
     assert "To reserve a place, such as a seat" in parsed
     assert "Obsolete form of chop" in parsed
+
+
+def test_fetch_wiktionary_html_encodes_slash_in_word():
+    """
+    Words containing slashes (e.g. 'n/t', 'w/o', 'and/or') must have the slash
+    percent-encoded as %2F in the REST v1 URL path to avoid HTTP 400 bad request.
+    """
+    from unittest.mock import MagicMock, patch
+
+    mock_response = MagicMock()
+    mock_response.read.return_value = b"<html>definition</html>"
+    mock_urlopen = MagicMock()
+    mock_urlopen.return_value.__enter__.return_value = mock_response
+
+    with patch("urllib.request.urlopen", mock_urlopen):
+        res = fetch_wiktionary_html("n/t", "en")
+        assert res == "<html>definition</html>"
+        req = mock_urlopen.call_args[0][0]
+        assert "n%2Ft" in req.full_url
+        assert "/n/t" not in req.full_url
+
+
+def test_get_wiktionary_candidates_encodes_slash_in_word():
+    """
+    Candidates search for words containing slashes (e.g. 'n/t') must encode
+    the slash so the search parameter is well-formed.
+    """
+    from unittest.mock import patch
+
+    payload = ["n/t", ["n/t", "NT"], [], []]
+    with patch("urllib.request.urlopen", _mock_opensearch(payload)) as mock_urlopen:
+        candidates = get_wiktionary_candidates("n/t", "en")
+        assert candidates == ["n/t", "NT"]
+        req = mock_urlopen.call_args[0][0]
+        assert "search=n%2Ft" in req.full_url
+
+
+def test_parse_wiktionary_html_nt_slash_and_see_also_excluded():
+    """
+    English abbreviation entries with slashes (e.g. n/t) have 'See also'
+    sections (e.g. EOM, SSIA, TSIA) which are cross-references, not definitions,
+    and must not leak into the parsed output.
+    Trimmed from the real en.wiktionary parse payload for n/t.
+    """
+    mock_html = """
+    <div class="mw-content-ltr mw-parser-output" lang="en" dir="ltr">
+        <div class="mw-heading mw-heading2"><h2 id="English">English</h2></div>
+        <div class="mw-heading mw-heading3"><h3 id="Noun">Noun</h3></div>
+        <p><span class="headword-line"><strong class="Latn headword" lang="en"><a href="/wiki/n#English" title="n">n</a>&#47;<a href="/wiki/t#English" title="t">t</a></strong></span></p>
+        <ol><li><span class="usage-label-sense"><span class="ib-brac label-brac">(</span><span class="ib-content label-content"><a href="/wiki/Internet" title="Internet">Internet</a><span class="ib-comma label-comma">,</span>&#32;<a href="/wiki/Appendix:Glossary#initialism" title="Appendix:Glossary">initialism</a></span><span class="ib-brac label-brac">)</span></span> <a href="/wiki/no" title="no">no</a> <a href="/wiki/text" title="text">text</a>; used as the body of a forum message where the <a href="/wiki/title" title="title">title</a> contains all that the poster wishes to say</li></ol>
+        <div class="mw-heading mw-heading4"><h4 id="See_also">See also</h4></div>
+        <ul><li><a href="/wiki/EOM" title="EOM">EOM</a></li>
+        <li><a href="/wiki/SSIA" title="SSIA">SSIA</a></li>
+        <li><a href="/wiki/TSIA" title="TSIA">TSIA</a></li></ul>
+        <div class="mw-heading mw-heading3"><h3 id="Anagrams">Anagrams</h3></div>
+        <ul><li><span class="Latn" lang="en"><a href="/wiki/TN#English" title="TN">TN</a></span></li></ul>
+    </div>
+    """
+    parsed = parse_wiktionary_html(mock_html, lang="en")
+    assert "no text; used as the body of a forum message" in parsed
+    assert "EOM" not in parsed
+    assert "SSIA" not in parsed
+    assert "TSIA" not in parsed
+    assert "TN" not in parsed
+
+
+def test_parse_wiktionary_html_see_also_nested_section():
+    """
+    REST v1 HTML wraps sections in <section> tags. A 'See also' section must be
+    decomposed so cross-reference lists do not leak into the definition.
+    """
+    mock_html = """
+    <section id="s1"><h2>English</h2>
+        <section id="s2"><h3>Noun</h3>
+            <ol><li>no text</li></ol>
+            <section id="s3"><h4>See also</h4>
+                <ul><li>EOM</li><li>SSIA</li></ul>
+            </section>
+        </section>
+    </section>
+    """
+    parsed = parse_wiktionary_html(mock_html, lang="en")
+    assert "no text" in parsed
+    assert "EOM" not in parsed
+    assert "SSIA" not in parsed

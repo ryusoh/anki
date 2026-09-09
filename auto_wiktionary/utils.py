@@ -58,7 +58,7 @@ def fetch_wiktionary_html(word, lang):
     if not word:
         return ""
 
-    encoded_word = urllib.parse.quote(word)
+    encoded_word = urllib.parse.quote(word, safe='')
     url = f"https://{lang}.wiktionary.org/api/rest_v1/page/html/{encoded_word}"
 
     req = urllib.request.Request(
@@ -284,6 +284,7 @@ def _remove_unwanted_tags(soup):
         '合成語',
         '関連項目',
         'anagram',
+        'see also',
     ]
     for section in list(soup.find_all('section')):
         h_tag = section.find(['h2', 'h3', 'h4', 'h5'])
@@ -545,7 +546,7 @@ def get_wiktionary_candidates(word, lang="en"):
     if not word:
         return []
 
-    encoded_word = urllib.parse.quote(word)
+    encoded_word = urllib.parse.quote(word, safe='')
     url = f"https://{lang}.wiktionary.org/w/api.php?action=opensearch&search={encoded_word}&limit=5&format=json"
 
     req = urllib.request.Request(
