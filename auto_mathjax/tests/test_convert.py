@@ -1135,6 +1135,57 @@ def test_mangled_mathjax_delim_repair():
     assert _convert_dollar_to_mathjax(html) == expected
 
 
+# --- Italicized stars inside an unconverted $...$ / $$...$$ pair ---
+# The rich-text editor turns a '*' after ^ or _ into <i>...</i> markup
+# (c_1^*, c_2^* → c_1^<i>, c_2^</i>), and the resulting tags trip the
+# "a formula never spans HTML tags" guard — restore the stars first.
+
+
+def test_italicized_star_in_double_dollar_pair():
+    r"""Note 1788926630773: $$ \langle\psi| = (c_1^<i>, c_2^</i>, \dots) $$
+    — the <i> tags are italicized conjugate stars, not prose markup."""
+    html = '$$ \\langle\\psi| = (c_1^<i>, c_2^</i>, \\dots) $$'
+    expected = '\\[\\langle\\psi| = (c_1^*, c_2^*, \\dots)\\]'
+    assert _convert_dollar_to_mathjax(html) == expected
+
+
+def test_italicized_star_in_pmatrix_pair():
+    r"""Note 1788926661940: outer-product formula — mangled stars in the row
+    vector, intact stars and a pmatrix environment elsewhere."""
+    html = (
+        '$$ \\begin{pmatrix} c_1 \\\\ c_2 \\end{pmatrix} \\times (c_1^<i>, c_2^</i>)'
+        ' = \\begin{pmatrix} c_1 c_1^* &amp; c_1 c_2^* \\\\'
+        ' c_2 c_1^* &amp; c_2 c_2^* \\end{pmatrix} $$'
+    )
+    expected = (
+        '\\[\\begin{pmatrix} c_1 \\\\ c_2 \\end{pmatrix} \\times (c_1^*, c_2^*)'
+        ' = \\begin{pmatrix} c_1 c_1^* &amp; c_1 c_2^* \\\\'
+        ' c_2 c_1^* &amp; c_2 c_2^* \\end{pmatrix}\\]'
+    )
+    assert _convert_dollar_to_mathjax(html) == expected
+
+
+def test_italicized_star_inline_pair():
+    r"""Inline $...$ with an italicized conjugate star also converts."""
+    assert _convert_dollar_to_mathjax('$x_1^<i>$ and $x_2^</i>$ done') == (
+        '\\(x_1^*\\) and \\(x_2^*\\) done'
+    )
+
+
+def test_italicized_star_idempotent():
+    r"""Re-running the converter on the restored output changes nothing."""
+    html = '$$ \\langle\\psi| = (c_1^<i>, c_2^</i>, \\dots) $$'
+    first = _convert_dollar_to_mathjax(html)
+    second = _convert_dollar_to_mathjax(first)
+    assert first == second
+
+
+def test_plain_italic_in_dollar_pair_not_math():
+    r"""An <i> tag NOT adjacent to ^/_ is real prose markup — the pair stays."""
+    html = '$x <i>y</i>$'
+    assert _convert_dollar_to_mathjax(html) == html
+
+
 # --- Subscript and Greek LaTeX Command Tests (e.g. \beta_j) ---
 
 

@@ -85,6 +85,12 @@ ANY_LATEX_COMMAND_RE = re.compile(r'\\[a-zA-Z]+')
 # so it marks $-pair content or a bare line as prose.
 CJK_RE = re.compile('[\u3000-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff00-\uffef]')
 
+# A '*' immediately after ^ or _ that the rich-text editor turned into italic
+# markup (c_1^*, c_2^* → c_1^<i>, c_2^</i>). Inside a $ pair such tags are
+# restored to '*' before the math-content check — real prose markup (an <i>
+# not abutting ^/_) still disqualifies the pair.
+ITALIC_STAR_RE = re.compile(r'([\^_])</?(?:i|em)>', re.IGNORECASE)
+
 HTML_TAG_RE = re.compile(r'<[^>]+>')
 
 # MathJax open/close delimiters, for tracking a \[...\] (or \(...\)) block
@@ -570,18 +576,22 @@ def _convert_dollar_to_mathjax(html_str):
             block_inner = m.group(1)  # from $$...$$
             inline_inner = m.group(2)  # from $...$
 
+            inner = block_inner if block_inner is not None else inline_inner
+            # Editor italicized a '*' after ^/_ inside the pair
+            # (c_1^*, c_2^* → c_1^<i>, c_2^</i>) — restore the stars.
+            inner = ITALIC_STAR_RE.sub(r'\1*', inner)
+
             if block_inner is not None:
                 # $$...$$ → \[...\] (block/display MathJax)
-                if _is_whitespace_only(block_inner):
+                if _is_whitespace_only(inner):
                     return m.group(0)
                 # $$ as slang for money: "big $$. ... pool $$." pairs up
                 # with prose between — leave it alone.
-                if not _looks_like_math_content(block_inner):
+                if not _looks_like_math_content(inner):
                     return m.group(0)
-                return '\\[' + block_inner + '\\]'
+                return '\\[' + inner + '\\]'
 
             # $...$ → \(...\) (inline MathJax)
-            inner = inline_inner
 
             # Skip purely numeric content (e.g., $100$)
             if _is_purely_numeric(inner):
