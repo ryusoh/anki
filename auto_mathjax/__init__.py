@@ -67,6 +67,10 @@ CODE_TAG_RE = re.compile(r'<code>(.*?)</code>', re.IGNORECASE | re.DOTALL)
 # not count against the "leftover prose" check below.
 TEXT_GROUP_RE = re.compile(r'\\(?:text|textbf|textit|mathrm|mathbf|operatorname)\s*\{[^{}]*\}')
 
+# \begin{...} / \end{...} groups whose braces hold an environment name
+# (pmatrix, bmatrix, cases, ...) — a marker of math, not prose.
+ENV_GROUP_RE = re.compile(r'\\(?:begin|end)\s*\{[^{}]*\}')
+
 # Subscript and superscript groups whose braces hold multi-letter indices or
 # labels (e.g. ^{abc} in Lie algebra structure constants, _{max}, _{abcd}).
 # These are mathematical indices, not prose, and must not count against the
@@ -180,7 +184,7 @@ def _looks_like_math_content(inner):
     if HTML_TAG_RE.search(inner):
         return False
     text = _decode_entities(inner)
-    if BARE_LATEX_COMMAND_RE.search(text):
+    if BARE_LATEX_COMMAND_RE.search(text) or ENV_GROUP_RE.search(text):
         return True
     stripped = TEXT_GROUP_RE.sub(' ', text)
     stripped = ANY_LATEX_COMMAND_RE.sub(' ', stripped)

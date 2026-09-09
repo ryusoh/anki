@@ -240,6 +240,29 @@ def test_mixed_block_and_inline():
     assert _convert_dollar_to_mathjax(html) == expected
 
 
+def test_double_dollar_pmatrix_environment_converts():
+    r"""Note 1788925412777: $$...\begin{pmatrix}...\end{pmatrix}...$$ — the
+    environment name (pmatrix) must not count as leftover prose."""
+    html = '$$ A = \\begin{pmatrix} a &amp; b \\\\ c &amp; d \\end{pmatrix} $$'
+    expected = '\\[A = \\begin{pmatrix} a &amp; b \\\\ c &amp; d \\end{pmatrix}\\]'
+    assert _convert_dollar_to_mathjax(html) == expected
+
+
+def test_inline_dollar_pmatrix_environment_converts():
+    r"""Same environment inside inline $...$ also converts."""
+    html = '$\\begin{bmatrix} 1 &amp; 0 \\\\ 0 &amp; 1 \\end{bmatrix}$'
+    expected = '\\(\\begin{bmatrix} 1 &amp; 0 \\\\ 0 &amp; 1 \\end{bmatrix}\\)'
+    assert _convert_dollar_to_mathjax(html) == expected
+
+
+def test_pmatrix_environment_idempotent():
+    r"""Re-running the converter on converted pmatrix output changes nothing."""
+    html = '$$\\begin{pmatrix} a &amp; b \\end{pmatrix}$$'
+    first = _convert_dollar_to_mathjax(html)
+    second = _convert_dollar_to_mathjax(first)
+    assert first == second == '\\[\\begin{pmatrix} a &amp; b \\end{pmatrix}\\]'
+
+
 # --- Bare LaTeX (no $ delimiters) Tests ---
 
 
