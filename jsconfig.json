@@ -6,7 +6,11 @@
     "target": "ES2020",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2020",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "types": [],
     "strict": true
   },
@@ -24,7 +28,11 @@
     "js/config/assetClasses.js",
     "js/ui/videoFallback.js",
     "js/ui/nav_current_page.js",
-    "js/mobile_ambient_bootstrap.js"
+    "js/mobile_ambient_bootstrap.js",
+    "js/ui/video_warmup.js"
   ],
-  "exclude": ["node_modules", "js/vendor"]
+  "exclude": [
+    "node_modules",
+    "js/vendor"
+  ]
 }

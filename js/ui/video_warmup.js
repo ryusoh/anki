@@ -26,6 +26,7 @@
     return effectiveType === "slow-2g" || effectiveType === "2g";
   }
 
+  /** @param {HTMLVideoElement} video */
   function scheduleWarmup(video) {
     if (!video || video.dataset.videoWarmupScheduled === "true") {
       return;
@@ -78,13 +79,14 @@
       }
     };
 
-    if ("requestIdleCallback" in window) {
+    if ("requestIdleCallback" in window && typeof window.requestIdleCallback === "function") {
       window.requestIdleCallback(warmup, { timeout: WARMUP_DELAY });
     } else {
       window.setTimeout(warmup, WARMUP_DELAY);
     }
   }
 
+  /** @param {string} url */
   function warmFetchFallback(url) {
     fetch(url, {
       credentials: "same-origin",
@@ -100,6 +102,7 @@
       return;
     }
 
+    /** @type {HTMLVideoElement | null} */
     const video = document.querySelector(".video-background video");
     if (!video) {
       return;
