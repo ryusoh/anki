@@ -89,8 +89,22 @@
       return { width: width, height: height, cw: cw, ch: ch, ratio: ratio };
     }
 
-    const MAX = C.maxParticles,
-      particles = [];
+    /**
+     * @typedef {Object} Particle
+     * @property {number} x
+     * @property {number} y
+     * @property {number} vx
+     * @property {number} vy
+     * @property {number} r
+     * @property {number} a
+     */
+    const MAX = C.maxParticles;
+    /** @type {Particle[]} */
+    const particles = [];
+    /**
+     * @param {Particle} p
+     * @returns {Particle}
+     */
     function reset(p) {
       const m = metrics();
       p.x = Math.random() * m.width;
@@ -112,7 +126,7 @@
         count = 20;
       } // ensure visibility
       for (let i = 0; i < count; i++) {
-        particles.push(reset({}));
+        particles.push(reset(/** @type {Particle} */ ({})));
       }
     };
     s.resize = function () {
