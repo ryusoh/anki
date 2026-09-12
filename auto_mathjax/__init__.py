@@ -54,7 +54,7 @@ BARE_LATEX_COMMAND_RE = re.compile(
     r'oiiint|oiint|oint|'
     r'leq?|geq?|neq|approx|equiv|propto|infty|log|ln|exp|sin|cos|tan|lim|min|max|inf|sup|argmin|argmax|'
     r'partial|nabla|to|rightarrow|Rightarrow|left|right|over|hat|bar|vec|'
-    r'mathbb|mathrm|mathbf|mathit|operatorname|'
+    r'mathbb|mathrm|mathbf|mathit|mathcal|operatorname|'
     r'alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|vartheta|iota|kappa|'
     r'lambdabar|lambda|Lambda|mu|nu|xi|Xi|pi|Pi|varpi|rho|varrho|sigma|Sigma|varsigma|tau|upsilon|Upsilon|'
     r'phi|Phi|varphi|chi|psi|Psi|omega|Omega'
@@ -123,6 +123,21 @@ STANDALONE_SYMBOL_RE = re.compile(r'\\(?:oiiint|oiint|oint)\b')
 # punctuation and a leading/trailing "=" that reads as prose glue
 # (e.g. "<b>Quick Ratio</b> = \frac{...}").
 _RUN_TRIM_CHARS = '.,;:= \t'
+
+# Definition terms at the start of a logical line preceding a colon (e.g.
+# "q(\vartheta)：识别密度" or "<b>p(s, \vartheta)</b>: Generative Model").
+# Captures optional leading bullets/numbers/spacing, optional inline formatting
+# tags (<b>, <strong>, etc.), the term content, and the terminating colon.
+DEF_TERM_RE = re.compile(
+    r'^(?P<lead>(?:[\s*•\-]|&nbsp;|\(\d+\)\s*|\d+[.)]\s*)*)'
+    r'(?P<open_tag><(?P<tag>strong|b|em|i)[^>]*>)?'
+    r'(?P<term>[^<>:：\n\r]+?)'
+    r'(?:(?P<colon_in>\s*[:：])\s*</(?P=tag)>|'
+    r'(?:</(?P=tag)>)?(?P<colon_out>\s*[:：]))'
+    r'(?P<rest>.*)$',
+    re.DOTALL,
+)
+
 
 # Custom macro definitions for commands MathJax doesn't know natively.
 # Each key is a command name (without backslash); the value is the TeX
@@ -256,6 +271,47 @@ def _convert_code_latex(segment):
     return CODE_TAG_RE.sub(repl, segment)
 
 
+def _convert_def_term(segment):
+    """Extract and wrap a bare-LaTeX definition term preceding a colon at line start."""
+    m = DEF_TERM_RE.match(segment)
+    if not m:
+        return None
+    lead = m.group('lead') or ''
+    open_tag = m.group('open_tag') or ''
+    tag = m.group('tag')
+    term = m.group('term').strip()
+    colon = m.group('colon_in') or m.group('colon_out')
+    rest = m.group('rest')
+
+    if '\\displaystyle' in term or ALREADY_MATHJAX_RE.search(term):
+        return None
+    if not BARE_LATEX_COMMAND_RE.search(term) or CJK_RE.search(term):
+        return None
+    if (
+        term.count('(') != term.count(')')
+        or term.count('{') != term.count('}')
+        or term.count('[') != term.count(']')
+    ):
+        return None
+
+    stripped = TEXT_GROUP_RE.sub(' ', term)
+    stripped = ANY_LATEX_COMMAND_RE.sub(' ', stripped)
+    stripped = SUB_SUPER_GROUP_RE.sub(' ', stripped)
+    words = re.findall(r'[a-zA-Z]+', stripped)
+    if not all(len(w) <= 3 for w in words):
+        return None
+
+    if open_tag:
+        if m.group('colon_in'):
+            prefix = f'{lead}{open_tag}\\({term}\\){colon}</{tag}>'
+        else:
+            prefix = f'{lead}{open_tag}\\({term}\\)</{tag}>{colon}'
+    else:
+        prefix = f'{lead}\\({term}\\){colon}'
+
+    return prefix, rest
+
+
 def _wrap_embedded_latex(segment):
     """Wrap bare-LaTeX fragments inside a prose/HTML line in \\(...\\).
 
@@ -267,6 +323,14 @@ def _wrap_embedded_latex(segment):
     segment = _convert_code_latex(segment)
     if ALREADY_MATHJAX_RE.search(segment):
         return segment
+
+    def_res = _convert_def_term(segment)
+    if def_res is not None:
+        prefix, rest = def_res
+        if CJK_RE.search(TEXT_GROUP_RE.sub(' ', rest)):
+            return prefix + STANDALONE_SYMBOL_RE.sub(r'\\(\g<0>\\)', rest)
+        return prefix + _wrap_embedded_latex(rest)
+
     # A CJK prose line is not a formula card: letters break embedded runs,
     # so wrapping fragments there mangles shapes like (E\ln(1+r)>0).
     # Standalone integral symbols (\oint & friends) are still wrapped —

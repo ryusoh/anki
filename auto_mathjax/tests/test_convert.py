@@ -738,6 +738,58 @@ def test_cjk_prose_rho_not_wrapped():
     assert _convert_dollar_to_mathjax(html) == html
 
 
+def test_cjk_definition_term_wrapped():
+    """Bare LaTeX definition terms preceding colons on CJK lines are wrapped inline."""
+    html = '<li><div>q(\\vartheta)：识别密度（Recognition Density），由智能体内部物理状态所参数化的变分概率分布。</div></li>'
+    expected = '<li><div>\\(q(\\vartheta)\\)：识别密度（Recognition Density），由智能体内部物理状态所参数化的变分概率分布。</div></li>'
+    assert _convert_dollar_to_mathjax(html) == expected
+
+
+def test_cjk_definition_term_greek_and_multiple_args():
+    r"""\vartheta: and p(s, \vartheta): definition terms wrap without touching prose."""
+    html_theta = '<li><div>\\vartheta：环境隐藏状态（Hidden causes），外部世界中引发感官输入的不可见物理变量。</div></li>'
+    expected_theta = '<li><div>\\(\\vartheta\\)：环境隐藏状态（Hidden causes），外部世界中引发感官输入的不可见物理变量。</div></li>'
+    assert _convert_dollar_to_mathjax(html_theta) == expected_theta
+
+    html_p = '<li><div>p(s, \\vartheta)：生成模型（Generative Model），智能体系统内部联合分布。</div></li>'
+    expected_p = '<li><div>\\(p(s, \\vartheta)\\)：生成模型（Generative Model），智能体系统内部联合分布。</div></li>'
+    assert _convert_dollar_to_mathjax(html_p) == expected_p
+
+
+def test_cjk_definition_term_in_bold_tag():
+    r"""Bold tags wrapping the term or term+colon are correctly handled."""
+    html1 = '<li><div><b>q(\\vartheta)</b>：识别密度</div></li>'
+    expected1 = '<li><div><b>\\(q(\\vartheta)\\)</b>：识别密度</div></li>'
+    assert _convert_dollar_to_mathjax(html1) == expected1
+
+    html2 = '<li><div><strong>\\vartheta：</strong>环境隐藏状态</div></li>'
+    expected2 = '<li><div><strong>\\(\\vartheta\\)：</strong>环境隐藏状态</div></li>'
+    assert _convert_dollar_to_mathjax(html2) == expected2
+
+    html3 = '<li><div><strong>D_{\\mathrm{KL}} \\ge 0</strong>：相对熵</div></li>'
+    expected3 = '<li><div><strong>\\(D_{\\mathrm{KL}} \\ge 0\\)</strong>：相对熵</div></li>'
+    assert _convert_dollar_to_mathjax(html3) == expected3
+
+
+def test_cjk_definition_term_idempotent():
+    r"""Re-running conversion on wrapped definition terms is a no-op."""
+    html = '<li><div>\\(q(\\vartheta)\\)：识别密度</div></li>'
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_cjk_definition_term_non_latex_prose_untouched():
+    r"""Non-LaTeX terms preceding colons (single letters, English labels, CJK) remain untouched."""
+    assert _convert_dollar_to_mathjax('<li>s：感官输入</li>') == '<li>s：感官输入</li>'
+    assert _convert_dollar_to_mathjax('<li>A：事件A发生</li>') == '<li>A：事件A发生</li>'
+    assert (
+        _convert_dollar_to_mathjax('<div>Note: 这是一个注意说明</div>')
+        == '<div>Note: 这是一个注意说明</div>'
+    )
+    assert _convert_dollar_to_mathjax('<div><strong>核心推论</strong>：自由能上界</div>') == (
+        '<div><strong>核心推论</strong>：自由能上界</div>'
+    )
+
+
 def test_real_world_input():
     """The user's exact real-world input — mixed block and inline math."""
     html = (
