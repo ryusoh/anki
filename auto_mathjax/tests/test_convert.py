@@ -42,6 +42,20 @@ def test_skip_purely_numeric():
     assert _convert_dollar_to_mathjax(html) == html  # unchanged
 
 
+def test_zero_scalar_converts():
+    """Note 1789177765424: $0$ in math/physics prose ($0$ 乘以任何相因子还是 $0$)
+    is mathematical zero, not a currency amount, and must convert to \\(0\\)."""
+    html = '<b>当 \\(\\langle L \\rangle = 0\\) 时</b>：$0$ 乘以任何相因子还是 $0$。'
+    expected = '<b>当 \\(\\langle L \\rangle = 0\\) 时</b>：\\(0\\) 乘以任何相因子还是 \\(0\\)。'
+    assert _convert_dollar_to_mathjax(html) == expected
+
+
+def test_isolated_zero_converts():
+    assert _convert_dollar_to_mathjax('$0$') == '\\(0\\)'
+    assert _convert_dollar_to_mathjax('$+0$') == '\\(+0\\)'
+    assert _convert_dollar_to_mathjax('$-0$') == '\\(-0\\)'
+
+
 # --- Test 6: Empty content between dollars ---
 def test_empty_dollar_pair():
     html = 'he paid $$'

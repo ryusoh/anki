@@ -163,6 +163,9 @@ def _is_purely_numeric(s):
     """
     # Strip any HTML tags to get text-only
     text = re.sub(r'<[^>]+>', '', s).strip()
+    # Mathematical zero is not a currency amount and must convert to MathJax
+    if text in ('0', '+0', '-0'):
+        return False
     # Match: optional sign, digits with optional commas/periods
     return bool(re.match(r'^[+-]?[\d,]+\.?\d*$', text))
 
