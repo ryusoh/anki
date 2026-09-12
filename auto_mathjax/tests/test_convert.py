@@ -826,6 +826,55 @@ def test_cjk_prose_arrows_and_relations_wrapped():
     )
 
 
+def test_cjk_prose_standalone_greek_symbols_wrapped():
+    r"""Standalone Greek letters and symbols in CJK prose (\vartheta, \mu, \theta, \Pi) are wrapped."""
+    html = '<div>在假定外部状态为 \\vartheta 的条件下。如果 \\mu 代表放电，突触权重 \\theta 和精度 \\Pi 执行梯度下降。</div>'
+    result = _convert_dollar_to_mathjax(html)
+    assert r'外部状态为 \(\vartheta\) 的条件下' in result
+    assert r'如果 \(\mu\) 代表放电' in result
+    assert r'突触权重 \(\theta\) 和精度 \(\Pi\) 执行' in result
+
+
+def test_cjk_prose_nbsp_preceding_formula_wrapped():
+    r"""Note 1789182055386: &nbsp; preceding a bare LaTeX formula in CJK prose wraps properly."""
+    html = (
+        '<li><div><strong>预测误差（Prediction Error）：</strong>&nbsp;'
+        '\\varepsilon^{(i)} = \\mu^{(i-1)} - g^{(i)}(\\mu^{(i)})，即底层实际放电率与高层预期放电率的差值。</div></li>'
+    )
+    result = _convert_dollar_to_mathjax(html)
+    assert r'&nbsp;\(\varepsilon^{(i)} = \mu^{(i-1)} - g^{(i)}(\mu^{(i)})\)' in result
+
+
+def test_cjk_prose_braced_superscript_with_existing_mathjax():
+    r"""Note 1789182075655: Variables with braced superscripts like G^{(i+1)T} wrap on lines with existing MathJax."""
+    html = (
+        '<div>这构成了双向信息流：<strong>自下而上的误差传递</strong>（\\(-\\xi^{(i)}\\)）驱动修正，'
+        '<strong>自上而下的预测</strong>（G^{(i+1)T} 代表雅可比矩阵）提供约束。</div>'
+    )
+    result = _convert_dollar_to_mathjax(html)
+    assert r'（\(-\xi^{(i)}\)）' in result
+    assert r'（\(G^{(i+1)T}\) 代表雅可比矩阵）' in result
+
+
+def test_cjk_prose_full_user_input_converts():
+    r"""Full user input converts all bare LaTeX formulas and standalone symbols while leaving prose intact."""
+    html = (
+        '精度（Accuracy）：在假定外部状态为 \\vartheta 的条件下，感官数据被准确预测的平均似然。'
+        '预测误差（Prediction Error）： \\varepsilon^{(i)} = \\mu^{(i-1)} - g^{(i)}(\\mu^{(i)})，即底层实际放电率与高层预期放电率的差值。'
+        ' ）驱动修正，自上而下的预测（G^{(i+1)T} 代表雅可比矩阵）提供约束。'
+        '如果 \\mu 代表快时间尺度的神经放电，突触权重 \\theta 和精度 \\Pi 则在慢时间尺度上同样执行梯度下降。'
+    )
+    result = _convert_dollar_to_mathjax(html)
+    assert r'在假定外部状态为 \(\vartheta\) 的条件下' in result
+    assert (
+        r'预测误差（Prediction Error）： \(\varepsilon^{(i)} = \mu^{(i-1)} - g^{(i)}(\mu^{(i)})\)，即底层'
+        in result
+    )
+    assert r'自上而下的预测（\(G^{(i+1)T}\) 代表雅可比矩阵）' in result
+    assert r'如果 \(\mu\) 代表快时间尺度的神经放电' in result
+    assert r'突触权重 \(\theta\) 和精度 \(\Pi\) 则在慢时间尺度上同样执行梯度下降。' in result
+
+
 def test_real_world_input():
     """The user's exact real-world input — mixed block and inline math."""
     html = (

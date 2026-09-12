@@ -119,6 +119,22 @@ EMBEDDED_RUN_RE = re.compile(
 # or numeric operand. The \b keeps operand-taking uses like \oint_C out.
 STANDALONE_SYMBOL_RE = re.compile(r'\\(?:oiiint|oiint|oint)\b')
 
+# Standalone Greek letters and math symbols that can appear as single-token
+# variables or operators in CJK prose without operands or braces.
+STANDALONE_MATH_SYMBOL_RE = re.compile(
+    r'\\(?:'
+    r'alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|vartheta|iota|kappa|'
+    r'lambdabar|lambda|Lambda|mu|nu|xi|Xi|pi|Pi|varpi|rho|varrho|sigma|Sigma|varsigma|tau|upsilon|Upsilon|'
+    r'phi|Phi|varphi|chi|psi|Psi|omega|Omega|'
+    r'infty|nabla|partial'
+    r')\b'
+)
+
+# Leading and trailing whitespace / HTML non-breaking spaces to trim off
+# embedded math runs before inspection and wrapping.
+_LEAD_TRIM_RE = re.compile(r'^(?:\s|&nbsp;)+')
+_TRAIL_TRIM_RE = re.compile(r'(?:\s|&nbsp;)+$')
+
 # Characters trimmed off the ends of a math run before wrapping: sentence
 # punctuation and a leading/trailing "=" that reads as prose glue
 # (e.g. "<b>Quick Ratio</b> = \frac{...}").
@@ -329,7 +345,11 @@ def _convert_def_term(segment):
 
 def _is_self_contained_math(core):
     """Decide whether an embedded run in CJK prose is self-contained math."""
-    if not BARE_LATEX_COMMAND_RE.search(core):
+    if STANDALONE_MATH_SYMBOL_RE.fullmatch(core):
+        return True
+    has_cmd = bool(BARE_LATEX_COMMAND_RE.search(core))
+    has_sub_sup = bool(SUB_SUPER_GROUP_RE.search(core))
+    if not (has_cmd or has_sub_sup):
         return False
     if INTEGRAL_COMMAND_RE.search(core):
         return False
@@ -343,7 +363,7 @@ def _is_self_contained_math(core):
         or core.count('[') != core.count(']')
     ):
         return False
-    if not HAS_STRUCTURE_RE.search(core):
+    if not (HAS_STRUCTURE_RE.search(core) or has_sub_sup):
         return False
     stripped = TEXT_GROUP_RE.sub(' ', core)
     stripped = ANY_LATEX_COMMAND_RE.sub(' ', stripped)
@@ -359,7 +379,13 @@ def _wrap_cjk_prose_math(segment):
 
     def repl(m):
         raw = m.group(1)
-        core = raw.strip()
+        lead_m = _LEAD_TRIM_RE.match(raw)
+        lead = lead_m.group(0) if lead_m else ''
+        rest = raw[len(lead) :]
+        trail_m = _TRAIL_TRIM_RE.search(rest)
+        trail = trail_m.group(0) if trail_m else ''
+        core = rest[: len(rest) - len(trail)] if trail else rest
+
         if not core:
             return raw
         if (core.startswith(r'\(') and core.endswith(r'\)')) or (
@@ -367,8 +393,6 @@ def _wrap_cjk_prose_math(segment):
         ):
             return raw
         if _is_self_contained_math(core):
-            lead = raw[: len(raw) - len(raw.lstrip())]
-            trail = raw[len(raw.rstrip()) :]
             return lead + r'\(' + core + r'\)' + trail
         return raw
 
@@ -708,6 +732,7 @@ def _convert_dollar_to_mathjax(html_str):
         # pass through unchanged unless it is a closed CJK prose line with
         # remaining bare LaTeX to convert.
         if '$' not in segment and ALREADY_MATHJAX_RE.search(segment):
+            outside = EXISTING_MATHJAX_BLOCK_RE.sub(' ', segment)
             can_process = (
                 segment.count('<anki-mathjax') == segment.count('</anki-mathjax>')
                 and segment.count(r'\[') == segment.count(r'\]')
@@ -719,7 +744,10 @@ def _convert_dollar_to_mathjax(html_str):
                 )
                 and not re.search(r'[\^_]\s*(?:</?(?:i|em)>)*\s*\\(?:\]|\))', segment)
                 and CJK_RE.search(segment)
-                and bool(BARE_LATEX_COMMAND_RE.search(EXISTING_MATHJAX_BLOCK_RE.sub(' ', segment)))
+                and (
+                    bool(BARE_LATEX_COMMAND_RE.search(outside))
+                    or bool(SUB_SUPER_GROUP_RE.search(outside))
+                )
             )
             if not can_process:
                 result_parts.append(segment)
