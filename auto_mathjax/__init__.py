@@ -248,15 +248,43 @@ def _decode_entities(s):
     return s.replace('&nbsp;', ' ').replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&')
 
 
+def _looks_like_cjk_math_formula(text):
+    """Check if a $-pair with CJK text is a mathematical equation/formula."""
+    if re.search(r'[，。！？；“”‘’《》〈〉【】\n\r\u3040-\u309f]', text):
+        return False
+    if (
+        text.count('(') != text.count(')')
+        or text.count('{') != text.count('}')
+        or text.count('[') != text.count(']')
+    ):
+        return False
+    core = text.strip()
+    if not core or core[0] in '=+*/^_:,;' or core[-1] in '=+*/^_:,;':
+        return False
+    # Outside \text{} groups or LaTeX commands, words should not be English prose
+    if any(len(word) > 2 for word in re.findall(r'[a-zA-Z]+', text)):
+        return False
+    has_rel = bool(re.search(r'[=<>~≈≠≤≥]|\\(?:approx|sim|le|ge|leq|geq|neq|equiv|propto)', text))
+    has_op = bool(re.search(r'[+\-*/^]', text))
+    has_num = bool(re.search(r'[0-9]', text))
+    has_var = bool(re.search(r'[a-zA-Z]', text))
+
+    if has_rel and (has_op or has_num or has_var):
+        return True
+    if has_op and (has_num or (text.count('(') >= 1 and text.count(')') >= 1)):
+        return True
+    return False
+
+
 def _looks_like_math_content(inner):
     """Decide whether the content of a $...$/$$...$$ pair plausibly is math.
 
     Stock cashtags ($INTC ... $SOI), $$ as slang for money, and prose
     between two currency amounts all regex-match as pairs. A formula never
-    spans HTML tags, never contains CJK prose (outside \\text{...} groups),
-    and its words are short variable names — unless an explicit \\command
-    marks it as LaTeX. A single word with no whitespace ($math$) still
-    counts as a variable name.
+    spans HTML tags, never contains CJK prose (outside \\text{...} groups or
+    equations with relations/operators), and its words are short variable
+    names — unless an explicit \\command marks it as LaTeX. A single word
+    with no whitespace ($math$) still counts as a variable name.
     """
     if HTML_TAG_RE.search(inner):
         return False
@@ -266,6 +294,8 @@ def _looks_like_math_content(inner):
     stripped = TEXT_GROUP_RE.sub(' ', text)
     stripped = ANY_LATEX_COMMAND_RE.sub(' ', stripped)
     if CJK_RE.search(stripped):
+        if _looks_like_cjk_math_formula(stripped):
+            return True
         return False
     # A dangling superscript/subscript operator (^/_) with no operand is not
     # valid LaTeX; MathJax renders it as a red-on-yellow error.

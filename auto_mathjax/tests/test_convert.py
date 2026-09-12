@@ -913,6 +913,30 @@ def test_cjk_definition_term_subscripted_variable_wrapped():
     assert '<li><p>\\(r_t\\)：环境给定的外部客观奖励。</p></li>' == result
 
 
+def test_dollar_pair_cjk_math_formula_converts():
+    r"""Note 1789186931269: $...$ equations containing CJK variable/term names convert to \(...\)."""
+    html = (
+        '<div>公式变成：$K = 预测误差 / (预测误差 + 0) = 1$。'
+        '公式变成：$K = 预测误差 / 无限大 = 0$。</div>'
+    )
+    result = _convert_dollar_to_mathjax(html)
+    assert r'公式变成：\(K = 预测误差 / (预测误差 + 0) = 1\)。' in result
+    assert r'公式变成：\(K = 预测误差 / 无限大 = 0\)。' in result
+
+    # Negative guards: CJK prose or currency pairs must not convert
+    assert (
+        _convert_dollar_to_mathjax('<div>花费 $100 和 $200</div>') == '<div>花费 $100 和 $200</div>'
+    )
+    assert (
+        _convert_dollar_to_mathjax('<div>买一件 $100，买两件 $200</div>')
+        == '<div>买一件 $100，买两件 $200</div>'
+    )
+    assert (
+        _convert_dollar_to_mathjax('<div>这个 $苹果 and 香蕉 = 100$ 是测试</div>')
+        == '<div>这个 $苹果 and 香蕉 = 100$ 是测试</div>'
+    )
+
+
 def test_real_world_input():
     """The user's exact real-world input — mixed block and inline math."""
     html = (
