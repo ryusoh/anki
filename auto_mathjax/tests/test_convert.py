@@ -790,6 +790,42 @@ def test_cjk_definition_term_non_latex_prose_untouched():
     )
 
 
+def test_cjk_prose_embedded_math_runs_wrapped():
+    r"""Bare LaTeX expressions embedded in CJK prose lines (even when other MathJax exists) are wrapped."""
+    html = (
+        '<div><strong>核心推论</strong>：由于 KL 散度非负，<strong>F \\ge -\\ln p(s)</strong>，'
+        '自由能始终是惊奇度的<strong>数学上界</strong>。智能体要想在稳态（Homeostasis）中存活，'
+        '就必须将感官惊奇度控制在有限范围内，而最小化 F 是在无法直接计算真实后验 p(\\vartheta \\mid s) 时'
+        '唯一的全局可操作路径：</div>'
+    )
+    result = _convert_dollar_to_mathjax(html)
+    assert r'<strong>\(F \ge -\ln p(s)\)</strong>' in result
+    assert r'真实后验 \(p(\vartheta \mid s)\) 时' in result
+
+
+def test_cjk_prose_line_with_existing_mathjax_and_embedded_latex():
+    r"""Note 1789181725724: A line with existing MathJax definition term still converts subsequent embedded LaTeX."""
+    html = (
+        '<li><div><strong><anki-mathjax>D_{\\mathrm{KL}} \\ge 0</anki-mathjax></strong>：'
+        '内部主观信念 q(\\vartheta) 与外部真实后验 p(\\vartheta \\mid s) 之间的相对熵（Kullback-Leibler 散度）。</div></li>'
+    )
+    result = _convert_dollar_to_mathjax(html)
+    assert '<anki-mathjax>D_{\\mathrm{KL}} \\ge 0</anki-mathjax>' in result
+    assert (
+        r'内部主观信念 \(q(\vartheta)\) 与外部真实后验 \(p(\vartheta \mid s)\) 之间的相对熵'
+        in result
+    )
+
+
+def test_cjk_prose_arrows_and_relations_wrapped():
+    r"""Relations like q(\vartheta) \to p(\vartheta \mid s) and D_{\mathrm{KL}} \to 0 wrap properly."""
+    html = '<li><div><strong>知觉（Perception）</strong>：更新内部状态让 q(\\vartheta) \\to p(\\vartheta \\mid s)，使得 D_{\\mathrm{KL}} \\to 0。</div></li>'
+    result = _convert_dollar_to_mathjax(html)
+    assert (
+        r'让 \(q(\vartheta) \to p(\vartheta \mid s)\)，使得 \(D_{\mathrm{KL}} \to 0\)。' in result
+    )
+
+
 def test_real_world_input():
     """The user's exact real-world input — mixed block and inline math."""
     html = (

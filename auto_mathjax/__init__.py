@@ -52,7 +52,7 @@ BARE_LATEX_COMMAND_RE = re.compile(
     r'\\(?:'
     r'frac|dfrac|tfrac|text|times|sqrt|sum|prod|int|cdot|circ|pm|mp|div(?:isionsymbol)?|'
     r'oiiint|oiint|oint|'
-    r'leq?|geq?|neq|approx|equiv|propto|infty|log|ln|exp|sin|cos|tan|lim|min|max|inf|sup|argmin|argmax|'
+    r'leq?|geq?|neq|approx|equiv|propto|mid|parallel|infty|log|ln|exp|sin|cos|tan|lim|min|max|inf|sup|argmin|argmax|'
     r'partial|nabla|to|rightarrow|Rightarrow|left|right|over|hat|bar|vec|'
     r'mathbb|mathrm|mathbf|mathit|mathcal|operatorname|'
     r'alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|vartheta|iota|kappa|'
@@ -136,6 +136,21 @@ DEF_TERM_RE = re.compile(
     r'(?:</(?P=tag)>)?(?P<colon_out>\s*[:：]))'
     r'(?P<rest>.*)$',
     re.DOTALL,
+)
+
+# Characters/operators indicating mathematical structure in an embedded run
+HAS_STRUCTURE_RE = re.compile(
+    r'[{0-9_^()]|\\(?:to|rightarrow|Rightarrow|ge|geq|le|leq|mid|parallel|frac|dfrac|sqrt|sum|prod|cdot|times)'
+)
+
+# Integral commands that require full differentials/integrands and must not be
+# partially wrapped with just subscript/superscript operands in prose
+INTEGRAL_COMMAND_RE = re.compile(r'\\(?:oiiint|oiint|oint|iiint|iint|int)(?![a-zA-Z])')
+
+
+# Regex to split non-CJK text runs out of CJK prose lines
+CJK_RUN_SPLIT_RE = re.compile(
+    r'([^<>\u3000-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff00-\uffef，。、：；！？“”‘’（）《》〈〉【】]+)'
 )
 
 
@@ -246,7 +261,7 @@ def _looks_like_bare_latex(segment):
     nothing prose-like remains (only short variable names like PV, r, n).
     """
     text = segment.replace('&nbsp;', ' ')
-    if '$' in text or '<' in text:
+    if '$' in text or '<' in text or ALREADY_MATHJAX_RE.search(text):
         return False
     if not BARE_LATEX_COMMAND_RE.search(text):
         return False
@@ -312,31 +327,67 @@ def _convert_def_term(segment):
     return prefix, rest
 
 
-def _wrap_embedded_latex(segment):
-    """Wrap bare-LaTeX fragments inside a prose/HTML line in \\(...\\).
+def _is_self_contained_math(core):
+    """Decide whether an embedded run in CJK prose is self-contained math."""
+    if not BARE_LATEX_COMMAND_RE.search(core):
+        return False
+    if INTEGRAL_COMMAND_RE.search(core):
+        return False
+    if CJK_RE.search(core):
+        return False
+    if re.search(r'[<>&;]', core):
+        return False
+    if (
+        core.count('(') != core.count(')')
+        or core.count('{') != core.count('}')
+        or core.count('[') != core.count(']')
+    ):
+        return False
+    if not HAS_STRUCTURE_RE.search(core):
+        return False
+    stripped = TEXT_GROUP_RE.sub(' ', core)
+    stripped = ANY_LATEX_COMMAND_RE.sub(' ', stripped)
+    stripped = SUB_SUPER_GROUP_RE.sub(' ', stripped)
+    words = re.findall(r'[a-zA-Z]+', stripped)
+    if not all(len(w) <= 3 for w in words):
+        return False
+    return True
 
-    Used when a line mixes prose (or inline tags) with LaTeX, e.g.
-    "<b>Quick Ratio</b> = \\frac{100,000}{60,000} = 1.67". Only runs
-    containing a whitelisted command are wrapped; surrounding prose,
-    tags and entities are untouched.
-    """
-    segment = _convert_code_latex(segment)
-    if ALREADY_MATHJAX_RE.search(segment):
-        return segment
 
+def _wrap_cjk_prose_math(segment):
+    """Wrap self-contained bare LaTeX formulas embedded in CJK prose."""
+
+    def repl(m):
+        raw = m.group(1)
+        core = raw.strip()
+        if not core:
+            return raw
+        if (core.startswith(r'\(') and core.endswith(r'\)')) or (
+            core.startswith(r'\[') and core.endswith(r'\]')
+        ):
+            return raw
+        if _is_self_contained_math(core):
+            lead = raw[: len(raw) - len(raw.lstrip())]
+            trail = raw[len(raw.rstrip()) :]
+            return lead + r'\(' + core + r'\)' + trail
+        return raw
+
+    res = CJK_RUN_SPLIT_RE.sub(repl, segment)
+    return STANDALONE_SYMBOL_RE.sub(r'\\(\g<0>\\)', res)
+
+
+def _wrap_embedded_latex_core(segment):
     def_res = _convert_def_term(segment)
     if def_res is not None:
         prefix, rest = def_res
         if CJK_RE.search(TEXT_GROUP_RE.sub(' ', rest)):
-            return prefix + STANDALONE_SYMBOL_RE.sub(r'\\(\g<0>\\)', rest)
-        return prefix + _wrap_embedded_latex(rest)
+            return prefix + _wrap_cjk_prose_math(rest)
+        return prefix + _wrap_embedded_latex_core(rest)
 
-    # A CJK prose line is not a formula card: letters break embedded runs,
-    # so wrapping fragments there mangles shapes like (E\ln(1+r)>0).
-    # Standalone integral symbols (\oint & friends) are still wrapped —
-    # they are unambiguous LaTeX and take no operand.
+    # A CJK prose line: wrap embedded self-contained math and standalone integral symbols.
     if CJK_RE.search(TEXT_GROUP_RE.sub(' ', segment)):
-        return STANDALONE_SYMBOL_RE.sub(r'\\(\g<0>\\)', segment)
+        return _wrap_cjk_prose_math(segment)
+
     # {\displaystyle ...} marks LaTeX source pasted from Wikipedia/MathML —
     # it renders via its own <img>/<math> fallback; wrapping fragments of
     # it (e.g. just "(\log" out of O(\log N)) mangles the source.
@@ -359,6 +410,27 @@ def _wrap_embedded_latex(segment):
         return run[:start] + '\\(' + core + '\\)' + run[start + len(core) :]
 
     return EMBEDDED_RUN_RE.sub(repl, segment)
+
+
+def _wrap_embedded_latex(segment):
+    """Wrap bare-LaTeX fragments inside a prose/HTML line in \\(...\\).
+
+    Used when a line mixes prose (or inline tags) with LaTeX, e.g.
+    "<b>Quick Ratio</b> = \\frac{100,000}{60,000} = 1.67". Only runs
+    containing a whitelisted command are wrapped; surrounding prose,
+    tags and entities are untouched.
+    """
+    segment = _convert_code_latex(segment)
+    if not EXISTING_MATHJAX_BLOCK_RE.search(segment):
+        return _wrap_embedded_latex_core(segment)
+
+    parts = []
+    for piece in EXISTING_MATHJAX_BLOCK_RE.split(segment):
+        if piece and not EXISTING_MATHJAX_BLOCK_RE.fullmatch(piece):
+            parts.append(_wrap_embedded_latex_core(piece))
+        else:
+            parts.append(piece)
+    return ''.join(parts)
 
 
 def _inject_macro_defs(html_str):
@@ -633,10 +705,25 @@ def _convert_dollar_to_mathjax(html_str):
             continue
 
         # If the segment already contains MathJax and has no dollar signs,
-        # pass through unchanged (prevents bare-LaTeX logic from re-wrapping).
+        # pass through unchanged unless it is a closed CJK prose line with
+        # remaining bare LaTeX to convert.
         if '$' not in segment and ALREADY_MATHJAX_RE.search(segment):
-            result_parts.append(segment)
-            continue
+            can_process = (
+                segment.count('<anki-mathjax') == segment.count('</anki-mathjax>')
+                and segment.count(r'\[') == segment.count(r'\]')
+                and segment.count(r'\(') == segment.count(r'\)')
+                and not re.search(
+                    r'[\^_]\s*(?:</?(?:i|em)>)*\s*</anki-mathjax>',
+                    segment,
+                    re.IGNORECASE,
+                )
+                and not re.search(r'[\^_]\s*(?:</?(?:i|em)>)*\s*\\(?:\]|\))', segment)
+                and CJK_RE.search(segment)
+                and bool(BARE_LATEX_COMMAND_RE.search(EXISTING_MATHJAX_BLOCK_RE.sub(' ', segment)))
+            )
+            if not can_process:
+                result_parts.append(segment)
+                continue
 
         # Find and replace $$...$$ and $...$ pairs in this segment
         def replace_match(m):
