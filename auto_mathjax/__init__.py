@@ -130,6 +130,11 @@ STANDALONE_MATH_SYMBOL_RE = re.compile(
     r')\b'
 )
 
+# Standalone math symbols followed by a hyphenated word (e.g. \epsilon-greedy, \alpha-decay)
+HYPHENATED_SYMBOL_RE = re.compile(
+    r'^(' + STANDALONE_MATH_SYMBOL_RE.pattern + r')-([a-zA-Z][a-zA-Z0-9_-]*)$'
+)
+
 # Leading and trailing whitespace / HTML non-breaking spaces to trim off
 # embedded math runs before inspection and wrapping.
 _LEAD_TRIM_RE = re.compile(r'^(?:\s|&nbsp;)+')
@@ -159,9 +164,11 @@ HAS_STRUCTURE_RE = re.compile(
     r'[{0-9_^()]|\\(?:to|rightarrow|Rightarrow|ge|geq|le|leq|mid|parallel|frac|dfrac|sqrt|sum|prod|cdot|times)'
 )
 
-# Integral commands that require full differentials/integrands and must not be
-# partially wrapped with just subscript/superscript operands in prose
-INTEGRAL_COMMAND_RE = re.compile(r'\\(?:oiiint|oiint|oint|iiint|iint|int)(?![a-zA-Z])')
+# Integral commands that only have sub/superscript bounds or operands and lack
+# integrands/differentials in prose (e.g. \oint_C, \int_a^b) — not wrapped alone.
+INCOMPLETE_INTEGRAL_RE = re.compile(
+    r'^\\(?:oiiint|oiint|oint|iiint|iint|int)(?:[_^][a-zA-Z0-9]|[_^]\s*\{[^{}]*\})*$'
+)
 
 
 # Regex to split non-CJK text runs out of CJK prose lines
@@ -351,7 +358,7 @@ def _is_self_contained_math(core):
     has_sub_sup = bool(SUB_SUPER_GROUP_RE.search(core))
     if not (has_cmd or has_sub_sup):
         return False
-    if INTEGRAL_COMMAND_RE.search(core):
+    if INCOMPLETE_INTEGRAL_RE.fullmatch(core):
         return False
     if CJK_RE.search(core):
         return False
@@ -394,6 +401,9 @@ def _wrap_cjk_prose_math(segment):
             return raw
         if _is_self_contained_math(core):
             return lead + r'\(' + core + r'\)' + trail
+        hyphen_m = HYPHENATED_SYMBOL_RE.match(core)
+        if hyphen_m:
+            return lead + r'\(' + hyphen_m.group(1) + r'\)-' + hyphen_m.group(2) + trail
         return raw
 
     res = CJK_RUN_SPLIT_RE.sub(repl, segment)

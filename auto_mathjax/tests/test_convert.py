@@ -875,6 +875,27 @@ def test_cjk_prose_full_user_input_converts():
     assert r'突触权重 \(\theta\) 和精度 \(\Pi\) 则在慢时间尺度上同样执行梯度下降。' in result
 
 
+def test_cjk_prose_hyphenated_greek_compound_wrapped():
+    r"""Note 1789181962092: Greek letters in hyphenated compounds like \epsilon-greedy wrap math portion."""
+    html = (
+        '<div>算法通常依赖启发式机制（如 \\epsilon-greedy）或通过增加辅助的'
+        '<b>内在动机（Intrinsic Reward）</b>模块来引导智能体探索。</div>'
+    )
+    result = _convert_dollar_to_mathjax(html)
+    assert r'（如 \(\epsilon\)-greedy）' in result
+    assert '<b>内在动机（Intrinsic Reward）</b>' in result
+
+
+def test_cjk_prose_full_integral_formula_wrapped():
+    r"""Note 1789182055386: Complete integral formulas with equation and differential wrap properly in CJK prose."""
+    html = (
+        '<div>将此代入自由能积分公式 F = \\int q \\ln(q/p) d\\vartheta，'
+        '在均值 \\(\\mu\\) 处进行泰勒展开并忽略高阶项。</div>'
+    )
+    result = _convert_dollar_to_mathjax(html)
+    assert r'自由能积分公式 \(F = \int q \ln(q/p) d\vartheta\)，在均值 \(\mu\) 处' in result
+
+
 def test_real_world_input():
     """The user's exact real-world input — mixed block and inline math."""
     html = (
