@@ -624,6 +624,39 @@ def test_dollar_conversion_on_line_with_existing_mathjax():
     assert _convert_dollar_to_mathjax(html) == expected
 
 
+def test_degree_superscript_circ_converts():
+    """Note 1789176547572: angles and degrees like $1^\\circ$, $120^\\circ$,
+    $0.001^\\circ$ must convert to \\(...\\) despite prose and dangling guards."""
+    html = (
+        '你可以转 $1^\\circ$，也可以转 $0.001^\\circ$<br>'
+        '你只能转 $120^\\circ$、$240^\\circ$ 或 $360^\\circ$'
+    )
+    expected = (
+        '你可以转 \\(1^\\circ\\)，也可以转 \\(0.001^\\circ\\)<br>'
+        '你只能转 \\(120^\\circ\\)、\\(240^\\circ\\) 或 \\(360^\\circ\\)'
+    )
+    assert _convert_dollar_to_mathjax(html) == expected
+
+
+def test_degree_superscript_on_line_with_existing_mathjax():
+    """Note 1789176547572: line with existing <anki-mathjax> blocks converts
+    remaining $...$ degree angles."""
+    html = (
+        '<anki-mathjax>U(1)</anki-mathjax> 或 <anki-mathjax>SO(2)</anki-mathjax> '
+        '代表的是一个圆柱或圆盘的<b>连续旋转</b>（你可以转 $1^\\circ$，也可以转 $0.001^\\circ$，圆盘看起来都不变）。'
+    )
+    expected = (
+        '<anki-mathjax>U(1)</anki-mathjax> 或 <anki-mathjax>SO(2)</anki-mathjax> '
+        '代表的是一个圆柱或圆盘的<b>连续旋转</b>（你可以转 \\(1^\\circ\\)，也可以转 \\(0.001^\\circ\\)，圆盘看起来都不变）。'
+    )
+    assert _convert_dollar_to_mathjax(html) == expected
+
+
+def test_bare_circ_formula_wraps():
+    """Bare line with \\circ (function composition) wraps in display math."""
+    assert _convert_dollar_to_mathjax(r'f \circ g') == r'\[f \circ g\]'
+
+
 # --- Wikipedia {\displaystyle ...} pastes (note 1639716063357) ---
 
 

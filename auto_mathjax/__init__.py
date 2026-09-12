@@ -50,7 +50,7 @@ ALREADY_MATHJAX_RE = re.compile(r'\\[(\(|\[]|<anki-mathjax', re.IGNORECASE)
 # \[a-zA-Z]+ would false-positive on Windows paths like C:\Users\name.
 BARE_LATEX_COMMAND_RE = re.compile(
     r'\\(?:'
-    r'frac|dfrac|tfrac|text|times|sqrt|sum|prod|int|cdot|pm|mp|div(?:isionsymbol)?|'
+    r'frac|dfrac|tfrac|text|times|sqrt|sum|prod|int|cdot|circ|pm|mp|div(?:isionsymbol)?|'
     r'oiiint|oiint|oint|'
     r'leq?|geq?|neq|approx|equiv|propto|infty|log|ln|exp|sin|cos|tan|lim|min|max|inf|sup|argmin|argmax|'
     r'partial|nabla|to|rightarrow|Rightarrow|left|right|over|hat|bar|vec|'
