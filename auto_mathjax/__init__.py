@@ -135,6 +135,21 @@ HYPHENATED_SYMBOL_RE = re.compile(
     r'^(' + STANDALONE_MATH_SYMBOL_RE.pattern + r')-([a-zA-Z][a-zA-Z0-9_-]*)$'
 )
 
+# Core pattern and regex for a math variable with sub/superscripts (e.g. r_t, s_t, x_i, c_1, x^2, \mu_i, W_{ij}, G^{(i+1)T}).
+MATH_VAR_SUB_SUPER_CORE = (
+    r'(?:' + STANDALONE_MATH_SYMBOL_RE.pattern.removesuffix(r'\b') + r'|[a-zA-Z]'
+    r')'
+    r'(?:'
+    r'[_^]\s*\{(?:[^{}]|\{[^{}]*\})*\}'
+    r'|[_^][a-zA-Z0-9]'
+    r'|[_^]\\[a-zA-Z]+'
+    r'|\^[*†\'\"]'
+    r')+'
+)
+MATH_VAR_SUB_SUPER_RE = re.compile(
+    r'(?<![a-zA-Z0-9_])' + MATH_VAR_SUB_SUPER_CORE + r'(?![a-zA-Z0-9_])'
+)
+
 # Leading and trailing whitespace / HTML non-breaking spaces to trim off
 # embedded math runs before inspection and wrapping.
 _LEAD_TRIM_RE = re.compile(r'^(?:\s|&nbsp;)+')
@@ -323,7 +338,9 @@ def _convert_def_term(segment):
 
     if '\\displaystyle' in term or ALREADY_MATHJAX_RE.search(term):
         return None
-    if not BARE_LATEX_COMMAND_RE.search(term) or CJK_RE.search(term):
+    has_cmd = bool(BARE_LATEX_COMMAND_RE.search(term))
+    has_var = bool(MATH_VAR_SUB_SUPER_RE.fullmatch(term))
+    if not (has_cmd or has_var) or CJK_RE.search(term):
         return None
     if (
         term.count('(') != term.count(')')
@@ -352,10 +369,10 @@ def _convert_def_term(segment):
 
 def _is_self_contained_math(core):
     """Decide whether an embedded run in CJK prose is self-contained math."""
-    if STANDALONE_MATH_SYMBOL_RE.fullmatch(core):
+    if STANDALONE_MATH_SYMBOL_RE.fullmatch(core) or MATH_VAR_SUB_SUPER_RE.fullmatch(core):
         return True
     has_cmd = bool(BARE_LATEX_COMMAND_RE.search(core))
-    has_sub_sup = bool(SUB_SUPER_GROUP_RE.search(core))
+    has_sub_sup = bool(SUB_SUPER_GROUP_RE.search(core)) or bool(MATH_VAR_SUB_SUPER_RE.search(core))
     if not (has_cmd or has_sub_sup):
         return False
     if INCOMPLETE_INTEGRAL_RE.fullmatch(core):
@@ -757,6 +774,7 @@ def _convert_dollar_to_mathjax(html_str):
                 and (
                     bool(BARE_LATEX_COMMAND_RE.search(outside))
                     or bool(SUB_SUPER_GROUP_RE.search(outside))
+                    or bool(MATH_VAR_SUB_SUPER_RE.search(outside))
                 )
             )
             if not can_process:

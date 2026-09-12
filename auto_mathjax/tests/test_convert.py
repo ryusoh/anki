@@ -896,6 +896,23 @@ def test_cjk_prose_full_integral_formula_wrapped():
     assert r'自由能积分公式 \(F = \int q \ln(q/p) d\vartheta\)，在均值 \(\mu\) 处' in result
 
 
+def test_cjk_prose_subscripted_variable_wrapped():
+    r"""Note 1789181914368: Subscripted variable r_t in CJK prose (even with existing MathJax on line) wraps properly."""
+    html = (
+        '<li><p>\\(p(o_\\tau)\\)：<strong>先验观测偏好</strong>。'
+        '在 ActInf 中，没有外部的 r_t，所谓的“目标”仅仅是智能体天生期望看到的观测分布。</p></li>'
+    )
+    result = _convert_dollar_to_mathjax(html)
+    assert r'没有外部的 \(r_t\)，所谓的“目标”' in result
+
+
+def test_cjk_definition_term_subscripted_variable_wrapped():
+    r"""Note 1789181914368: Subscripted variable definition term r_t: wraps properly."""
+    html = '<li><p>r_t：环境给定的外部客观奖励。</p></li>'
+    result = _convert_dollar_to_mathjax(html)
+    assert '<li><p>\\(r_t\\)：环境给定的外部客观奖励。</p></li>' == result
+
+
 def test_real_world_input():
     """The user's exact real-world input — mixed block and inline math."""
     html = (
