@@ -10,7 +10,6 @@ edge-tts>=7.0
 # For running TDD test suite
 pytest>=8.0
 pytest-cov>=4.0
-beautifulsoup4>=4.0
 jsonschema>=4.0
 
 
