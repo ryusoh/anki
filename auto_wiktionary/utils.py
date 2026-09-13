@@ -139,12 +139,14 @@ def detect_kanji_redirect(html_text):
         #   '"X"参照'              (quote-wrapped, no separator, e.g. 物語 → ものがたり)
         # The separator before 参照 may be whitespace, を, or a closing
         # quote/bracket that wraps the reading.
-        # Some stubs embed the pointer inside a gloss sentence
-        # (e.g. 暗い → "光の量がすくないこと。詳細は くらい を参照。") —
-        # the reading is the phrase between 詳細は and を参照, not the
-        # whole line, so that pattern is tried first.
-        match = re.match(r"^.*?詳細は[\s　]*(.+?)[\s　]*を参照。?$", li_text) or re.match(
-            r'^(.+?)(?:の漢字表記。|(?:[\s　]+|を|["”」』])参照。?)$', li_text
+        # Some stubs embed the pointer inside or after a gloss sentence
+        # (e.g. 暗い → "光の量がすくないこと。詳細は くらい を参照。",
+        #  泳ぐ → "水中を自力で、水底に触れないように移動すること。 およぐ　参照") —
+        # any preceding gloss clause (ending in 。) and optional 詳細は
+        # are discarded before capturing the reading.
+        match = re.match(
+            r'^(?:.*。[\s　]*)?(?:詳細は[\s　]*)?(.+?)[\s　]*(?:の漢字表記。|(?:[\s　]+|を|["”」』])参照。?)$',
+            li_text,
         )
         if match:
             reading = match.group(1)

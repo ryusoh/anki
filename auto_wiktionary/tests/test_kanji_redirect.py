@@ -1027,3 +1027,73 @@ def test_full_redirect_flow_kurai():
     assert "詳細は" not in parsed
     assert "乏しい" in parsed
     assert "くらい" in parsed
+
+
+# ---- 泳ぐ (およぐ) gloss-embedded redirect test fixtures ----
+
+# Real HTML from ja.wiktionary for 泳ぐ.
+# New wrinkle vs. the other 参照 redirects: the <li> contains a gloss
+# sentence followed by whitespace and a bare 'X　参照' pointer —
+# '水中を自力で、水底に触れないように移動すること。 およぐ　参照' —
+# without a '詳細は' keyword or 'を' particle. The naive match captures the
+# whole line up to '参照' ('水中を自力で、水底に触れないように移動すること。 およぐ'),
+# which 404s.
+OYOGU_REDIRECT_HTML = """
+<html>
+    <body>
+        <section>
+            <h2>日本語</h2>
+            <section>
+                <h3>和語の漢字表記</h3>
+                <p><b><a href="./泳" title="泳">泳</a>ぐ</b></p>
+                <ol><li>水中を自力で、水底に触れないように移動すること。 <b><a href="./およぐ" title="およぐ">およぐ</a></b>　参照</li></ol>
+            </section>
+        </section>
+    </body>
+</html>
+"""
+
+# Real HTML from ja.wiktionary for およぐ (the redirect target).
+OYOGU_REAL_HTML = """
+<html>
+    <body>
+        <section>
+            <h2>日本語</h2>
+            <section>
+                <h3>動詞</h3>
+                <p><strong class="Jpan headword" lang="ja">およぐ</strong>【<b class="Jpan" lang="ja"><a href="./泳ぐ#日本語" title="泳ぐ">泳ぐ</a></b>】</p>
+                <ol>
+                    <li>（主に動物が）水中を自力で、水底に触れないように移動する。</li>
+                    <li>ふらふらと、動きが定まらない。（例）目が泳ぐ。</li>
+                </ol>
+            </section>
+        </section>
+    </body>
+</html>
+"""
+
+
+def test_detect_kanji_redirect_oyogu_gloss_embedded_sanshou():
+    """泳ぐ redirects to およぐ via a gloss sentence followed by 'およぐ　参照' —
+    '水中を自力で、水底に触れないように移動すること。 およぐ　参照'. Only 'およぐ'
+    must be extracted as the reading; the whole gloss 404s."""
+    result = detect_kanji_redirect(OYOGU_REDIRECT_HTML)
+    assert result is not None, "detect_kanji_redirect should detect gloss-embedded redirects"
+    reading, all_readings = result
+    assert reading == "およぐ"
+    assert all_readings == ["およぐ"]
+
+
+def test_full_redirect_flow_oyogu():
+    """Full flow: 泳ぐ (gloss-embedded redirect) → fetch およぐ → real definition.
+    Must NOT show the '参照' notice or corrupted reading."""
+    result = detect_kanji_redirect(OYOGU_REDIRECT_HTML)
+    assert result is not None
+    reading, all_readings = result
+    assert reading == "およぐ"
+
+    parsed = parse_wiktionary_html(OYOGU_REAL_HTML, lang="ja")
+    parsed = inject_redirect_pronunciation(parsed, all_readings)
+    assert "参照" not in parsed
+    assert "水底に触れないように移動する" in parsed
+    assert "およぐ" in parsed
