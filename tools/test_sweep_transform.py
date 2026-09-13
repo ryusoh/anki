@@ -75,17 +75,22 @@ def test_load_transform_imports_real_addon_function():
 
 def test_load_transform_invalid_spec():
     import pytest
+    from sweep_transform import load_transform
     with pytest.raises(SystemExit) as excinfo:
         load_transform("invalid_spec")
     assert "Expected 'module:function', got" in str(excinfo.value)
 
 def test_load_transform_missing_function():
     import pytest
+    from sweep_transform import load_transform
     with pytest.raises(SystemExit) as excinfo:
         load_transform("sys:missing_func_name")
     assert "sys has no attribute" in str(excinfo.value)
 
 def test_sweep_notes_exception_in_idempotency_check():
+    import contextlib
+    from sweep_transform import sweep_notes
+    from test_sweep_transform import _db
     def transform(s):
         if s == "<div>foo here</div>":
             return "bar"
@@ -102,13 +107,14 @@ def test_sweep_notes_exception_in_idempotency_check():
     assert not changes[0].idempotent
 
 def test_format_change_not_idempotent():
-    from sweep_transform import FieldChange
+    from sweep_transform import FieldChange, format_change
     change = FieldChange(idx=0, old="old", new="new", idempotent=False)
     out = format_change(1, change)
     assert "NOT IDEMPOTENT: transform(transform(field)) != transform(field)" in out
 
 def test_main(monkeypatch, tmp_path, capsys):
     from sweep_transform import main
+    import sqlite3
     col = tmp_path / "collection.anki2"
     with sqlite3.connect(col) as con:
         con.execute("CREATE TABLE notes (id INTEGER PRIMARY KEY, flds TEXT)")
@@ -132,6 +138,7 @@ def test_main(monkeypatch, tmp_path, capsys):
 
 def test_main_with_limit(monkeypatch, tmp_path, capsys):
     from sweep_transform import main
+    import sqlite3
     col = tmp_path / "collection.anki2"
     with sqlite3.connect(col) as con:
         con.execute("CREATE TABLE notes (id INTEGER PRIMARY KEY, flds TEXT)")

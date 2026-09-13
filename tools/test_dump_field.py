@@ -25,7 +25,6 @@ def test_split_fields_on_unit_separator():
     assert split_fields("a\x1fb\x1fc") == ["a", "b", "c"]
 
 
-from dump_field import default_collection, dump, main, remove_snapshot, snapshot_collection
 def test_find_notes_matches_front_field_exactly_by_default():
     with contextlib.closing(_db()) as con:
         notes = find_notes(con, "anguish")
@@ -39,6 +38,7 @@ def test_find_notes_contains_matches_any_field():
     assert [nid for nid, _ in notes] == [1, 2, 3]
 
 def test_default_collection_found(monkeypatch, tmp_path):
+    from dump_field import default_collection
     import glob
     def mock_expanduser(path):
         return str(tmp_path)
@@ -61,6 +61,7 @@ def test_default_collection_found(monkeypatch, tmp_path):
 
 
 def test_default_collection_not_found(monkeypatch, tmp_path):
+    from dump_field import default_collection
     def mock_expanduser(path):
         return str(tmp_path)
     monkeypatch.setattr(os.path, "expanduser", mock_expanduser)
@@ -70,12 +71,14 @@ def test_default_collection_not_found(monkeypatch, tmp_path):
 
 
 def test_snapshot_collection(tmp_path):
+    from dump_field import remove_snapshot, snapshot_collection
     col = tmp_path / "collection.anki2"
     col.write_text("db")
     wal = tmp_path / "collection.anki2-wal"
     wal.write_text("wal")
 
     snap = snapshot_collection(str(col))
+    import os
     assert os.path.exists(snap)
     assert open(snap).read() == "db"
     assert os.path.exists(snap + "-wal")
@@ -88,6 +91,8 @@ def test_snapshot_collection(tmp_path):
 
 
 def test_dump_no_match(capsys, monkeypatch, tmp_path):
+    from dump_field import dump
+    import sqlite3
     col = tmp_path / "collection.anki2"
     with sqlite3.connect(col) as con:
         con.execute("CREATE TABLE notes (id INTEGER PRIMARY KEY, flds TEXT)")
@@ -97,6 +102,8 @@ def test_dump_no_match(capsys, monkeypatch, tmp_path):
 
 
 def test_dump_match_print(capsys, monkeypatch, tmp_path):
+    from dump_field import dump
+    import sqlite3
     col = tmp_path / "collection.anki2"
     with sqlite3.connect(col) as con:
         con.execute("CREATE TABLE notes (id INTEGER PRIMARY KEY, flds TEXT)")
@@ -110,6 +117,8 @@ def test_dump_match_print(capsys, monkeypatch, tmp_path):
 
 
 def test_dump_match_out_dir(monkeypatch, tmp_path, capsys):
+    from dump_field import dump
+    import sqlite3
     col = tmp_path / "collection.anki2"
     with sqlite3.connect(col) as con:
         con.execute("CREATE TABLE notes (id INTEGER PRIMARY KEY, flds TEXT)")
@@ -118,6 +127,7 @@ def test_dump_match_out_dir(monkeypatch, tmp_path, capsys):
     out_dir = tmp_path / "out"
     dump(str(col), "foo", False, str(out_dir))
     out = capsys.readouterr().out
+    import os
 
     assert os.path.exists(out_dir / "1_field0.html")
     assert (out_dir / "1_field0.html").read_text() == "foo"
@@ -126,6 +136,8 @@ def test_dump_match_out_dir(monkeypatch, tmp_path, capsys):
 
 
 def test_main(monkeypatch, tmp_path, capsys):
+    from dump_field import main
+    import sqlite3
     col = tmp_path / "collection.anki2"
     with sqlite3.connect(col) as con:
         con.execute("CREATE TABLE notes (id INTEGER PRIMARY KEY, flds TEXT)")

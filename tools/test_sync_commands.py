@@ -116,7 +116,7 @@ def test_generate_handles_quotes_in_arg_hint(tmp_path):
 
     command_file = target_dir / "my_skill.md"
     content = command_file.read_text()
-    assert "argument-hint: '\"<val>\"'" in content
+    assert 'argument-hint: \"' + '\\' + '\"' + '<val>' + '\\' + '\"' + '\"' in content
 
 def test_generate_cleans_target_dir(tmp_path):
     skills_dir = tmp_path / "skills"
@@ -191,6 +191,7 @@ def test_format_generated_commands_prettier_fails(tmp_path, monkeypatch, capsys)
 def test_ensure_skills_symlink(tmp_path):
     target_link = tmp_path / "claude" / "skills"
     ensure_skills_symlink(str(target_link))
+    import os
     assert target_link.is_symlink()
     assert os.readlink(str(target_link)) == "../.agents/skills"
 
