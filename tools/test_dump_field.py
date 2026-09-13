@@ -4,7 +4,7 @@ import sqlite3
 import sys
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
-from dump_field import default_collection, dump, find_notes, main, remove_snapshot, snapshot_collection, split_fields
+from dump_field import find_notes, split_fields
 
 
 def _db():
@@ -25,6 +25,7 @@ def test_split_fields_on_unit_separator():
     assert split_fields("a\x1fb\x1fc") == ["a", "b", "c"]
 
 
+from dump_field import default_collection, dump, main, remove_snapshot, snapshot_collection
 def test_find_notes_matches_front_field_exactly_by_default():
     with contextlib.closing(_db()) as con:
         notes = find_notes(con, "anguish")
