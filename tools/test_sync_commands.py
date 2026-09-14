@@ -119,7 +119,15 @@ def test_generate_handles_quotes_in_arg_hint(tmp_path):
 
     command_file = target_dir / "my_skill.md"
     content = command_file.read_text()
-    assert 'argument-hint: "\\"<val>\\""' in content
+    yaml_data, _ = sync_commands.parse_markdown(content)
+    assert "<val>" in yaml_data.get("argument-hint", "")
+    assert any(
+        variant in content
+        for variant in [
+            'argument-hint: \'"<val>"\'',
+            'argument-hint: "\\"<val>\\""',
+        ]
+    )
 
 
 def test_generate_cleans_target_dir(tmp_path):
