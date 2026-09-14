@@ -112,6 +112,13 @@ Instead:
   your way, leave it untouched and explain in the PR body. A coverage PR must
   strictly grow the suite. (PR #494 deleted 4 passing tests and replaced them
   with weaker duplicates — closed unmerged.)
+  - **The import-editing trap:** Never edit an existing `from mod import ...` line
+    in place to add more symbols (e.g. changing line 7 from `from mod import a` to
+    `from mod import a, b`). In git, replacing a line counts as 1 deletion and 1 addition,
+    which immediately triggers a bot PR hygiene failure (`test deletion: loses 1 line(s)`).
+    Always append new imports on a new line or scope them inside the new test functions.
+  - **Verify zero deletions before committing:** Run `git diff --numstat` and verify
+    that the second column (lines deleted) is `0` for all test files.
 - You must NOT touch any production file, `package.json`, or CI config. If a file
   can only be covered by changing production code or fixing an unrelated failure,
   skip it and say why in the PR body — never "fix" CI to make a test pass.
@@ -182,6 +189,10 @@ Conventional Commits.
   commit whose message doesn't match its diff. Before pushing, check
   `git show --stat HEAD`: if it doesn't visibly address the feedback, don't
   push. If you cannot address the feedback, leave the PR alone; silence is
-  cheaper than noise (AGENTS.md non-negotiable #11). Machine-enforced:
-  `tools/check_bot_pr_hygiene.py` (`make bot-pr-check`, in the gate) fails on
-  bot commits that are empty, add zero-content files, or delete test lines.
+  cheaper than noise (AGENTS.md non-negotiable #11).
+  - **Hygiene rejection:** Never push follow-up commits to "fix" a bot hygiene
+    failure. `check_bot_pr_hygiene.py` scans _every individual commit_ in the PR branch;
+    pushing more commits preserves the failing commit in history. Recreate the branch
+    cleanly with a single compliant commit.
+  - Machine-enforced: `tools/check_bot_pr_hygiene.py` (`make bot-pr-check`, in the gate)
+    fails on bot commits that are empty, add zero-content files, or delete test lines.

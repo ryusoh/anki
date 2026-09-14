@@ -45,7 +45,10 @@ success, not a reason to invent work or reach into another lane.
 - An export, function, or variable with **no remaining references anywhere in the repo**.
   **Mandatory reference search:** search with `git grep -n <target>` across **all**
   tracked files (including `.md`, `.sh`, `.yml`, `Makefile`, `.agents/`, `.jules/`,
-  `js/`, `docs/`, and add-on Python source; prove it). A symbol, function, or script is
+  `js/`, `docs/`, and add-on Python source; prove it). Never use `rg <target>` without
+  explicit paths (`.`): in non-interactive agent execution where `stdin` is a pipe,
+  `rg` searches empty `stdin` rather than the tree, silently returning zero matches and
+  causing false positives. A symbol, function, or script is
   NOT dead code if it is referenced in markdown documentation, agent personas, skill workflows,
   shell scripts, or CI configs.
 - **Anki landmine:** a function is **not** dead just because nothing calls it by name
@@ -62,6 +65,15 @@ success, not a reason to invent work or reach into another lane.
 - A dependency is "stale" only if nothing imports it — prove the absence of imports
   before removing a declaration in `requirements*.txt` / `package.json`. Leave version
   bumps to the dependency tooling unless the package is provably unused.
+  - **Import mapping trap:** PyPI package names frequently differ from top-level module names
+    (e.g. `beautifulsoup4` provides `bs4`, `PyYAML` provides `yaml`). You must search for
+    both the distribution name AND all top-level module names across all files.
+  - **Standalone pytest / Anki runtime trap:** Packages bundled by Anki at desktop runtime
+    (e.g. `beautifulsoup4`) must remain declared in `requirements.txt` so that standalone
+    pytest suites and CI test runners can run outside Anki (see `docs/creating-an-addon.md`).
+  - **Virtualenv ghost-green trap:** Removing a line from `requirements.txt` does not
+    uninstall the package from your local `.venv`. A local `make precommit` will pass because
+    the package is still present in `site-packages`, but clean CI runner builds will fail.
 
 ## Verification gate (before opening a PR)
 

@@ -6,10 +6,12 @@ scipy>=1.10
 # TTS engine used by awesome_tts
 edge-tts>=7.0
 
-# Testing
-# For running TDD test suite
+# Testing & Standalone Add-on Runtime Deps
+# For running TDD test suite outside Anki.
 pytest>=8.0
 pytest-cov>=4.0
+# Anki desktop bundles bs4 at runtime, but standalone pytest and CI runners require
+# beautifulsoup4 (imported as `bs4` in auto_mathjax, auto_wiktionary, awesome_tts).
 beautifulsoup4>=4.0
 jsonschema>=4.0
 
