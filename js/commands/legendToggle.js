@@ -23,12 +23,28 @@ export function isLabelHidden(label) {
 }
 
 /**
+ * @typedef {Object} ChartDatasetMeta
+ * @property {boolean} hidden
+ *
+ * @typedef {Object} ChartDataset
+ * @property {string} [label]
+ *
+ * @typedef {Object} ChartData
+ * @property {ChartDataset[]} datasets
+ *
+ * @typedef {Object} ChartInstance
+ * @property {ChartData} data
+ * @property {(index: number) => ChartDatasetMeta} getDatasetMeta
+ * @property {(mode?: string) => void} update
+ */
+
+/**
  * Bind click handlers on legend items to toggle dataset visibility.
  *
  * Each clickable legend item must have a `data-dataset-index` attribute
  * matching the dataset index in the chart.
  *
- * @param {Chart} chart - Chart.js instance
+ * @param {ChartInstance} chart - Chart.js instance
  * @param {HTMLElement} legendEl - The legend container element
  */
 export function bindLegendToggle(chart, legendEl) {
@@ -43,28 +59,34 @@ export function bindLegendToggle(chart, legendEl) {
   });
 
   // 2. Initial sync: Apply any previously hidden labels from our global state
-  chart.data.datasets.forEach((dataset, index) => {
-    const isHidden = hiddenLabels.has(dataset.label);
+  chart.data.datasets.forEach(
+    (/** @type {ChartDataset} */ dataset, /** @type {number} */ index) => {
+      const isHidden = hiddenLabels.has(dataset.label);
 
-    if (isHidden) {
-      const meta = chart.getDatasetMeta(index);
-      meta.hidden = true;
-    }
-
-    // Find corresponding legend item and set initial states
-    const item = Array.from(items).find(
-      (i) => parseInt(i.dataset.datasetIndex, 10) === index,
-    );
-
-    if (item) {
       if (isHidden) {
-        item.classList.add("legend-disabled");
-        item.setAttribute("aria-pressed", "false");
-      } else {
-        item.setAttribute("aria-pressed", "true");
+        const meta = chart.getDatasetMeta(index);
+        meta.hidden = true;
       }
-    }
-  });
+
+      // Find corresponding legend item and set initial states
+      const item = Array.from(items).find(
+        (i) =>
+          parseInt(
+            /** @type {HTMLElement} */ (i).dataset.datasetIndex || "",
+            10,
+          ) === index,
+      );
+
+      if (item) {
+        if (isHidden) {
+          item.classList.add("legend-disabled");
+          item.setAttribute("aria-pressed", "false");
+        } else {
+          item.setAttribute("aria-pressed", "true");
+        }
+      }
+    },
+  );
 
   // Trigger update if we modified any visibility (no animation for initial sync)
   chart.update("none");
@@ -72,7 +94,10 @@ export function bindLegendToggle(chart, legendEl) {
   // 3. Click handlers: Toggle visibility and update global state
   items.forEach((item) => {
     const toggleLegend = () => {
-      const index = parseInt(item.dataset.datasetIndex, 10);
+      const index = parseInt(
+        /** @type {HTMLElement} */ (item).dataset.datasetIndex || "",
+        10,
+      );
       if (isNaN(index)) return;
 
       const dataset = chart.data.datasets[index];
@@ -95,7 +120,10 @@ export function bindLegendToggle(chart, legendEl) {
 
     item.addEventListener("click", toggleLegend);
     item.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
+      if (
+        /** @type {KeyboardEvent} */ (e).key === "Enter" ||
+        /** @type {KeyboardEvent} */ (e).key === " "
+      ) {
         e.preventDefault();
         toggleLegend();
       }
