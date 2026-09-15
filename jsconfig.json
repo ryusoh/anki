@@ -6,11 +6,7 @@
     "target": "ES2020",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "lib": [
-      "ES2020",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "types": [],
     "strict": true
   },
@@ -33,8 +29,5 @@
     "js/ambient/ambient.js",
     "js/commands/legendToggle.js"
   ],
-  "exclude": [
-    "node_modules",
-    "js/vendor"
-  ]
+  "exclude": ["node_modules", "js/vendor"]
 }
