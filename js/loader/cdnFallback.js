@@ -4,6 +4,9 @@
   if (window.CDNLoader) {
     return;
   }
+  /**
+   * @param {string[]} origins
+   */
   function preconnect(origins) {
     try {
       for (let i = 0; i < origins.length; i++) {
@@ -17,6 +20,11 @@
       console.warn("Caught exception:", error);
     }
   }
+  /**
+   * @param {string[]} urls
+   * @param {{ defer?: boolean, async?: boolean }} [attrs]
+   * @returns {Promise<void>}
+   */
   function loadScriptSequential(urls, attrs) {
     return new Promise(function (resolve, reject) {
       (function next(i) {
@@ -33,7 +41,7 @@
           s.async = true;
         }
         s.onload = function () {
-          resolve();
+          resolve(undefined);
         };
         s.onerror = function () {
           next(i + 1);
@@ -42,6 +50,10 @@
       })(0);
     });
   }
+  /**
+   * @param {string[]} urls
+   * @returns {Promise<void>}
+   */
   function loadCssWithFallback(urls) {
     return new Promise(function (resolve) {
       (function next(i) {
@@ -56,11 +68,11 @@
               const style = document.createElement("style");
               style.textContent = css;
               document.head.appendChild(style);
-              resolve();
+              resolve(undefined);
             })
             .catch(function (error) {
               console.warn("Caught exception:", error);
-              resolve();
+              resolve(undefined);
             });
           return;
         }
@@ -69,7 +81,7 @@
         link.href = urls[i];
         link.crossOrigin = "anonymous";
         link.onload = function () {
-          resolve();
+          resolve(undefined);
         };
         link.onerror = function () {
           next(i + 1);
