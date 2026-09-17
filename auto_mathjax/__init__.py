@@ -77,6 +77,11 @@ ENV_GROUP_RE = re.compile(r'\\(?:begin|end)\s*\{[^{}]*\}')
 # short-word variable check.
 SUB_SUPER_GROUP_RE = re.compile(r'[_^]\s*\{(?:[^{}]|\{[^{}]*\})*\}')
 
+# A ^/_ whose operand is a \command (A^\dagger, v_k^\top). Stripped before
+# ANY_LATEX_COMMAND_RE removes the command so the operator is not orphaned
+# and misread as a dangling ^/_.
+SUB_SUPER_COMMAND_RE = re.compile(r'[_^]\s*\\[a-zA-Z]+')
+
 # Any \command token (for stripping when measuring leftover prose)
 ANY_LATEX_COMMAND_RE = re.compile(r'\\[a-zA-Z]+')
 
@@ -292,6 +297,7 @@ def _looks_like_math_content(inner):
     if BARE_LATEX_COMMAND_RE.search(text) or ENV_GROUP_RE.search(text):
         return True
     stripped = TEXT_GROUP_RE.sub(' ', text)
+    stripped = SUB_SUPER_COMMAND_RE.sub(' ', stripped)
     stripped = ANY_LATEX_COMMAND_RE.sub(' ', stripped)
     if CJK_RE.search(stripped):
         if _looks_like_cjk_math_formula(stripped):

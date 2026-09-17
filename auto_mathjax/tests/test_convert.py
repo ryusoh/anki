@@ -444,6 +444,19 @@ def test_valid_superscript_still_converts():
     assert _convert_dollar_to_mathjax('$x^*$') == '\\(x^*\\)'
 
 
+def test_command_operand_superscript_converts():
+    r"""$A = A^\dagger$ — the ^ operand is a \command. Stripping the command
+    before the dangling-^ check must not orphan the operator."""
+    assert _convert_dollar_to_mathjax('$A = A^\\dagger$') == '\\(A = A^\\dagger\\)'
+    assert _convert_dollar_to_mathjax('$v_k^\\top$') == '\\(v_k^\\top\\)'
+
+
+def test_command_operand_superscript_in_cjk_prose_converts():
+    r"""厄米矩阵 note 1783829478698: $A = A^\dagger$ inline in CJK prose."""
+    html = '满足 $A = A^\\dagger$ 的方阵'
+    assert _convert_dollar_to_mathjax(html) == '满足 \\(A = A^\\dagger\\) 的方阵'
+
+
 # --- Prose protection (shapes found by tools/sweep_transform.py) ---
 # Cashtags, money slang, and finance commentary regex-match as $ pairs but
 # must never convert. Each test pins the shape of a real mangled note.
