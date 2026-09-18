@@ -202,7 +202,8 @@ export function calendarRangeToDayOffsets(spec, now = new Date()) {
     return new Date(y, m - 1, d);
   };
   /** @param {Date} target */
-  const diff = (target) => Math.round((target.getTime() - today.getTime()) / 86400000);
+  const diff = (target) =>
+    Math.round((target.getTime() - today.getTime()) / 86400000);
   if (spec.kind !== "calendar") return null;
   const end = spec.to === null ? Infinity : diff(toLocal(spec.to));
   if (end < 0) return null;
