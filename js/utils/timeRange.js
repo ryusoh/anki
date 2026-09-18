@@ -82,6 +82,7 @@ export function formatRange(rangeKey) {
  */
 
 const CALENDAR_RE = /^(\d{4})(?:q([1-4]))?$/;
+/** @type {Record<number, [string, string]>} */
 const QUARTER_BOUNDS = {
   1: ["01-01", "03-31"],
   2: ["04-01", "06-30"],
@@ -94,6 +95,9 @@ const MAX_YEAR = 2099;
 /**
  * Parse one calendar unit ("2025", "2023q2") -> {from, to, label},
  * or undefined. Both bounds are always non-null for a unit.
+ */
+/**
+ * @param {string} token
  */
 function parseCalendarUnit(token) {
   const match = token.match(CALENDAR_RE);
@@ -192,11 +196,14 @@ export function parseRangeSpec(rangeKey) {
  */
 export function calendarRangeToDayOffsets(spec, now = new Date()) {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  /** @param {string} iso */
   const toLocal = (iso) => {
     const [y, m, d] = iso.split("-").map(Number);
     return new Date(y, m - 1, d);
   };
-  const diff = (target) => Math.round((target - today) / 86400000);
+  /** @param {Date} target */
+  const diff = (target) => Math.round((target.getTime() - today.getTime()) / 86400000);
+  if (spec.kind !== "calendar") return null;
   const end = spec.to === null ? Infinity : diff(toLocal(spec.to));
   if (end < 0) return null;
   const start = spec.from === null ? 0 : Math.max(0, diff(toLocal(spec.from)));
