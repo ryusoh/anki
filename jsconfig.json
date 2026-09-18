@@ -28,7 +28,8 @@
     "js/ui/video_warmup.js",
     "js/ambient/ambient.js",
     "js/commands/legendToggle.js",
-    "js/loader/cdnFallback.js"
+    "js/loader/cdnFallback.js",
+    "js/utils/timeRange.js"
   ],
   "exclude": ["node_modules", "js/vendor"]
 }
