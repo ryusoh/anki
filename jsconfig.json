@@ -29,7 +29,8 @@
     "js/ambient/ambient.js",
     "js/commands/legendToggle.js",
     "js/loader/cdnFallback.js",
-    "js/utils/timeRange.js"
+    "js/utils/timeRange.js",
+    "js/ui/magnetic_nav.js"
   ],
   "exclude": ["node_modules", "js/vendor"]
 }
