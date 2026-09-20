@@ -17,14 +17,15 @@ export function initMagneticNav() {
 
   magneticElements.forEach((el) => {
     const child = el.querySelector("a, i");
+    /** @type {{left: number, top: number, width: number, height: number} | null} */
     let rect = null;
 
     // Pre-allocate gsap quickTo functions to avoid creating new Tweens on every mousemove
-    const xTo = window.gsap.quickTo(el, "x", {
+    const xTo = /** @type {Gsap} */ (window.gsap).quickTo(el, "x", {
       duration: 0.3,
       ease: "power2.out",
     });
-    const yTo = window.gsap.quickTo(el, "y", {
+    const yTo = /** @type {Gsap} */ (window.gsap).quickTo(el, "y", {
       duration: 0.3,
       ease: "power2.out",
     });
@@ -32,11 +33,11 @@ export function initMagneticNav() {
     let childXTo = null;
     let childYTo = null;
     if (child) {
-      childXTo = window.gsap.quickTo(child, "x", {
+      childXTo = /** @type {Gsap} */ (window.gsap).quickTo(child, "x", {
         duration: 0.3,
         ease: "power2.out",
       });
-      childYTo = window.gsap.quickTo(child, "y", {
+      childYTo = /** @type {Gsap} */ (window.gsap).quickTo(child, "y", {
         duration: 0.3,
         ease: "power2.out",
       });
@@ -55,49 +56,53 @@ export function initMagneticNav() {
     });
 
     let ticking = false;
-    el.addEventListener("mousemove", (e) => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          if (!rect) {
-            const r = el.getBoundingClientRect();
-            rect = {
-              left: r.left + window.scrollX,
-              top: r.top + window.scrollY,
-              width: r.width,
-              height: r.height,
-            };
-          }
+    el.addEventListener(
+      "mousemove",
+      /** @param {Event} e */ (e) => {
+        const mouseEvent = /** @type {MouseEvent} */ (e);
+        if (!ticking) {
+          window.requestAnimationFrame(() => {
+            if (!rect) {
+              const r = el.getBoundingClientRect();
+              rect = {
+                left: r.left + window.scrollX,
+                top: r.top + window.scrollY,
+                width: r.width,
+                height: r.height,
+              };
+            }
 
-          // Calculate absolute center of element
-          const centerX = rect.left + rect.width / 2;
-          const centerY = rect.top + rect.height / 2;
+            // Calculate absolute center of element
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
 
-          // Calculate distance from center to cursor using absolute page coordinates
-          const distX = e.pageX - centerX;
-          const distY = e.pageY - centerY;
+            // Calculate distance from center to cursor using absolute page coordinates
+            const distX = mouseEvent.pageX - centerX;
+            const distY = mouseEvent.pageY - centerY;
 
-          // Apply magnetic pull using GSAP
-          // Strength of pull factor (lower = less pull)
-          const strength = 0.4;
+            // Apply magnetic pull using GSAP
+            // Strength of pull factor (lower = less pull)
+            const strength = 0.4;
 
-          xTo(distX * strength);
-          yTo(distY * strength);
+            xTo(distX * strength);
+            yTo(distY * strength);
 
-          // Pull the child element (e.g. <a> or <i>) slightly more for a parallax effect
-          if (child && childXTo && childYTo) {
-            childXTo(distX * (strength * 1.5));
-            childYTo(distY * (strength * 1.5));
-          }
-          ticking = false;
-        });
-        ticking = true;
-      }
-    });
+            // Pull the child element (e.g. <a> or <i>) slightly more for a parallax effect
+            if (child && childXTo && childYTo) {
+              childXTo(distX * (strength * 1.5));
+              childYTo(distY * (strength * 1.5));
+            }
+            ticking = false;
+          });
+          ticking = true;
+        }
+      },
+    );
 
     el.addEventListener("mouseleave", () => {
       rect = null;
       // Elastic snap back to origin
-      window.gsap.to(el, {
+      /** @type {Gsap} */ (window.gsap).to(el, {
         x: 0,
         y: 0,
         duration: 0.7,
@@ -106,7 +111,7 @@ export function initMagneticNav() {
       });
 
       if (child) {
-        window.gsap.to(child, {
+        /** @type {Gsap} */ (window.gsap).to(child, {
           x: 0,
           y: 0,
           duration: 0.7,
