@@ -114,19 +114,34 @@ class TestCreateAddcardsTabDeletedWidget:
             deleted_widget.show.assert_not_called()
 
     def test_live_widget_is_reused(self):
-        """A valid (not deleted) _addcards should be shown directly."""
+        """A valid (not deleted) _addcards switches back to the embedded view.
+
+        Regression (double-click on the Add toolbar button): the "already open"
+        branch must NOT call _addcards.show() — the show() monkeypatch is gone
+        after construction, so this is the real QMainWindow.show() and pops the
+        hidden AddCards shell up as a separate window; closing that window runs
+        AddCards._close() and collapses the embedded editor. Instead the
+        embedded central widget is re-shown.
+        """
         live_widget = MagicMock()
+        live_central = MagicMock()
 
         mod._addcards = live_widget
+        mod._addcards_central = live_central
 
         sys.modules["aqt.qt"].sip.isdeleted = MagicMock(return_value=False)
 
-        with (
-            patch.object(mod, "_close_stats"),
-            patch.object(mod, "_hide_main_content"),
-            patch.object(mod, "mw", _aqt.mw),
-        ):
+        try:
+            with (
+                patch.object(mod, "_close_stats"),
+                patch.object(mod, "_hide_main_content"),
+                patch.object(mod, "mw", _aqt.mw),
+            ):
 
-            mod._create_addcards_tab()
+                mod._create_addcards_tab()
 
-            live_widget.show.assert_called_once()
+            live_widget.show.assert_not_called()
+            live_central.show.assert_called_once()
+        finally:
+            mod._addcards = None
+            mod._addcards_central = None

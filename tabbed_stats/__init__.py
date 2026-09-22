@@ -242,7 +242,7 @@ def _create_stats_tab() -> None:
 
 def _create_addcards_tab() -> None:
     """Create AddCards inline in the main window."""
-    global _addcards
+    global _addcards, _addcards_central
 
     if _addcards is not None:
         from aqt.qt import sip
@@ -250,10 +250,15 @@ def _create_addcards_tab() -> None:
         if sip.isdeleted(_addcards):
             _addcards = None
         else:
-            # Already open, just switch to it
+            # Already open, just switch to it. Never call _addcards.show():
+            # the show() monkeypatch only exists during construction, so this
+            # would be the real QMainWindow.show() and pop the hidden AddCards
+            # shell up as a separate window. Closing that window runs
+            # AddCards._close(), which tears down the editor embedded inline.
             _close_stats()
             _hide_main_content()
-            _addcards.show()
+            if _addcards_central is not None and not sip.isdeleted(_addcards_central):
+                _addcards_central.show()
             return
 
     _close_stats()
@@ -287,7 +292,6 @@ def _create_addcards_tab() -> None:
     aqt.dialogs._dialogs["AddCards"][1] = addcards
 
     # Grab the central widget and embed it in the main layout
-    global _addcards_central
     central = addcards.centralWidget()
     central.setParent(None)  # detach from AddCards window
     _addcards_central = central

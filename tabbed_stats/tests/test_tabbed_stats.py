@@ -265,9 +265,11 @@ def test_create_addcards_tab_leaves_addcards_class_dict_clean():
     tabbed_stats._create_addcards_tab()
 
     assert 'show' not in FakeAddCards.__dict__
-    # the "already open" branch calls _addcards.show(); it must bind and work
+    # show() must still bind and work on the instance (inherited, not planted)
     tabbed_stats._addcards.show()
     assert tabbed_stats._addcards.shown
+    tabbed_stats._addcards = None
+    tabbed_stats._addcards_central = None
 
 
 def test_patched_dialogs_open():
