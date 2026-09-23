@@ -95,6 +95,33 @@ def test_bot_stray_artifact_flagged(repo: Path) -> None:
     assert any('stray artifact' in v and 'pr_body.txt' in v for v in violations)
 
 
+@pytest.mark.parametrize(
+    'path',
+    [
+        'verify_output.txt',
+        'output.txt',
+        'docs/pytest_output.txt',
+        'debug.log',
+        'logs/run.LOG',
+        'pr_title.txt',
+        'commit_message.txt',
+    ],
+)
+def test_bot_stray_scratch_artifacts_flagged(repo: Path, path: str) -> None:
+    _write_and_commit(repo, path, 'scratch content\n', 'chore: verification run')
+    violations = find_violations(repo, 'main')
+    assert any('stray artifact' in v and path in v for v in violations)
+
+
+@pytest.mark.parametrize(
+    'path',
+    ['output.md', 'js/output.js', 'logs.txt', 'data/output_dir/result.txt'],
+)
+def test_bot_non_stray_output_names_pass(repo: Path, path: str) -> None:
+    _write_and_commit(repo, path, 'real content\n', 'feat: add module')
+    assert find_violations(repo, 'main') == []
+
+
 def test_bot_suppressions_addition_flagged(repo: Path) -> None:
     _write_and_commit(
         repo,

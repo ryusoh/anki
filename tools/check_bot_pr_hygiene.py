@@ -53,9 +53,12 @@ def _is_stray_artifact(path: str) -> bool:
     """Detect stray PR draft files, scratch logs, or temporary artifacts."""
     parts = path.split('/')
     name = parts[-1].lower()
-    if name in {'pr_body.txt', 'pr_description.txt'}:
+    if name in {'pr_body.txt', 'pr_description.txt', 'pr_title.txt', 'commit_message.txt'}:
         return True
-    if name.endswith(('.tmp', '.scratch', '.swp')):
+    if name.endswith(('.tmp', '.scratch', '.swp', '.log')):
+        return True
+    # Verification-run scratch (fund#692 shipped a 474-line verify_output.txt).
+    if name == 'output.txt' or name.endswith('_output.txt'):
         return True
     if name.startswith(('temp_', 'dummy_')):
         return True

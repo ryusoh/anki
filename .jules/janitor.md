@@ -90,6 +90,12 @@ success, not a reason to invent work or reach into another lane.
 
 Conventional Commits per `AGENTS.md`.
 
+- **Publish exactly one commit; stage by name** (`git add <file>`, never
+  `git add -A`). Commit the finished change once, verify that exact tree, then
+  push; on any revision, amend or squash and force-push so the branch stays a
+  single commit. The hygiene gate is per-commit, so intermediate mistakes
+  (empty pushes, committed scratch like `*_output.txt` or `*.log`) are
+  permanent until squashed (AGENTS.md non-negotiable #11).
 - Title / commit subject: `chore(<scope>): remove <thing>` or
   `fix(<scope>): resolve <todo>` as appropriate. Imperative, lower-case, ≤ 72 chars,
   **no emoji, no `Janitor:` prefix**.

@@ -89,6 +89,15 @@ Writing a design spec for another agent to implement? See
     append-only in tests), commit stray bot artifacts (`pr_body.txt`, scratch
     files), or violate the complexity ratchet (no added suppressions in
     `eslint-suppressions.json`; only Refactoring may touch it to prune).
+    **Publish as a single commit by default.** The gate is per-commit, not
+    net-diff: every intermediate mistake on a multi-commit branch stays in
+    history and keeps CI red even after a later commit reverts it. Commit the
+    finished change once, run the verification gate on that exact tree, then
+    push; on any revision, amend or squash and force-push
+    (`git reset --soft $(git merge-base origin/main HEAD) && git commit &&
+git push --force-with-lease`) so the branch stays one commit. And stage by
+    name (`git add <file>`, never `git add -A`) — verification-run scratch
+    (`*_output.txt`, `*.log`, coverage dumps) must never reach a commit.
 
 ## You cannot see the rendered page
 

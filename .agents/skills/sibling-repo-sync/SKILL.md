@@ -51,6 +51,9 @@ The siblings:
   `fetch-depth: 0`; after a `precommit-docker` run, a local `make precommit`
   can fail with `Exec format error` in nas_tools (Linux-ELF binaries left
   behind, gitignored) — fix: `make -C nas_tools clean && make -C nas_proxy clean`;
+  the cold `precommit-docker` path is the wall-clock pole (colima start +
+  image build + full in-container suites, 10+ min — start Docker first, run it
+  once at the end);
   gate docs live in AGENTS.md's "Repo conventions" section (no
   docs/lint-and-quality.md equivalent); its AGENTS.md non-negotiable #6 forbids
   JULES ROUTINES from touching build/lint config — interactive agents acting on
@@ -139,6 +142,14 @@ Delegate one subagent per repo, in parallel. Brief each with:
    any). **Never commit** — leave changes uncommitted and report: violation
    counts, resolution proof, files changed, probe exit codes, gate result,
    skip decisions with evidence.
+
+**Verification budget.** Scoped checks while iterating (the touched test
+file, prettier, sync-check); run the full CI-parity gate exactly once, at the
+end — it is the wall-clock pole, and a containerized one (networking's
+`precommit-docker`) doubly so. Start Docker early so it warms while you work;
+for docs/persona-only changes, decide whether the container run is warranted
+before queueing it. (2026-09 sync: the networking agent's gate run dwarfed
+the rest of its work.)
 
 ## After the sync
 

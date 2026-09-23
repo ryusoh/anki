@@ -74,6 +74,12 @@ judge goes out as a **draft** flagged "visual review required."
 
 Conventional Commits per `AGENTS.md`.
 
+- **Publish exactly one commit; stage by name** (`git add <file>`, never
+  `git add -A`). Commit the finished change once, verify that exact tree, then
+  push; on any revision, amend or squash and force-push so the branch stays a
+  single commit. The hygiene gate is per-commit, so intermediate mistakes
+  (empty pushes, committed scratch like `*_output.txt` or `*.log`) are
+  permanent until squashed (AGENTS.md non-negotiable #11).
 - Title / commit subject: `fix(a11y): <summary>` (or `feat(a11y): …` for new
   keyboard support). Imperative, lower-case, ≤ 72 chars, **no emoji, no `Palette:`
   prefix**.
