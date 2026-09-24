@@ -36,7 +36,7 @@ The siblings:
   deps + the `precommit-fix` phase list; its ci.yml checkout already has
   `fetch-depth: 0` (checked 2026-08). Fund has a PR-title gate
   (`.github/workflows/commit-lint.yml` +
-  `scripts/agents/check_commit_message.py` — ≤72 chars, scope regex
+  `check_commit_message.py` in `scripts/agents/` — ≤72 chars, scope regex
   lower-case `[a-z0-9._/-]` only) that exists in NO sibling (verified in all
   three 2026-09): when porting fund persona lessons about commit titles
   (e.g. fund#695), keep the ≤72-char / lower-case-scope guidance generic and
