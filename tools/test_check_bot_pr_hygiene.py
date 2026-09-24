@@ -101,6 +101,8 @@ def test_bot_stray_artifact_flagged(repo: Path) -> None:
         'verify_output.txt',
         'output.txt',
         'docs/pytest_output.txt',
+        'eslint_out.json',
+        'eslint_warn_out.json',
         'debug.log',
         'logs/run.LOG',
         'pr_title.txt',

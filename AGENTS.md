@@ -97,7 +97,7 @@ Writing a design spec for another agent to implement? See
     (`git reset --soft $(git merge-base origin/main HEAD) && git commit &&
 git push --force-with-lease`) so the branch stays one commit. And stage by
     name (`git add <file>`, never `git add -A`) — verification-run scratch
-    (`*_output.txt`, `*.log`, coverage dumps) must never reach a commit.
+    (`*_output.txt`, `*_out.json`, `*.log`, coverage dumps) must never reach a commit.
 
 ## You cannot see the rendered page
 

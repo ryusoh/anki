@@ -44,7 +44,7 @@ Know the two fast gates that run before the test suite in the `ci.yml`
 - **Reject bot PR hygiene violations** — `tools/check_bot_pr_hygiene.py`,
   **per-commit**: empty commits, zero-content files, test files with deleted
   lines (bot lanes are append-only in tests), stray artifacts (`pr_body.txt`,
-  `*.log`, `*_output.txt`, ...), `eslint-suppressions.json` ratchet. A
+  `*.log`, `*_output.txt`, `*_out.json`, ...), `eslint-suppressions.json` ratchet. A
   violation reverted by a later commit still fails — only squashing recovers
   it.
 
@@ -98,23 +98,38 @@ Decide: net diff vs `origin/main` empty → **close as duplicate**. Content good
 
 ## 5. Salvage
 
+Work in the `/tmp/pr<N>` worktree (detached HEAD). Do **not** `git checkout -b`
+a salvage branch in the main worktree — that hijacks the branch the user's
+checkout is on; squash on the detached HEAD and push it directly:
+
 ```bash
 git fetch origin <pr-branch>:refs/remotes/origin/<pr-branch>   # enables --force-with-lease
-git checkout -b pr<N>-salvage pr<N>-head
+cd /tmp/pr<N>
 git reset --soft $(git merge-base origin/main HEAD)
 git -c core.hooksPath=/dev/null commit -m "<conventional subject>
 
 Co-authored-by: google-labs-jules[bot] <161369871+google-labs-jules[bot]@users.noreply.github.com>"
-git push --force-with-lease origin pr<N>-salvage:<pr-branch>
+git push --force-with-lease origin HEAD:<pr-branch>
 gh pr checks <N>                    # wait for precommit green
 gh pr merge <N> --squash --delete-branch
 git checkout main && git pull --rebase origin main
-git branch -D pr<N>-salvage pr<N>-head
+git branch -D pr<N>-head
 git worktree remove /tmp/pr<N> --force; git worktree remove /tmp/pr<N>-main --force
 ```
 
 The PR title must stay a valid Conventional Commit subject — it becomes the
 squash-merge commit message.
+
+**Gotcha — this repo has no PR-title CI check** (unlike fund's
+`commit-lint.yml`); the title is only judged at squash-merge review against
+the AGENTS.md conventions (`type(scope): summary`, imperative, ≤ 72 chars,
+lower-case scope). Count the assembled subject's characters before pushing —
+fund#695's 73-char camelCase-scope title failed fund's title gate. The general
+rule still applies to any check that reads the event payload: `gh run rerun`
+replays the OLD payload, so retrigger with a fresh event (a force-push, or
+`gh pr close` + `gh pr reopen`), never a rerun. When `gh pr edit` fails with
+GraphQL scope errors (`read:org`), use
+`gh api -X PATCH repos/<owner>/<repo>/pulls/<N> -f title="..."` instead.
 
 ## 6. Fix forward (the point of the exercise)
 

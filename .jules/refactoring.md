@@ -83,10 +83,16 @@ Conventional Commits per `AGENTS.md`.
   push; on any revision, amend or squash and force-push so the branch stays a
   single commit. The hygiene gate is per-commit, so intermediate mistakes
   (empty pushes, committed scratch like `*_output.txt` or `*.log`) are
-  permanent until squashed (AGENTS.md non-negotiable #11).
+  permanent until squashed (AGENTS.md non-negotiable #11). Never redirect
+  linter/gate output into a repo file (`npx eslint ... > eslint_out.json`) —
+  read it from stdout or write it under `/tmp`; the hygiene gate flags
+  `*_out.json` / `*_output.json` as stray artifacts (fund#695 committed ~6 MB
+  of eslint JSON output and went red in CI).
 - Title / commit subject: `refactor(<scope>): extract helpers to cut <function>
 complexity`. Imperative, lower-case, ≤ 72 chars, **no emoji, no `Refactoring:`
-  prefix**.
+  prefix**. Count the assembled subject's characters — for a long function
+  name this template overflows 72 (fund#695's title was 73 chars and failed
+  the title gate); shorten the verb phrase, never the function name.
 - Body: function and file; complexity N → M (radon grade); helpers extracted and why;
   "behaviour preserved, test expectations unchanged"; pasted `make precommit SKIP=1`
   output.
