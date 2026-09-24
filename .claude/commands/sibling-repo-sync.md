@@ -33,7 +33,13 @@ The siblings:
   dir — `gate_guard.py`/`prior_prs.py` are there); Python tests in
   `tests/python/`; no `VERIFY_GATE` variable — wire checks into `verify`
   deps + the `precommit-fix` phase list; its ci.yml checkout already has
-  `fetch-depth: 0` (checked 2026-08).
+  `fetch-depth: 0` (checked 2026-08). Fund has a PR-title gate
+  (`.github/workflows/commit-lint.yml` +
+  `scripts/agents/check_commit_message.py` — ≤72 chars, scope regex
+  lower-case `[a-z0-9._/-]` only) that exists in NO sibling (verified in all
+  three 2026-09): when porting fund persona lessons about commit titles
+  (e.g. fund#695), keep the ≤72-char / lower-case-scope guidance generic and
+  do NOT cite fund's checker command or regex.
 - `~/dev/networking` — multi-language net-tools monorepo (JS Chrome extension,
   Python, C, eBPF); **no** `.pre-commit-config.yaml`; gate = `make precommit`
   (no `VERIFY_GATE` variable — checks are direct prerequisites:
