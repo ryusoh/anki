@@ -96,6 +96,12 @@ Conventional Commits per `AGENTS.md`. The PR title is the squash-commit subject.
   single commit. The hygiene gate is per-commit, so intermediate mistakes
   (empty pushes, committed scratch like `*_output.txt` or `*.log`) are
   permanent until squashed (AGENTS.md non-negotiable #11).
+- **Never rename test files and never delete test lines** — bot lanes are
+  append-only in tests, and the per-commit hygiene gate flags any rename
+  (`test.js` ↔ `test.mjs`) as a zero-content placeholder and any deleted line
+  as a test deletion, even when a later commit reverts it. PR #521 needed a
+  manual squash-rescue after four commits of exactly this churn. If a test
+  needs a different extension or a rewrite, that is out of lane — leave it.
 - Title / commit subject: `fix(<scope>): <summary>` for a real defect (scope e.g.
   `awesome_tts`, `review_heatmap`, `security`); use `refactor`/`chore` only when no
   actual vulnerability is closed. Imperative, lower-case, ≤ 72 chars, **no emoji and
