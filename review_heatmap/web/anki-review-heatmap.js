@@ -828,8 +828,17 @@ document.head.appendChild(__vite_style__);
           if (options.tooltip) {
             selection.on("mouseover", function (d2) {
               const domainNode = this.parentNode.parentNode;
+              const htmlStr = self.getSubDomainTitle(d2);
               self.tooltip
-                .html(self.getSubDomainTitle(d2))
+                .each(function () {
+                  const parser = new DOMParser();
+                  const doc = parser.parseFromString(htmlStr, "text/html");
+                  this.textContent = "";
+                  const nodes = Array.from(doc.body.childNodes);
+                  for (let i = 0; i < nodes.length; i++) {
+                    this.appendChild(nodes[i]);
+                  }
+                })
                 .attr("style", "display: block;");
               let tooltipPositionX =
                 self.positionSubDomainX(d2.t) -
