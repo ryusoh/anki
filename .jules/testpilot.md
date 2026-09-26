@@ -111,7 +111,10 @@ Instead:
   or reorganize existing tests. If an existing test is wrong, failing, or in
   your way, leave it untouched and explain in the PR body. A coverage PR must
   strictly grow the suite. (PR #494 deleted 4 passing tests and replaced them
-  with weaker duplicates — closed unmerged.)
+  with weaker duplicates — closed unmerged. PR #522 deleted lines in
+  `test_hide_window_title.py` and `test_unify_review_count_colors.py` in two
+  consecutive commits despite a purely additive net diff — the per-commit gate
+  failed and the PR needed a manual squash-rescue.)
   - **The import-editing trap:** Never edit an existing `from mod import ...` line
     in place to add more symbols (e.g. changing line 7 from `from mod import a` to
     `from mod import a, b`). In git, replacing a line counts as 1 deletion and 1 addition,
@@ -195,6 +198,8 @@ origin/main HEAD) && git commit`) and force-push — the branch must always
   474-line `verify_output.txt` in its first commit.
 - Title / commit subject: `test(<addon>): cover <area> low-coverage paths`.
   Imperative, lower-case, ≤ 72 chars, **no emoji, no `Testpilot:` prefix**.
+  Count the characters — listing two long addon names already blows the limit
+  (PR #522's 84-char title had to be rewritten during rescue).
 - Body: each target file before → after coverage; any file skipped and why; "no
   production code changed"; pasted `make precommit SKIP=1` output.
 - **Review feedback:** answer every reviewer question with a real diff or a
