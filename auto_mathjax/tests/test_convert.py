@@ -643,6 +643,32 @@ def test_multiletter_sub_superscripts_still_convert():
     assert _convert_dollar_to_mathjax('$R_{abcd}$') == '\\(R_{abcd}\\)'
 
 
+def test_dollar_pair_command_followed_by_letter_converts():
+    r"""Note 1790570937157: <b>$\mu$VT系综</b> — a $ pair whose content is a
+    LaTeX command converts even when the closing $ is immediately followed
+    by a letter. The alnum guard targets cashtags ($JD $BABA), which never
+    start with a backslash."""
+    html = '因此也被称为 <b>$\\mu$VT系综</b>。'
+    expected = '因此也被称为 <b>\\(\\mu\\)VT系综</b>。'
+    assert _convert_dollar_to_mathjax(html) == expected
+
+
+def test_dollar_pair_command_followed_by_letter_with_existing_mathjax():
+    r"""The exact line from note 1790570937157: existing \(\mu\) blocks on the
+    line must not shield the remaining $\mu$VT pair from conversion."""
+    html = (
+        '* <b>固定的宏观量</b>：化学势（<b>\\(\\mu\\)</b>）、体积（<b>V</b>）、'
+        '温度（<b>T</b>）。因此也被称为 <b>$\\mu$VT系综</b>。'
+    )
+    expected = (
+        '* <b>固定的宏观量</b>：化学势（<b>\\(\\mu\\)</b>）、体积（<b>V</b>）、'
+        '温度（<b>T</b>）。因此也被称为 <b>\\(\\mu\\)VT系综</b>。'
+    )
+    assert _convert_dollar_to_mathjax(html) == expected
+    # Idempotent on rerun
+    assert _convert_dollar_to_mathjax(expected) == expected
+
+
 def test_dollar_conversion_on_line_with_existing_mathjax():
     """Note 1788832739484: A line already containing \\(...\\) MathJax blocks
     must still convert remaining $...$ pairs outside those blocks."""

@@ -846,9 +846,11 @@ def _convert_dollar_to_mathjax(html_str):
             # A real closing $ is never immediately followed by a letter or
             # digit: that $ is the prefix of the next cashtag ($JD $BABA,
             # $ORCL/$MSFT), a currency amount ("for every $1 of ..."), or
-            # part of an identifier (5npiei$lrn$1@thor.atcon.com).
+            # part of an identifier (5npiei$lrn$1@thor.atcon.com). A pair
+            # whose content starts with a \command is real LaTeX though —
+            # cashtags/currency never do ($\mu$VT系综).
             nxt = m.string[m.end()] if m.end() < len(m.string) else ''
-            if nxt.isascii() and nxt.isalnum():
+            if nxt.isascii() and nxt.isalnum() and not inner.lstrip().startswith('\\'):
                 return m.group(0)  # return unchanged
 
             # Skip whitespace-only content
