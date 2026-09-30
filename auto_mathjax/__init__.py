@@ -839,8 +839,10 @@ def _convert_dollar_to_mathjax(html_str):
 
             # $...$ → \(...\) (inline MathJax)
 
-            # Skip purely numeric content (e.g., $100$)
-            if _is_purely_numeric(inner):
+            # Skip purely numeric content (e.g., $100$) — unless the line has
+            # CJK prose: Chinese text marks money with 元/美元 or an unpaired
+            # $ prefix, so a paired $n$ there is a math count ($1$ 个苹果).
+            if _is_purely_numeric(inner) and not CJK_RE.search(segment):
                 return m.group(0)  # return unchanged
 
             # A real closing $ is never immediately followed by a letter or

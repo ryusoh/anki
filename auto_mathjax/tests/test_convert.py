@@ -56,6 +56,22 @@ def test_isolated_zero_converts():
     assert _convert_dollar_to_mathjax('$-0$') == '\\(-0\\)'
 
 
+def test_cjk_paired_numbers_convert():
+    r"""Note 1790733660356: $1$ / $2$ counts in CJK math prose ("$1$ 个苹果
+    加上 $1$ 个苹果等于 $2$ 个") are math operands, not currency amounts —
+    Chinese prose marks money with 元/美元 or an unpaired $ prefix, never a
+    paired $n$."""
+    html = '在有限的世界里，$1$ 个苹果加上 $1$ 个苹果等于 $2$ 个。'
+    expected = '在有限的世界里，\\(1\\) 个苹果加上 \\(1\\) 个苹果等于 \\(2\\) 个。'
+    assert _convert_dollar_to_mathjax(html) == expected
+
+
+def test_cjk_unpaired_currency_still_untouched():
+    """Unpaired $-prefix amounts in CJK prose stay untouched."""
+    html = '这本书卖 $100，那本书卖 $200。'
+    assert _convert_dollar_to_mathjax(html) == html
+
+
 # --- Test 6: Empty content between dollars ---
 def test_empty_dollar_pair():
     html = 'he paid $$'
