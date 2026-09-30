@@ -818,7 +818,9 @@ def _convert_dollar_to_mathjax(html_str):
                 continue
 
         # Find and replace $$...$$ and $...$ pairs in this segment
-        def replace_match(m):
+        has_cjk = bool(CJK_RE.search(segment))
+
+        def replace_match(m, _has_cjk=has_cjk):
             block_inner = m.group(1)  # from $$...$$
             inline_inner = m.group(2)  # from $...$
 
@@ -842,7 +844,7 @@ def _convert_dollar_to_mathjax(html_str):
             # Skip purely numeric content (e.g., $100$) — unless the line has
             # CJK prose: Chinese text marks money with 元/美元 or an unpaired
             # $ prefix, so a paired $n$ there is a math count ($1$ 个苹果).
-            if _is_purely_numeric(inner) and not CJK_RE.search(segment):
+            if _is_purely_numeric(inner) and not _has_cjk:
                 return m.group(0)  # return unchanged
 
             # A real closing $ is never immediately followed by a letter or
