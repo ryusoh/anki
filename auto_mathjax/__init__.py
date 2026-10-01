@@ -52,7 +52,7 @@ BARE_LATEX_COMMAND_RE = re.compile(
     r'\\(?:'
     r'frac|dfrac|tfrac|text|times|sqrt|sum|prod|int|cdot|circ|pm|mp|div(?:isionsymbol)?|'
     r'oiiint|oiint|oint|'
-    r'leq?|geq?|neq|approx|equiv|propto|mid|parallel|infty|log|ln|exp|sin|cos|tan|lim|min|max|inf|sup|argmin|argmax|'
+    r'leq?|geq?|neq|approx|equiv|propto|mid|parallel|infty|log|ln|exp|sin|cos|tan|sinh|cosh|tanh|coth|sech|csch|lim|min|max|inf|sup|argmin|argmax|'
     r'partial|nabla|to|rightarrow|Rightarrow|left|right|over|hat|bar|vec|'
     r'mathbb|mathrm|mathbf|mathit|mathcal|operatorname|'
     r'alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|vartheta|iota|kappa|'

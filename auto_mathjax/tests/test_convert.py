@@ -1412,6 +1412,27 @@ def test_bare_latex_min_max_commands():
     assert _convert_dollar_to_mathjax(html) == '\\(a \\min b\\)'
 
 
+def test_dollar_pair_tanh_inverse_converts():
+    r"""Note 1790822060651: $\tanh^{-1}(x)$ — \tanh must match as its own
+    command (\tan's word boundary cannot prefix-match it); otherwise the
+    command is stripped, orphaning the ^ and tripping the dangling-^ guard."""
+    html = (
+        '<b>反双曲正切函数</b>（通常记作 \\(\\text{artanh}(x)\\) 或 '
+        '$\\tanh^{-1}(x)$）就是 \\(\\tanh x\\) 的“逆运算”。'
+    )
+    expected = (
+        '<b>反双曲正切函数</b>（通常记作 \\(\\text{artanh}(x)\\) 或 '
+        '\\(\\tanh^{-1}(x)\\)）就是 \\(\\tanh x\\) 的“逆运算”。'
+    )
+    assert _convert_dollar_to_mathjax(html) == expected
+
+
+def test_bare_hyperbolic_line_wrapped_as_block():
+    r"""A bare line of hyperbolic-function LaTeX (no $ at all) wraps in \[...\]."""
+    assert _convert_dollar_to_mathjax(r'\tanh^{-1}(x)') == '\\[\\tanh^{-1}(x)\\]'
+    assert _convert_dollar_to_mathjax(r'\sinh x + \cosh x') == '\\[\\sinh x + \\cosh x\\]'
+
+
 def test_mangled_mathjax_html_repair():
     r"""Mangled HTML tags inside/around MathJax (e.g. \varepsilon^* turned into <i>) are repaired."""
     html = (
