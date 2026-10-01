@@ -66,6 +66,9 @@ Instead:
    `service/{edgetts,kokoro,voicevox}.py`, outer `awesome_tts/__init__.py`) are
    already measured and appear in `coverage-rank` like any first-party code —
    pick them from there as usual.
+7. **Check existing test locations before authoring.** Unit tests for `tools/<tool>.py`
+   live in `tools/test_<tool>.py` (or under `tests/`). Never add a duplicate test file
+   (e.g. `tests/test_<tool>.py`) when `tools/test_<tool>.py` already exists.
 
 ## Write real tests (no coverage theater)
 
@@ -162,8 +165,9 @@ Instead:
     fallback path is taken.
 - **Testing a script's `__main__`:** prefer calling the functions directly. If you
   must, use `runpy.run_module(..., run_name="__main__")` with `patch("sys.exit")` so
-  the runner isn't terminated. Don't leak mock API keys into tracked files that
-  `security_audit.py` then scans.
+  the runner isn't terminated. **Never wrap `runpy` in blanket `try: ... except Exception: pass`** —
+  exceptions in `main()` must fail the test, not be swallowed for coverage theater.
+  Don't leak mock API keys into tracked files that `security_audit.py` then scans.
 - Patch built-ins at their source: `patch("builtins.open")`, not `patch("mod.open")`.
 - Two addons expose a flat `utils` module; editor resolution is handled by
   `pyrightconfig.json` (`executionEnvironments`). Don't add a second flat module name
@@ -189,9 +193,9 @@ Conventional Commits.
 origin/main HEAD) && git commit`) and force-push — the branch must always
   end as a single commit. The hygiene gate checks every commit individually,
   so a multi-commit branch makes every intermediate mistake permanent; a
-  one-commit branch can only fail on its final content. (fund#692 failed CI
-  on two empty "finalize" pushes and an intermediate test-deletion commit
-  though its final tree was clean; PR #494 here closed on the same churn.)
+  one-commit branch can only fail on its final content. (fund#692 and PR #526
+  failed CI on empty pushes and intermediate test-deletion commits though
+  their final trees differed; PR #494 here closed on the same churn.)
 - **Stage by name, never `git add -A` / `git add .`.** Add exactly the test
   files you wrote. Scratch output from verification runs (`*_output.txt`,
   `*.log`, coverage dumps) must never be committed — fund#692 shipped a
