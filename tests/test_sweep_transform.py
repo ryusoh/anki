@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "tools"))
 
 import sweep_transform
 
+
 def _make_collection(path):
     con = sqlite3.connect(path)
     con.execute("PRAGMA journal_mode=WAL")
@@ -21,6 +22,7 @@ def test_load_transform_invalid_spec():
     with pytest.raises(SystemExit, match="Expected 'module:function'"):
         sweep_transform.load_transform("invalid")
 
+
 def test_load_transform_missing_function(monkeypatch):
     class DummyModule:
         pass
@@ -28,6 +30,7 @@ def test_load_transform_missing_function(monkeypatch):
     monkeypatch.setitem(sys.modules, "dummy_mod", DummyModule())
     with pytest.raises(SystemExit, match="dummy_mod has no attribute 'missing'"):
         sweep_transform.load_transform("dummy_mod:missing")
+
 
 def test_load_transform_success(tmp_path, monkeypatch):
     mod_path = tmp_path / "dummy_mod2.py"
@@ -39,6 +42,7 @@ def test_load_transform_success(tmp_path, monkeypatch):
         assert "aqt" in sys.modules
     finally:
         sys.path.remove(str(tmp_path))
+
 
 def test_sweep_notes():
     con = sqlite3.connect(":memory:")
@@ -65,7 +69,7 @@ def test_sweep_notes():
     assert changes1[0].idx == 0
     assert changes1[0].old == "front"
     assert changes1[0].new == "front_changed"
-    assert changes1[0].idempotent == True
+    assert changes1[0].idempotent
 
     nid2, changes2 = results[1]
     assert nid2 == 2
@@ -79,6 +83,7 @@ def test_sweep_notes():
     assert len(results_filtered) == 1
     assert results_filtered[0][0] == 1
 
+
 def test_sweep_notes_not_idempotent():
     con = sqlite3.connect(":memory:")
     con.execute("CREATE TABLE notes (id INTEGER PRIMARY KEY, flds TEXT)")
@@ -89,6 +94,7 @@ def test_sweep_notes_not_idempotent():
 
     results = sweep_transform.sweep_notes(con, transform)
     assert not results[0][1][0].idempotent
+
 
 def test_sweep_notes_idempotent_crash():
     con = sqlite3.connect(":memory:")
@@ -119,6 +125,7 @@ def test_format_change():
     diff_unstable = sweep_transform.format_change(3, change_unstable)
     assert "!! NOT IDEMPOTENT" in diff_unstable
 
+
 def test_main(tmp_path, capsys, monkeypatch):
     db = tmp_path / "c.anki2"
     con = _make_collection(db)
@@ -138,13 +145,21 @@ def test_main(tmp_path, capsys, monkeypatch):
         assert "1 notes scanned, 1 would change" in out
 
         # Test with limit
-        test_args = ["sweep_transform.py", "dummy_mod_main:trans", "--collection", str(db), "--limit", "0"]
+        test_args = [
+            "sweep_transform.py",
+            "dummy_mod_main:trans",
+            "--collection",
+            str(db),
+            "--limit",
+            "0",
+        ]
         monkeypatch.setattr(sys, "argv", test_args)
         sweep_transform.main()
         out = capsys.readouterr().out
         assert "... 1 more changed notes not shown" in out
     finally:
         sys.path.remove(str(tmp_path))
+
 
 def test_sweep_notes_contains_no_match():
     con = sqlite3.connect(":memory:")
@@ -157,6 +172,7 @@ def test_sweep_notes_contains_no_match():
     results = sweep_transform.sweep_notes(con, transform, contains="not_found")
     assert len(results) == 0
 
+
 def test_sweep_notes_no_changes():
     con = sqlite3.connect(":memory:")
     con.execute("CREATE TABLE notes (id INTEGER PRIMARY KEY, flds TEXT)")
@@ -168,13 +184,19 @@ def test_sweep_notes_no_changes():
     results = sweep_transform.sweep_notes(con, transform)
     assert len(results) == 0
 
+
 def test_main_as_script_via_runpy(monkeypatch):
-    import sys
     import runpy
+    import sys
     from unittest.mock import patch
+
     monkeypatch.setattr(sys, "argv", ["sweep_transform.py", "--help"])
-    class ExitException(Exception): pass
+
+    class ExitException(Exception):
+        pass
+
     monkeypatch.setattr(sys, "exit", lambda x: _raise_exit(x))
+
     def _raise_exit(x):
         raise ExitException(x)
 
