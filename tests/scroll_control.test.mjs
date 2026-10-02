@@ -24,6 +24,8 @@ describe("scroll_control.js", () => {
       scrollToCalled.push({ x, y });
     };
 
+    dom.window.requestAnimationFrame = (cb) => setTimeout(cb, 0);
+
     // Spy on Event.prototype.preventDefault
     const originalPreventDefault = dom.window.Event.prototype.preventDefault;
     dom.window.Event.prototype.preventDefault = function () {
@@ -41,6 +43,8 @@ describe("scroll_control.js", () => {
     await import(`../js/ui/scroll_control.js?t=${Date.now()}`);
   }
 
+  const nextFrame = () => new Promise(resolve => setTimeout(resolve, 0));
+
   test("should use document.documentElement.scrollTop when pageYOffset is undefined", async () => {
     await loadScript();
 
@@ -48,10 +52,12 @@ describe("scroll_control.js", () => {
     Object.defineProperty(dom.window, "pageYOffset", { writable: true, value: undefined });
     Object.defineProperty(dom.window.document.documentElement, "scrollTop", { writable: true, value: 100 });
     dom.window.dispatchEvent(new dom.window.Event("scroll"));
+    await nextFrame();
 
     // Simulate scrolling up to the top
     Object.defineProperty(dom.window.document.documentElement, "scrollTop", { writable: true, value: 0 });
     dom.window.dispatchEvent(new dom.window.Event("scroll"));
+    await nextFrame();
 
     assert.strictEqual(scrollToCalled.length, 1);
     assert.deepStrictEqual(scrollToCalled[0], { x: 0, y: 0 });
@@ -64,11 +70,13 @@ describe("scroll_control.js", () => {
     Object.defineProperty(dom.window, "pageYOffset", { writable: true, value: 100 });
     Object.defineProperty(dom.window.document.documentElement, "scrollTop", { writable: true, value: 100 });
     dom.window.dispatchEvent(new dom.window.Event("scroll"));
+    await nextFrame();
 
     // Simulate scrolling up to the top
     Object.defineProperty(dom.window, "pageYOffset", { writable: true, value: 0 });
     Object.defineProperty(dom.window.document.documentElement, "scrollTop", { writable: true, value: 0 });
     dom.window.dispatchEvent(new dom.window.Event("scroll"));
+    await nextFrame();
 
     assert.strictEqual(scrollToCalled.length, 1);
     assert.deepStrictEqual(scrollToCalled[0], { x: 0, y: 0 });
@@ -81,11 +89,13 @@ describe("scroll_control.js", () => {
     Object.defineProperty(dom.window, "pageYOffset", { writable: true, value: 0 });
     Object.defineProperty(dom.window.document.documentElement, "scrollTop", { writable: true, value: 0 });
     dom.window.dispatchEvent(new dom.window.Event("scroll"));
+    await nextFrame();
 
     // Simulate scrolling down
     Object.defineProperty(dom.window, "pageYOffset", { writable: true, value: 100 });
     Object.defineProperty(dom.window.document.documentElement, "scrollTop", { writable: true, value: 100 });
     dom.window.dispatchEvent(new dom.window.Event("scroll"));
+    await nextFrame();
 
     assert.strictEqual(scrollToCalled.length, 0);
   });
@@ -97,11 +107,13 @@ describe("scroll_control.js", () => {
     Object.defineProperty(dom.window, "pageYOffset", { writable: true, value: 100 });
     Object.defineProperty(dom.window.document.documentElement, "scrollTop", { writable: true, value: 100 });
     dom.window.dispatchEvent(new dom.window.Event("scroll"));
+    await nextFrame();
 
     // Simulate scrolling up but not to the top
     Object.defineProperty(dom.window, "pageYOffset", { writable: true, value: 50 });
     Object.defineProperty(dom.window.document.documentElement, "scrollTop", { writable: true, value: 50 });
     dom.window.dispatchEvent(new dom.window.Event("scroll"));
+    await nextFrame();
 
     assert.strictEqual(scrollToCalled.length, 0);
   });
