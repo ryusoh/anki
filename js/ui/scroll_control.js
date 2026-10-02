@@ -29,7 +29,8 @@
   window.addEventListener("scroll", function () {
     if (!ticking) {
       window.requestAnimationFrame(function () {
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const scrollTop =
+          window.pageYOffset || document.documentElement.scrollTop;
 
         // If scrolling up and at the very top of the page
         if (scrollTop < lastScrollTop && scrollTop === 0) {
