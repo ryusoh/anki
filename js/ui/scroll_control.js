@@ -24,16 +24,23 @@
   });
 
   let lastScrollTop = 0;
+  let ticking = false;
 
   window.addEventListener("scroll", function () {
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    if (!ticking) {
+      window.requestAnimationFrame(function () {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
-    // If scrolling up and at the very top of the page
-    if (scrollTop < lastScrollTop && scrollTop === 0) {
-      // Prevent default scroll behavior
-      window.scrollTo(0, 0);
+        // If scrolling up and at the very top of the page
+        if (scrollTop < lastScrollTop && scrollTop === 0) {
+          // Prevent default scroll behavior
+          window.scrollTo(0, 0);
+        }
+        lastScrollTop = scrollTop;
+        ticking = false;
+      });
+      ticking = true;
     }
-    lastScrollTop = scrollTop;
   });
 
   // For touch devices, to prevent overscroll bounce when scrolling up from the top
