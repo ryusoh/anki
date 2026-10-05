@@ -164,3 +164,132 @@ def test_on_overview_will_set_content_other(setup_module):
     setup_module.on_overview_will_set_content(web_content, context)
 
     assert ".new-count" not in web_content.head
+
+
+def test_handleMyAddonConfig_handled():
+    from rewrite_text_of_study_cards import handleMyAddonConfig
+
+    assert not handleMyAddonConfig(False, "some_other_message", None)
+    assert handleMyAddonConfig(True, "some_other_message", None)
+
+
+def test_handleMyAddonConfig_shige(monkeypatch):
+    import sys
+    from unittest.mock import MagicMock
+
+    from rewrite_text_of_study_cards import handleMyAddonConfig
+
+    mock_addon_config = MagicMock()
+    monkeypatch.setitem(
+        sys.modules, 'rewrite_text_of_study_cards.shige_config.addon_config', mock_addon_config
+    )
+
+    mock_timer = MagicMock()
+    monkeypatch.setattr("rewrite_text_of_study_cards.QTimer.singleShot", mock_timer)
+    assert handleMyAddonConfig(False, "shige_rewrite_study_cards_text", None) == (True, None)
+    mock_timer.assert_called_once()
+
+
+def test_on_overview_will_set_content():
+    from unittest.mock import MagicMock
+
+    from aqt.overview import Overview
+
+    from rewrite_text_of_study_cards import on_overview_will_set_content
+
+    context = MagicMock(spec=Overview)
+    web_content = MagicMock()
+    web_content.head = "<html>"
+    on_overview_will_set_content(web_content, context)
+    assert "<style>" in web_content.head
+    assert "color: inherit !important;" in web_content.head
+
+
+def test_on_overview_will_set_content_not_overview():
+    from unittest.mock import MagicMock
+
+    from rewrite_text_of_study_cards import on_overview_will_set_content
+
+    context = MagicMock()
+    web_content = MagicMock()
+    web_content.head = "<html>"
+    on_overview_will_set_content(web_content, context)
+    assert web_content.head == "<html>"
+
+
+def test_renderStats_3(monkeypatch):
+    from unittest.mock import MagicMock
+
+    from rewrite_text_of_study_cards import _renderStats_3
+
+    self = MagicMock()
+    self.mw = MagicMock()
+    self.mw.addonManager = MagicMock()
+    self.mw.addonManager.getConfig.return_value = {
+        "use_distinct_count": True,
+        "custom_text": "Cards: {card_text}, Time: {time_text}, Avg: {avg_text}",
+    }
+    self.mw.col.sched.dayCutoff = 86400 * 2
+    del self.mw.col.sched.day_cutoff
+    self.mw.col.db.first.return_value = (10, 10000)
+    self.mw.col.format_timespan.return_value = "10 seconds"
+    monkeypatch.setattr("rewrite_text_of_study_cards.check_custom_text", lambda x: x)
+    result = _renderStats_3(self)
+    assert "Cards: 10, Time: 10 seconds, Avg: 1000.0" in result
+    assert "shige_rewrite_study_cards_text" in result
+
+
+def test_renderStats_3_fallback_formatting(monkeypatch, capsys):
+    import sys
+    from unittest.mock import MagicMock
+
+    from rewrite_text_of_study_cards import _renderStats_3
+
+    self = MagicMock()
+    self.mw = MagicMock()
+    self.mw.addonManager = MagicMock()
+    self.mw.addonManager.getConfig.return_value = {
+        "use_distinct_count": False,
+        "custom_text": "Cards: {card_text}, Time: {time_text}, Avg: {avg_text}",
+    }
+    self.mw.col.sched.day_cutoff = 86400 * 2
+    self.mw.col.db.first.return_value = (0, 0)
+    self.mw.col.format_timespan.side_effect = Exception("Format failed")
+    mock_anki_utils = MagicMock()
+    mock_anki_utils.fmtTimeSpan.return_value = "fallback 0 seconds"
+    monkeypatch.setitem(sys.modules, "anki.utils", mock_anki_utils)
+    monkeypatch.setattr("rewrite_text_of_study_cards.check_custom_text", lambda x: x)
+    result = _renderStats_3(self)
+    assert "Cards: 0, Time: fallback 0 seconds, Avg: 0" in result
+    captured = capsys.readouterr()
+    assert "Format failed" in captured.out
+
+
+def test_renderStats_3_exception(capsys):
+    from unittest.mock import MagicMock
+
+    from rewrite_text_of_study_cards import _renderStats_3
+
+    self = MagicMock()
+    self.mw.addonManager.getConfig.side_effect = Exception("Config error")
+    self._render_data.studied_today = "Default text"
+    result = _renderStats_3(self)
+    assert '<div id="studiedToday"><span>Default text</span></div>' in result
+    captured = capsys.readouterr()
+    assert "Config error" in captured.out
+
+
+def test_mini_button():
+    from unittest.mock import MagicMock
+
+    from rewrite_text_of_study_cards.shige_config.button_manager import mini_button
+
+    button = MagicMock()
+    mini_button(button)
+    button.setStyleSheet.assert_called_once_with("QPushButton { padding: 2px; }")
+
+
+def test_patrons_list_import():
+    import rewrite_text_of_study_cards.shige_config.patrons_list
+
+    assert True
