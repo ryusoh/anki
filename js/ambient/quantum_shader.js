@@ -631,11 +631,14 @@ function init() {
         backgroundCamera.aspect = width / Math.max(1, height);
         backgroundCamera.updateProjectionMatrix();
 
-        const rect = container.getBoundingClientRect();
-        const aspect = rect.width / Math.max(1, rect.height);
+        // Bolt: Use clientWidth/clientHeight instead of getBoundingClientRect
+        // to prevent synchronous layout recalculation on resize.
+        const rectWidth = container.clientWidth;
+        const rectHeight = container.clientHeight;
+        const aspect = rectWidth / Math.max(1, rectHeight);
         renderer.setSize(
-          Math.max(1, rect.width),
-          Math.max(1, rect.height),
+          Math.max(1, rectWidth),
+          Math.max(1, rectHeight),
           false,
         );
         waveCamera.aspect = aspect || 1;
