@@ -19,13 +19,13 @@
   },
   "devDependencies": {
     "c8": "^12.0.0",
-    "dependency-cruiser": "^18.4.0",
+    "dependency-cruiser": "^18.5.0",
     "eslint": "^10.11.0",
     "fast-uri": "^4.1.5",
     "jest": "^30.5.2",
     "postcss": "^8.5.26",
-    "sharp": "^0.35.4",
-    "stylelint": "^17.15.0",
+    "sharp": "^0.35.5",
+    "stylelint": "^17.16.0",
     "typescript": "^7.0.2"
   },
   "jest": {
