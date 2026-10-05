@@ -5,6 +5,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from prior_prs import (  # noqa: E402
@@ -105,3 +107,181 @@ def test_format_stats_empty() -> None:
     out = format_stats(compute_stats([]))
     assert 'TOTAL' in out
     assert 'close reasons' not in out
+
+
+def test_main_file_not_found(monkeypatch, capsys):
+    import subprocess
+
+    from prior_prs import main
+
+    def mock_run(*args, **kwargs):
+        raise FileNotFoundError()
+
+    monkeypatch.setattr(subprocess, "run", mock_run)
+    with pytest.raises(SystemExit) as exc:
+        main(["--limit", "10"])
+    assert exc.value.code != 0
+    captured = capsys.readouterr()
+    assert "gh CLI not found" in captured.err
+
+
+def test_main_called_process_error(monkeypatch, capsys):
+    import subprocess
+
+    from prior_prs import main
+
+    def mock_run(*args, **kwargs):
+        raise subprocess.CalledProcessError(1, "cmd", stderr="some error")
+
+    monkeypatch.setattr(subprocess, "run", mock_run)
+    with pytest.raises(SystemExit) as exc:
+        main(["--limit", "10"])
+    assert exc.value.code != 0
+    captured = capsys.readouterr()
+    assert "gh pr list failed: some error" in captured.err
+
+
+def test_fetch_prs_not_list(monkeypatch):
+    import subprocess
+
+    from prior_prs import fetch_prs
+
+    class FakeResult:
+        stdout = '{"some": "dict"}'
+
+    def mock_run(*args, **kwargs):
+        return FakeResult()
+
+    monkeypatch.setattr(subprocess, "run", mock_run)
+    assert fetch_prs(10) == []
+
+
+def test_fetch_prs_none_items(monkeypatch):
+    import subprocess
+
+    from prior_prs import fetch_prs
+
+    class FakeResult:
+        stdout = '[[1], null, {"a": 1}]'
+
+    def mock_run(*args, **kwargs):
+        return FakeResult()
+
+    monkeypatch.setattr(subprocess, "run", mock_run)
+    assert fetch_prs(10) == [{"a": 1}]
+
+
+def test_label_names_invalid_format():
+    from prior_prs import _label_names
+
+    pr = {"labels": ["string", {"invalid": True}, {"name": "bug"}]}
+    assert _label_names(pr) == "bug"
+
+
+def test_compute_stats_open_merged_closed():
+    from prior_prs import compute_stats
+
+    prs = [
+        {
+            "author": {"login": "google-labs-jules"},
+            "state": "unknown_state",
+            "headRefName": "bolt-1",
+        },
+        {
+            "author": {"login": "google-labs-jules"},
+            "state": "closed",
+            "headRefName": "testpilot-1",
+            "labels": [{"name": "close:duplicate"}],
+        },
+    ]
+    stats = compute_stats(prs)
+    assert stats["lanes"]["bolt"]["open"] == 0
+    assert stats["lanes"]["testpilot"]["closed"] == 1
+    assert stats["lanes"]["testpilot"]["reasons"] == {"close:duplicate": 1}
+
+
+def test_format_stats_empty_reasons():
+    from prior_prs import format_stats
+
+    stats = {
+        "lanes": {"testpilot": {"open": 1, "merged": 0, "closed": 0, "reasons": {}}},
+        "total": {"open": 1, "merged": 0, "closed": 0, "reasons": {}},
+    }
+    out = format_stats(stats)
+    assert "close reasons:" not in out
+
+
+def test_main_stats_valid(monkeypatch, capsys):
+    import subprocess
+
+    from prior_prs import main
+
+    class FakeResult:
+        stdout = '[{"author": {"login": "google-labs-jules"}, "state": "open", "headRefName": "testpilot-1"}]'
+
+    def mock_run(*args, **kwargs):
+        return FakeResult()
+
+    monkeypatch.setattr(subprocess, "run", mock_run)
+    main(["--stats"])
+    captured = capsys.readouterr()
+    assert "testpilot" in captured.out
+
+
+def test_main_normal_valid(monkeypatch, capsys):
+    import subprocess
+
+    from prior_prs import main
+
+    class FakeResult:
+        stdout = (
+            '[{"number": 123, "state": "open", "title": "test title", "labels": [{"name": "bug"}]}]'
+        )
+
+    def mock_run(*args, **kwargs):
+        return FakeResult()
+
+    monkeypatch.setattr(subprocess, "run", mock_run)
+    main([])
+    captured = capsys.readouterr()
+    assert "#123   open  test title  [bug]" in captured.out
+
+
+def test_accept_rate():
+    from prior_prs import _accept_rate
+
+    assert _accept_rate({"merged": 0, "closed": 0}) == "  n/a"
+    assert _accept_rate({"merged": 1, "closed": 1}) == "   50%"
+
+
+def test_fetch_prs_not_list_of_dict(monkeypatch):
+    import subprocess
+
+    from prior_prs import fetch_prs
+
+    class FakeResult:
+        stdout = '[1, "string", {"number": 1}]'
+
+    def mock_run(*args, **kwargs):
+        return FakeResult()
+
+    monkeypatch.setattr(subprocess, "run", mock_run)
+    assert fetch_prs(10) == [{"number": 1}]
+
+
+def test_label_names_no_labels():
+    from prior_prs import _label_names
+
+    assert _label_names({}) == ""
+
+
+def test_is_jules_pr_no_author():
+    from prior_prs import is_jules_pr
+
+    assert not is_jules_pr({})
+
+
+def test_attribute_lane_unattributed():
+    from prior_prs import attribute_lane
+
+    assert attribute_lane({"headRefName": "random"}) == "unattributed"
