@@ -174,7 +174,7 @@ Instead:
   `sys.path.insert` at the top of the test file — never
   `from tools.prior_prs import ...`. The package-path form makes mypy see the
   source under two module names (`Source file found twice under different
-  module names`) and fails `make typecheck` (PR #531).
+module names`) and fails `make typecheck` (PR #531).
 - Two addons expose a flat `utils` module; editor resolution is handled by
   `pyrightconfig.json` (`executionEnvironments`). Don't add a second flat module name
   that collides.
