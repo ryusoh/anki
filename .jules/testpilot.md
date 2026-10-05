@@ -169,6 +169,12 @@ Instead:
   exceptions in `main()` must fail the test, not be swallowed for coverage theater.
   Don't leak mock API keys into tracked files that `security_audit.py` then scans.
 - Patch built-ins at their source: `patch("builtins.open")`, not `patch("mod.open")`.
+- **Match the existing import style for `tools/` modules.** Tests for
+  `tools/<mod>.py` import it flat — `from prior_prs import ...` after the
+  `sys.path.insert` at the top of the test file — never
+  `from tools.prior_prs import ...`. The package-path form makes mypy see the
+  source under two module names (`Source file found twice under different
+  module names`) and fails `make typecheck` (PR #531).
 - Two addons expose a flat `utils` module; editor resolution is handled by
   `pyrightconfig.json` (`executionEnvironments`). Don't add a second flat module name
   that collides.
@@ -196,6 +202,13 @@ origin/main HEAD) && git commit`) and force-push — the branch must always
   one-commit branch can only fail on its final content. (fund#692 and PR #526
   failed CI on empty pushes and intermediate test-deletion commits though
   their final trees differed; PR #494 here closed on the same churn.)
+  **Never push the same diff twice**: a re-push of already-applied changes is
+  an empty commit, which the gate rejects on its own, and any test lines you
+  add-then-remove across intermediate commits stay in history as per-commit
+  violations (PR #531 pushed the same coverage change as two duplicate commit
+  pairs — the final push was empty — with add-then-remove churn across five
+  unrelated test files; it needed a manual squash-rescue despite a purely
+  additive net diff).
 - **Stage by name, never `git add -A` / `git add .`.** Add exactly the test
   files you wrote. Scratch output from verification runs (`*_output.txt`,
   `*.log`, coverage dumps) must never be committed — fund#692 shipped a
