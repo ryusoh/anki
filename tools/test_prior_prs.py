@@ -285,3 +285,39 @@ def test_attribute_lane_unattributed():
     from prior_prs import attribute_lane
 
     assert attribute_lane({"headRefName": "random"}) == "unattributed"
+
+
+def test_main_as_script(monkeypatch, capsys):
+    import runpy
+    import subprocess
+    from unittest.mock import MagicMock
+
+    monkeypatch.setattr("sys.argv", ["prior_prs.py", "--limit", "1"])
+
+    mock_run = MagicMock()
+    mock_run.return_value.stdout = "[]"
+    monkeypatch.setattr(subprocess, "run", mock_run)
+
+    try:
+        runpy.run_module("prior_prs", run_name="__main__")
+    except SystemExit as e:
+        assert e.code == 0
+
+
+def test_fetch_prs_no_gh(monkeypatch, capsys):
+    import subprocess
+
+    from prior_prs import main
+
+    def mock_run(*args, **kwargs):
+        raise FileNotFoundError("No such file or directory: 'gh'")
+
+    monkeypatch.setattr(subprocess, "run", mock_run)
+    monkeypatch.setattr("sys.argv", ["prior_prs.py"])
+
+    import pytest
+
+    with pytest.raises(SystemExit):
+        main()
+
+    assert "gh CLI not found" in capsys.readouterr().err
