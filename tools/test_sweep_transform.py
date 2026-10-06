@@ -165,3 +165,29 @@ def test_main_with_limit(monkeypatch, tmp_path, capsys):
     main()
     out = capsys.readouterr().out
     assert "... 1 more changed notes not shown (raise --limit)" in out
+
+
+def test_main_as_script(monkeypatch, tmp_path, capsys):
+    import runpy
+    import sqlite3
+
+    col = tmp_path / "collection.anki2"
+    with sqlite3.connect(col) as con:
+        con.execute("CREATE TABLE notes (id INTEGER PRIMARY KEY, flds TEXT)")
+        con.execute("INSERT INTO notes (id, flds) VALUES (?, ?)", (1, "foo\x1fbar"))
+
+    dummy_module = tmp_path / "dummy_transform.py"
+    dummy_module.write_text("def run(f):\n    return f + '!'\n")
+
+    monkeypatch.syspath_prepend(str(tmp_path))
+
+    monkeypatch.setattr(
+        "sys.argv", ["sweep_transform.py", "dummy_transform:run", "--collection", str(col)]
+    )
+    try:
+        runpy.run_module("sweep_transform", run_name="__main__")
+    except SystemExit as e:
+        assert e.code is None or e.code == 0
+
+    out = capsys.readouterr().out
+    assert "Summary: 1 notes scanned, 1 would change" in out

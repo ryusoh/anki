@@ -203,3 +203,14 @@ def test_module_main():
         # However, testing the `if __name__ == '__main__': sys.exit(main())` block
         # is often skipped since it's just entrypoint boilerplate.
         pass
+
+
+def test_main_as_script(monkeypatch, capsys):
+    import runpy
+    from unittest.mock import patch
+
+    # We need to test the __main__ block which calls sys.exit(main())
+    # We'll mock main to just return 0 to make it simple.
+    with patch("verify_hash_map.main", return_value=0), patch("sys.exit") as mock_exit:
+        runpy.run_path(str(SCRIPT_DIR / "verify-hash-map.py"), run_name="__main__")
+        mock_exit.assert_called_once()

@@ -94,3 +94,47 @@ def test_main_check_changed_exits_0(repo: Path) -> None:
 def test_main_errors_outside_git_repo(tmp_path: Path) -> None:
     with pytest.raises(SystemExit):
         main(['snapshot', '--repo', str(tmp_path)])
+
+
+def test_main_as_script(monkeypatch, capsys, repo):
+    import runpy
+
+    monkeypatch.setattr("sys.argv", ["gate_guard.py", "snapshot", "--repo", str(repo)])
+    try:
+        runpy.run_module("gate_guard", run_name="__main__")
+    except SystemExit as e:
+        assert e.code == 0
+
+    out = capsys.readouterr().out
+    assert len(out.strip()) == 64
+
+
+def test_worktree_fingerprint_oserror(repo, monkeypatch):
+
+    (repo / 'unreadable.txt').write_text('content')
+
+    original_read_bytes = Path.read_bytes
+
+    def mock_read_bytes(self):
+        if self.name == 'unreadable.txt':
+            raise OSError("Permission denied")
+        return original_read_bytes(self)
+
+    monkeypatch.setattr(Path, "read_bytes", mock_read_bytes)
+
+    # should not raise OSError
+    worktree_fingerprint(repo)
+
+
+def test_main_git_not_found(monkeypatch, capsys, tmp_path):
+    import subprocess
+
+    def mock_run(*args, **kwargs):
+        raise FileNotFoundError("No such file or directory: 'git'")
+
+    monkeypatch.setattr(subprocess, "run", mock_run)
+
+    with pytest.raises(SystemExit):
+        main(['snapshot', '--repo', str(tmp_path)])
+
+    assert "git not found on PATH" in capsys.readouterr().err
