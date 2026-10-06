@@ -107,6 +107,8 @@ def test_bot_stray_artifact_flagged(repo: Path) -> None:
         'logs/run.LOG',
         'pr_title.txt',
         'commit_message.txt',
+        'patch_prior.py',
+        'fix_typo.cjs',
     ],
 )
 def test_bot_stray_scratch_artifacts_flagged(repo: Path, path: str) -> None:
@@ -117,7 +119,13 @@ def test_bot_stray_scratch_artifacts_flagged(repo: Path, path: str) -> None:
 
 @pytest.mark.parametrize(
     'path',
-    ['output.md', 'js/output.js', 'logs.txt', 'data/output_dir/result.txt'],
+    [
+        'output.md',
+        'js/output.js',
+        'logs.txt',
+        'data/output_dir/result.txt',
+        'tools/fix_jp_pinyin_front.py',
+    ],
 )
 def test_bot_non_stray_output_names_pass(repo: Path, path: str) -> None:
     _write_and_commit(repo, path, 'real content\n', 'feat: add module')

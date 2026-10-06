@@ -65,6 +65,15 @@ def _is_stray_artifact(path: str) -> bool:
         return True
     if name.startswith(('temp_', 'dummy_')):
         return True
+    # Root-level bot scratch scripts (PR #534 shipped patch_prior.py, a one-off
+    # sed-style rewrite of a test file). Root-only so real tools such as
+    # tools/fix_jp_pinyin_front.py are unaffected.
+    if (
+        len(parts) == 1
+        and name.startswith(('patch_', 'fix_', 'scratch_'))
+        and name.endswith(('.py', '.cjs', '.js', '.sh'))
+    ):
+        return True
     return False
 
 
