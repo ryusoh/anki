@@ -30,7 +30,8 @@
     "js/commands/legendToggle.js",
     "js/loader/cdnFallback.js",
     "js/utils/timeRange.js",
-    "js/ui/magnetic_nav.js"
+    "js/ui/magnetic_nav.js",
+    "js/commands/zoom.js"
   ],
   "exclude": ["node_modules", "js/vendor"]
 }

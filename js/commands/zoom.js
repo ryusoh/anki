@@ -12,7 +12,7 @@ let zoomed = false;
 
 /**
  * Gets the elements needed for zoom transitions.
- * @returns {{terminal: Element, chart: Element, terminalOutput: Element} | null}
+ * @returns {{terminal: HTMLElement, chart: HTMLElement | null, terminalOutput: HTMLElement} | null}
  */
 function getZoomElements() {
   const terminal = document.getElementById("terminal");
@@ -28,9 +28,9 @@ function getZoomElements() {
 
 /**
  * Calculates the target height for the terminal-output when zoomed.
- * @param {Element} terminal
- * @param {Element} chart
- * @param {Element} terminalOutput
+ * @param {HTMLElement} terminal
+ * @param {HTMLElement | null} chart
+ * @param {HTMLElement} terminalOutput
  * @returns {number}
  */
 function calculateZoomedOutputHeight(terminal, chart, terminalOutput) {
@@ -57,6 +57,10 @@ function calculateZoomedOutputHeight(terminal, chart, terminalOutput) {
 
 /**
  * Animates terminal zoom-in (expand terminal, fade out chart).
+ * @param {HTMLElement} terminal
+ * @param {HTMLElement | null} chart
+ * @param {HTMLElement} terminalOutput
+ * @returns {Promise<void>}
  */
 function animateZoomIn(terminal, chart, terminalOutput) {
   return new Promise((resolve) => {
@@ -67,8 +71,9 @@ function animateZoomIn(terminal, chart, terminalOutput) {
     );
 
     // Store original height for restoration
-    terminalOutput.dataset.originalHeight =
-      terminalOutput.getBoundingClientRect().height;
+    terminalOutput.dataset.originalHeight = terminalOutput
+      .getBoundingClientRect()
+      .height.toString();
 
     const timeline = gsap.timeline({
       onComplete: () => {
@@ -109,11 +114,15 @@ function animateZoomIn(terminal, chart, terminalOutput) {
 
 /**
  * Animates terminal zoom-out (collapse terminal, fade in chart).
+ * @param {HTMLElement} terminal
+ * @param {HTMLElement | null} chart
+ * @param {HTMLElement} terminalOutput
+ * @returns {Promise<void>}
  */
 function animateZoomOut(terminal, chart, terminalOutput) {
   return new Promise((resolve) => {
     const originalHeight =
-      parseFloat(terminalOutput.dataset.originalHeight) || 270;
+      parseFloat(terminalOutput.dataset.originalHeight || "270") || 270;
 
     const timeline = gsap.timeline({
       onComplete: () => {
