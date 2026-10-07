@@ -290,8 +290,9 @@ export class TableGlassEffect {
         // Find the closest table row
         const rowElement = elementUnderMouse.closest("tr");
 
-        if (rowElement && this.container.contains(rowElement)) {
-          // Bolt: Use WeakMap for O(1) constant-time lookup instead of O(N) array iteration
+        if (rowElement) {
+          // Bolt: Use WeakMap for O(1) constant-time lookup instead of O(N) array iteration,
+          // and eliminate the redundant this.container.contains() DOM traversal
           const foundIndex = this.rowMap.get(rowElement);
           this.state.hoveredRowIndex =
             foundIndex !== undefined ? foundIndex : -1;
