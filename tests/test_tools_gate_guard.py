@@ -88,3 +88,13 @@ def test_gate_guard_main_execution(tmp_path):
     with patch("sys.argv", ["gate_guard", "snapshot", "--repo", str(tmp_path)]):
         with patch("sys.stdout"):
             assert main() == 0
+
+
+def test_main_execution_runpy(tmp_path):
+    init_git(tmp_path)
+    import runpy
+
+    with patch("sys.argv", ["gate_guard", "snapshot", "--repo", str(tmp_path)]):
+        with patch("sys.stdout"):
+            with pytest.raises(SystemExit):
+                runpy.run_module("tools.gate_guard", run_name="__main__")

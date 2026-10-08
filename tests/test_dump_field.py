@@ -92,3 +92,48 @@ def test_dump_no_match_message(tmp_path, capsys):
 
 if __name__ == "__main__":
     sys.exit(pytest.main([__file__, "-q"]))
+
+
+def test_dump_out_none_prints_to_stdout(tmp_path, capsys):
+    db = tmp_path / "c.anki2"
+    con = _make_collection(db)
+    con.close()
+    dump_field.dump(str(db), "front", contains=False, out=None)
+    captured = capsys.readouterr().out
+    assert "--- field 0 (5 chars) ---" in captured
+    assert "'front'" in captured
+
+
+def test_default_collection_found(monkeypatch, tmp_path):
+    monkeypatch.setattr("os.path.expanduser", lambda x: str(tmp_path))
+    profile_dir = tmp_path / "Library/Application Support/Anki2/User 1"
+    os.makedirs(profile_dir)
+    col1 = profile_dir / "collection.anki2"
+    col1.write_text("1")
+
+    profile_dir2 = tmp_path / "Library/Application Support/Anki2/User 2"
+    os.makedirs(profile_dir2)
+    col2 = profile_dir2 / "collection.anki2"
+    col2.write_text("2")
+    os.utime(col2, (10, 10))
+    os.utime(col1, (20, 20))
+
+    assert dump_field.default_collection() == str(col1)
+
+
+def test_default_collection_not_found(monkeypatch, tmp_path):
+    monkeypatch.setattr("os.path.expanduser", lambda x: str(tmp_path))
+    with pytest.raises(SystemExit):
+        dump_field.default_collection()
+
+
+def test_main(monkeypatch, tmp_path):
+    import argparse
+    import sys
+
+    db = tmp_path / "c.anki2"
+    _make_collection(db).close()
+    monkeypatch.setattr("sys.argv", ["dump_field", "front", "--collection", str(db)])
+    import runpy
+
+    runpy.run_module("tools.dump_field", run_name="__main__")
