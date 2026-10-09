@@ -84,10 +84,30 @@ def _upstream_ahead() -> bool:
         return False
 
 
+def _rebase_identity() -> list[str]:
+    """-c user.name/user.email flags matching HEAD's committer, or [].
+
+    A rebase replays the unpushed commits and rewrites their COMMITTER from the
+    current repo config. Callers like `make precommit-fix YOLO=1` commit as
+    github-actions[bot] via per-command `-c` overrides that do not extend to
+    this subprocess, so the replayed commits would land on the remote with the
+    local user's committer (observed 2026-10-03: bot-authored commits showing
+    "ryusoh committed" on GitHub). Carrying HEAD's committer into the pull
+    keeps author and committer identical across the rebase.
+    """
+    res = _git_capture(['log', '-1', '--format=%cn%x00%ce', 'HEAD'])
+    if res.returncode != 0:
+        return []
+    name, _, email = res.stdout.rstrip('\n').partition('\x00')
+    if not name or not email:
+        return []
+    return ['-c', f'user.name={name}', '-c', f'user.email={email}']
+
+
 def _auto_rebase() -> bool:
     """Pull --rebase; abort any partial rebase on conflict. Return True on success."""
     print('⚠️  Remote has moved; attempting auto-rebase...', flush=True)
-    if _git_run(['pull', '--rebase']) == 0:
+    if _git_run([*_rebase_identity(), 'pull', '--rebase']) == 0:
         return True
     _git_run(['rebase', '--abort'])
     return False

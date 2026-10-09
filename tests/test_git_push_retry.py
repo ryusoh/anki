@@ -32,6 +32,7 @@ class FakeGit:
         chunk_push_results=(0,),
         upstream_ahead=0,
         pull_rebase_result=0,
+        committer='test\x00test@example.com',
     ):
         self.upstream = upstream
         self.unpushed = list(unpushed)
@@ -39,6 +40,7 @@ class FakeGit:
         self.chunk_push_results = list(chunk_push_results)
         self.upstream_ahead = upstream_ahead
         self.pull_rebase_result = pull_rebase_result
+        self.committer = committer
         self.run_calls = []
 
     def _next(self, results):
@@ -46,7 +48,7 @@ class FakeGit:
 
     def git_run(self, args):
         self.run_calls.append(args)
-        if args == ['pull', '--rebase']:
+        if args[-2:] == ['pull', '--rebase']:
             code = self.pull_rebase_result
         elif args == ['rebase', '--abort']:
             code = 0
@@ -60,7 +62,7 @@ class FakeGit:
         if code != 0 or not self.unpushed or args == ['rebase', '--abort'] or args == ['fetch']:
             return code
 
-        if args == ['pull', '--rebase']:
+        if args[-2:] == ['pull', '--rebase']:
             # Rebase replays local commits; they remain unpushed.
             return code
         if args[-1] == 'push':
@@ -77,6 +79,8 @@ class FakeGit:
             if self.upstream is None:
                 return subprocess.CompletedProcess(args, 128, stdout='', stderr='no upstream')
             return subprocess.CompletedProcess(args, 0, stdout=self.upstream + '\n', stderr='')
+        if args[:2] == ['log', '-1']:
+            return subprocess.CompletedProcess(args, 0, stdout=self.committer + '\n', stderr='')
         if args[0] == 'rev-list':
             if args[1:3] == ['--count', 'HEAD..@{u}']:
                 return subprocess.CompletedProcess(
@@ -94,6 +98,11 @@ def run_main(fake, argv=()):
     ):
         code = git_push_retry.main(list(argv))
     return code, sleep
+
+
+def pull_rebase_calls(fake):
+    """The `pull --rebase` invocations, tolerating a leading -c identity prefix."""
+    return [c for c in fake.run_calls if c[-2:] == ['pull', '--rebase']]
 
 
 def test_success_first_try_pushes_once_without_sleeping():
@@ -180,8 +189,45 @@ def test_auto_rebase_pulls_and_retries_when_upstream_moved():
     code, _ = run_main(fake, ['--auto-rebase', '--attempts', '2'])
     assert code == 0
     assert ['fetch'] in fake.run_calls
-    assert ['pull', '--rebase'] in fake.run_calls
+    assert len(pull_rebase_calls(fake)) == 1
     assert fake.run_calls[-1][-1] == 'push'
+
+
+def test_auto_rebase_carries_head_committer_identity_into_the_pull():
+    # `make precommit-fix YOLO=1` commits as github-actions[bot] via per-command
+    # -c overrides; the rebase must reuse that committer or the replayed commits
+    # get stamped with the local repo config's identity (seen 2026-10-03).
+    fake = FakeGit(
+        unpushed=['aaa'],
+        full_push_results=[1, 0],
+        upstream_ahead=1,
+        pull_rebase_result=0,
+        committer='github-actions[bot]\x0041898282+github-actions[bot]@users.noreply.github.com',
+    )
+    code, _ = run_main(fake, ['--auto-rebase', '--attempts', '2'])
+    assert code == 0
+    (pull,) = pull_rebase_calls(fake)
+    assert pull == [
+        '-c',
+        'user.name=github-actions[bot]',
+        '-c',
+        'user.email=41898282+github-actions[bot]@users.noreply.github.com',
+        'pull',
+        '--rebase',
+    ]
+
+
+def test_auto_rebase_without_identity_falls_back_to_plain_pull():
+    fake = FakeGit(
+        unpushed=['aaa'],
+        full_push_results=[1, 0],
+        upstream_ahead=1,
+        pull_rebase_result=0,
+        committer='\x00',
+    )
+    code, _ = run_main(fake, ['--auto-rebase', '--attempts', '2'])
+    assert code == 0
+    assert pull_rebase_calls(fake) == [['pull', '--rebase']]
 
 
 def test_auto_rebase_aborts_and_fails_on_conflict():
@@ -193,7 +239,7 @@ def test_auto_rebase_aborts_and_fails_on_conflict():
     )
     code, _ = run_main(fake, ['--auto-rebase', '--attempts', '2'])
     assert code == 1
-    assert ['pull', '--rebase'] in fake.run_calls
+    assert len(pull_rebase_calls(fake)) == 1
     assert ['rebase', '--abort'] in fake.run_calls
 
 
@@ -207,7 +253,7 @@ def test_auto_rebase_skipped_when_upstream_not_ahead():
     code, _ = run_main(fake, ['--auto-rebase'])
     assert code == 0
     assert ['fetch'] in fake.run_calls
-    assert ['pull', '--rebase'] not in fake.run_calls
+    assert pull_rebase_calls(fake) == []
 
 
 def test_no_auto_rebase_without_flag_even_if_upstream_ahead():
@@ -215,7 +261,7 @@ def test_no_auto_rebase_without_flag_even_if_upstream_ahead():
     code, _ = run_main(fake, ['--attempts', '2'])
     assert code == 1
     assert ['fetch'] not in fake.run_calls
-    assert ['pull', '--rebase'] not in fake.run_calls
+    assert pull_rebase_calls(fake) == []
 
 
 def _git(cwd, *args):
@@ -328,6 +374,64 @@ def test_integration_auto_rebase_when_remote_moves(tmp_path, monkeypatch):
         capture_output=True,
     )
     assert ancestor_check.returncode == 0
+
+
+def test_integration_auto_rebase_preserves_committer_identity(tmp_path, monkeypatch):
+    """A bot-committed local commit must keep its bot committer through the rebase.
+
+    Reproduces the 2026-10-03 `make precommit-fix YOLO=1` run: commits created
+    with per-command `-c user.name/user.email` overrides came back from the
+    auto-rebase stamped with the repo config's committer instead.
+    """
+    remote = tmp_path / 'remote.git'
+    subprocess.run(
+        ['git', 'init', '--bare', '-b', 'main', str(remote)], check=True, capture_output=True
+    )
+
+    clone1 = tmp_path / 'clone1'
+    subprocess.run(['git', 'clone', str(remote), str(clone1)], check=True, capture_output=True)
+    _git(clone1, 'config', 'user.email', 'human@example.com')
+    _git(clone1, 'config', 'user.name', 'human')
+    (clone1 / 'base.txt').write_text('base')
+    _git(clone1, 'add', '-A')
+    _git(clone1, 'commit', '-m', 'base')
+    _git(clone1, 'push', '-u', 'origin', 'main')
+
+    clone2 = tmp_path / 'clone2'
+    subprocess.run(['git', 'clone', str(remote), str(clone2)], check=True, capture_output=True)
+    _git(clone2, 'config', 'user.email', 'test@example.com')
+    _git(clone2, 'config', 'user.name', 'test')
+    (clone2 / 'remote.txt').write_text('remote')
+    _git(clone2, 'add', '-A')
+    _git(clone2, 'commit', '-m', 'remote commit')
+    _git(clone2, 'push')
+
+    (clone1 / 'local.txt').write_text('local')
+    _git(clone1, 'add', '-A')
+    _git(
+        clone1,
+        '-c',
+        'user.name=github-actions[bot]',
+        '-c',
+        'user.email=41898282+github-actions[bot]@users.noreply.github.com',
+        'commit',
+        '-m',
+        'local commit',
+    )
+
+    monkeypatch.chdir(clone1)
+    code = git_push_retry.main(['--auto-rebase'])
+    assert code == 0
+
+    committer = subprocess.run(
+        ['git', '-C', str(clone1), 'log', '-1', '--format=%cn <%ce>'],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    assert (
+        committer == 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
+    )
 
 
 if __name__ == '__main__':
