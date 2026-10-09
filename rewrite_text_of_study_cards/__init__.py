@@ -85,7 +85,6 @@ def _renderStats_3(self: "DeckBrowser") -> str:
         )
 
 
-orig__renderStats = DeckBrowser._renderStats
 DeckBrowser._renderStats = _renderStats_3
 
 
