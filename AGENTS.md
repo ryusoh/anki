@@ -98,6 +98,14 @@ Writing a design spec for another agent to implement? See
 git push --force-with-lease`) so the branch stays one commit. And stage by
     name (`git add <file>`, never `git add -A`) — verification-run scratch
     (`*_output.txt`, `*_out.json`, `*.log`, coverage dumps) must never reach a commit.
+12. **Absolute ban on destructive git commands.** Never run `git checkout -- <file>`,
+    `git restore <file>`, `git reset --hard`, or `git clean` without explicit user
+    confirmation. Multiple agents, background routines, and the human share this
+    repository concurrently. Uncommitted modifications in the working tree or index
+    often belong to a concurrent agent or user session in another window. Discarding
+    changes or assuming diffs outside your immediate task scope are "stray debris"
+    destroys active work. Stage only files you own (`git add <file>`), never revert
+    foreign files, and never assume exclusive ownership of the working tree.
 
 ## You cannot see the rendered page
 
@@ -307,6 +315,15 @@ is false. Confirm both pytest **and** the JS runner execute.
   At each transaction boundary (after commits or gate checks) and on session resumption,
   follow the skill's `## Resume protocol`: re-anchor working memory directly from
   authoritative ground truth (`git status`, `git log`, state file) before dispatching tools.
+- **Concurrent agents sharing one worktree.** When you run parallel subagents
+  (swarms, background agents) in this checkout: stage only files you changed
+  (`git add <specific-files>`, never `git add -A`), never `git stash`,
+  `git reset --hard`, `git checkout -- <file>`, `git restore <file>`, or
+  `git commit --no-verify` — a sibling agent's work may be sitting in the same
+  tree. Never discard changes on files outside your assigned task scope;
+  uncommitted edits in other directories belong to concurrent work streams or
+  the user in another window. Keep concurrent agents on disjoint file sets; if a
+  rebase/conflict lands mid-run, resolve only files your task owns.
 
 ## Sibling repositories
 
