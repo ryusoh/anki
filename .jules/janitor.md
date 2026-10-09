@@ -96,6 +96,14 @@ Conventional Commits per `AGENTS.md`.
   single commit. The hygiene gate is per-commit, so intermediate mistakes
   (empty pushes, committed scratch like `*_output.txt` or `*.log`) are
   permanent until squashed (AGENTS.md non-negotiable #11).
+- **Edit files directly — never via a rewrite script, and never run a foreign
+  package manager.** PR #538 shipped both `fix.py` (a throwaway script that
+  performed the edit by filtering lines) and a 5155-line `pnpm-lock.yaml`
+  (this repo is npm; the foreign lockfile failed dependency-review on a
+  high-severity advisory). Make the edit in place; if you ever create a
+  helper script, delete it before staging and stage only the files the PR is
+  about. Never run `pnpm`/`yarn`/`bun` — dependency work here is `npm` +
+  `package-lock.json` only.
 - Title / commit subject: `chore(<scope>): remove <thing>` or
   `fix(<scope>): resolve <todo>` as appropriate. Imperative, lower-case, ≤ 72 chars,
   **no emoji, no `Janitor:` prefix**.

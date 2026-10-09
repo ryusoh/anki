@@ -109,6 +109,10 @@ def test_bot_stray_artifact_flagged(repo: Path) -> None:
         'commit_message.txt',
         'patch_prior.py',
         'fix_typo.cjs',
+        'fix.py',
+        'pnpm-lock.yaml',
+        'yarn.lock',
+        'frontend/bun.lockb',
     ],
 )
 def test_bot_stray_scratch_artifacts_flagged(repo: Path, path: str) -> None:
@@ -125,6 +129,7 @@ def test_bot_stray_scratch_artifacts_flagged(repo: Path, path: str) -> None:
         'logs.txt',
         'data/output_dir/result.txt',
         'tools/fix_jp_pinyin_front.py',
+        'package-lock.json',
     ],
 )
 def test_bot_non_stray_output_names_pass(repo: Path, path: str) -> None:

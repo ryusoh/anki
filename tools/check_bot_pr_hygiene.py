@@ -66,13 +66,18 @@ def _is_stray_artifact(path: str) -> bool:
     if name.startswith(('temp_', 'dummy_')):
         return True
     # Root-level bot scratch scripts (PR #534 shipped patch_prior.py, a one-off
-    # sed-style rewrite of a test file). Root-only so real tools such as
-    # tools/fix_jp_pinyin_front.py are unaffected.
+    # sed-style rewrite of a test file; PR #538 shipped fix.py). Root-only so
+    # real tools such as tools/fix_jp_pinyin_front.py are unaffected.
+    stem, _, ext = name.rpartition('.')
     if (
         len(parts) == 1
-        and name.startswith(('patch_', 'fix_', 'scratch_'))
-        and name.endswith(('.py', '.cjs', '.js', '.sh'))
+        and (stem in {'patch', 'fix', 'scratch'} or stem.startswith(('patch_', 'fix_', 'scratch_')))
+        and ext in {'py', 'cjs', 'js', 'sh'}
     ):
+        return True
+    # Foreign package-manager lockfiles — this repo is npm (package-lock.json).
+    # PR #538 shipped a 5155-line pnpm-lock.yaml that failed dependency-review.
+    if name in {'pnpm-lock.yaml', 'yarn.lock', 'bun.lock', 'bun.lockb'}:
         return True
     return False
 
