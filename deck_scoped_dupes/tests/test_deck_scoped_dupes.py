@@ -148,7 +148,7 @@ class TestFieldsCheckPatch:
         assert env.db.queries == []
 
     def test_new_note_dupe_in_target_deck_keeps_flag(self, load_addon):
-        env = load_addon(note_rows=[(7, "水\x1fwater")])
+        env = load_addon(note_rows=[(7, MID, "水\x1fwater")])
         env.mod.on_add_cards_did_init(
             SimpleNamespace(deck_chooser=SimpleNamespace(selected_deck_id=DECK_JA))
         )
@@ -170,7 +170,7 @@ class TestFieldsCheckPatch:
         assert env.db.queries == []
 
     def test_existing_note_sharing_deck_keeps_flag(self, load_addon):
-        env = load_addon(note_rows=[(7, "水\x1fwater")], card_dids=[DECK_JA])
+        env = load_addon(note_rows=[(7, MID, "水\x1fwater")], card_dids=[DECK_JA])
         note = env.Note(5, MID, ["水"], env.col)
         assert note.fields_check() == STATE_DUPLICATE
 
@@ -193,7 +193,7 @@ class TestFieldsCheckPatch:
         notes_queries = [q for q in env.db.queries if "FROM notes" in q[0]]
         assert notes_queries, "expected a notes query"
         params = notes_queries[0][1]
-        assert set(params[3:]) == {1, DECK_JA, DECK_TAI}
+        assert set(params[2:]) == {1, DECK_JA, DECK_TAI}
 
     def test_exact_deck_only_by_default(self, load_addon):
         decks = {1: "言語", DECK_JA: "言語::日語"}
@@ -202,7 +202,7 @@ class TestFieldsCheckPatch:
         note = env.Note(0, MID, ["水"], env.col)
         note.fields_check()
         notes_queries = [q for q in env.db.queries if "FROM notes" in q[0]]
-        assert set(notes_queries[0][1][3:]) == {1}
+        assert set(notes_queries[0][1][2:]) == {1}
 
 
 class TestHookRegistration:
@@ -263,6 +263,81 @@ class TestBrowserFindDupes:
     def test_no_dupes_found_shows_tooltip(self, load_addon):
         env = load_addon()
         browser = self.make_browser(env, 'deck:"言語::日語"', [(1, MID, "水\x1fx")])
+        env.mod.find_dupes_in_current_deck(browser)
+        assert env.utils.tooltip.called
+        assert not browser.search_for.called
+
+
+OTHER_MID = 20
+
+
+class TestCrossNotetypeDupes:
+    def test_normal_upgraded_when_cross_notetype_dupe_in_deck(self, load_addon):
+        env = load_addon(state=STATE_NORMAL, note_rows=[(7, OTHER_MID, "水\x1fwater")])
+        env.mod.on_add_cards_did_change_deck(DECK_JA)
+        note = env.Note(0, MID, ["水"], env.col)
+        assert note.fields_check() == STATE_DUPLICATE
+
+    def test_no_upgrade_when_cross_notetype_disabled(self, load_addon):
+        env = load_addon(
+            state=STATE_NORMAL,
+            config={"cross_notetype_dupes": False},
+            note_rows=[(7, OTHER_MID, "水\x1fwater")],
+        )
+        env.mod.on_add_cards_did_change_deck(DECK_JA)
+        note = env.Note(0, MID, ["水"], env.col)
+        assert note.fields_check() == STATE_NORMAL
+
+    def test_duplicate_kept_via_cross_notetype_match(self, load_addon):
+        # backend flagged a dupe in another deck (same notetype); the only
+        # in-scope match is a different notetype
+        env = load_addon(note_rows=[(7, OTHER_MID, "水\x1fwater")])
+        env.mod.on_add_cards_did_change_deck(DECK_JA)
+        note = env.Note(0, MID, ["水"], env.col)
+        assert note.fields_check() == STATE_DUPLICATE
+
+    def test_duplicate_cleared_when_only_cross_match_and_disabled(self, load_addon):
+        env = load_addon(
+            config={"cross_notetype_dupes": False},
+            note_rows=[(7, OTHER_MID, "水\x1fwater")],
+        )
+        env.mod.on_add_cards_did_change_deck(DECK_JA)
+        note = env.Note(0, MID, ["水"], env.col)
+        assert note.fields_check() == STATE_NORMAL
+
+    def test_empty_state_never_upgraded(self, load_addon):
+        env = load_addon(state=STATE_EMPTY, note_rows=[(7, OTHER_MID, "水\x1fwater")])
+        env.mod.on_add_cards_did_change_deck(DECK_JA)
+        note = env.Note(0, MID, [""], env.col)
+        assert note.fields_check() == STATE_EMPTY
+        assert env.db.queries == []
+
+    def test_existing_note_cross_notetype_dupe_upgrades(self, load_addon):
+        env = load_addon(
+            state=STATE_NORMAL,
+            note_rows=[(7, OTHER_MID, "水\x1fwater")],
+            card_dids=[DECK_JA],
+        )
+        note = env.Note(5, MID, ["水"], env.col)
+        assert note.fields_check() == STATE_DUPLICATE
+
+    def test_browser_finder_groups_across_notetypes(self, load_addon):
+        env = load_addon()
+        rows = [
+            (1, MID, "水\x1fwater"),
+            (2, OTHER_MID, "水\x1fwater"),
+        ]
+        browser = TestBrowserFindDupes.make_browser(self, env, 'deck:"言語::日語"', rows)
+        env.mod.find_dupes_in_current_deck(browser)
+        browser.search_for.assert_called_once_with("nid:1,2")
+
+    def test_browser_finder_per_notetype_when_disabled(self, load_addon):
+        env = load_addon(config={"cross_notetype_dupes": False})
+        rows = [
+            (1, MID, "水\x1fwater"),
+            (2, OTHER_MID, "水\x1fwater"),
+        ]
+        browser = TestBrowserFindDupes.make_browser(self, env, 'deck:"言語::日語"', rows)
         env.mod.find_dupes_in_current_deck(browser)
         assert env.utils.tooltip.called
         assert not browser.search_for.called

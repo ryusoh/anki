@@ -1,3 +1,4 @@
 {
-  "include_subdecks": false
+  "include_subdecks": false,
+  "cross_notetype_dupes": true
 }

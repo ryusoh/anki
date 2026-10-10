@@ -96,18 +96,23 @@ def expand_subdecks(
     return out
 
 
-def dupe_groups(rows: Iterable[Tuple[int, int, str]]) -> List[Tuple[str, List[int]]]:
-    """Group (nid, mid, flds) rows sharing notetype + stripped first field.
+def dupe_groups(
+    rows: Iterable[Tuple[int, int, str]], per_notetype: bool = True
+) -> List[Tuple[str, List[int]]]:
+    """Group (nid, mid, flds) rows sharing a stripped first field.
 
-    Mirrors col.find_dupes: empty stripped fields never count as dupes.
+    With per_notetype (the default, mirroring col.find_dupes) only same-
+    notetype notes group together; pass False to also surface cross-notetype
+    dupes. Empty stripped fields never count as dupes.
     """
     vals: dict = {}
     for nid, mid, flds in rows:
         val = strip_for_compare(first_field(flds))
         if not val.strip():
             continue
-        vals.setdefault((mid, val), []).append(nid)
-    return [(val, nids) for (_mid, val), nids in vals.items() if len(nids) > 1]
+        key = (mid, val) if per_notetype else val
+        vals.setdefault(key, []).append(nid)
+    return [(key[1] if per_notetype else key, nids) for key, nids in vals.items() if len(nids) > 1]
 
 
 def decks_of_note(db, note_id: int) -> List[int]:
@@ -116,28 +121,26 @@ def decks_of_note(db, note_id: int) -> List[int]:
     return [row[0] for row in rows]
 
 
-def has_dupe_in_decks(
+def find_deck_dupes(
     db,
     note_id: int,
-    mid: int,
     first_field_html: str,
     dids: Iterable[int],
-) -> bool:
-    """True if another note of the same notetype has the same stripped first
-    field AND at least one card in one of the scope decks."""
+) -> Set[int]:
+    """Notetype ids of notes duplicating this one's first field that have a
+    card in one of the scope decks — same notetype or not."""
     target = strip_for_compare(first_field_html)
     dids = set(dids)
     if not target.strip() or not dids:
-        return False
+        return set()
     placeholders = ",".join("?" for _ in dids)
     rows = db.all(
-        "SELECT n.id, n.flds FROM notes n"
-        " WHERE n.mid = ? AND n.csum = ? AND n.id != ?"
+        "SELECT n.id, n.mid, n.flds FROM notes n"
+        " WHERE n.csum = ? AND n.id != ?"
         " AND EXISTS (SELECT 1 FROM cards c"
         f" WHERE c.nid = n.id AND c.did IN ({placeholders}))",
-        mid,
         field_checksum(target),
         note_id,
         *dids,
     )
-    return any(strip_for_compare(first_field(row[1])) == target for row in rows)
+    return {row[1] for row in rows if strip_for_compare(first_field(row[2])) == target}

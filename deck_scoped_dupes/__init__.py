@@ -3,13 +3,16 @@
 """
 Anki Add-on: Deck-Scoped Duplicates
 
-Anki flags a note as a duplicate whenever another note of the same notetype
-shares its first field — across the whole collection. With one deck per
-language (or topic), a Japanese word written with Chinese characters collides
-with the same characters in a Taiwanese or Wu deck, and the warning is noise.
+Anki flags a note as a duplicate only against notes of the SAME notetype,
+but across the whole collection. With one deck per language (or topic), a
+Japanese word written with Chinese characters collides with the same
+characters in a Taiwanese or Wu deck, and the warning is noise — while a
+genuine duplicate made under a different notetype in the same deck is
+missed entirely.
 
-This add-on scopes the duplicate check to decks: a note is only a duplicate
-when the matching note has a card in the SAME deck.
+This add-on scopes the duplicate check to decks and across notetypes: a
+note is a duplicate when a note sharing its first field has a card in the
+SAME deck, whatever notetype that note uses.
 
 - While adding cards, the "same deck" is the deck picked in the Add dialog's
   deck chooser (tracked via gui_hooks).
@@ -18,10 +21,12 @@ when the matching note has a card in the SAME deck.
 - A "Find Duplicates in This Deck" action in the browser's Notes menu lists
   the within-deck duplicates of the deck named in the current search.
 
-Only DUPLICATE results are ever downgraded to NORMAL; every other
-fields_check result (empty, cloze problems, real same-deck dupes) passes
-through untouched. Set "include_subdecks": true in the add-on config to treat
-a deck and its subdecks as one scope.
+Only the NORMAL/DUPLICATE verdicts are ever changed (empty and cloze
+problems pass through untouched): DUPLICATE is downgraded when no matching
+note shares a deck, NORMAL is upgraded when a cross-notetype match shares
+one. Config: "include_subdecks" treats a deck and its subdecks as one scope
+(default false); "cross_notetype_dupes" disables the cross-notetype
+matching when set to false (default true).
 """
 
 from __future__ import annotations
@@ -52,6 +57,10 @@ def _include_subdecks():
     return bool(_config().get("include_subdecks", False))
 
 
+def _cross_notetype():
+    return bool(_config().get("cross_notetype_dupes", True))
+
+
 def _all_decks(col):
     return [(d.id, d.name) for d in col.decks.all_names_and_ids()]
 
@@ -71,16 +80,21 @@ def _scope_dids(col, note):
 
 def _scoped_fields_check(note):
     state = _original_fields_check(note)
-    if state != core.STATE_DUPLICATE:
+    if state not in (core.STATE_NORMAL, core.STATE_DUPLICATE):
         return state
     col = note.col
     dids = _scope_dids(col, note)
     if not dids:
         return state
     first = note.fields[0] if note.fields else ""
-    if core.has_dupe_in_decks(col.db, note.id or 0, note.mid, first, dids):
-        return state
-    return core.STATE_NORMAL
+    dupe_mids = core.find_deck_dupes(col.db, note.id or 0, first, dids)
+    same_notetype = note.mid in dupe_mids
+    cross_notetype = _cross_notetype() and bool(dupe_mids - {note.mid})
+    if state == core.STATE_DUPLICATE:
+        return state if (same_notetype or cross_notetype) else core.STATE_NORMAL
+    # backend's check is same-notetype only: a cross-notetype match in scope
+    # is a dupe Anki itself can never see
+    return core.STATE_DUPLICATE if cross_notetype else state
 
 
 def _patch_note():
@@ -131,7 +145,11 @@ def find_dupes_in_current_deck(browser):
         f" WHERE c.did IN ({placeholders})",
         *dids,
     )
-    nids = [nid for _val, group in core.dupe_groups(rows) for nid in group]
+    nids = [
+        nid
+        for _val, group in core.dupe_groups(rows, per_notetype=not _cross_notetype())
+        for nid in group
+    ]
     if not nids:
         tooltip("No duplicates found in this deck.")
         return

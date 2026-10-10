@@ -154,29 +154,54 @@ class TestDecksOfNote:
         assert params == (99,)
 
 
-class TestHasDupeInDecks:
-    def test_true_when_same_deck_note_matches(self):
-        db = FakeDb([(7, "<b>水</b>\x1fwater")])
-        assert core.has_dupe_in_decks(db, 1, 10, "水", {2}) is True
+class TestFindDeckDupes:
+    """find_deck_dupes returns the notetype ids of in-scope duplicate notes,
+    so callers can distinguish same-notetype from cross-notetype dupes."""
+
+    def test_returns_mid_of_same_deck_match(self):
+        db = FakeDb([(7, 10, "<b>水</b>\x1fwater")])
+        assert core.find_deck_dupes(db, 1, "水", {2}) == {10}
         sql, params = db.queries[0]
-        # same notetype, checksum of the stripped field, other notes only,
-        # restricted to cards in the scope decks
-        assert params == (10, core.field_checksum("水"), 1, 2)
+        # checksum of the stripped field, other notes only, cards in scope;
+        # no notetype constraint so cross-notetype dupes are visible
+        assert params == (core.field_checksum("水"), 1, 2)
 
-    def test_false_when_fields_differ_after_strip(self):
-        db = FakeDb([(7, "氺\x1fwater")])
-        assert core.has_dupe_in_decks(db, 1, 10, "水", {2}) is False
+    def test_includes_other_notetypes(self):
+        db = FakeDb([(7, 20, "水\x1fwater")])
+        assert core.find_deck_dupes(db, 1, "水", {2}) == {20}
 
-    def test_false_with_no_scope_decks(self):
-        db = FakeDb([(7, "水\x1fwater")])
-        assert core.has_dupe_in_decks(db, 1, 10, "水", set()) is False
+    def test_collects_all_matching_mids(self):
+        db = FakeDb([(7, 10, "水\x1fa"), (8, 20, "<i>水</i>\x1fb")])
+        assert core.find_deck_dupes(db, 1, "水", {2}) == {10, 20}
+
+    def test_empty_when_fields_differ_after_strip(self):
+        db = FakeDb([(7, 10, "氺\x1fwater")])
+        assert core.find_deck_dupes(db, 1, "水", {2}) == set()
+
+    def test_empty_with_no_scope_decks(self):
+        db = FakeDb([(7, 10, "水\x1fwater")])
+        assert core.find_deck_dupes(db, 1, "水", set()) == set()
         assert db.queries == []
 
-    def test_false_for_blank_first_field(self):
-        db = FakeDb([(7, "  \x1fwater")])
-        assert core.has_dupe_in_decks(db, 1, 10, "<br>", {2}) is False
+    def test_empty_for_blank_first_field(self):
+        db = FakeDb([(7, 10, "  \x1fwater")])
+        assert core.find_deck_dupes(db, 1, "<br>", {2}) == set()
         assert db.queries == []
 
     def test_media_filename_equivalence_counts(self):
-        db = FakeDb([(7, '<img src="a.png">\x1fx')])
-        assert core.has_dupe_in_decks(db, 1, 10, "<img src=a.png>", {2}) is True
+        db = FakeDb([(7, 10, '<img src="a.png">\x1fx')])
+        assert core.find_deck_dupes(db, 1, "<img src=a.png>", {2}) == {10}
+
+
+class TestDupeGroupsCrossNotetype:
+    def test_groups_across_notetypes_when_disabled(self):
+        rows = [
+            (1, 10, "水\x1fwater"),
+            (2, 20, "<b>水</b>\x1fwater"),
+            (3, 30, "火\x1ffire"),
+        ]
+        assert core.dupe_groups(rows, per_notetype=False) == [("水", [1, 2])]
+
+    def test_default_still_per_notetype(self):
+        rows = [(1, 10, "水\x1fx"), (2, 20, "水\x1fy")]
+        assert core.dupe_groups(rows) == []
