@@ -24,10 +24,12 @@ STATE_DUPLICATE = 2
 
 # Mirrors HTML_MEDIA_TAGS in rslib/src/text.rs: capture the src/data filename
 # of img/audio/video/object/source tags (double-quoted, single-quoted, or
-# unquoted).
+# unquoted). The attribute-scan alternation uses disjoint first characters
+# ([^>"'] vs '"' vs "'") so it accepts the same language as upstream's
+# overlapping one without the backtracking ambiguity.
 _MEDIA_TAG_RE = re.compile(
     r"<\s*\b(?:img|audio|video|object|source)\b"
-    r"(?:[^>]|\"[^\"]+?\"|'[^']+?')+?"
+    r"(?:[^>\"']|\"[^\"]*\"|'[^']*')*"
     r"\b(?:src|data)\b="
     r"""(?:"([^"]+?)"[^>]*>|'([^']+?)'[^>]*>|([^ >]+?)(?:\s[^>]*>|>))""",
     re.IGNORECASE | re.DOTALL,
