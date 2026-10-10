@@ -23,10 +23,13 @@ SAME deck, whatever notetype that note uses.
 
 Only the NORMAL/DUPLICATE verdicts are ever changed (empty and cloze
 problems pass through untouched): DUPLICATE is downgraded when no matching
-note shares a deck, NORMAL is upgraded when a cross-notetype match shares
-one. Config: "include_subdecks" treats a deck and its subdecks as one scope
+note shares a deck, NORMAL is upgraded when a cross-notetype match — or a
+case variant in a deck listed in "case_insensitive_decks" — shares one.
+Config: "include_subdecks" treats a deck and its subdecks as one scope
 (default false); "cross_notetype_dupes" disables the cross-notetype
-matching when set to false (default true).
+matching when set to false (default true); "case_insensitive_decks" lists
+deck names whose comparisons ignore letter case, subdecks included
+(default ["金融"] — case differences stay meaningful in the English deck).
 """
 
 from __future__ import annotations
@@ -61,21 +64,34 @@ def _cross_notetype():
     return bool(_config().get("cross_notetype_dupes", True))
 
 
+def _case_insensitive(col, anchor_dids):
+    """True when an anchor deck (or its parent) is in case_insensitive_decks."""
+    names = _config().get("case_insensitive_decks")
+    if not isinstance(names, list):
+        return False
+    return core.any_deck_named(anchor_dids, _all_decks(col), [str(n) for n in names])
+
+
 def _all_decks(col):
     return [(d.id, d.name) for d in col.decks.all_names_and_ids()]
 
 
 def _scope_dids(col, note):
-    """Decks the dupe check is scoped to, or None to keep Anki's behavior."""
+    """(anchor_dids, scope_dids), or (None, None) to keep Anki's behavior.
+
+    The anchor is the pre-expansion deck set: the Add dialog's deck for a new
+    note, the note's own card decks for an existing one. It decides whether
+    the case-insensitive deck list applies.
+    """
     if not note.id:
         if _add_cards_deck_id is None:
-            return None
-        dids = {_add_cards_deck_id}
+            return None, None
+        anchor = {_add_cards_deck_id}
     else:
-        dids = set(core.decks_of_note(col.db, note.id))
-        if not dids:
-            return None
-    return core.expand_subdecks(dids, _all_decks(col), _include_subdecks())
+        anchor = set(core.decks_of_note(col.db, note.id))
+        if not anchor:
+            return None, None
+    return anchor, core.expand_subdecks(anchor, _all_decks(col), _include_subdecks())
 
 
 def _scoped_fields_check(note):
@@ -83,18 +99,23 @@ def _scoped_fields_check(note):
     if state not in (core.STATE_NORMAL, core.STATE_DUPLICATE):
         return state
     col = note.col
-    dids = _scope_dids(col, note)
+    anchor, dids = _scope_dids(col, note)
     if not dids:
         return state
+    case_insensitive = _case_insensitive(col, anchor)
     first = note.fields[0] if note.fields else ""
-    dupe_mids = core.find_deck_dupes(col.db, note.id or 0, first, dids)
+    dupe_mids = core.find_deck_dupes(
+        col.db, note.id or 0, first, dids, case_insensitive=case_insensitive
+    )
     same_notetype = note.mid in dupe_mids
     cross_notetype = _cross_notetype() and bool(dupe_mids - {note.mid})
     if state == core.STATE_DUPLICATE:
         return state if (same_notetype or cross_notetype) else core.STATE_NORMAL
-    # backend's check is same-notetype only: a cross-notetype match in scope
-    # is a dupe Anki itself can never see
-    return core.STATE_DUPLICATE if cross_notetype else state
+    # backend's check is same-notetype and case-sensitive: a cross-notetype
+    # match, or a case variant in a case-insensitive deck, is a dupe Anki
+    # itself can never see
+    upgrade = cross_notetype or (case_insensitive and same_notetype)
+    return core.STATE_DUPLICATE if upgrade else state
 
 
 def _patch_note():
@@ -138,6 +159,7 @@ def find_dupes_in_current_deck(browser):
         tooltip(f"Deck not found: {deck_name}")
         return
     dids = core.expand_subdecks({deck["id"]}, _all_decks(col), _include_subdecks())
+    case_insensitive = _case_insensitive(col, {deck["id"]})
     placeholders = ",".join("?" for _ in dids)
     rows = col.db.all(
         "SELECT DISTINCT n.id, n.mid, n.flds FROM notes n"
@@ -147,7 +169,11 @@ def find_dupes_in_current_deck(browser):
     )
     nids = [
         nid
-        for _val, group in core.dupe_groups(rows, per_notetype=not _cross_notetype())
+        for _val, group in core.dupe_groups(
+            rows,
+            per_notetype=not _cross_notetype(),
+            case_insensitive=case_insensitive,
+        )
         for nid in group
     ]
     if not nids:

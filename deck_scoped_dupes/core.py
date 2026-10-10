@@ -45,13 +45,18 @@ def _media_filename(match: "re.Match[str]") -> str:
     return f" {fname} "
 
 
-def strip_for_compare(text: str) -> str:
-    """Reduce a field to the string Anki's dupe check compares on."""
+def strip_for_compare(text: str, case_insensitive: bool = False) -> str:
+    """Reduce a field to the string Anki's dupe check compares on.
+
+    case_insensitive applies Unicode casefolding on top — an add-on layer
+    Anki itself never does (its backend compares case-sensitively)."""
     text = unicodedata.normalize("NFC", text)
     text = _MEDIA_TAG_RE.sub(_media_filename, text)
     text = _HTML_RE.sub("", text)
     if "&" in text:
         text = html.unescape(text).replace("\xa0", " ")
+    if case_insensitive:
+        text = text.casefold()
     return text
 
 
@@ -96,8 +101,29 @@ def expand_subdecks(
     return out
 
 
+def any_deck_named(
+    dids: Iterable[int],
+    all_decks: Sequence[Tuple[int, str]],
+    names: Sequence[str],
+) -> bool:
+    """True if any of ``dids`` is one of ``names`` or a subdeck of one.
+
+    ``all_decks`` is a sequence of (id, name) with '::'-separated names.
+    """
+    if not names:
+        return False
+    for did, name in all_decks:
+        if did in dids and any(
+            name == listed or name.startswith(listed + "::") for listed in names
+        ):
+            return True
+    return False
+
+
 def dupe_groups(
-    rows: Iterable[Tuple[int, int, str]], per_notetype: bool = True
+    rows: Iterable[Tuple[int, int, str]],
+    per_notetype: bool = True,
+    case_insensitive: bool = False,
 ) -> List[Tuple[str, List[int]]]:
     """Group (nid, mid, flds) rows sharing a stripped first field.
 
@@ -107,7 +133,7 @@ def dupe_groups(
     """
     vals: dict = {}
     for nid, mid, flds in rows:
-        val = strip_for_compare(first_field(flds))
+        val = strip_for_compare(first_field(flds), case_insensitive)
         if not val.strip():
             continue
         key = (mid, val) if per_notetype else val
@@ -126,21 +152,36 @@ def find_deck_dupes(
     note_id: int,
     first_field_html: str,
     dids: Iterable[int],
+    case_insensitive: bool = False,
 ) -> Set[int]:
     """Notetype ids of notes duplicating this one's first field that have a
-    card in one of the scope decks — same notetype or not."""
-    target = strip_for_compare(first_field_html)
+    card in one of the scope decks — same notetype or not.
+
+    Case-insensitive mode cannot use the case-sensitive csum hash as a
+    prefilter, so it extracts first fields in SQL and compares in Python.
+    """
+    target = strip_for_compare(first_field_html, case_insensitive)
     dids = set(dids)
     if not target.strip() or not dids:
         return set()
     placeholders = ",".join("?" for _ in dids)
-    rows = db.all(
-        "SELECT n.id, n.mid, n.flds FROM notes n"
-        " WHERE n.csum = ? AND n.id != ?"
-        " AND EXISTS (SELECT 1 FROM cards c"
-        f" WHERE c.nid = n.id AND c.did IN ({placeholders}))",
-        field_checksum(target),
-        note_id,
-        *dids,
-    )
-    return {row[1] for row in rows if strip_for_compare(first_field(row[2])) == target}
+    in_scope = "EXISTS (SELECT 1 FROM cards c" f" WHERE c.nid = n.id AND c.did IN ({placeholders}))"
+    if case_insensitive:
+        rows = db.all(
+            "SELECT n.id, n.mid,"
+            " substr(n.flds, 1, instr(n.flds || char(31), char(31)) - 1)"
+            f" FROM notes n WHERE n.id != ? AND {in_scope}",
+            note_id,
+            *dids,
+        )
+    else:
+        rows = db.all(
+            "SELECT n.id, n.mid, n.flds FROM notes n"
+            f" WHERE n.csum = ? AND n.id != ? AND {in_scope}",
+            field_checksum(target),
+            note_id,
+            *dids,
+        )
+    return {
+        row[1] for row in rows if strip_for_compare(first_field(row[2]), case_insensitive) == target
+    }

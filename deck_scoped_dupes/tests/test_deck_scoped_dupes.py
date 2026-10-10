@@ -341,3 +341,92 @@ class TestCrossNotetypeDupes:
         env.mod.find_dupes_in_current_deck(browser)
         assert env.utils.tooltip.called
         assert not browser.search_for.called
+
+
+DECK_FIN = 6
+FIN_DECKS = {DECK_FIN: "金融", DECK_JA: "言語::日語"}
+CI_CONFIG = {"case_insensitive_decks": ["金融"]}
+
+
+class TestCaseInsensitiveDecks:
+    def test_case_variant_upgrades_in_listed_deck(self, load_addon):
+        env = load_addon(
+            state=STATE_NORMAL,
+            config=CI_CONFIG,
+            note_rows=[(7, MID, "NASDAQ\x1findex")],
+            deck_names=FIN_DECKS,
+        )
+        env.mod.on_add_cards_did_change_deck(DECK_FIN)
+        note = env.Note(0, MID, ["nasdaq"], env.col)
+        assert note.fields_check() == STATE_DUPLICATE
+
+    def test_case_variant_ignored_in_unlisted_deck(self, load_addon):
+        env = load_addon(
+            state=STATE_NORMAL,
+            config=CI_CONFIG,
+            note_rows=[(7, MID, "NASDAQ\x1findex")],
+            deck_names=FIN_DECKS,
+        )
+        env.mod.on_add_cards_did_change_deck(DECK_JA)
+        note = env.Note(0, MID, ["nasdaq"], env.col)
+        assert note.fields_check() == STATE_NORMAL
+
+    def test_listed_parent_covers_subdeck(self, load_addon):
+        decks = {8: "金融::股票", DECK_JA: "言語::日語"}
+        env = load_addon(
+            state=STATE_NORMAL,
+            config=CI_CONFIG,
+            note_rows=[(7, MID, "NASDAQ\x1findex")],
+            deck_names=decks,
+        )
+        env.mod.on_add_cards_did_change_deck(8)
+        note = env.Note(0, MID, ["nasdaq"], env.col)
+        assert note.fields_check() == STATE_DUPLICATE
+
+    def test_duplicate_kept_via_case_variant(self, load_addon):
+        env = load_addon(
+            config=CI_CONFIG,
+            note_rows=[(7, MID, "NASDAQ\x1findex")],
+            deck_names=FIN_DECKS,
+        )
+        env.mod.on_add_cards_did_change_deck(DECK_FIN)
+        note = env.Note(0, MID, ["nasdaq"], env.col)
+        assert note.fields_check() == STATE_DUPLICATE
+
+    def test_existing_note_case_variant_upgrades(self, load_addon):
+        env = load_addon(
+            state=STATE_NORMAL,
+            config=CI_CONFIG,
+            note_rows=[(7, OTHER_MID, "NASDAQ\x1findex")],
+            card_dids=[DECK_FIN],
+            deck_names=FIN_DECKS,
+        )
+        note = env.Note(5, MID, ["nasdaq"], env.col)
+        assert note.fields_check() == STATE_DUPLICATE
+
+    def test_cross_notetype_disabled_still_allows_same_type_ci(self, load_addon):
+        config = {"case_insensitive_decks": ["金融"], "cross_notetype_dupes": False}
+        env = load_addon(
+            state=STATE_NORMAL,
+            config=config,
+            note_rows=[(7, MID, "NASDAQ\x1findex")],
+            deck_names=FIN_DECKS,
+        )
+        env.mod.on_add_cards_did_change_deck(DECK_FIN)
+        note = env.Note(0, MID, ["nasdaq"], env.col)
+        assert note.fields_check() == STATE_DUPLICATE
+
+    def test_browser_finder_groups_case_variants(self, load_addon):
+        env = load_addon(config=CI_CONFIG, deck_names=FIN_DECKS)
+        rows = [(1, MID, "Nasdaq\x1fx"), (2, MID, "NASDAQ\x1fy")]
+        browser = TestBrowserFindDupes.make_browser(self, env, "deck:金融", rows)
+        env.mod.find_dupes_in_current_deck(browser)
+        browser.search_for.assert_called_once_with("nid:1,2")
+
+    def test_browser_finder_case_sensitive_in_unlisted_deck(self, load_addon):
+        env = load_addon(config=CI_CONFIG, deck_names=FIN_DECKS)
+        rows = [(1, MID, "Nasdaq\x1fx"), (2, MID, "NASDAQ\x1fy")]
+        browser = TestBrowserFindDupes.make_browser(self, env, 'deck:"言語::日語"', rows)
+        env.mod.find_dupes_in_current_deck(browser)
+        assert env.utils.tooltip.called
+        assert not browser.search_for.called

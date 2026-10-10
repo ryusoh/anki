@@ -205,3 +205,78 @@ class TestDupeGroupsCrossNotetype:
     def test_default_still_per_notetype(self):
         rows = [(1, 10, "水\x1fx"), (2, 20, "水\x1fy")]
         assert core.dupe_groups(rows) == []
+
+
+class TestStripForCompareCaseInsensitive:
+    def test_casefolds_latin(self):
+        assert core.strip_for_compare("Apple", case_insensitive=True) == "apple"
+
+    def test_casefolds_unicode(self):
+        assert core.strip_for_compare("Äpfel", case_insensitive=True) == "äpfel"
+
+    def test_cjk_unaffected(self):
+        assert core.strip_for_compare("水", case_insensitive=True) == "水"
+
+    def test_default_stays_case_sensitive(self):
+        assert core.strip_for_compare("Apple") == "Apple"
+
+
+class TestAnyDeckNamed:
+    ALL = [(1, "言語"), (2, "言語::英語"), (3, "金融"), (4, "金融::股票")]
+
+    def test_exact_name_match(self):
+        assert core.any_deck_named({3}, self.ALL, ["金融"]) is True
+
+    def test_listed_parent_covers_subdeck(self):
+        assert core.any_deck_named({4}, self.ALL, ["金融"]) is True
+
+    def test_subdeck_listing_does_not_cover_parent(self):
+        assert core.any_deck_named({3}, self.ALL, ["金融::股票"]) is False
+
+    def test_no_match(self):
+        assert core.any_deck_named({2}, self.ALL, ["金融"]) is False
+
+    def test_empty_list_never_matches(self):
+        assert core.any_deck_named({3}, self.ALL, []) is False
+
+
+class TestFindDeckDupesCaseInsensitive:
+    def test_scan_finds_case_variant_same_notetype(self):
+        db = FakeDb([(7, 10, "APPLE\x1ffruit")])
+        assert core.find_deck_dupes(db, 1, "apple", {2}, case_insensitive=True) == {10}
+        sql, params = db.queries[0]
+        # csum can't prefilter case variants: no checksum param, first field
+        # is extracted in SQL and compared in Python
+        assert params == (1, 2)
+        assert "csum" not in sql
+
+    def test_scan_finds_case_variant_cross_notetype(self):
+        db = FakeDb([(7, 20, "<b>Apple</b>\x1ffruit")])
+        assert core.find_deck_dupes(db, 1, "apple", {2}, case_insensitive=True) == {20}
+
+    def test_scan_ignores_different_text(self):
+        db = FakeDb([(7, 10, "orange\x1ffruit")])
+        assert core.find_deck_dupes(db, 1, "apple", {2}, case_insensitive=True) == set()
+
+    def test_scan_still_finds_exact_match(self):
+        db = FakeDb([(7, 10, "apple\x1ffruit")])
+        assert core.find_deck_dupes(db, 1, "apple", {2}, case_insensitive=True) == {10}
+
+    def test_scan_skipped_without_scope(self):
+        db = FakeDb([(7, 10, "APPLE\x1ffruit")])
+        assert core.find_deck_dupes(db, 1, "apple", set(), case_insensitive=True) == set()
+        assert db.queries == []
+
+    def test_exact_path_unchanged_by_default(self):
+        db = FakeDb([(7, 10, "APPLE\x1ffruit")])
+        assert core.find_deck_dupes(db, 1, "apple", {2}) == set()
+
+
+class TestDupeGroupsCaseInsensitive:
+    def test_groups_case_variants(self):
+        rows = [(1, 10, "Apple\x1fx"), (2, 10, "apple\x1fy")]
+        assert core.dupe_groups(rows, case_insensitive=True) == [("apple", [1, 2])]
+
+    def test_default_keeps_them_separate(self):
+        rows = [(1, 10, "Apple\x1fx"), (2, 10, "apple\x1fy")]
+        assert core.dupe_groups(rows) == []
