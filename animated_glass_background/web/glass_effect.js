@@ -19,12 +19,20 @@
               config.ambientGlowOpacity !== undefined
                 ? config.ambientGlowOpacity
                 : 0.8,
+            pulse:
+              config.ambientGlowPulse !== undefined
+                ? config.ambientGlowPulse
+                : false,
           },
           electric: {
             enabled: false,
             particlesEnabled: false,
           },
           reflection: {
+            enabled:
+              config.reflectionEnabled !== undefined
+                ? config.reflectionEnabled
+                : false,
             speed:
               config.reflectionSpeed !== undefined
                 ? config.reflectionSpeed
@@ -32,12 +40,12 @@
             intensity:
               config.reflectionIntensity !== undefined
                 ? config.reflectionIntensity
-                : 0.4,
+                : 0.2,
             width:
               config.reflectionWidth !== undefined
                 ? config.reflectionWidth
                 : 0.3,
-            color: config.reflectionColor || "rgba(255, 255, 255, 0.8)",
+            color: config.reflectionColor || "rgba(255, 255, 255, 0.4)",
             fadeZone: 0.15,
           },
         },
@@ -269,10 +277,14 @@
       const delta = (globalTime - this.state.lastTime) / 1000;
       this.state.lastTime = globalTime;
 
-      const speed = this.options.threeD.reflection.speed || 0.05;
-      this.state.phase = ((globalTime / 1000) * speed) % 1;
-      this.state.continuousPhase += delta * speed;
-      this.state.ambientPhase = ((globalTime / 1000) * 0.5) % 1;
+      if (this.options.threeD.reflection.enabled !== false) {
+        const speed = this.options.threeD.reflection.speed || 0.05;
+        this.state.phase = ((globalTime / 1000) * speed) % 1;
+        this.state.continuousPhase += delta * speed;
+      }
+      if (this.options.threeD.ambientGlow.pulse !== false) {
+        this.state.ambientPhase = ((globalTime / 1000) * 0.5) % 1;
+      }
 
       const damping = 0.1;
       this.state.pointerSmoothed.x +=
@@ -286,7 +298,9 @@
       const radius = 0;
       const layout = this.getSyncedLayout();
       this.drawAmbientGlow(radius, layout);
-      this.drawReflection(radius, layout);
+      if (this.options.threeD.reflection.enabled !== false) {
+        this.drawReflection(radius, layout);
+      }
     }
 
     drawPath(ctx, _radius) {
@@ -297,7 +311,10 @@
 
     drawAmbientGlow(radius, layout) {
       const glow = this.options.threeD.ambientGlow;
-      const pulse = 0.5 + 0.5 * Math.sin(this.state.ambientPhase * Math.PI * 2);
+      const pulse =
+        glow.pulse === false
+          ? 0.5
+          : 0.5 + 0.5 * Math.sin(this.state.ambientPhase * Math.PI * 2);
 
       this.ctx.save();
       this.drawPath(this.ctx, radius);
@@ -329,6 +346,9 @@
     }
     drawReflection(radius, layout) {
       const reflection = this.options.threeD.reflection;
+      if (reflection.enabled === false) {
+        return;
+      }
       const intensity = reflection.intensity || 0.5;
       const color = reflection.color || "rgba(255,255,255,1)";
       const width = reflection.width || 0.2;
@@ -376,6 +396,8 @@
       this.ctx.restore();
     }
   }
+
+  window.GlassEffectBackground = GlassEffectBackground;
 
   // Delay init slightly to allow Svelte frameworks to settle
   setTimeout(() => {
