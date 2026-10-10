@@ -49,6 +49,12 @@ minutes earlier than today (~2×).
 
 ## 3. Measured baseline
 
+Wall time is highly load-sensitive: the same green gate measured 73–98 s
+idle but 7–22 min while the machine was busy (2026-10). Run the gate as a
+background task and let the completion notification arrive — a long run is
+almost always load, not a hang (check the log's per-suite lines before
+assuming one).
+
 Method: each target run via `time make <target>` on a clean, CI-green tree
 (so fixers were no-ops), sequentially, 1 run each, 2026-07-13. Raw log:
 session scratchpad `timings.log`. Warm caches (`.mypy_cache`, npm cache)

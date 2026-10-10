@@ -23,6 +23,7 @@
 - [delegation-specs.md](delegation-specs.md) — how to write a design spec for another agent to implement
 - [anki-editor-mathjax-undo.md](anki-editor-mathjax-undo.md) — why Cmd+Z can't restore deleted MathJax in the editor; workarounds
 - [missing-media.md](missing-media.md) — why a `[sound:]` ref can play nothing; diagnosis, causes, recovery
+- [anki-dupe-check.md](anki-dupe-check.md) — duplicate-check pipeline (fields_check, csum, strip semantics) and modern collection schema, verified 25.02.5
 
 ## Historical records
 

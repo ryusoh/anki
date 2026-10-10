@@ -247,14 +247,23 @@ defaults read /Applications/Anki.app/Contents/Info.plist CFBundleShortVersionStr
 curl -sL https://raw.githubusercontent.com/ankitects/anki/<version>/qt/aqt/browser/table/__init__.py
 ```
 
-Useful landmarks: hook signatures live in `qt/aqt/gui_hooks.py` (generated),
+Useful landmarks: hook signatures live in `qt/tools/genhooks_gui.py`
+(`qt/aqt/gui_hooks.py` is a stub re-exporting the generated `_aqt.hooks`),
 browser `SearchContext` in `qt/aqt/browser/table/__init__.py`, search SQL
 compilation in `rslib/src/search/sqlwriter.rs`. Verify a hook's dataclass
 fields against the user's installed version before building on them — the
 repo's `conftest.py` mocks `aqt`, so tests will happily pass against an API
-that doesn't exist.
+that doesn't exist. (The duplicate-check pipeline and modern collection
+schema have their own reference: [anki-dupe-check.md](anki-dupe-check.md).)
 
 ## Offline SQLite database queries
+
+For ad-hoc recon, use `python3 tools/query_collection.py 'SELECT …'` — it
+snapshots the collection (WAL sidecars included) and registers the `unicase`
+collation for you. Note the **modern schema** (25.02): `decks` and
+`notetypes` are real tables (the `col` row no longer carries their JSON),
+and deck names in the table use U+001F instead of `::`. See
+[anki-dupe-check.md](anki-dupe-check.md) for column-level landmarks.
 
 If a script or test queries Anki's `.anki2` SQLite database directly (without importing Anki's Python libraries), it will likely crash with `no such collation sequence: unicase`. Anki registers a custom `unicase` collation function at the database level. To execute queries safely offline, copy the DB and register a dummy collation function:
 

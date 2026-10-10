@@ -272,7 +272,9 @@ still just `make install-dev`.
   Style nits (`no-var`, `prefer-const`) are warnings — they don't fail CI.
 - **Bandit** runs at high severity (`-lll`) and skips `B404`/`B603` (intentional
   subprocess use in tooling). Read the `--ini .bandit` flag: Bandit's `-c` expects
-  YAML, so the INI config must be passed with `--ini`.
+  YAML, so the INI config must be passed with `--ini`. B324 flags `hashlib.sha1`/`md5`
+  even for non-crypto checksums — pass `usedforsecurity=False` (3.9+, so Anki's
+  bundled floor is fine) rather than `# nosec`.
 - **Prettier** uses defaults on purpose — adopting a custom style would reformat the
   entire repo (incl. third-party) for no lint benefit.
 - **Config detection in `lint-js`/`lint-css`** pipes `ls` to `grep -q .`, never
