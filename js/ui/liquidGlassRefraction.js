@@ -1,0 +1,774 @@
+/**
+ * Physically-based "Liquid Glass" backdrop refraction.
+ *
+ * Implements the SVG displacement-map technique popularized by the
+ * open-source liquid-glass projects (shuding/liquid-glass,
+ * liquid-glass-react): the pane is modelled as a flat glass slab with a
+ * convex circular bezel around its rounded-rect rim. For every pixel we
+ * derive the surface normal from the signed distance field, apply
+ * Snell's law to get the lateral ray displacement through the slab, and
+ * encode that displacement into the R/G channels of a map consumed by
+ * feDisplacementMap. Chromatic dispersion uses the Abbe model: separate
+ * red/green/blue displacement scales recombined additively, so edges
+ * show real spectral fringing.
+ *
+ * The filter runs as `backdrop-filter: url(#...)`, refracting whatever
+ * is actually behind the pane. Only Chromium renders SVG filters inside
+ * backdrop-filter; Safari/Firefox keep the stylesheet's frosted-blur
+ * fallback untouched.
+ */
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+let sharedSvg = null;
+let sharedDefs = null;
+let instanceCount = 0;
+let nextFilterId = 0;
+
+export function supportsSvgBackdropFilter() {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return false;
+  }
+  // Safari and Firefox parse url() in backdrop-filter but render nothing,
+  // which would also drop the frost fallback — gate on Chromium like the
+  // open-source liquid-glass implementations do.
+  const ua = (typeof navigator !== "undefined" && navigator.userAgent) || "";
+  if (!/Chrome\//.test(ua)) {
+    return false;
+  }
+  if (
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-transparency: reduce)").matches
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Signed distance to a rounded rectangle centred at the origin.
+ * Negative inside, positive outside.
+ */
+export function roundedRectSDF(x, y, halfWidth, halfHeight, radius) {
+  const qx = Math.abs(x) - (halfWidth - radius);
+  const qy = Math.abs(y) - (halfHeight - radius);
+  const ax = Math.max(qx, 0);
+  const ay = Math.max(qy, 0);
+  return Math.sqrt(ax * ax + ay * ay) + Math.min(Math.max(qx, qy), 0) - radius;
+}
+
+/**
+ * Largest lateral displacement the slab can produce: grazing incidence,
+ * where the ray inside the glass travels at the critical angle.
+ */
+export function maxRefractionShift(ior, thickness) {
+  return thickness * Math.tan(Math.PI / 2 - Math.asin(1 / ior));
+}
+
+/**
+ * Lateral backdrop displacement at a given distance from the pane edge.
+ *
+ * The bezel is a quarter-circle: height h(t) = sqrt(2t - t²) for
+ * t = distFromEdge / bezelWidth, so the surface is vertical right at the
+ * rim and flattens toward the interior. A vertical viewing ray hits the
+ * tilted surface at θi, refracts to θt per Snell, and exits laterally
+ * shifted by thickness · tan(θi − θt) toward the pane centre.
+ */
+export function refractionShift(distFromEdge, bezelWidth, ior, thickness) {
+  if (distFromEdge >= bezelWidth) {
+    return 0;
+  }
+  if (distFromEdge <= 0) {
+    return maxRefractionShift(ior, thickness);
+  }
+  const t = distFromEdge / bezelWidth;
+  const slope = (1 - t) / Math.sqrt(Math.max(2 * t - t * t, 1e-9));
+  const thetaI = Math.atan(slope);
+  const thetaT = Math.asin(Math.min(1, Math.sin(thetaI) / ior));
+  return thickness * Math.tan(thetaI - thetaT);
+}
+
+/**
+ * Per-channel displacement ratios from the Abbe number. Lower Abbe means
+ * stronger dispersion (flint-like glass). Ratios are paraxial lens-power
+ * ratios (n_c − 1)/(n_d − 1) relative to the design wavelength.
+ */
+export function dispersionRatios(ior, abbeNumber, gain = 1) {
+  const spread = ((ior - 1) / Math.max(abbeNumber, 1)) * gain;
+  const nRed = ior - spread / 2;
+  const nBlue = ior + spread / 2;
+  return {
+    r: (nRed - 1) / (ior - 1),
+    g: 1,
+    b: (nBlue - 1) / (ior - 1),
+  };
+}
+
+/**
+ * Light concentration produced by the bezel lens at a given distance from
+ * the edge. The lens maps a backdrop span onto a screen span; by energy
+ * conservation the brightness multiplier is |d(sample)/d(screen)| =
+ * |1 + shift'(d)|. Values above 1 are caustic concentration.
+ */
+export function causticConcentration(distFromEdge, bezelWidth, ior, thickness) {
+  const eps = 0.25;
+  const ahead = refractionShift(distFromEdge + eps, bezelWidth, ior, thickness);
+  const behind = refractionShift(
+    Math.max(0, distFromEdge - eps),
+    bezelWidth,
+    ior,
+    thickness,
+  );
+  const slope = (ahead - behind) / (2 * eps);
+  return Math.abs(1 + slope);
+}
+
+// Concentration value that maps to a fully saturated caustic mask.
+const CAUSTIC_NORM = 4;
+
+/**
+ * Compute the displacement map for a pane. Pure function: returns map
+ * dimensions, RGBA bytes (R = x-shift, G = y-shift around 127.5,
+ * B = caustic concentration mask) and the shift normalisation in CSS
+ * pixels. `scale` trades map resolution for speed; the displacement
+ * field is smooth so 0.5 is visually lossless.
+ *
+ * `shape` is 'roundedRect' (default) or 'annulus' — a glass ring whose
+ * inner radius is `innerRadiusRatio` of the outer radius, with the bezel
+ * (and its caustics) on both rims.
+ */
+export function buildDisplacementMap({
+  width,
+  height,
+  radius,
+  bezelWidth,
+  ior,
+  thickness,
+  scale = 0.5,
+  shape = "roundedRect",
+  innerRadiusRatio = 0.6,
+  magnification = 0,
+  magnificationPower = 6,
+  causticProfile = "slope",
+}) {
+  const mapW = Math.max(2, Math.round(width * scale));
+  const mapH = Math.max(2, Math.round(height * scale));
+  const halfW = width / 2;
+  const halfH = height / 2;
+  const r = Math.max(0, Math.min(radius, Math.min(halfW, halfH)));
+  // Interior "bulge" magnification is folded into this same map (rounded-rect
+  // panes only) so it shares the single displacement stage with the rim
+  // refraction. A separate, chained displacement pass would make Chrome's
+  // backdrop-filter drop the trailing (right/bottom) edges to transparent.
+  const bulge = magnification > 0 && shape === "roundedRect";
+  // Headroom so the combined rim + bulge shift never clamps the encoding. The
+  // normalisation cancels out of the per-channel scale, so widening it leaves
+  // the rim's refraction and dispersion untouched.
+  const maxShift =
+    maxRefractionShift(ior, thickness) +
+    (bulge ? magnification * Math.sqrt(halfW * halfW + halfH * halfH) : 0);
+  const eps = 0.5;
+
+  const outerR = Math.min(halfW, halfH);
+  const innerR = outerR * Math.min(0.95, Math.max(0, innerRadiusRatio));
+  const sdfAt =
+    shape === "annulus"
+      ? (px, py) => {
+          const d = Math.sqrt(px * px + py * py);
+          return Math.max(d - outerR, innerR - d);
+        }
+      : (px, py) => roundedRectSDF(px, py, halfW, halfH, r);
+
+  const data = new Uint8ClampedArray(mapW * mapH * 4);
+  let i = 0;
+  for (let my = 0; my < mapH; my++) {
+    const y = ((my + 0.5) / mapH) * height - halfH;
+    for (let mx = 0; mx < mapW; mx++) {
+      const x = ((mx + 0.5) / mapW) * width - halfW;
+
+      const sdf = sdfAt(x, y);
+      const distFromEdge = -sdf;
+
+      let dx = 0;
+      let dy = 0;
+      let caustic = 0;
+      if (distFromEdge > 0 && distFromEdge < bezelWidth) {
+        const shift = refractionShift(distFromEdge, bezelWidth, ior, thickness);
+        if (shift > 0) {
+          // SDF gradient points outward; displace inward.
+          const gx = sdfAt(x + eps, y) - sdfAt(x - eps, y);
+          const gy = sdfAt(x, y + eps) - sdfAt(x, y - eps);
+          const len = Math.sqrt(gx * gx + gy * gy);
+          if (len > 1e-9) {
+            dx = (-gx / len) * shift;
+            dy = (-gy / len) * shift;
+          }
+        }
+        if (causticProfile === "smooth") {
+          const t = distFromEdge / bezelWidth;
+          caustic = Math.sin(Math.PI * Math.pow(t, 0.7));
+        } else {
+          const concentration = causticConcentration(
+            distFromEdge,
+            bezelWidth,
+            ior,
+            thickness,
+          );
+          caustic = Math.min(
+            1,
+            Math.max(0, (concentration - 1) / CAUSTIC_NORM),
+          );
+        }
+      }
+
+      // Interior magnification: pull the backdrop sample toward the pane
+      // centre with a hump weight (sin(π·s) over the superellipse distance
+      // s) that is zero at the centre AND tapers back to zero at the rim,
+      // so the bulge lives in the interior and the edges stay covered.
+      if (bulge && distFromEdge > 0) {
+        const s = Math.min(
+          1,
+          Math.pow(Math.abs(x) / halfW, magnificationPower) +
+            Math.pow(Math.abs(y) / halfH, magnificationPower),
+        );
+        const weight = Math.sin(Math.PI * s);
+        dx += -x * magnification * weight;
+        dy += -y * magnification * weight;
+      }
+
+      data[i++] = 127.5 + 127.5 * (dx / maxShift);
+      data[i++] = 127.5 + 127.5 * (dy / maxShift);
+      data[i++] = 255 * caustic;
+      data[i++] = 255;
+    }
+  }
+
+  return { width: mapW, height: mapH, data, maxShift };
+}
+
+function ensureSharedSvg() {
+  if (sharedSvg && sharedSvg.isConnected) {
+    return sharedDefs;
+  }
+  sharedSvg = document.createElementNS(SVG_NS, "svg");
+  sharedSvg.setAttribute("width", "0");
+  sharedSvg.setAttribute("height", "0");
+  sharedSvg.setAttribute("aria-hidden", "true");
+  // display:none would disable filter references; park it offscreen instead.
+  sharedSvg.style.position = "fixed";
+  sharedSvg.style.top = "0";
+  sharedSvg.style.left = "0";
+  sharedSvg.style.pointerEvents = "none";
+  sharedDefs = document.createElementNS(SVG_NS, "defs");
+  sharedSvg.appendChild(sharedDefs);
+  document.body.appendChild(sharedSvg);
+  return sharedDefs;
+}
+
+function releaseSharedSvg() {
+  if (instanceCount <= 0 && sharedSvg) {
+    if (sharedSvg.parentNode) {
+      sharedSvg.parentNode.removeChild(sharedSvg);
+    }
+    sharedSvg = null;
+    sharedDefs = null;
+  }
+}
+
+function nowMs() {
+  return typeof window !== "undefined" && window.performance
+    ? window.performance.now()
+    : Date.now();
+}
+
+const CHANNEL_MATRICES = {
+  r: "1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0",
+  g: "0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0",
+  b: "0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0",
+};
+
+export class LiquidGlassRefraction {
+  constructor(element, options = {}) {
+    this.element = element;
+    this.options = {
+      bezelWidth: 14,
+      thickness: 28,
+      ior: 1.52,
+      abbeNumber: 32,
+      dispersionGain: 1,
+      // Multiplier for lateral backdrop displacement (0 = keep background
+      // stationary, allowing pure caustic rim effect without image distortion).
+      displacementGain: 1,
+      // Brightness boost where the bezel lens concentrates light
+      // (result = refracted · (1 + causticGain · mask)).
+      causticGain: 0.7,
+      // Enables prismatic chromatic aberration fringing on the caustic rim
+      // even when displacementGain is 0.
+      spectralCaustic: false,
+      // Pixel spread of the chromatic fringes on the caustic rim.
+      spectralSpread: 4,
+      // Corner radius in px for the lens shape; null = read the element's
+      // computed border-radius (supports % of the smaller box dimension).
+      radius: null,
+      // 'roundedRect' or 'annulus' (glass ring, e.g. a donut chart).
+      shape: "roundedRect",
+      // Annulus only: inner radius as a fraction of the outer radius.
+      innerRadiusRatio: 0.6,
+      // null = keep the pane's existing computed backdrop-filter
+      // (e.g. "blur(24px) saturate(1.8)") chained after the lens.
+      frost: null,
+      // Interior magnification ("bulge") strength, 0 = off. Adds a second,
+      // achromatic displacement pass that magnifies the backdrop toward the
+      // pane centre (the github-glass-badge lens), applied before the
+      // chromatic rim refraction so the edges keep their prismatic fringe.
+      magnification: 0,
+      // Superellipse falloff exponent for the bulge (higher = flatter
+      // centre, bend concentrated nearer the rim).
+      magnificationPower: 6,
+      mapScale: 0.5,
+      // Ramp the lens in over this many ms after it first applies:
+      // displacement scales linearly with slab thickness, so this is the
+      // glass optically thickening from zero to full depth instead of
+      // the backdrop snapping into its refracted position. 0 = instant.
+      rampMs: 0,
+      ...options,
+    };
+
+    this.enabled =
+      options.enabled !== false &&
+      (options.force === true || supportsSvgBackdropFilter());
+    if (!this.enabled) {
+      return;
+    }
+
+    // Lens strength multiplier (0..1) applied to displacement scales and
+    // caustic gain; driven from 0 → 1 by the ramp when rampMs > 0.
+    this._strength = this.options.rampMs > 0 ? 0 : 1;
+    this._rampActive = false;
+    this._baseScale = 0;
+    this.causticDisplacementNodes = null;
+
+    this.filterId = `liquid-glass-refraction-${nextFilterId++}`;
+    this.canvas = document.createElement("canvas");
+    this.ctx = this.canvas.getContext("2d", { willReadFrequently: true });
+    if (!this.ctx) {
+      this.enabled = false;
+      return;
+    }
+
+    instanceCount++;
+    this._lastGeometry = null;
+    this._mapGeneration = 0;
+    this._mapObjectUrl = null;
+    this._resizeDebounceTimer = null;
+
+    // Capture the pane's stylesheet frost before we override it, so the
+    // lens can be chained in front of the exact same blur/saturation.
+    this._inheritedFrost = "";
+    try {
+      const computed = window.getComputedStyle(this.element).backdropFilter;
+      if (computed && computed !== "none") {
+        this._inheritedFrost = computed;
+      }
+    } catch {
+      this._inheritedFrost = "";
+    }
+
+    this._buildFilter();
+
+    this._rafPending = false;
+    // eslint-disable-next-line no-undef
+    this.resizeObserver = new ResizeObserver(() => {
+      if (this._resizeDebounceTimer) {
+        clearTimeout(this._resizeDebounceTimer);
+      }
+      this._resizeDebounceTimer = setTimeout(() => {
+        this._resizeDebounceTimer = null;
+        this._scheduleUpdate();
+      }, 150);
+    });
+    this.resizeObserver.observe(this.element);
+    this._scheduleUpdate();
+  }
+
+  _buildFilter() {
+    const defs = ensureSharedSvg();
+    const ratios = dispersionRatios(
+      this.options.ior,
+      this.options.abbeNumber,
+      this.options.dispersionGain,
+    );
+
+    this.filter = document.createElementNS(SVG_NS, "filter");
+    this.filter.setAttribute("id", this.filterId);
+    this.filter.setAttribute("x", "0");
+    this.filter.setAttribute("y", "0");
+    this.filter.setAttribute("width", "100%");
+    this.filter.setAttribute("height", "100%");
+    this.filter.setAttribute("color-interpolation-filters", "sRGB");
+
+    this.feImage = document.createElementNS(SVG_NS, "feImage");
+    this.feImage.setAttribute("x", "0");
+    this.feImage.setAttribute("y", "0");
+    this.feImage.setAttribute("width", "100%");
+    this.feImage.setAttribute("height", "100%");
+    this.feImage.setAttribute("preserveAspectRatio", "none");
+    this.feImage.setAttribute("result", "map");
+    this.filter.appendChild(this.feImage);
+
+    this.displacementNodes = {};
+    const channels = ["r", "g", "b"];
+    for (const channel of channels) {
+      const disp = document.createElementNS(SVG_NS, "feDisplacementMap");
+      disp.setAttribute("in", "SourceGraphic");
+      disp.setAttribute("in2", "map");
+      disp.setAttribute("xChannelSelector", "R");
+      disp.setAttribute("yChannelSelector", "G");
+      disp.setAttribute("result", `disp-${channel}`);
+      this.filter.appendChild(disp);
+      this.displacementNodes[channel] = disp;
+
+      const isolate = document.createElementNS(SVG_NS, "feColorMatrix");
+      isolate.setAttribute("in", `disp-${channel}`);
+      isolate.setAttribute("type", "matrix");
+      isolate.setAttribute("values", CHANNEL_MATRICES[channel]);
+      isolate.setAttribute("result", `ch-${channel}`);
+      this.filter.appendChild(isolate);
+    }
+
+    const addRG = document.createElementNS(SVG_NS, "feComposite");
+    addRG.setAttribute("in", "ch-r");
+    addRG.setAttribute("in2", "ch-g");
+    addRG.setAttribute("operator", "arithmetic");
+    addRG.setAttribute("k1", "0");
+    addRG.setAttribute("k2", "1");
+    addRG.setAttribute("k3", "1");
+    addRG.setAttribute("k4", "0");
+    addRG.setAttribute("result", "ch-rg");
+    this.filter.appendChild(addRG);
+
+    const addRGB = document.createElementNS(SVG_NS, "feComposite");
+    addRGB.setAttribute("in", "ch-rg");
+    addRGB.setAttribute("in2", "ch-b");
+    addRGB.setAttribute("operator", "arithmetic");
+    addRGB.setAttribute("k1", "0");
+    addRGB.setAttribute("k2", "1");
+    addRGB.setAttribute("k3", "1");
+    addRGB.setAttribute("k4", "0");
+    addRGB.setAttribute("result", "refracted");
+    this.filter.appendChild(addRGB);
+
+    if (this.options.causticGain > 0) {
+      // Lift the map's blue channel (caustic concentration mask) into a
+      // grayscale image, then brighten the refracted backdrop where the
+      // lens concentrates light: out = refracted · (1 + gain · mask).
+      const mask = document.createElementNS(SVG_NS, "feColorMatrix");
+      mask.setAttribute("in", "map");
+      mask.setAttribute("type", "matrix");
+      mask.setAttribute("values", "0 0 1 0 0  0 0 1 0 0  0 0 1 0 0  0 0 0 0 1");
+      mask.setAttribute("result", "caustic-mask");
+      this.filter.appendChild(mask);
+
+      let causticInput = "caustic-mask";
+      if (this.options.spectralCaustic) {
+        // Displace the caustic mask per channel to create a prismatic rainbow fringe.
+        // Red shifts outward (negative scale), Blue shifts inward (positive scale),
+        // while Green remains unshifted in the center.
+        const causticDispR = document.createElementNS(
+          SVG_NS,
+          "feDisplacementMap",
+        );
+        causticDispR.setAttribute("in", "caustic-mask");
+        causticDispR.setAttribute("in2", "map");
+        causticDispR.setAttribute("xChannelSelector", "R");
+        causticDispR.setAttribute("yChannelSelector", "G");
+        causticDispR.setAttribute("result", "caustic-disp-r");
+        this.filter.appendChild(causticDispR);
+
+        const isolateR = document.createElementNS(SVG_NS, "feColorMatrix");
+        isolateR.setAttribute("in", "caustic-disp-r");
+        isolateR.setAttribute("type", "matrix");
+        isolateR.setAttribute("values", CHANNEL_MATRICES.r);
+        isolateR.setAttribute("result", "caustic-ch-r");
+        this.filter.appendChild(isolateR);
+
+        const isolateG = document.createElementNS(SVG_NS, "feColorMatrix");
+        isolateG.setAttribute("in", "caustic-mask");
+        isolateG.setAttribute("type", "matrix");
+        isolateG.setAttribute("values", CHANNEL_MATRICES.g);
+        isolateG.setAttribute("result", "caustic-ch-g");
+        this.filter.appendChild(isolateG);
+
+        const causticDispB = document.createElementNS(
+          SVG_NS,
+          "feDisplacementMap",
+        );
+        causticDispB.setAttribute("in", "caustic-mask");
+        causticDispB.setAttribute("in2", "map");
+        causticDispB.setAttribute("xChannelSelector", "R");
+        causticDispB.setAttribute("yChannelSelector", "G");
+        causticDispB.setAttribute("result", "caustic-disp-b");
+        this.filter.appendChild(causticDispB);
+
+        const isolateB = document.createElementNS(SVG_NS, "feColorMatrix");
+        isolateB.setAttribute("in", "caustic-disp-b");
+        isolateB.setAttribute("type", "matrix");
+        isolateB.setAttribute("values", CHANNEL_MATRICES.b);
+        isolateB.setAttribute("result", "caustic-ch-b");
+        this.filter.appendChild(isolateB);
+
+        const addCausticRG = document.createElementNS(SVG_NS, "feComposite");
+        addCausticRG.setAttribute("in", "caustic-ch-r");
+        addCausticRG.setAttribute("in2", "caustic-ch-g");
+        addCausticRG.setAttribute("operator", "arithmetic");
+        addCausticRG.setAttribute("k1", "0");
+        addCausticRG.setAttribute("k2", "1");
+        addCausticRG.setAttribute("k3", "1");
+        addCausticRG.setAttribute("k4", "0");
+        addCausticRG.setAttribute("result", "caustic-ch-rg");
+        this.filter.appendChild(addCausticRG);
+
+        const addCausticRGB = document.createElementNS(SVG_NS, "feComposite");
+        addCausticRGB.setAttribute("in", "caustic-ch-rg");
+        addCausticRGB.setAttribute("in2", "caustic-ch-b");
+        addCausticRGB.setAttribute("operator", "arithmetic");
+        addCausticRGB.setAttribute("k1", "0");
+        addCausticRGB.setAttribute("k2", "1");
+        addCausticRGB.setAttribute("k3", "1");
+        addCausticRGB.setAttribute("k4", "0");
+        addCausticRGB.setAttribute("result", "spectral-caustic");
+        this.filter.appendChild(addCausticRGB);
+
+        this.causticDisplacementNodes = {
+          r: causticDispR,
+          b: causticDispB,
+        };
+        causticInput = "spectral-caustic";
+      }
+
+      const caustic = document.createElementNS(SVG_NS, "feComposite");
+      caustic.setAttribute("in", "refracted");
+      caustic.setAttribute("in2", causticInput);
+      caustic.setAttribute("operator", "arithmetic");
+      caustic.setAttribute("k1", String(this.options.causticGain));
+      caustic.setAttribute("k2", "1");
+      const k3 = this.options.spectralCaustic
+        ? typeof this.options.causticAmbient === "number"
+          ? this.options.causticAmbient
+          : this.options.causticGain * 0.5
+        : 0;
+      caustic.setAttribute("k3", String(k3));
+      caustic.setAttribute("k4", "0");
+      this.filter.appendChild(caustic);
+      this._causticNode = caustic;
+    }
+
+    defs.appendChild(this.filter);
+    this._ratios = ratios;
+  }
+
+  _scheduleUpdate() {
+    if (this._rafPending || !this.enabled) {
+      return;
+    }
+    this._rafPending = true;
+    requestAnimationFrame(() => {
+      this._rafPending = false;
+      this.update();
+    });
+  }
+
+  update() {
+    if (!this.enabled || !this.element.isConnected) {
+      return;
+    }
+    // The SVG filter region maps to the element's border-box, so feImage
+    // paints the lens across that full box. clientWidth/clientHeight exclude
+    // the scrollbar gutter, so on scrollable panes (e.g. the transaction
+    // table) they are narrower than the painted region — building the map
+    // from them stretches it wider and shifts the caustic rim off the right
+    // and bottom edges. Measure the border-box so the map and the painted
+    // region share one coordinate space. (offsetWidth is 0 for detached
+    // nodes; fall back to clientWidth there.)
+    const width = this.element.offsetWidth || this.element.clientWidth;
+    const height = this.element.offsetHeight || this.element.clientHeight;
+    if (width < 2 || height < 2) {
+      return;
+    }
+
+    let radius = this.options.radius;
+    if (typeof radius !== "number") {
+      radius = 0;
+      try {
+        const raw =
+          window.getComputedStyle(this.element).borderTopLeftRadius || "";
+        const value = parseFloat(raw);
+        if (Number.isFinite(value)) {
+          radius = raw.trim().endsWith("%")
+            ? (value / 100) * Math.min(width, height)
+            : value;
+        }
+      } catch {
+        radius = 0;
+      }
+    }
+
+    const innerRatio = Number(this.options.innerRadiusRatio) || 0;
+    const geometry = `${width}x${height}r${radius}s${this.options.shape}i${innerRatio.toFixed(3)}`;
+    if (geometry === this._lastGeometry) {
+      return;
+    }
+    this._lastGeometry = geometry;
+
+    const map = buildDisplacementMap({
+      width,
+      height,
+      radius,
+      bezelWidth: this.options.bezelWidth,
+      ior: this.options.ior,
+      thickness: this.options.thickness,
+      scale: this.options.mapScale,
+      shape: this.options.shape,
+      innerRadiusRatio: innerRatio,
+      magnification: this.options.magnification,
+      magnificationPower: this.options.magnificationPower,
+      causticProfile:
+        this.options.causticProfile ||
+        (this.options.spectralCaustic ? "smooth" : "slope"),
+    });
+
+    this.canvas.width = map.width;
+    this.canvas.height = map.height;
+    const imageData = this.ctx.createImageData(map.width, map.height);
+    imageData.data.set(map.data);
+    this.ctx.putImageData(imageData, 0, 0);
+
+    this._mapGeneration += 1;
+    const generation = this._mapGeneration;
+    this.canvas.toBlob((blob) => {
+      // Drop stale encodes: a newer update() ran while this one encoded.
+      if (!blob || !this.enabled || generation !== this._mapGeneration) {
+        return;
+      }
+      if (this._mapObjectUrl) {
+        URL.revokeObjectURL(this._mapObjectUrl);
+      }
+      this._mapObjectUrl = URL.createObjectURL(blob);
+      this.feImage.setAttribute("href", this._mapObjectUrl);
+    }, "image/png");
+
+    // feDisplacementMap offset = scale · (channel − 0.5); the map encodes
+    // shift / maxShift, so scale = 2 · maxShift reproduces CSS pixels.
+    this._baseScale = 2 * map.maxShift;
+    this._applyStrength();
+
+    const frost =
+      this.options.frost !== null ? this.options.frost : this._inheritedFrost;
+    const chain = frost
+      ? `url(#${this.filterId}) ${frost}`
+      : `url(#${this.filterId})`;
+    this.element.style.backdropFilter = chain;
+
+    if (this.options.rampMs > 0 && this._strength < 1) {
+      this._startRamp();
+    }
+  }
+
+  _applyStrength() {
+    if (this.displacementNodes && this._baseScale) {
+      const dispGain =
+        typeof this.options.displacementGain === "number"
+          ? this.options.displacementGain
+          : 1;
+      const base = this._baseScale * this._strength * dispGain;
+      this.displacementNodes.r.setAttribute(
+        "scale",
+        String(base * this._ratios.r),
+      );
+      this.displacementNodes.g.setAttribute(
+        "scale",
+        String(base * this._ratios.g),
+      );
+      this.displacementNodes.b.setAttribute(
+        "scale",
+        String(base * this._ratios.b),
+      );
+    }
+    if (this.causticDisplacementNodes) {
+      const spread = (this.options.spectralSpread || 4) * this._strength;
+      this.causticDisplacementNodes.r.setAttribute("scale", String(spread));
+      this.causticDisplacementNodes.b.setAttribute("scale", String(-spread));
+    }
+    if (this._causticNode) {
+      this._causticNode.setAttribute(
+        "k1",
+        String(this.options.causticGain * this._strength),
+      );
+      if (this.options.spectralCaustic) {
+        const k3 =
+          typeof this.options.causticAmbient === "number"
+            ? this.options.causticAmbient
+            : this.options.causticGain * 0.5;
+        this._causticNode.setAttribute("k3", String(k3 * this._strength));
+      }
+    }
+  }
+
+  _startRamp() {
+    if (this._rampActive) {
+      return;
+    }
+    this._rampActive = true;
+    const start = nowMs();
+    const tick = () => {
+      if (!this.enabled) {
+        this._rampActive = false;
+        return;
+      }
+      const t = Math.min(1, (nowMs() - start) / this.options.rampMs);
+      // Smoothstep: the slab thickens gently, eases in and out.
+      this._strength = t * t * (3 - 2 * t);
+      this._applyStrength();
+      if (t < 1) {
+        requestAnimationFrame(tick);
+      } else {
+        this._rampActive = false;
+      }
+    };
+    requestAnimationFrame(tick);
+  }
+
+  dispose() {
+    if (!this.enabled) {
+      return;
+    }
+    this.enabled = false;
+    if (this._resizeDebounceTimer) {
+      clearTimeout(this._resizeDebounceTimer);
+      this._resizeDebounceTimer = null;
+    }
+    if (this._mapObjectUrl) {
+      URL.revokeObjectURL(this._mapObjectUrl);
+      this._mapObjectUrl = null;
+    }
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
+    if (this.element) {
+      this.element.style.backdropFilter = "";
+    }
+    if (this.filter && this.filter.parentNode) {
+      this.filter.parentNode.removeChild(this.filter);
+    }
+    this.filter = null;
+    this.feImage = null;
+    this.displacementNodes = null;
+    this.causticDisplacementNodes = null;
+    this._causticNode = null;
+    this.canvas = null;
+    this.ctx = null;
+    instanceCount--;
+    releaseSharedSvg();
+  }
+}

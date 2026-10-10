@@ -47,7 +47,7 @@ export const TABLE_GLASS_EFFECT = {
       radiusFraction: 0.82,
     },
     reflection: {
-      enabled: true,
+      enabled: false,
       speed: 0.05,
       intensity: 0.1,
       width: 0.5,
@@ -85,12 +85,27 @@ export const TABLE_GLASS_EFFECT = {
     ambientGlow: {
       innerOpacity: 0.15,
       outerOpacity: 0.05,
+      pulse: false,
       pulseSpeed: 0.6,
       innerColor: "rgba(118, 183, 229, 1)",
       outerColor: "rgba(7, 18, 57, 1)",
     },
   },
+  refraction: {
+    enabled: true,
+    bezelWidth: 14,
+    thickness: 28,
+    ior: 1.52,
+    abbeNumber: 32,
+    dispersionGain: 6,
+    causticGain: 0.7,
+    frost: null,
+    magnification: 0,
+    magnificationPower: 6,
+  },
 };
+
+export const TERMINAL_GLASS_MAGNIFICATION = 0.05;
 
 export const GRAPH_BACKGROUND_IMAGE = {
   enabled: true,

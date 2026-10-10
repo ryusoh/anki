@@ -1,4 +1,5 @@
 import { TABLE_GLASS_EFFECT } from "#js/config.js";
+import { LiquidGlassRefraction } from "./liquidGlassRefraction.js";
 
 export class TableGlassEffect {
   constructor(containerSelector, options = {}) {
@@ -108,6 +109,23 @@ export class TableGlassEffect {
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(target);
+
+    // Physically-based backdrop refraction (Liquid Glass lens, Chromium only).
+    if (this.options.refraction && this.options.refraction.enabled !== false) {
+      try {
+        const refractionTarget = this.options.refraction.target
+          ? this.container.closest(this.options.refraction.target) ||
+            this.container
+          : this.container;
+        this.refractionLayer = new LiquidGlassRefraction(
+          refractionTarget,
+          this.options.refraction,
+        );
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.warn("Liquid glass refraction unavailable:", error);
+      }
+    }
 
     this.initParticles();
     this.resize();
@@ -582,7 +600,10 @@ export class TableGlassEffect {
 
   drawAmbientGlow(radius) {
     const glow = this.options.threeD?.ambientGlow || {};
-    const pulse = 0.5 + 0.5 * Math.sin(this.state.ambientPhase * Math.PI * 2);
+    const pulse =
+      glow.pulse === false
+        ? 0.5
+        : 0.5 + 0.5 * Math.sin(this.state.ambientPhase * Math.PI * 2);
 
     this.ctx.save();
     this.drawPath(this.ctx, radius);
@@ -740,6 +761,9 @@ export class TableGlassEffect {
 
   drawReflection(radius) {
     const reflection = this.options.threeD?.reflection || {};
+    if (reflection.enabled === false) {
+      return;
+    }
     const intensity = reflection.intensity || 0.5;
     const color = reflection.color || "rgba(255,255,255,1)";
     const width = reflection.width || 0.2;
@@ -792,6 +816,10 @@ export class TableGlassEffect {
   dispose() {
     if (this.animationFrame) {
       cancelAnimationFrame(this.animationFrame);
+    }
+    if (this.refractionLayer) {
+      this.refractionLayer.dispose();
+      this.refractionLayer = null;
     }
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();

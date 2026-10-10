@@ -40,7 +40,10 @@ function makeCtxStub() {
         if (prop in target) {
           return target[prop];
         }
-        if (prop === "createLinearGradient" || prop === "createRadialGradient") {
+        if (
+          prop === "createLinearGradient" ||
+          prop === "createRadialGradient"
+        ) {
           return () => gradient;
         }
         return () => {};
@@ -152,8 +155,16 @@ test("pauseResize and resumeResize toggle resize state", () => {
 
 test("update, draw, and mouse events execute without errors", () => {
   const effect = createEffect("8px", {
-    rowHoverEffect: { enabled: true, color: "rgba(255,255,255,0.1)", borderColor: "rgba(255,255,255,0.2)", spotlightRadius: 200 },
-    threeD: { electric: { enabled: true, arcCount: 4 }, reflection: { enabled: true, speed: 0.1 } },
+    rowHoverEffect: {
+      enabled: true,
+      color: "rgba(255,255,255,0.1)",
+      borderColor: "rgba(255,255,255,0.2)",
+      spotlightRadius: 200,
+    },
+    threeD: {
+      electric: { enabled: true, arcCount: 4 },
+      reflection: { enabled: true, speed: 0.1 },
+    },
   });
 
   // Call update steps
@@ -240,8 +251,14 @@ test("container events and phase wrap in update", () => {
     overflowY: "auto",
   });
   const container = makeContainer();
-  Object.defineProperty(container, "scrollHeight", { value: 500, configurable: true });
-  Object.defineProperty(container, "clientHeight", { value: 200, configurable: true });
+  Object.defineProperty(container, "scrollHeight", {
+    value: 500,
+    configurable: true,
+  });
+  Object.defineProperty(container, "clientHeight", {
+    value: 200,
+    configurable: true,
+  });
 
   const effect = new TableGlassEffect(`#${container.id}`, {
     rowHoverEffect: { enabled: true },
@@ -250,7 +267,9 @@ test("container events and phase wrap in update", () => {
 
   // Dispatch mouseenter, mousemove, mouseleave
   container.dispatchEvent(new dom.window.Event("mouseenter"));
-  container.dispatchEvent(new dom.window.MouseEvent("mousemove", { bubbles: true }));
+  container.dispatchEvent(
+    new dom.window.MouseEvent("mousemove", { bubbles: true }),
+  );
   container.dispatchEvent(new dom.window.Event("mouseleave"));
 
   // Target not inside a row
@@ -265,6 +284,47 @@ test("container events and phase wrap in update", () => {
   effect.state.lastTime = 1000;
   effect.update(100000); // large time jump
   assert.ok(effect.state.phase >= 0 && effect.state.phase < 1);
+
+  effect.dispose();
+});
+
+test("drawReflection branches for enabled and disabled reflection", () => {
+  const container = makeContainer();
+  const effect = new TableGlassEffect(`#${container.id}`, {
+    threeD: { reflection: { enabled: false } },
+  });
+  // Should return early without throwing
+  assert.doesNotThrow(() => effect.drawReflection(8));
+
+  // Now enable reflection and draw
+  effect.options.threeD.reflection.enabled = true;
+  assert.doesNotThrow(() => effect.drawReflection(8));
+
+  effect.dispose();
+});
+
+test("getPointAtProgress covers all edges and corners and zero-radius", () => {
+  const container = makeContainer();
+  const effect = new TableGlassEffect(`#${container.id}`);
+  effect.width = 100;
+  effect.height = 50;
+  const out = { x: 0, y: 0 };
+
+  // Sample points across full perimeter (radius 8)
+  for (let step = 0; step <= 20; step++) {
+    const p = step / 20;
+    effect.getPointAtProgress(p, 8, out);
+    assert(Number.isFinite(out.x));
+    assert(Number.isFinite(out.y));
+  }
+
+  // Sample with zero radius
+  for (let step = 0; step <= 10; step++) {
+    const p = step / 10;
+    effect.getPointAtProgress(p, 0, out);
+    assert(Number.isFinite(out.x));
+    assert(Number.isFinite(out.y));
+  }
 
   effect.dispose();
 });
