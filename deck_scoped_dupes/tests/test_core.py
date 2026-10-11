@@ -193,6 +193,28 @@ class TestFindDeckDupes:
         assert core.find_deck_dupes(db, 1, "<img src=a.png>", {2}) == {10}
 
 
+class TestFindDeckDupeNotes:
+    """find_deck_dupe_notes returns the note ids of the same matches
+    find_deck_dupes reports notetype ids for."""
+
+    def test_returns_nids_of_matching_notes(self):
+        db = FakeDb([(7, 10, "<b>水</b>\x1fwater"), (8, 20, "水\x1fx")])
+        assert core.find_deck_dupe_notes(db, 1, "水", {2}) == {7, 8}
+
+    def test_excludes_non_matching_rows(self):
+        db = FakeDb([(7, 10, "氺\x1fwater")])
+        assert core.find_deck_dupe_notes(db, 1, "水", {2}) == set()
+
+    def test_empty_without_scope_decks(self):
+        db = FakeDb([(7, 10, "水\x1fwater")])
+        assert core.find_deck_dupe_notes(db, 1, "水", set()) == set()
+        assert db.queries == []
+
+    def test_case_insensitive_scan_finds_variant(self):
+        db = FakeDb([(7, 10, "APPLE\x1ffruit")])
+        assert core.find_deck_dupe_notes(db, 1, "apple", {2}, case_insensitive=True) == {7}
+
+
 class TestDupeGroupsCrossNotetype:
     def test_groups_across_notetypes_when_disabled(self):
         rows = [

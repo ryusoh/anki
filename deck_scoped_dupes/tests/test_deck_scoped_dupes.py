@@ -37,6 +37,23 @@ def make_note_class(state):
     return FakeNote
 
 
+def make_editor_class():
+    """Stands in for aqt.editor.Editor; records calls to the original
+    showDupes so tests can tell a fallback from an interception."""
+
+    class FakeEditor:
+        original_calls = []
+
+        def __init__(self, note, mw):
+            self.note = note
+            self.mw = mw
+
+        def showDupes(self):
+            type(self).original_calls.append(self)
+
+    return FakeEditor
+
+
 class RoutingDb:
     """Answers the two query shapes the addon issues."""
 
@@ -80,7 +97,15 @@ def load_addon():
     loaded = []
 
     def _load(state=STATE_DUPLICATE, config=None, note_rows=(), card_dids=(), deck_names=None):
-        for name in ("aqt", "aqt.utils", "aqt.qt", "anki", "anki.notes"):
+        for name in (
+            "aqt",
+            "aqt.utils",
+            "aqt.qt",
+            "aqt.editor",
+            "aqt.dialogs",
+            "anki",
+            "anki.notes",
+        ):
             saved.setdefault(name, sys.modules.get(name))
 
         aqt = types.ModuleType("aqt")
@@ -97,6 +122,13 @@ def load_addon():
         qt = types.ModuleType("aqt.qt")
         qt.qconnect = MagicMock()
 
+        editor_mod = types.ModuleType("aqt.editor")
+        editor_mod.Editor = make_editor_class()
+        aqt.editor = editor_mod
+        dialogs_mod = types.ModuleType("aqt.dialogs")
+        dialogs_mod.open = MagicMock()
+        aqt.dialogs = dialogs_mod
+
         anki = types.ModuleType("anki")
         notes_mod = types.ModuleType("anki.notes")
         note_class = make_note_class(state)
@@ -108,6 +140,8 @@ def load_addon():
                 "aqt": aqt,
                 "aqt.utils": utils,
                 "aqt.qt": qt,
+                "aqt.editor": editor_mod,
+                "aqt.dialogs": dialogs_mod,
                 "anki": anki,
                 "anki.notes": notes_mod,
             }
@@ -120,7 +154,16 @@ def load_addon():
         decks = make_decks(deck_names or {DECK_JA: "言語::日語", DECK_TAI: "言語::台語"})
         col = SimpleNamespace(db=db, decks=decks)
         loaded.append((mod, note_class, col, db, aqt, utils))
-        return SimpleNamespace(mod=mod, Note=note_class, col=col, db=db, aqt=aqt, utils=utils)
+        return SimpleNamespace(
+            mod=mod,
+            Note=note_class,
+            col=col,
+            db=db,
+            aqt=aqt,
+            utils=utils,
+            Editor=editor_mod.Editor,
+            dialogs=dialogs_mod,
+        )
 
     yield _load
 
@@ -430,3 +473,70 @@ class TestCaseInsensitiveDecks:
         env.mod.find_dupes_in_current_deck(browser)
         assert env.utils.tooltip.called
         assert not browser.search_for.called
+
+
+class TestShowDupes:
+    """The editor's red 'dupe' marker calls Editor.showDupes; the addon
+    replaces Anki's same-notetype-only dupe: search with a nid: search of
+    the deck-scoped duplicates."""
+
+    def make_editor(self, env, note):
+        return env.Editor(note, MagicMock())
+
+    def test_patches_editor_show_dupes(self, load_addon):
+        env = load_addon()
+        assert env.Editor._deck_scoped_dupes_show_dupes_patched is True
+        assert env.Editor.showDupes is env.mod._scoped_show_dupes
+
+    def test_cross_notetype_dupe_searches_both_notes(self, load_addon):
+        env = load_addon(note_rows=[(7, OTHER_MID, "水\x1fwater")], card_dids=[DECK_JA])
+        note = env.Note(5, MID, ["水"], env.col)
+        editor = self.make_editor(env, note)
+        browser = env.dialogs.open.return_value
+        env.Editor.showDupes(editor)
+        browser.search_for.assert_called_once_with("nid:5,7")
+        assert env.Editor.original_calls == []
+
+    def test_falls_back_when_no_in_scope_dupe(self, load_addon):
+        env = load_addon(note_rows=[], card_dids=[DECK_JA])
+        note = env.Note(5, MID, ["水"], env.col)
+        editor = self.make_editor(env, note)
+        env.Editor.showDupes(editor)
+        assert env.Editor.original_calls == [editor]
+        assert not env.dialogs.open.called
+
+    def test_falls_back_without_deck_scope(self, load_addon):
+        # existing note with no cards: no scope decks, keep Anki's search
+        env = load_addon(card_dids=[])
+        note = env.Note(5, MID, ["水"], env.col)
+        editor = self.make_editor(env, note)
+        env.Editor.showDupes(editor)
+        assert env.Editor.original_calls == [editor]
+
+    def test_new_note_searches_dupes_without_self(self, load_addon):
+        env = load_addon(note_rows=[(7, OTHER_MID, "水\x1fwater")])
+        env.mod.on_add_cards_did_change_deck(DECK_JA)
+        note = env.Note(0, MID, ["水"], env.col)
+        editor = self.make_editor(env, note)
+        browser = env.dialogs.open.return_value
+        env.Editor.showDupes(editor)
+        browser.search_for.assert_called_once_with("nid:7")
+
+    def test_note_none_falls_back(self, load_addon):
+        env = load_addon()
+        editor = self.make_editor(env, None)
+        env.Editor.showDupes(editor)
+        assert env.Editor.original_calls == [editor]
+
+    def test_case_insensitive_dupe_is_listed(self, load_addon):
+        env = load_addon(
+            config=CI_CONFIG,
+            note_rows=[(7, MID, "NASDAQ\x1findex")],
+            card_dids=[DECK_FIN],
+            deck_names=FIN_DECKS,
+        )
+        note = env.Note(5, MID, ["nasdaq"], env.col)
+        editor = self.make_editor(env, note)
+        browser = env.dialogs.open.return_value
+        env.Editor.showDupes(editor)
+        browser.search_for.assert_called_once_with("nid:5,7")

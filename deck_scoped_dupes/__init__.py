@@ -20,6 +20,9 @@ SAME deck, whatever notetype that note uses.
   deck" means the two notes share at least one deck.
 - A "Find Duplicates in This Deck" action in the browser's Notes menu lists
   the within-deck duplicates of the deck named in the current search.
+- Clicking the editor's red "dupe" marker (Show Duplicates) lists the
+  deck-scoped duplicates by note id, so cross-notetype and case-variant
+  dupes Anki's own dupe: search cannot see are listed too.
 
 Only the NORMAL/DUPLICATE verdicts are ever changed (empty and cloze
 problems pass through untouched): DUPLICATE is downgraded when no matching
@@ -40,11 +43,13 @@ from aqt import gui_hooks  # type: ignore
 from . import core
 
 _SENTINEL = "_deck_scoped_dupes_patched"
+_EDITOR_SENTINEL = "_deck_scoped_dupes_show_dupes_patched"
 
 # Deck picked in the open AddCards dialog; None until one is opened.
 _add_cards_deck_id = None
 
 _original_fields_check = None
+_original_show_dupes = None
 
 
 def _config():
@@ -129,6 +134,46 @@ def _patch_note():
     setattr(Note, _SENTINEL, True)
 
 
+def _scoped_show_dupes(editor):
+    """Editor.showDupes replacement: search the deck-scoped duplicates by
+    note id instead of Anki's same-notetype-only dupe: search, which cannot
+    see the cross-notetype or case-variant dupes this add-on flags.
+
+    Falls back to the original when the note is unsaved without an Add
+    dialog deck, or when no in-scope duplicate exists.
+    """
+    note = editor.note
+    if note is None:
+        return _original_show_dupes(editor)
+    col = note.col
+    anchor, dids = _scope_dids(col, note)
+    if not dids:
+        return _original_show_dupes(editor)
+    first = note.fields[0] if note.fields else ""
+    nids = core.find_deck_dupe_notes(
+        col.db, note.id or 0, first, dids, case_insensitive=_case_insensitive(col, anchor)
+    )
+    if not nids:
+        return _original_show_dupes(editor)
+    if note.id:
+        nids.add(note.id)
+    from aqt import dialogs
+
+    browser = dialogs.open("Browser", editor.mw)
+    browser.search_for("nid:" + ",".join(str(nid) for nid in sorted(nids)))
+
+
+def _patch_editor():
+    from aqt.editor import Editor
+
+    global _original_show_dupes
+    if hasattr(Editor, _EDITOR_SENTINEL):
+        return
+    _original_show_dupes = Editor.showDupes
+    Editor.showDupes = _scoped_show_dupes
+    setattr(Editor, _EDITOR_SENTINEL, True)
+
+
 def on_add_cards_did_init(addcards):
     global _add_cards_deck_id
     _add_cards_deck_id = addcards.deck_chooser.selected_deck_id
@@ -183,6 +228,7 @@ def find_dupes_in_current_deck(browser):
 
 
 _patch_note()
+_patch_editor()
 gui_hooks.add_cards_did_init.append(on_add_cards_did_init)
 gui_hooks.add_cards_did_change_deck.append(on_add_cards_did_change_deck)
 gui_hooks.browser_menus_did_init.append(on_browser_menus_did_init)

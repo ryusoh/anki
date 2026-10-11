@@ -149,15 +149,15 @@ def decks_of_note(db, note_id: int) -> List[int]:
     return [row[0] for row in rows]
 
 
-def find_deck_dupes(
+def _dupe_rows(
     db,
     note_id: int,
     first_field_html: str,
     dids: Iterable[int],
     case_insensitive: bool = False,
-) -> Set[int]:
-    """Notetype ids of notes duplicating this one's first field that have a
-    card in one of the scope decks — same notetype or not.
+) -> List[Tuple[int, int]]:
+    """(nid, mid) rows duplicating this note's first field that have a card
+    in one of the scope decks — same notetype or not.
 
     Case-insensitive mode cannot use the case-sensitive csum hash as a
     prefilter, so it extracts first fields in SQL and compares in Python.
@@ -165,7 +165,7 @@ def find_deck_dupes(
     target = strip_for_compare(first_field_html, case_insensitive)
     dids = set(dids)
     if not target.strip() or not dids:
-        return set()
+        return []
     placeholders = ",".join("?" for _ in dids)
     in_scope = "EXISTS (SELECT 1 FROM cards c" f" WHERE c.nid = n.id AND c.did IN ({placeholders}))"
     if case_insensitive:
@@ -184,6 +184,31 @@ def find_deck_dupes(
             note_id,
             *dids,
         )
-    return {
-        row[1] for row in rows if strip_for_compare(first_field(row[2]), case_insensitive) == target
-    }
+    return [
+        (row[0], row[1])
+        for row in rows
+        if strip_for_compare(first_field(row[2]), case_insensitive) == target
+    ]
+
+
+def find_deck_dupes(
+    db,
+    note_id: int,
+    first_field_html: str,
+    dids: Iterable[int],
+    case_insensitive: bool = False,
+) -> Set[int]:
+    """Notetype ids of the dupe rows, so callers can distinguish
+    same-notetype from cross-notetype dupes."""
+    return {mid for _nid, mid in _dupe_rows(db, note_id, first_field_html, dids, case_insensitive)}
+
+
+def find_deck_dupe_notes(
+    db,
+    note_id: int,
+    first_field_html: str,
+    dids: Iterable[int],
+    case_insensitive: bool = False,
+) -> Set[int]:
+    """Note ids of the dupe rows — the search targets for Show Duplicates."""
+    return {nid for nid, _mid in _dupe_rows(db, note_id, first_field_html, dids, case_insensitive)}
