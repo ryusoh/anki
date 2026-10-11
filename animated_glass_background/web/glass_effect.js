@@ -110,9 +110,150 @@
           header button:hover, .toolbar button:hover, .nav button:hover, nav button:hover, #bottom button:hover, .bottom button:hover, .hitem:hover {
               background-color: rgba(128, 128, 128, 0.2) !important;
           }
-          
+
+          /* Force Note Editor structural containers outside buttons and fields to be transparent */
+          #outer, .outer,
+          #fields, .fields, .fields-container,
+          .editor-field, .field-container, .field-item,
+          .topfield, #toparea,
+          .editor-toolbar, #editor-toolbar, .toolbar-container, .formatting-toolbar,
+          .tag-container, #tags-container, .tags-container, .bottom-area, .tag-area,
+          .note-editor, #note-editor {
+              background-color: transparent !important;
+              background-image: none !important;
+              border-color: transparent !important;
+              box-shadow: none !important;
+          }
+
+          /* Field labels sit cleanly on the glass background */
+          .field-label, .field-name, .label-name, .fname, .label-container, .field-state {
+              background-color: transparent !important;
+              color: var(--text-fg, inherit) !important;
+              position: relative !important;
+              z-index: 10 !important;
+          }
+
+          /* Keep Note Editor fields clearly distinct, legible, elevated cards against the glass */
+          .editing-area,
+          anki-editable:not(.editing-area anki-editable),
+          .cm-editor,
+          #tags,
+          .tag-editor,
+          .tags-editor,
+          input[type="text"]:not(.editing-area *):not(#tags *):not(.tag-editor *),
+          input[type="search"]:not(.editing-area *):not(#tags *):not(.tag-editor *),
+          textarea:not(.editing-area *) {
+              background-color: var(--canvas-elevated, var(--field-bg, rgba(40, 40, 42, 0.88))) !important;
+              color: var(--text-fg, var(--fg, inherit)) !important;
+              border: 1px solid var(--border-subtle, var(--border, rgba(255, 255, 255, 0.16))) !important;
+              border-radius: 6px !important;
+              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25) !important;
+              position: relative !important;
+              z-index: 10 !important;
+          }
+
+          /* Eliminate nested box lines and duplicate backgrounds inside fields */
+          .editing-area *,
+          anki-editable *,
+          #tags *,
+          .tag-editor *,
+          .tags-editor * {
+              border: none !important;
+              box-shadow: none !important;
+              outline: none !important;
+              background-color: transparent !important;
+          }
+
+          html:not(.nightMode) .editing-area,
+          html:not(.nightMode) anki-editable:not(.editing-area anki-editable),
+          html:not(.nightMode) .cm-editor,
+          html:not(.nightMode) #tags,
+          html:not(.nightMode) .tag-editor,
+          html:not(.nightMode) .tags-editor,
+          html:not(.nightMode) input[type="text"]:not(.editing-area *):not(#tags *):not(.tag-editor *),
+          html:not(.nightMode) input[type="search"]:not(.editing-area *):not(#tags *):not(.tag-editor *),
+          html:not(.nightMode) textarea:not(.editing-area *) {
+              background-color: var(--canvas-elevated, var(--field-bg, rgba(255, 255, 255, 0.94))) !important;
+              color: var(--text-fg, var(--fg, inherit)) !important;
+              border: 1px solid var(--border-subtle, var(--border, rgba(0, 0, 0, 0.14))) !important;
+              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+          }
+
+          .editing-area:focus-within,
+          anki-editable:not(.editing-area anki-editable):focus-within,
+          .cm-editor.cm-focused,
+          #tags:focus-within,
+          .tag-editor:focus-within,
+          input:focus,
+          textarea:focus {
+              border-color: var(--focus-border, rgba(118, 183, 229, 0.8)) !important;
+              box-shadow: 0 0 0 2px rgba(118, 183, 229, 0.3) !important;
+              outline: none !important;
+          }
+
+          /* Note Editor / AddCards buttons: distinct elevated controls */
+          .editor-toolbar button,
+          #editor-toolbar button,
+          .toolbar-container button,
+          .note-editor button,
+          .editor-field button,
+          .tag-container button,
+          #tags-container button,
+          #outer button,
+          .fields button,
+          button.btn,
+          .btn {
+              background-color: var(--button-bg, var(--canvas-elevated, rgba(255, 255, 255, 0.1))) !important;
+              color: var(--text-fg, var(--fg, inherit)) !important;
+              border: 1px solid var(--border-subtle, var(--border, rgba(255, 255, 255, 0.18))) !important;
+              border-radius: 4px !important;
+              box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15) !important;
+              cursor: pointer !important;
+              position: relative !important;
+              z-index: 10 !important;
+          }
+
+          html:not(.nightMode) .editor-toolbar button,
+          html:not(.nightMode) #editor-toolbar button,
+          html:not(.nightMode) .toolbar-container button,
+          html:not(.nightMode) .note-editor button,
+          html:not(.nightMode) .editor-field button,
+          html:not(.nightMode) .tag-container button,
+          html:not(.nightMode) #tags-container button,
+          html:not(.nightMode) #outer button,
+          html:not(.nightMode) .fields button,
+          html:not(.nightMode) button.btn,
+          html:not(.nightMode) .btn {
+              background-color: var(--button-bg, var(--canvas-elevated, rgba(240, 240, 240, 0.92))) !important;
+              color: var(--text-fg, var(--fg, inherit)) !important;
+              border: 1px solid var(--border-subtle, var(--border, rgba(0, 0, 0, 0.14))) !important;
+          }
+
+          .editor-toolbar button:hover,
+          #editor-toolbar button:hover,
+          .toolbar-container button:hover,
+          .note-editor button:hover,
+          .editor-field button:hover,
+          .tag-container button:hover,
+          #tags-container button:hover,
+          #outer button:hover,
+          .fields button:hover,
+          button.btn:hover,
+          .btn:hover {
+              background-color: var(--button-bg-hover, rgba(128, 128, 128, 0.28)) !important;
+          }
+
+          .editor-toolbar button:active,
+          .editor-toolbar button.active,
+          .editor-toolbar button[aria-pressed="true"],
+          #editor-toolbar button:active,
+          #editor-toolbar button.active,
+          #editor-toolbar button[aria-pressed="true"] {
+              background-color: var(--button-bg-active, rgba(128, 128, 128, 0.45)) !important;
+          }
+
           /* Safely elevate Anki structural blocks over the canvas so the effect sits behind the text */
-          table, #deck-table, #tree, #header, header, .nav, nav, #bottom, .bottom, #heatmap, .heatmap, svg.heatmap, .heatmap-container, #qa, .card, .reviewer, main, #app, .congrats, button, input, select, textarea, a, body > div:not(#glass-effect-bg) {
+          table, #deck-table, #tree, #header, header, .nav, nav, #bottom, .bottom, #heatmap, .heatmap, svg.heatmap, .heatmap-container, #qa, .card, .reviewer, main, #app, .congrats, button, input, select, textarea, a, body > div:not(#glass-effect-bg), #outer, .fields, .editor-field, anki-editable, .editing-area, .editor-toolbar, .tag-container, #tags {
               position: relative !important; 
               z-index: 10 !important;
           }
@@ -129,11 +270,39 @@
         )
           this.resize();
 
+        const isEditor =
+          window.location.href.includes("editor") ||
+          window.location.href.includes("editable") ||
+          document.getElementById("fields") !== null ||
+          document.querySelector(".editor-field, anki-editable") !== null;
+        if (isEditor) {
+          document.documentElement.classList.add("is-editor");
+          document.body.classList.add("is-editor");
+        }
+
         // Aggressively strip Svelte opaque containers that might overwrite the above CSS via inline styles
         const roots = document.querySelectorAll(
-          "body > *:not(#glass-effect-bg):not(script):not(style)",
+          "body > *:not(#glass-effect-bg):not(script):not(style):not(anki-editable):not(button):not(input):not(textarea)",
         );
         roots.forEach((el) => {
+          if (
+            el.style &&
+            (el.style.backgroundColor !== "transparent" ||
+              el.style.backgroundImage !== "none")
+          ) {
+            el.style.setProperty(
+              "background-color",
+              "transparent",
+              "important",
+            );
+            el.style.setProperty("background-image", "none", "important");
+          }
+        });
+
+        const editorContainers = document.querySelectorAll(
+          "#outer, .outer, #fields, .fields, .fields-container, .editor-field, .field-container, .editor-toolbar, #editor-toolbar, .toolbar-container, .tag-container, #tags-container, .note-editor",
+        );
+        editorContainers.forEach((el) => {
           if (
             el.style &&
             (el.style.backgroundColor !== "transparent" ||
@@ -196,6 +365,14 @@
         window.location.href.includes("bottom") ||
         document.getElementById("bottom");
       const isTop = window.location.href.includes("toolbar") && !isBottom;
+      const isEditor =
+        window.location.href.includes("editor") ||
+        window.location.href.includes("editable") ||
+        document.getElementById("fields") !== null ||
+        document.querySelector(".editor-field, anki-editable") !== null;
+
+      // Editor windows are standalone; keep them out of the main-window shared layout.
+      if (isEditor) return;
 
       // Prevent writing 0 dimensions when Qt initializes WebViews in the background before showing them
       if (isTop && this.height > 0) {
@@ -219,8 +396,20 @@
         window.location.href.includes("bottom") ||
         document.getElementById("bottom");
       const isTop = window.location.href.includes("toolbar") && !isBottom;
+      const isEditor =
+        window.location.href.includes("editor") ||
+        window.location.href.includes("editable") ||
+        document.getElementById("fields") !== null ||
+        document.querySelector(".editor-field, anki-editable") !== null;
 
-      if (isBottom) {
+      if (isEditor) {
+        // In AddCards, the top bar (notetype/deck) is ~40px and bottom bar is ~40px
+        this.cachedLayout = {
+          totalWidth: this.width,
+          totalHeight: this.height + 80,
+          offsetY: 40,
+        };
+      } else if (isBottom) {
         // The bottom pane acts as a completely independent glass panel
         this.cachedLayout = {
           totalWidth: this.width,

@@ -122,7 +122,6 @@ export class TableGlassEffect {
           this.options.refraction,
         );
       } catch (error) {
-        // eslint-disable-next-line no-console
         console.warn("Liquid glass refraction unavailable:", error);
       }
     }

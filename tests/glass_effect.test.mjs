@@ -184,4 +184,56 @@ describe("GlassEffectBackground", () => {
     assert.ok(midLayout.totalWidth >= 1000);
     assert.ok(midLayout.totalHeight >= 800);
   });
+
+  test("injects style element with editor-specific rules for fields and buttons", () => {
+    const GlassClass = loadGlassScript();
+    new GlassClass();
+
+    const styleEl = dom.window.document.getElementById("glass-effect-style");
+    assert.ok(styleEl);
+    const css = styleEl.textContent;
+    assert.ok(css.includes("anki-editable"));
+    assert.ok(css.includes(".editing-area"));
+    assert.ok(css.includes(".editor-toolbar button"));
+    assert.ok(css.includes("#fields"));
+  });
+
+  test("strips inline backgrounds from editor outer containers while preserving fields", () => {
+    const editorDiv = dom.window.document.createElement("div");
+    editorDiv.id = "outer";
+    editorDiv.style.backgroundColor = "rgb(255, 0, 0)";
+    dom.window.document.body.appendChild(editorDiv);
+
+    const toolbarDiv = dom.window.document.createElement("div");
+    toolbarDiv.className = "editor-toolbar";
+    toolbarDiv.style.backgroundColor = "rgb(0, 255, 0)";
+    editorDiv.appendChild(toolbarDiv);
+
+    const GlassClass = loadGlassScript();
+    new GlassClass();
+
+    assert.strictEqual(editorDiv.style.backgroundColor, "transparent");
+    assert.strictEqual(toolbarDiv.style.backgroundColor, "transparent");
+  });
+
+  test("editor pages use independent layout and do not overwrite main window layout", () => {
+    dom.window.innerWidth = 640;
+    dom.window.innerHeight = 480;
+    const editorDiv = dom.window.document.createElement("div");
+    editorDiv.id = "fields";
+    dom.window.document.body.appendChild(editorDiv);
+
+    const GlassClass = loadGlassScript();
+    const instance = new GlassClass();
+
+    assert.ok(instance.canvas);
+    assert.notStrictEqual(instance.canvas.style.display, "none");
+    assert.strictEqual(
+      dom.window.localStorage.getItem("anki_glass_h_middle"),
+      null,
+    );
+    const layout = instance.getSyncedLayout();
+    assert.strictEqual(layout.totalWidth, 640);
+    assert.strictEqual(layout.offsetY, 40);
+  });
 });
