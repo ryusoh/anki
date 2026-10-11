@@ -5,6 +5,9 @@
 PYTHON := $(if $(wildcard .venv/bin/python3),"$(CURDIR)/.venv/bin/python3",python3)
 NPM := npm
 
+# Suppress noisy `npm notice run <cmd>` logs introduced in npm 10.9+/12+
+export NPM_CONFIG_LOGLEVEL ?= error
+
 # Core count for the parallel verify gate (see `verify` target below). sysctl
 # is macOS; nproc covers Linux CI runners; 4 is a safe last-resort default.
 JOBS ?= $(shell sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)
