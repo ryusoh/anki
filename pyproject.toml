@@ -152,6 +152,7 @@ ignore_imports = [
     # independently installable, so a hard dependency is not allowed).
     "tabbed_stats -> animated_glass_background",
     "tabbed_stats -> stats_page_customizer",
+    "animated_glass_background -> tabbed_stats",
 ]
 
 # Mutation-testing scaffold (`make mutate-py` — deliberately NOT part of any
