@@ -327,6 +327,26 @@ def test_mathjax_double_star_not_bold():
     assert convert_markdown_field(html) == html
 
 
+def test_dollar_math_stars_not_italic():
+    r"""$*$-style dollar math: stars inside $...$ are not emphasis markers."""
+    html = '这是 $*$ 与 $*$ 两种记号'
+    assert convert_markdown_field(html) == html
+
+
+def test_dollar_currency_pairs_untouched():
+    """Currency amounts are not math and pass through unchanged."""
+    html = '价格是 $5 和 $10，合计 $15'
+    assert convert_markdown_field(html) == html
+
+
+def test_prose_between_dollars_still_converts():
+    """Prose spanning two dollar amounts is not math: bold inside must
+    still convert."""
+    html = 'pay $5 **today** and $10 later'
+    expected = 'pay $5 <b>today</b> and $10 later'
+    assert convert_markdown_field(html) == expected
+
+
 # ---------------------------------------------------------------------------
 # Idempotency and no-op
 # ---------------------------------------------------------------------------

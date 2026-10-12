@@ -56,8 +56,28 @@ _CODE_RE = re.compile(r"`([^`]+?)`")
 _ALREADY_HEADING_RE = re.compile(r"^\s*<h[1-6][^>]*>", re.IGNORECASE)
 _MATHJAX_RE = re.compile(r"\\[(\[(]|<anki-mathjax", re.IGNORECASE)
 _MATHJAX_BLOCKS_RE = re.compile(
-    r"(\\\(.*?\\\)|\\\[.*?\\\]|<anki-mathjax[^>]*>.*?</anki-mathjax>)", re.IGNORECASE
+    # \(...\), \[...\], <anki-mathjax>...</anki-mathjax>, and $...$/$$...$$
+    # (the dollar branch is filtered by _looks_like_dollar_math at use site,
+    # so currency pairs like $5 ... $10 stay unprotected).
+    r"(\\\(.*?\\\)|\\\[.*?\\\]|<anki-mathjax[^>]*>.*?</anki-mathjax>"
+    r"|(?<!\\)\$\$?[^$\n]+?\$\$?)",
+    re.IGNORECASE,
 )
+
+_TEXT_GROUP_STRIP_RE = re.compile(r"\\text\{[^}]*\}")
+_LATEX_COMMAND_STRIP_RE = re.compile(r"\\[a-zA-Z]+")
+_PROSE_WORD_RE = re.compile(r"[a-zA-Z]{3,}")
+
+
+def _looks_like_dollar_math(inner: str) -> bool:
+    """A $...$ span worth shielding from markdown: it holds a star or
+    backtick markdown could mangle ($*$, $a*b$) and reads like math — no
+    English prose words once \text{} groups and LaTeX commands are removed
+    (prose between two currency amounts fails this)."""
+    if not any(c in inner for c in "*`"):
+        return False
+    stripped = _LATEX_COMMAND_STRIP_RE.sub("", _TEXT_GROUP_STRIP_RE.sub("", inner))
+    return _PROSE_WORD_RE.search(stripped) is None
 
 
 # ---------------------------------------------------------------------------
@@ -78,8 +98,11 @@ def _convert_inline(text: str) -> str:
     mathjax_blocks: list[str] = []
 
     def protect_mathjax(match):
+        block = match.group(0)
+        if block.startswith("$") and not _looks_like_dollar_math(block.strip("$")):
+            return block
         placeholder = f"__MATHJAX_PLACEHOLDER_{len(mathjax_blocks)}__"
-        mathjax_blocks.append(match.group(0))
+        mathjax_blocks.append(block)
         return placeholder
 
     protected_text = _MATHJAX_BLOCKS_RE.sub(protect_mathjax, text)
