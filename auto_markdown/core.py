@@ -27,8 +27,9 @@ _BR_SPLIT_RE = re.compile(r"(<br\s*/?>)", re.IGNORECASE)
 # Heading: line starts with 1-6 '#' then mandatory space.
 _HEADING_RE = re.compile(r"^(#{1,6})\s+(.+)$")
 
-# Unordered list item: line starts with '- ' (not '---' for <hr>).
-_UL_RE = re.compile(r"^-\s+(.+)$")
+# Unordered list item: line starts with '- ', '* ', or '+ ' ('---' is checked
+# as <hr> first). The marker's trailing spaces may be stored as &nbsp; entities.
+_UL_RE = re.compile(r"^(?:[-*+])(?:\s|&nbsp;)+(.+)$")
 
 # Ordered list item: line starts with '1. ', '2. ', etc.
 _OL_RE = re.compile(r"^\d+\.\s+(.+)$")
@@ -42,8 +43,12 @@ _BQ_RE = re.compile(r"^(?:>|&gt;)\s?(.*)")
 # Inline patterns — applied within a line.
 # Bold **...**  (non-greedy, no newlines).
 _BOLD_RE = re.compile(r"\*\*(.+?)\*\*")
-# Italic *...* (single asterisk, after bold handled).
-_ITALIC_RE = re.compile(r"(?<!\*)\*([^\s*][^*]*?)\*(?!\*)")
+# Italic *...* (single asterisk, after bold handled). Flanking rules keep
+# math notation literal: the opener can't follow an ASCII letter or digit
+# (C*-代数, a*b), the content can't end in whitespace (记为 *) and can't
+# contain an HTML tag (furigana <rt>*</rt> placeholders, *...<h3>...*),
+# and the closer can't be followed by a word character (C*恒).
+_ITALIC_RE = re.compile(r"(?<![A-Za-z0-9*])\*([^\s*<](?:[^*<]*?[^\s*<])?)\*(?![\w*])")
 # Inline code `...` (backtick pairs, not inside <code> already).
 _CODE_RE = re.compile(r"`([^`]+?)`")
 
@@ -51,7 +56,7 @@ _CODE_RE = re.compile(r"`([^`]+?)`")
 _ALREADY_HEADING_RE = re.compile(r"^\s*<h[1-6][^>]*>", re.IGNORECASE)
 _MATHJAX_RE = re.compile(r"\\[(\[(]|<anki-mathjax", re.IGNORECASE)
 _MATHJAX_BLOCKS_RE = re.compile(
-    r"(\\\\\(.*?\\\\\)|\\\\\\[.*?\\\\\\]|<anki-mathjax[^>]*>.*?</anki-mathjax>)", re.IGNORECASE
+    r"(\\\(.*?\\\)|\\\[.*?\\\]|<anki-mathjax[^>]*>.*?</anki-mathjax>)", re.IGNORECASE
 )
 
 

@@ -65,6 +65,78 @@ def test_bold_with_inline_code():
 
 
 # ---------------------------------------------------------------------------
+# Italic
+# ---------------------------------------------------------------------------
+
+
+def test_italic_single_asterisk():
+    html = 'This is *italic* text'
+    expected = 'This is <i>italic</i> text'
+    assert convert_markdown_field(html) == expected
+
+
+def test_italic_cjk_content():
+    html = '这是 *重点* 内容'
+    expected = '这是 <i>重点</i> 内容'
+    assert convert_markdown_field(html) == expected
+
+
+def test_identifier_star_not_italic():
+    """Real pattern: C*-代数 — a star attached to an identifier is the
+    adjoint/star operator, not an emphasis delimiter."""
+    html = 'C*-代数 (C-star Algebra / C星代数)'
+    assert convert_markdown_field(html) == html
+
+
+def test_star_after_space_not_italic():
+    """Real pattern: （记为 *）— emphasis content cannot end in whitespace,
+    so this star cannot close and stays literal."""
+    html = '配备了一个“对合运算”（记为 *）。'
+    assert convert_markdown_field(html) == html
+
+
+def test_multiplication_stars_not_italic():
+    html = '卷积定义为 f*g，其中 a*b 是乘积'
+    assert convert_markdown_field(html) == html
+
+
+def test_ruby_annotation_stars_not_italic():
+    """Real pattern (note 1603692412205): <rt>*</rt> is a furigana
+    placeholder for an unknown reading — emphasis content never spans
+    HTML tags."""
+    html = '<div><ruby>揉<rt>*</rt></ruby><ruby>眼睛<rt>がんせい</rt></ruby><ruby>解<rt>かい</rt></ruby><ruby>困<rt>こま</rt></ruby>。</div>'
+    assert convert_markdown_field(html) == html
+
+
+def test_italic_never_spans_tags():
+    """Real card (note 1788318106323): stars separated by HTML markup are
+    literal, even with several on one line."""
+    html = '&nbsp;&nbsp;&nbsp; *&nbsp;&nbsp; <b>优势</b>：说明<h3>标题</h3>*&nbsp;&nbsp; 后续'
+    assert convert_markdown_field(html) == html
+
+
+def test_bold_inner_star_not_italic():
+    """Real pattern: **核心法则（C*恒等式）** — the inner star survives bold."""
+    html = '**核心法则（C*恒等式）**：对于任何元素'
+    expected = '<b>核心法则（C*恒等式）</b>：对于任何元素'
+    assert convert_markdown_field(html) == expected
+
+
+def test_cstar_bullet_field_not_mangled():
+    """Real card (note 1791768988191): bullet lines containing C*-代数 and
+    记为 * — the stars are math notation, not emphasis markers."""
+    html = (
+        '*&nbsp;&nbsp; **概念**：配备了一个“对合运算”（记为 *）。<br>'
+        '*&nbsp;&nbsp; **核心法则（C*恒等式）**：必须满足 \\(x^*x\\)。<br>'
+        '*&nbsp;&nbsp; **意义**：任何抽象的 C*-代数都可以具体化。'
+    )
+    out = convert_markdown_field(html)
+    assert '<i>' not in out
+    assert out.count('<li>') == 3
+    assert 'C*-代数' in out
+
+
+# ---------------------------------------------------------------------------
 # Inline code
 # ---------------------------------------------------------------------------
 
@@ -113,6 +185,34 @@ def test_unordered_list_with_inline_formatting():
     assert '<ul><li>' in result
     assert '<code>LDG [remote_addr]</code>' in result
     assert '</li></ul>' in result
+
+
+def test_unordered_list_asterisk_bullets():
+    """* is a standard markdown bullet marker, same as -."""
+    html = '* First<br>* Second'
+    expected = '<ul><li>First</li><li>Second</li></ul>'
+    assert convert_markdown_field(html) == expected
+
+
+def test_unordered_list_asterisk_nbsp_indent():
+    """Anki's editor stores the spaces after the marker as &nbsp; entities."""
+    html = '*&nbsp;&nbsp; **概念**：代数'
+    expected = '<ul><li><b>概念</b>：代数</li></ul>'
+    assert convert_markdown_field(html) == expected
+
+
+def test_unordered_list_plus_bullets():
+    html = '+ First<br>+ Second'
+    expected = '<ul><li>First</li><li>Second</li></ul>'
+    assert convert_markdown_field(html) == expected
+
+
+def test_unordered_list_dash_nbsp_indent():
+    """- followed by &nbsp; entities is a list marker too (Anki stores
+    repeated spaces as &nbsp;)."""
+    html = '-&nbsp;&nbsp; Item'
+    expected = '<ul><li>Item</li></ul>'
+    assert convert_markdown_field(html) == expected
 
 
 # ---------------------------------------------------------------------------
@@ -206,6 +306,24 @@ def test_mathjax_block_passthrough():
 
 def test_anki_mathjax_tag_passthrough():
     html = '<anki-mathjax>x^2</anki-mathjax>'
+    assert convert_markdown_field(html) == html
+
+
+def test_mathjax_star_passthrough():
+    r"""\(*\) — a star inside MathJax is not an emphasis delimiter."""
+    html = r'C*-代数中，\(*\) 表示对合'
+    assert convert_markdown_field(html) == html
+
+
+def test_mathjax_stars_not_paired_across_segments():
+    r"""Single-star math segments on one line must not pair up as italic."""
+    html = r'算子 \(a^*\) 与 \(b^*\) 满足交换律'
+    assert convert_markdown_field(html) == html
+
+
+def test_mathjax_double_star_not_bold():
+    r"""** inside MathJax is exponent/convolution notation, not bold."""
+    html = r'卷积 \(f**g\) 与伴随 \(A^{**}\)'
     assert convert_markdown_field(html) == html
 
 
@@ -680,7 +798,7 @@ def test_existing_pre_span_trailing_prose_preserved():
         'border-radius: 6px; overflow-x: auto; font-family: SFMono-Regular, Consolas, '
         'Liberation Mono, Menlo, monospace; font-size: 0.85em; line-height: 1.5; margin: 10px 0;">'
         '<code>val x = 1;<br>val y = 2;</code></pre>对比 MapReduce：<br><br>'
-        '-&nbsp;&nbsp; <b>不需固化</b>：说明文字'
+        '<b>不需固化</b>：说明文字'
     )
     first = convert_markdown_field(html)
     assert '对比 MapReduce：<br><br>' in first
