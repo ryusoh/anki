@@ -31,7 +31,9 @@ The siblings:
   `git status` before running it in a shared tree);
   same `.agents/skills/` canonical + generated `.claude/commands/`
   convention as here. Agent tooling lives in `scripts/agents/` (no `tools/`
-  dir — `gate_guard.py`/`prior_prs.py` are there); Python tests in
+  dir — `gate_guard.py`/`prior_prs.py` are there), but the skills sync script
+  is `scripts/sync_commands.py` at top level, NOT in `scripts/agents/`
+  (checked 2026-10); Python tests in
   `tests/python/`; no `VERIFY_GATE` variable — wire checks into `verify`
   deps + the `precommit-fix` phase list; its ci.yml checkout already has
   `fetch-depth: 0` (checked 2026-08). Fund has a PR-title gate
@@ -67,7 +69,10 @@ The siblings:
   its `.prettierignore`, so persona-file edits are never gate-checked there
   (verify them with `prettier --check --ignore-path /dev/null` instead).
   AGENTS.md itself is NOT prettierignored; there is no markdownlint —
-  `prettier --check` is the entire markdown gate.
+  `prettier --check` is the entire markdown gate. Its
+  `tools/sync_commands.py` runs prettier over the generated commands itself
+  (checked 2026-10); its ship skill's squash-merge flow is called
+  "Branch mode" (anki's equivalent is "Mode B").
 - `~/dev/ryusoh.github.io` — JS-only static site; primary branch is **`master`**
   (not `main`); **CI does NOT run `make` at all** — the web-ci job runs
   `pre-commit run --all-files` plus individual npx steps directly (checked
@@ -83,7 +88,12 @@ The siblings:
   AGENTS.md non-negotiable #1 still points PR authors at `precommit-fix`.
   Its pytest suite (`tools/__tests__/`) runs in NO Makefile gate but IS wired
   into a **pre-push** pre-commit hook (`pytest -q || [ $? -eq 5 ]`; checked
-  2026-08).
+  2026-08). Has the same `.agents/skills/` canonical, `tools/sync_commands.py`,
+  and `make sync-check` convention as here (checked 2026-10); `make gate`
+  (`check` + `test`, ~1 min) is the non-staging CI-parity gate — plain
+  `make precommit` only runs the hooks targets, and `precommit-fix` stages
+  auto-fixes via `git add -u`; its ship skill is a single linear flow (no
+  "Mode B" — cite its squash-merge step instead).
 
 Verify these facts against each repo's current AGENTS.md/Makefile before
 relying on them — they drift.
@@ -101,7 +111,9 @@ Delegate one subagent per repo, in parallel. Brief each with:
    fund's Python import-linter skip was correctly REVERSED in anki (real
    packages, real edges). A rule that fires zero times AND maps to nothing the
    repo believes is decorative; a rule that fires on an accepted pattern is
-   false — measure first, then decide.
+   false — measure first, then decide. Ship-skill vocabulary also differs per
+   repo (anki "Mode B", networking "Branch mode", ryusoh.github.io a linear
+   flow) — when the synced material cites a mode by name, adapt the name.
 3. **Find the REAL gate first.** Read `.github/workflows`, Makefile
    `precommit*` targets, and `.pre-commit-config.yaml` BEFORE designing —
    `make verify`-green is not CI-green (fund learned this the hard way: the
