@@ -13,17 +13,21 @@
 Anki's bundled Python is frozen and has no pip, so third-party packages are
 installed by an external python3 into a deps directory inside Anki's data
 folder (a sibling of ``addons21``), and this module puts that directory on
-``sys.path``. When edge-tts is missing at add-on load, a daemon thread
-installs it silently; the next single-click can then use it without
-restarting Anki.
+``sys.path``. When edge-tts is missing at add-on load — or its installed
+version no longer satisfies ``EDGE_TTS_SPEC`` (e.g. after the spec floor is
+bumped for an upstream fix) — a daemon thread reinstalls it silently; the
+next single-click can then use it without restarting Anki.
 """
 
 import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
 import threading
+from importlib import metadata as importlib_metadata
+from itertools import zip_longest
 from pathlib import Path
 
 __all__ = [
@@ -67,6 +71,57 @@ def _edge_tts_importable():
         # must never crash over an optional dependency.
         return False
     return True
+
+
+_SPEC_CLAUSE_RE = re.compile(r'(>=|<=|==|>|<)\s*([0-9][0-9.]*)')
+
+
+def _version_tuple(text):
+    """'7.2.8' -> (7, 2, 8); leading junk or a 'v' prefix is tolerated."""
+    match = re.search(r'[0-9]+(?:\.[0-9]+)*', text)
+    return tuple(int(part) for part in match.group(0).split('.')) if match else ()
+
+
+def _satisfies_spec(version, spec):
+    """True when version '7.2.8' satisfies spec 'edge-tts>=7.0,<8'.
+
+    Only the relational operators this project's specs use; components are
+    zero-padded so 7.0 equals 7.0.0.
+    """
+    found = _version_tuple(version)
+    for op, wanted_text in _SPEC_CLAUSE_RE.findall(spec):
+        wanted = _version_tuple(wanted_text)
+        cmp = 0
+        for have, want in zip_longest(found, wanted, fillvalue=0):
+            if have != want:
+                cmp = 1 if have > want else -1
+                break
+        if {'>': cmp > 0, '>=': cmp >= 0, '==': cmp == 0, '<': cmp < 0, '<=': cmp <= 0}[op]:
+            continue
+        return False
+    return True
+
+
+def _installed_version():
+    """Installed edge-tts version string, or None when undiscoverable."""
+    try:
+        return importlib_metadata.version('edge-tts')
+    except Exception:
+        pass
+    try:
+        import edge_tts
+
+        return getattr(edge_tts, '__version__', None)
+    except Exception:
+        return None
+
+
+def _installed_satisfies_spec():
+    """True when the installed edge-tts satisfies EDGE_TTS_SPEC. An
+    undiscoverable version counts as satisfying: never churn a working
+    install over a metadata quirk."""
+    version = _installed_version()
+    return version is None or _satisfies_spec(version, EDGE_TTS_SPEC)
 
 
 def ensure_deps_on_path():
@@ -166,13 +221,18 @@ def _find_pip_python():
 
 
 def run_bootstrap(run=subprocess.run):
-    """Install edge-tts into deps_dir() if missing; True when importable."""
-    if ensure_deps_on_path():
+    """Install edge-tts into deps_dir() if missing or outdated; True when importable.
+
+    "Outdated" means the installed version no longer satisfies EDGE_TTS_SPEC.
+    A failed reinstall leaves the previous install untouched and still reports
+    True — old but working beats none.
+    """
+    if ensure_deps_on_path() and _installed_satisfies_spec():
         return True
     executable = _find_pip_python()
     if executable is None:
         _log('no external python3 with pip found; edge-tts stays unavailable')
-        return False
+        return ensure_deps_on_path()
     target = deps_dir()
     staging = target.parent / f'.{target.name}.staging-{os.getpid()}'
     try:
@@ -186,14 +246,15 @@ def run_bootstrap(run=subprocess.run):
     except (OSError, subprocess.TimeoutExpired) as exc:
         shutil.rmtree(staging, ignore_errors=True)
         _log(f'edge-tts auto-install could not run: {exc}')
-        return False
+        return ensure_deps_on_path()
     if result.returncode != 0:
         shutil.rmtree(staging, ignore_errors=True)
         _log(f'edge-tts auto-install failed: {result.stderr.strip()[-300:]}')
-        return False
+        return ensure_deps_on_path()
     if target.exists():
-        # We only get here when the existing install is broken (a working one
-        # short-circuits above), so replace it with the fresh staging copy.
+        # We only get here when the existing install is broken or outdated
+        # (a working, in-spec one short-circuits above), so replace it with
+        # the fresh staging copy.
         shutil.rmtree(target, ignore_errors=True)
     os.rename(staging, target)  # same filesystem, so this is atomic
     ready = ensure_deps_on_path()
@@ -203,13 +264,14 @@ def run_bootstrap(run=subprocess.run):
 
 
 def bootstrap_edge_tts_background():
-    """Start a daemon thread installing edge-tts if missing; return it or None.
+    """Start a daemon thread installing edge-tts if missing or outdated;
+    return it or None.
 
     Never raises: an optional dependency must not be able to break add-on
     loading.
     """
     try:
-        if ensure_deps_on_path():
+        if ensure_deps_on_path() and _installed_satisfies_spec():
             return None
         thread = threading.Thread(target=run_bootstrap, name='awesometts-deps', daemon=True)
         thread.start()

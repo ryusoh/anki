@@ -143,6 +143,77 @@ def test_run_bootstrap_reports_pip_spawn_error(monkeypatch, tmp_path):
     assert deps.run_bootstrap(run=pip_spawn_error) is False
 
 
+def test_run_bootstrap_reinstalls_when_version_violates_spec(monkeypatch, tmp_path):
+    target = tmp_path / 'awesome_tts_deps'
+    (target / 'edge_tts').mkdir(parents=True)  # pre-existing outdated install
+    (target / 'stale_marker').touch()
+    monkeypatch.setattr(deps, 'deps_dir', lambda: target)
+    monkeypatch.setattr(deps, '_find_pip_python', lambda: '/usr/bin/python3')
+    monkeypatch.setattr(deps, 'ensure_deps_on_path', lambda: True)
+    monkeypatch.setattr(deps, '_installed_version', lambda: '6.1.14')
+
+    assert deps.run_bootstrap(run=_pip_success) is True
+    assert (target / 'edge_tts').is_dir()
+    assert not (target / 'stale_marker').exists()  # fully replaced, not merged
+    assert not list(tmp_path.glob('.*.staging-*'))
+
+
+def test_run_bootstrap_no_reinstall_when_version_satisfies_spec(monkeypatch):
+    monkeypatch.setattr(deps, 'ensure_deps_on_path', lambda: True)
+    monkeypatch.setattr(deps, '_installed_version', lambda: '7.2.8')
+    run = MagicMock()
+
+    assert deps.run_bootstrap(run=run) is True
+    run.assert_not_called()
+
+
+def test_run_bootstrap_unknown_version_does_not_reinstall(monkeypatch):
+    """An importable install with an undiscoverable version is left alone —
+    never churn a working install over a metadata quirk."""
+    monkeypatch.setattr(deps, 'ensure_deps_on_path', lambda: True)
+    monkeypatch.setattr(deps, '_installed_version', lambda: None)
+    run = MagicMock()
+
+    assert deps.run_bootstrap(run=run) is True
+    run.assert_not_called()
+
+
+def test_run_bootstrap_keeps_old_install_when_reinstall_fails(monkeypatch, tmp_path):
+    """Outdated but importable: a failed reinstall must not break or hide the
+    existing install, so the result stays True (importable)."""
+    target = tmp_path / 'awesome_tts_deps'
+    (target / 'edge_tts').mkdir(parents=True)
+    monkeypatch.setattr(deps, 'deps_dir', lambda: target)
+    monkeypatch.setattr(deps, '_find_pip_python', lambda: '/usr/bin/python3')
+    monkeypatch.setattr(deps, 'ensure_deps_on_path', lambda: True)
+    monkeypatch.setattr(deps, '_installed_version', lambda: '6.1.14')
+
+    def pip_fail(command, **_kwargs):
+        Path(command[command.index('--target') + 1]).mkdir(parents=True)
+        return MagicMock(returncode=1, stderr='resolution failed')
+
+    assert deps.run_bootstrap(run=pip_fail) is True
+    assert (target / 'edge_tts').is_dir()
+    assert not list(tmp_path.glob('.*.staging-*'))
+
+
+def test_satisfies_spec_clause_evaluation():
+    assert deps._satisfies_spec('7.2.8', deps.EDGE_TTS_SPEC) is True
+    assert deps._satisfies_spec('7.0', deps.EDGE_TTS_SPEC) is True
+    assert deps._satisfies_spec('6.1.14', deps.EDGE_TTS_SPEC) is False
+    assert deps._satisfies_spec('8.0', deps.EDGE_TTS_SPEC) is False
+
+
+def test_bootstrap_background_starts_thread_when_version_outdated(monkeypatch):
+    monkeypatch.setattr(deps, 'ensure_deps_on_path', lambda: True)
+    monkeypatch.setattr(deps, '_installed_version', lambda: '6.1.14')
+    thread = MagicMock()
+    monkeypatch.setattr(deps.threading, 'Thread', MagicMock(return_value=thread))
+
+    assert deps.bootstrap_edge_tts_background() is thread
+    thread.start.assert_called_once()
+
+
 def test_run_bootstrap_replaces_broken_existing_install(monkeypatch, tmp_path):
     target = tmp_path / 'awesome_tts_deps'
     (target / 'edge_tts').mkdir(parents=True)  # pre-existing broken install
