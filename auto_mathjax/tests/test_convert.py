@@ -473,6 +473,26 @@ def test_command_operand_superscript_in_cjk_prose_converts():
     assert _convert_dollar_to_mathjax(html) == '满足 \\(A = A^\\dagger\\) 的方阵'
 
 
+def test_cjk_subscript_label_converts():
+    r"""S参数 note 1791856470298: $S_{输出, 输入}$ — a subscript with an
+    operand is math notation even without a relation or arithmetic
+    operator; the CJK is a descriptive label."""
+    html = 'S参数的命名规则是：$S_{输出, 输入}$。'
+    assert _convert_dollar_to_mathjax(html) == 'S参数的命名规则是：\\(S_{输出, 输入}\\)。'
+
+
+def test_cjk_braceless_subscript_converts():
+    r"""$V_输入$ — same labeling convention without braces."""
+    assert _convert_dollar_to_mathjax('$V_输入$') == '\\(V_输入\\)'
+
+
+def test_pure_cjk_label_not_math():
+    """$输入功率$ — a plain CJK phrase with no math structure stays
+    untouched."""
+    html = '$输入功率$ 的定义'
+    assert _convert_dollar_to_mathjax(html) == html
+
+
 # --- Prose protection (shapes found by tools/sweep_transform.py) ---
 # Cashtags, money slang, and finance commentary regex-match as $ pairs but
 # must never convert. Each test pins the shape of a real mangled note.

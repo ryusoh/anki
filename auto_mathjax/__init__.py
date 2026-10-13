@@ -269,6 +269,10 @@ def _looks_like_cjk_math_formula(text):
     # Outside \text{} groups or LaTeX commands, words should not be English prose
     if any(len(word) > 2 for word in re.findall(r'[a-zA-Z]+', text)):
         return False
+    # A sub/superscript with an operand (S_{输出, 输入}, V_输入) is math
+    # notation even with no relation or operator — the CJK is a label.
+    if re.search(r'[_^]\s*(?:\{|\w)', text):
+        return True
     has_rel = bool(re.search(r'[=<>~≈≠≤≥]|\\(?:approx|sim|le|ge|leq|geq|neq|equiv|propto)', text))
     has_op = bool(re.search(r'[+\-*/^]', text))
     has_num = bool(re.search(r'[0-9]', text))
