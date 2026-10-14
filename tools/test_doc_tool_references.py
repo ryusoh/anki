@@ -10,9 +10,9 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-# Regex pattern to extract tools/, scripts/, or bin/ script paths from markdown text
+# Regex pattern to extract tools/ or bin/ script paths from markdown text
 SCRIPT_REF_PATTERN = re.compile(
-    r"(?:python3\s+|node\s+|`|\b)((?:tools|scripts|bin)/[a-zA-Z0-9_\-/\.]+\.(?:py|sh|c|mjs|cjs))"
+    r"(?:python3\s+|node\s+|`|\b)((?:tools|bin)/[a-zA-Z0-9_\-/\.]+\.(?:py|sh|c|mjs|cjs))"
 )
 
 

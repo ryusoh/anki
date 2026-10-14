@@ -10,7 +10,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from check_bot_pr_hygiene import find_violations, main
+from check_bot_pr_hygiene import _is_stray_artifact, find_violations, main
 
 BOT_NAME = 'google-labs-jules[bot]'
 BOT_EMAIL = '161369871+google-labs-jules[bot]@users.noreply.github.com'
@@ -107,6 +107,10 @@ def test_bot_stray_artifact_flagged(repo: Path) -> None:
         'logs/run.LOG',
         'pr_title.txt',
         'commit_message.txt',
+        'commit-message.txt',
+        'commit_msg.txt',
+        'patch.diff',
+        'diff.patch',
         'patch_prior.py',
         'fix_typo.cjs',
         'fix.py',
@@ -240,3 +244,39 @@ def test_main_returns_0_on_empty_range(repo: Path) -> None:
 
 def test_main_returns_2_on_missing_base(repo: Path) -> None:
     assert main(['--repo', str(repo), '--base', 'no-such-ref']) == 2
+
+
+def test_all_stray_artifact_patterns_are_gitignored() -> None:
+    """Ensure every artifact pattern rejected by check_bot_pr_hygiene is covered by .gitignore.
+
+    This prevents drift between the hygiene gate and git's staging layer, ensuring
+    agents mechanically cannot stage forbidden scratch or verification files.
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+    sample_artifacts = [
+        'pr_body.txt',
+        'pr_description.txt',
+        'pr_title.txt',
+        'commit_message.txt',
+        'commit-message.txt',
+        'commit_msg.txt',
+        'precommit.log',
+        'verify.log',
+        'temp_notes.tmp',
+        'scratch.scratch',
+        'test.swp',
+        'output.txt',
+        'verify_output.txt',
+        'eslint_out.json',
+        'test_output.json',
+        'patch.diff',
+        'diff.patch',
+        'pnpm-lock.yaml',
+        'yarn.lock',
+        'bun.lock',
+        'bun.lockb',
+    ]
+    for path in sample_artifacts:
+        assert _is_stray_artifact(path), f'{path} should be detected as stray'
+        res = subprocess.run(['git', 'check-ignore', '-q', path], cwd=repo_root)
+        assert res.returncode == 0, f'{path} is a stray artifact but not covered by .gitignore'

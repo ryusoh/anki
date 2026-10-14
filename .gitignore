@@ -205,7 +205,28 @@ mutants/
 # Agent task state ledgers
 .agents/state/
 
-# Agent scratch and PR draft files
+# Agent scratch, verification logs, and PR draft files
 pr_body.txt
 pr_description.txt
+pr_title.txt
+commit_message.txt
+commit-message.txt
+commit_msg.txt
+*.log
+*.tmp
+*.scratch
+*.swp
+output.txt
+*_output.txt
+*_out.json
+*_output.json
+patch.diff
+diff.patch
+
+# Foreign package manager lockfiles (this repo is npm)
+pnpm-lock.yaml
+yarn.lock
+bun.lock
+bun.lockb
+
 
