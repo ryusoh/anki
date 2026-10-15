@@ -77,3 +77,18 @@ A running agent session sees skills as of session start. Editing or syncing
 `.agents/skills/` mid-session does not change what the running session has
 loaded — an invoked skill still uses the pre-edit text (observed: `/retro`
 loading a pre-consolidation copy). Start a new session to pick up skill edits.
+
+## A shim `node` first in PATH silently breaks `check-node`
+
+Agent-spawned shells (e.g. Kimi desktop sessions) can have a shim `node`
+ahead of the real interpreter on PATH — observed: `process.execPath` pointing
+at a desktop-app helper binary reporting as Node v24. Under that shim, jest
+30's ESM detection fails even with `NODE_OPTIONS=--experimental-vm-modules`,
+so `make check-node` dies on `review_heatmap/tests/` with
+`Must use import to load ES Module ... require of ESM` while CI on the same
+commit is green (observed 2026-10-15; `npm ci` does not fix it).
+
+Diagnose with `node -p process.execPath` — if it is not a real node binary,
+re-run with one, e.g.
+`PATH="/opt/homebrew/bin:$PATH" make check-node`. Do not report this as a
+code failure, and do not "fix" repo files for it.
