@@ -77,6 +77,29 @@ def test_bot_production_deletion_not_flagged(repo: Path) -> None:
     assert find_violations(repo, 'main') == []
 
 
+def test_bot_lockfile_deletion_flagged(repo: Path) -> None:
+    _write_and_commit(repo, 'package-lock.json', '{"name": "anki"}\n', 'add lockfile')
+    (repo / 'package-lock.json').unlink()
+    _git(repo, 'add', 'package-lock.json')
+    _commit(repo, 'drop lockfile')
+    violations = find_violations(repo, 'main')
+    assert any('lockfile deletion' in v for v in violations)
+
+
+def test_bot_lockfile_modification_not_flagged(repo: Path) -> None:
+    _write_and_commit(repo, 'package-lock.json', '{"name": "anki"}\n', 'add lockfile')
+    _write_and_commit(repo, 'package-lock.json', '{"name": "anki", "v": 2}\n', 'bump lockfile')
+    assert find_violations(repo, 'main') == []
+
+
+def test_human_lockfile_deletion_not_flagged(repo: Path) -> None:
+    _write_and_commit(repo, 'package-lock.json', '{"name": "anki"}\n', 'add lockfile')
+    (repo / 'package-lock.json').unlink()
+    _git(repo, 'add', 'package-lock.json')
+    _commit(repo, 'human drops lockfile', bot=False)
+    assert find_violations(repo, 'main') == []
+
+
 def test_bot_empty_commit_flagged(repo: Path) -> None:
     _commit(repo, 'responding to feedback', allow_empty=True)
     violations = find_violations(repo, 'main')

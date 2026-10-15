@@ -14,7 +14,10 @@ review questions. This check fails the gate on any bot-authored commit in
    (Testpilot owns ``tests/``; no other bot lane may touch tests at all),
 4. commits stray bot artifacts (e.g. ``pr_body.txt``, scratch/temp files),
 5. touches ``eslint-suppressions.json`` from a non-refactor lane or increases
-   suppressions (complexity ratchet violation).
+   suppressions (complexity ratchet violation),
+6. deletes ``package-lock.json`` — PR #544's bot run wiped the 8 681-line
+   lockfile, which broke ``npm ci`` and the security-audit workflow; no bot
+   lane may delete it (dependabot is a different author and unaffected).
 
 Human-authored commits are out of scope and skipped: interactive agents may
 legitimately delete or rewrite tests when the user asks.
@@ -171,6 +174,11 @@ def find_violations(repo: Path, base: str, head: str = 'HEAD') -> list[str]:
                 )
             if _is_stray_artifact(path):
                 violations.append(f'{sha[:8]} stray artifact: {path} must not be committed')
+            if path == 'package-lock.json' and added == '0' and deleted != '0':
+                violations.append(
+                    f'{sha[:8]} lockfile deletion: package-lock.json must never be deleted'
+                    ' — it breaks npm ci and the security-audit workflow'
+                )
             if path == 'eslint-suppressions.json' or path.endswith('/eslint-suppressions.json'):
                 if not subject.startswith('refactor'):
                     violations.append(
@@ -184,7 +192,7 @@ def find_violations(repo: Path, base: str, head: str = 'HEAD') -> list[str]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description='Fail on empty commits, placeholder files, test deletions, stray artifacts, or complexity ratchet violations in bot-authored commits.',
+        description='Fail on empty commits, placeholder files, test deletions, lockfile deletions, stray artifacts, or complexity ratchet violations in bot-authored commits.',
     )
     parser.add_argument(
         '--base',
