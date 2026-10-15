@@ -289,3 +289,35 @@ def test_aggregate_reviews_missing_deck_name():
              patch('data.anki.generate_review_stats.CARDS_FILE', cards_file):
             global_stats, deck_stats = aggregate_reviews()
             assert "Unknown" in deck_stats
+
+def test_aggregate_reviews_multiple_on_same_day():
+    import gzip
+    import json
+    import tempfile
+    from pathlib import Path
+    from unittest.mock import patch
+
+    from data.anki.generate_review_stats import aggregate_reviews
+
+    review_data = [
+        {"id": 1609459200000, "cid": 1, "type": 1, "lastIvl": 21, "ivl": 30, "ease": 3, "time": 1000},
+        {"id": 1609459200000 + 1000, "cid": 1, "type": 1, "lastIvl": 21, "ivl": 30, "ease": 3, "time": 1000}, # Same day, same deck
+        {"id": 1609459200000 + 2000, "cid": 2, "type": 99, "lastIvl": 21, "ivl": 30, "ease": 99, "time": 1000}, # Unknown rtype, unknown ease
+    ]
+
+    with tempfile.TemporaryDirectory() as tempdir:
+        temp_path = Path(tempdir)
+        reviews_dir = temp_path / "reviews"
+        reviews_dir.mkdir()
+
+        with gzip.open(reviews_dir / "2021-01.json.gz", 'wt') as f:
+            json.dump(review_data, f)
+
+        cards_file = temp_path / "cards.json.gz"
+        with gzip.open(cards_file, 'wt') as f:
+            json.dump([{"id": 1, "deck_name": "Default"}], f)
+
+        with patch('data.anki.generate_review_stats.REVIEWS_DIR', reviews_dir), \
+             patch('data.anki.generate_review_stats.CARDS_FILE', cards_file):
+            global_stats, deck_stats = aggregate_reviews()
+            assert global_stats is not None

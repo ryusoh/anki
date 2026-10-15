@@ -321,3 +321,46 @@ def test_fetch_prs_no_gh(monkeypatch, capsys):
         main()
 
     assert "gh CLI not found" in capsys.readouterr().err
+
+
+def test_extract_state_and_reasons_unhandled(capsys):
+    from prior_prs import compute_stats
+
+    prs = [
+        {
+            "author": {"login": "google-labs-jules[bot]"},
+            "labels": [{"name": "close:irrelevant"}],
+            "state": "unknown_state",
+            "title": "fix(misc): test",
+            "body": "test",
+        }
+    ]
+    stats = compute_stats(prs)
+    lanes = stats['lanes']
+    assert 'misc' not in lanes
+    assert stats['total']['open'] == 0
+    assert stats['total']['closed'] == 0
+    assert stats['total']['merged'] == 0
+    assert 'unattributed' in lanes
+    assert lanes["unattributed"]["open"] == 0
+    assert lanes["unattributed"]["closed"] == 0
+    assert lanes["unattributed"]["merged"] == 0
+
+
+def test_extract_state_and_reasons_no_close_reason(capsys):
+    from prior_prs import compute_stats
+
+    prs = [
+        {
+            "author": {"login": "google-labs-jules[bot]"},
+            "labels": [{"name": "some_other_label"}],
+            "state": "closed",
+            "title": "fix(misc): test",
+            "body": "test",
+        }
+    ]
+    stats = compute_stats(prs)
+    lanes = stats['lanes']
+
+    assert lanes["unattributed"]["closed"] == 1
+    assert lanes["unattributed"]["reasons"] == {}

@@ -540,3 +540,34 @@ class TestShowDupes:
         browser = env.dialogs.open.return_value
         env.Editor.showDupes(editor)
         browser.search_for.assert_called_once_with("nid:5,7")
+
+
+def test_config_returns_empty_dict_when_mw_is_none(load_addon):
+    env = load_addon()
+    env.mw = None
+    # mocking mw inside deck_scoped_dupes
+    import sys
+
+    # Since load_addon modifies aqt and mw, we can just replace aqt.mw directly for the duration of this test
+    import aqt
+
+    import deck_scoped_dupes
+
+    original_mw = aqt.mw
+    try:
+        aqt.mw = None
+        assert deck_scoped_dupes._config() == {}
+    finally:
+        aqt.mw = original_mw
+
+
+def test_browser_find_dupes_deck_not_found(load_addon):
+    env = load_addon()
+    browser = TestBrowserFindDupes.make_browser(None, env, 'deck:"MissingDeck"', [])
+    # mock deck resolution
+    import unittest.mock
+
+    with unittest.mock.patch.object(env.col.decks, 'by_name', return_value=None):
+        env.mod.find_dupes_in_current_deck(browser)
+        env.utils.tooltip.assert_called_with("Deck not found: MissingDeck")
+        assert not browser.search_for.called
