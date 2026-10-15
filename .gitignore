@@ -222,6 +222,9 @@ output.txt
 *_output.json
 patch.diff
 diff.patch
+*.orig
+*.rej
+*.bak
 
 # Foreign package manager lockfiles (this repo is npm)
 pnpm-lock.yaml

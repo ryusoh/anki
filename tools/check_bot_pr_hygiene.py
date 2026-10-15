@@ -62,7 +62,7 @@ def _is_stray_artifact(path: str) -> bool:
         'commit_msg.txt',
     }:
         return True
-    if name.endswith(('.tmp', '.scratch', '.swp', '.log')):
+    if name.endswith(('.tmp', '.scratch', '.swp', '.log', '.orig', '.rej', '.bak')):
         return True
     # Verification-run scratch (fund#692 shipped a 474-line verify_output.txt;
     # fund#695 shipped ~6 MB of eslint_out.json / eslint_warn_out.json).
