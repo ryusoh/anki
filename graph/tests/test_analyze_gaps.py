@@ -374,3 +374,111 @@ def test_build_deck_map_from_cards_missing_nid():
     with patch('builtins.open', side_effect=side_effect):
         deck_map = build_deck_map_from_cards(None, cards_file, decks_file)
         assert deck_map[1]['did'] == 100
+
+
+def test_load_notes_with_decks_no_notes_found(capsys):
+    """Test loading notes when neither R2 nor GitHub fallback succeeds"""
+    from graph.analyze import load_notes_with_decks
+
+    with patch('pathlib.Path.exists', autospec=True) as mock_exists:
+        mock_exists.return_value = False
+        import sys
+
+        notes = load_notes_with_decks()
+        assert len(notes) == 0
+        captured = capsys.readouterr()
+        assert "❌ No notes found" in captured.err
+
+
+def test_load_notes_with_decks_github_success_no_cards_file(capsys):
+    """Test loading notes from GitHub fallback where cards_file does not exist"""
+    from graph.analyze import load_notes_with_decks
+
+    with patch('pathlib.Path.exists', autospec=True) as mock_exists:
+
+        def side_effect(self):
+            s = str(self)
+            if 'cloudflare' in s:
+                return False
+            if 'notes.json.gz' in s:
+                return True
+            if 'cards.json.gz' in s:
+                return False
+            if 'decks.json' in s:
+                return True
+            return False
+
+        mock_exists.side_effect = side_effect
+
+        with patch('graph.analyze.load_notes_from_file') as mock_load:
+            mock_load.return_value = [{'id': 1}]
+
+            with patch('graph.analyze.build_deck_map_from_cards') as mock_build:
+                notes = load_notes_with_decks()
+
+                assert len(notes) == 1
+                assert mock_build.call_count == 0
+
+
+def test_load_notes_with_decks_github_success_cards_file_exists(capsys):
+    """Test loading notes from GitHub fallback where cards_file exists but note id is not in deck_map"""
+    from graph.analyze import load_notes_with_decks
+
+    with patch('pathlib.Path.exists', autospec=True) as mock_exists:
+
+        def side_effect(self):
+            s = str(self)
+            if 'cloudflare' in s:
+                return False
+            if 'notes.json.gz' in s:
+                return True
+            if 'cards.json.gz' in s:
+                return True
+            if 'decks.json' in s:
+                return True
+            return False
+
+        mock_exists.side_effect = side_effect
+
+        with patch('graph.analyze.load_notes_from_file') as mock_load:
+            mock_load.return_value = [{'id': 1}]
+
+            with patch('graph.analyze.build_deck_map_from_cards') as mock_build:
+                mock_build.return_value = {
+                    2: {'deck_name': 'Test Deck', 'did': 123}
+                }  # map does not contain id 1
+
+                notes = load_notes_with_decks()
+
+                assert len(notes) == 1
+                assert (
+                    'deck' not in notes[0]
+                )  # The mock_load didn't give it one, and the map didn't assign one
+
+
+def test_load_notes_with_decks_r2_staged_exists_but_no_notes(capsys):
+    """Test loading notes when R2 staging exists but contains no notes, falling back to github"""
+    from graph.analyze import load_notes_with_decks
+
+    with patch('pathlib.Path.exists', autospec=True) as mock_exists:
+
+        def side_effect(self):
+            s = str(self)
+            if 'cloudflare' in s:
+                return True
+            if 'notes.json.gz' in s:
+                return False
+            if 'cards.json.gz' in s:
+                return False
+            if 'decks.json' in s:
+                return False
+            return False
+
+        mock_exists.side_effect = side_effect
+
+        with patch('graph.analyze.load_notes_from_file') as mock_load:
+            mock_load.return_value = []  # R2 returns empty
+
+            notes = load_notes_with_decks()
+
+            assert len(notes) == 0
