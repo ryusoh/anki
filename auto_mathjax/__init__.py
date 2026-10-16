@@ -491,6 +491,30 @@ def _wrap_bare_environments(segment):
     return ''.join(parts)
 
 
+def _wrap_greek_products(segment):
+    r"""Wrap a Greek-letter times single-letter-variable product (\sigma r)
+    whole in \(...\), outside existing math blocks.
+
+    The letter tail must be exactly one letter not followed by another
+    letter, digit, sub/superscript, or underscore — \sigma random is prose,
+    \sigma r^2 would need the exponent inside the product.
+    """
+    product_re = re.compile(
+        r'(?<![\\a-zA-Z])(' + STANDALONE_MATH_SYMBOL_RE.pattern + r')\s+([a-zA-Z])(?![a-zA-Z0-9_^])'
+    )
+
+    def repl(m):
+        return '\\(' + m.group(0) + '\\)'
+
+    parts = []
+    for piece in EXISTING_MATHJAX_BLOCK_RE.split(segment):
+        if piece and not EXISTING_MATHJAX_BLOCK_RE.fullmatch(piece):
+            parts.append(product_re.sub(repl, piece))
+        else:
+            parts.append(piece)
+    return ''.join(parts)
+
+
 def _wrap_cjk_prose_math(segment):
     """Wrap self-contained bare LaTeX formulas embedded in CJK prose."""
 
@@ -554,6 +578,7 @@ def _wrap_cjk_prose_math(segment):
         return lead + wrapped + trail
 
     res = CJK_RUN_SPLIT_RE.sub(repl, segment)
+    res = _wrap_greek_products(res)
     return STANDALONE_SYMBOL_RE.sub(r'\\(\g<0>\\)', res)
 
 

@@ -805,12 +805,46 @@ def test_cjk_prose_line_not_display_wrapped():
     assert _convert_dollar_to_mathjax(html) == html
 
 
-def test_cjk_prose_rho_not_wrapped():
+def test_cjk_prose_greek_product_wrapped():
+    r"""Note 1792127823734/1792127846378: a Greek letter times a single-letter
+    variable (\sigma r — string tension times distance) is one product and
+    wraps whole in \(…\)."""
+    html = '<div>能量与长度成正比 \\sigma r，其中比例系数</div>'
+    result = _convert_dollar_to_mathjax(html)
+    assert '\\(\\sigma r\\)，其中比例系数' in result
+
+
+def test_cjk_prose_greek_product_idempotent():
+    r"""The wrapped product must not be re-wrapped on a second pass."""
+    html = '<div>能量与长度成正比 \\sigma r，其中比例系数</div>'
+    once = _convert_dollar_to_mathjax(html)
+    assert _convert_dollar_to_mathjax(once) == once
+
+
+def test_cjk_prose_greek_product_not_inside_existing_block():
+    r"""A product already inside \(...\) stays untouched."""
+    html = '<div>长距势能 \\(V(r) = \\sigma r\\) 趋于线性</div>'
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_cjk_prose_greek_product_word_tail_kept():
+    r"""A Greek command followed by an English word (\sigma random) is prose,
+    not a product — the letter tail must not match."""
+    html = '<div>这里 \\sigma random 不是乘积</div>'
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_cjk_prose_rho_g_product_wrapped():
+    r"""Successor of the pinned-raw test: \rho g now wraps whole too — the
+    old no-op expectation was a compromise that left literal \rho g text
+    on the card; whole-product wrapping supersedes it."""
     html = (
         '<div>把压力 P、速度 v 和海拔 z 全部除以 \\rho g，都能化成“液柱高度”'
         '这个统一单位——这就是伯努利方程里的压头、速度头、位置头概念。</div>'
     )
-    assert _convert_dollar_to_mathjax(html) == html
+    result = _convert_dollar_to_mathjax(html)
+    assert '除以 \\(\\rho g\\)，都能化成' in result
+    assert _convert_dollar_to_mathjax(result) == result
 
 
 def test_cjk_definition_term_wrapped():
