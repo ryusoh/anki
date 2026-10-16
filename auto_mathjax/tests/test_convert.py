@@ -1642,6 +1642,40 @@ def test_shuffled_text_label_idempotent():
     assert _convert_dollar_to_mathjax(once) == once
 
 
+def test_split_matrix_env_wrapped_tail_repair():
+    r"""Note 1792128248107: \\ row break pushed outside the math —
+    \(\Phi = \begin{pmatrix} \phi^+\) \\ \(\phi^0 \end{pmatrix}\) reassembles."""
+    html = (
+        '<div>场 \\(\\Phi = \\begin{pmatrix} \\phi^+\\) \\\\ \\(\\phi^0 \\end{pmatrix}\\)。</div>'
+    )
+    result = _convert_dollar_to_mathjax(html)
+    assert '\\(\\Phi = \\begin{pmatrix} \\phi^+ \\\\ \\phi^0 \\end{pmatrix}\\)' in result
+
+
+def test_split_matrix_env_bare_tail_repair():
+    r"""The tail may also be bare: \(…\begin{pmatrix} 0\) \\ v \end{pmatrix} reassembles."""
+    html = (
+        '<div>真空期望 \\(\\langle \\Phi \\rangle = \\frac{1}{\\sqrt{2}}'
+        '\\begin{pmatrix} 0\\) \\\\ v \\end{pmatrix}（见下文）。</div>'
+    )
+    result = _convert_dollar_to_mathjax(html)
+    assert (
+        '\\(\\langle \\Phi \\rangle = \\frac{1}{\\sqrt{2}}\\begin{pmatrix} 0 \\\\ v \\end{pmatrix}\\)'
+        in result
+    )
+    assert '（见下文）' in result
+
+
+def test_split_matrix_env_idempotent():
+    r"""The reassembled matrix blocks must not be re-split on a second pass."""
+    html = (
+        '<div>\\(\\Phi = \\begin{pmatrix} \\phi^+\\) \\\\ \\(\\phi^0 \\end{pmatrix}\\)'
+        '及 \\(\\begin{pmatrix} 0\\) \\\\ v \\end{pmatrix}。</div>'
+    )
+    once = _convert_dollar_to_mathjax(html)
+    assert _convert_dollar_to_mathjax(once) == once
+
+
 # --- Italicized stars inside an unconverted $...$ / $$...$$ pair ---
 # The rich-text editor turns a '*' after ^ or _ into <i>...</i> markup
 # (c_1^*, c_2^* → c_1^<i>, c_2^</i>), and the resulting tags trip the

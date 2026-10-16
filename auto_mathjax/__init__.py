@@ -739,6 +739,30 @@ def _fix_shuffled_text_labels(html_str):
     return SHUFFLED_TEXT_LABEL_RE.sub(_fix, html_str)
 
 
+# Matrix environment split at a row separator (note 1792128248107): an
+# editing accident left the \\ row break OUTSIDE the math, splitting
+# \(…\begin{pmatrix} a\) \\ b \end{pmatrix} into a block with an unclosed
+# environment (always a MathJax error) plus a stray tail — which may still
+# be math-wrapped \(b …\) or entirely bare. Reassemble the \\ into the
+# single block.
+SPLIT_MATRIX_ENV_RE = re.compile(
+    r'\\\((?P<head>(?:(?!\\\(|\\\)).)*?\\begin\{(?P<env>pmatrix|bmatrix|Bmatrix|vmatrix|Vmatrix|smallmatrix|matrix|cases)\}'
+    r'(?:(?!\\end\{(?P=env)\}|\\\(|\\\)).)*)'
+    r'\\\)\s*\\\\\s*'
+    r'(?:\\\()?(?P<tail>(?:(?!\\\(|\\\)).)*?\\end\{(?P=env)\})(?:\\\))?'
+)
+
+
+def _fix_split_matrix_env(html_str):
+    """Merge a matrix environment that was split across math blocks by an
+    orphaned \\ row separator back into a single math block."""
+
+    def _fix(m):
+        return '\\(' + m.group('head') + ' \\\\ ' + m.group('tail') + '\\)'
+
+    return SPLIT_MATRIX_ENV_RE.sub(_fix, html_str)
+
+
 def _fix_mangled_mathjax(html_str):
     """Repair mangled HTML tags inside/around MathJax blocks.
 
@@ -979,6 +1003,7 @@ def _convert_dollar_to_mathjax(html_str):
     converted_html = _fix_mathjax_braces(converted_html)
     converted_html = _fix_mangled_mathjax(converted_html)
     converted_html = _fix_shuffled_text_labels(converted_html)
+    converted_html = _fix_split_matrix_env(converted_html)
     converted_html = _unwrap_mathjax_from_pre(converted_html)
     return _inject_macro_defs(converted_html)
 
