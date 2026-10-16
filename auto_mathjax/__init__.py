@@ -54,7 +54,7 @@ BARE_LATEX_COMMAND_RE = re.compile(
     r'oiiint|oiint|oint|'
     r'leq?|geq?|neq|approx|equiv|propto|mid|parallel|infty|log|ln|exp|sin|cos|tan|sinh|cosh|tanh|coth|sech|csch|lim|min|max|inf|sup|argmin|argmax|'
     r'partial|nabla|to|rightarrow|Rightarrow|left|right|over|hat|bar|vec|'
-    r'dim|vert|langle|rangle|subset(?:eq)?|supset(?:eq)?|in|ni|notin|'
+    r'dim|vert|langle|rangle|subset(?:eq)?|supset(?:eq)?|in|ni|notin|ll|gg|'
     r'mathbb|mathrm|mathbf|mathit|mathcal|operatorname|'
     r'alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|vartheta|iota|kappa|'
     r'lambdabar|lambda|Lambda|mu|nu|xi|Xi|pi|Pi|varpi|rho|varrho|sigma|Sigma|varsigma|tau|upsilon|Upsilon|'
