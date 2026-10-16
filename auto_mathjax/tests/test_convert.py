@@ -1013,6 +1013,30 @@ def test_cjk_prose_ll_gg_idempotent():
     assert _convert_dollar_to_mathjax(once) == once
 
 
+def test_cjk_prose_comparison_with_operands_wrapped():
+    r"""Note 1792119439969: V \lt 1 in CJK prose (（通常 V \lt 1）) wraps as math."""
+    html = '<div>归一化频率大幅减小（通常 V \\lt 1），基模无法束缚。</div>'
+    result = _convert_dollar_to_mathjax(html)
+    assert '大幅减小（通常 \\(V \\lt 1\\)），' in result
+
+
+def test_cjk_prose_relation_operands_family_wrapped():
+    r"""Operand-taking forms of standalone relation symbols (\sim, \cong, \simeq, \perp) wrap too."""
+    html = '<div>左边 x \\sim y，结构 A \\cong B，近似 u \\simeq v，正交 a \\perp b。</div>'
+    result = _convert_dollar_to_mathjax(html)
+    assert '左边 \\(x \\sim y\\)，' in result
+    assert '结构 \\(A \\cong B\\)，' in result
+    assert '近似 \\(u \\simeq v\\)，' in result
+    assert '正交 \\(a \\perp b\\)。' in result
+
+
+def test_cjk_prose_relation_operands_idempotent():
+    r"""The comparison/relation operand wraps must not double-wrap on a second pass."""
+    html = '<div>通常 V \\lt 1 且 x \\sim y。</div>'
+    once = _convert_dollar_to_mathjax(html)
+    assert _convert_dollar_to_mathjax(once) == once
+
+
 def test_cjk_prose_standalone_greek_symbols_wrapped():
     r"""Standalone Greek letters and symbols in CJK prose (\vartheta, \mu, \theta, \Pi) are wrapped."""
     html = '<div>在假定外部状态为 \\vartheta 的条件下。如果 \\mu 代表放电，突触权重 \\theta 和精度 \\Pi 执行梯度下降。</div>'
