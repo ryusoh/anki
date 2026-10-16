@@ -1037,6 +1037,20 @@ def test_cjk_prose_relation_operands_idempotent():
     assert _convert_dollar_to_mathjax(once) == once
 
 
+def test_cjk_prose_escaped_percent_wrapped():
+    r"""Note 1792119439969: 1\% in CJK prose (内部提取 1\% 光信号) wraps as math."""
+    html = '<div>EDFA 内部提取 1\\% 光信号做自动功率控制。</div>'
+    result = _convert_dollar_to_mathjax(html)
+    assert '内部提取 \\(1\\%\\) 光信号' in result
+
+
+def test_cjk_prose_escaped_percent_idempotent():
+    r"""The escaped-percent wrap must not double-wrap on a second pass."""
+    html = '<div>EDFA 内部提取 1\\% 光信号。</div>'
+    once = _convert_dollar_to_mathjax(html)
+    assert _convert_dollar_to_mathjax(once) == once
+
+
 def test_cjk_prose_standalone_greek_symbols_wrapped():
     r"""Standalone Greek letters and symbols in CJK prose (\vartheta, \mu, \theta, \Pi) are wrapped."""
     html = '<div>在假定外部状态为 \\vartheta 的条件下。如果 \\mu 代表放电，突触权重 \\theta 和精度 \\Pi 执行梯度下降。</div>'

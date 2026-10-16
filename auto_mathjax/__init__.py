@@ -59,7 +59,8 @@ BARE_LATEX_COMMAND_RE = re.compile(
     r'mathbb|mathrm|mathbf|mathit|mathcal|operatorname|'
     r'alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|vartheta|iota|kappa|'
     r'lambdabar|lambda|Lambda|mu|nu|xi|Xi|pi|Pi|varpi|rho|varrho|sigma|Sigma|varsigma|tau|upsilon|Upsilon|'
-    r'phi|Phi|varphi|chi|psi|Psi|omega|Omega'
+    r'phi|Phi|varphi|chi|psi|Psi|omega|Omega|'
+    r'%'
     r')(?![a-zA-Z])'
 )
 
