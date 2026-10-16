@@ -3,10 +3,19 @@
  * Provides fast prefix-based autocomplete and command validation
  */
 
+/**
+ * @typedef {Object} ValidationResult
+ * @property {boolean} valid
+ * @property {string[]} suggestions
+ * @property {boolean} [isPartial]
+ */
+
 export class TrieNode {
   constructor() {
+    /** @type {Object.<string, TrieNode>} */
     this.children = {};
     this.isEndOfCommand = false;
+    /** @type {string | null} */
     this.command = null; // Full command stored at end node
   }
 }
@@ -14,6 +23,7 @@ export class TrieNode {
 export class CommandTrie {
   constructor() {
     this.root = new TrieNode();
+    /** @type {Set<string>} */
     this.commands = new Set(); // Track all registered commands
   }
 
@@ -102,6 +112,7 @@ export class CommandTrie {
     }
 
     // Collect all commands from this node
+    /** @type {string[]} */
     const suggestions = [];
     this._collectCommands(node, normalized, suggestions, limit);
     return suggestions;
@@ -111,10 +122,16 @@ export class CommandTrie {
    * Collect all commands from a node (DFS)
    * @private
    */
+  /**
+   * @param {TrieNode} node
+   * @param {string} prefix
+   * @param {string[]} results
+   * @param {number} limit
+   */
   _collectCommands(node, prefix, results, limit) {
     if (results.length >= limit) return;
 
-    if (node.isEndOfCommand) {
+    if (node.isEndOfCommand && node.command !== null) {
       results.push(node.command);
     }
 
@@ -126,7 +143,7 @@ export class CommandTrie {
   /**
    * Validate a command - check if it exists in trie
    * @param {string} command - Command to validate
-   * @returns {{valid: boolean, suggestions: string[]}} - Validation result
+   * @returns {ValidationResult} - Validation result
    */
   validate(command) {
     const normalized = command.toLowerCase().trim();
