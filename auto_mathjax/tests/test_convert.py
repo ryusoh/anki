@@ -1909,6 +1909,30 @@ def test_signed_standalone_greek_idempotent():
     assert _convert_dollar_to_mathjax(once) == once
 
 
+def test_half_bracketed_interval_merged():
+    r"""Note 1792129098534: the interval opener was left outside the block —
+    \gamma \in [\(1, \infty)\) merges into \(\gamma \in [1, \infty)\)."""
+    html = '<div>对洛伦兹因子 \\gamma \\in [\\(1, \\infty)\\) 的概率密度分布为：</div>'
+    result = _convert_dollar_to_mathjax(html)
+    assert '\\(\\gamma \\in [1, \\infty)\\)' in result
+
+
+def test_half_bracketed_interval_idempotent():
+    r"""The merged interval must not be re-split on a second pass."""
+    html = '<div>对洛伦兹因子 \\gamma \\in [\\(1, \\infty)\\) 的概率密度分布为：</div>'
+    once = _convert_dollar_to_mathjax(html)
+    assert _convert_dollar_to_mathjax(once) == once
+
+
+def test_half_bracketed_interval_cjk_block_kept():
+    r"""A [ directly before a block whose content is prose (not an interval)
+    is not this shape — hands off."""
+    html = '<div>见注[\\(详见前文\\)]所述</div>'
+    once = _convert_dollar_to_mathjax(html)
+    assert '[\\(详见前文\\)]' in once
+    assert _convert_dollar_to_mathjax(once) == once
+
+
 def test_shuffled_arrow_operand_repair():
     r"""Note 1792128952512: A\(\toA 或 B\)\to\)B — arrow operands shuffled out
     of two inline blocks reassemble to A\(\to\)A 或 B\(\to\)B."""

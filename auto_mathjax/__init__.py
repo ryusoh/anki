@@ -929,6 +929,40 @@ def _strip_span_placeholders_in_blocks(html_str):
 CASES_ENV_RE = re.compile(r'\\begin\{cases\}(?P<body>(?:(?!\\end\{cases\})[\s\S])*?)\\end\{cases\}')
 
 
+# Interval opener left outside the block (note 1792129098534): an editing
+# accident split \(\gamma \in [1, \infty)\) into bare "\gamma \in [" +
+# "\(1, \infty)\)". The bare part is standalone-symbol commands ending in [,
+# adjacent to a block whose content is interval notation (ASCII math chars,
+# no CJK) — merge into one block. Applied only outside existing math blocks.
+HALF_BRACKETED_INTERVAL_RE = re.compile(
+    r'(?P<bare>(?:\\[a-zA-Z]+\s*)+\[)(?P<block>\\\((?P<inner>(?:(?!\\\(|\\\)).)*?)\\\))'
+)
+_INTERVAL_INNER_RE = re.compile(r'[\s0-9a-zA-Z\\{},+\-*/()\[\]]*')
+
+
+def _fix_half_bracketed_interval(html_str):
+    """Merge bare "commands [" + \(interval\) into a single inline block.
+
+    The shape straddles an existing block, so whole-string matching with a
+    position guard: a match starting inside an existing block is a legit
+    already-wrapped interval — skip it (this also makes the fix idempotent).
+    """
+    block_spans = [m.span() for m in EXISTING_MATHJAX_BLOCK_RE.finditer(html_str)]
+
+    def repl(m):
+        if any(start <= m.start() < end for start, end in block_spans):
+            return m.group(0)
+        commands = re.findall(r'\\[a-zA-Z]+', m.group('bare'))
+        if not all(STANDALONE_MATH_SYMBOL_RE.fullmatch(c) for c in commands):
+            return m.group(0)
+        inner = m.group('inner')
+        if not _INTERVAL_INNER_RE.fullmatch(inner) or CJK_RE.search(inner):
+            return m.group(0)
+        return '\\(' + m.group('bare') + inner + '\\)'
+
+    return HALF_BRACKETED_INTERVAL_RE.sub(repl, html_str)
+
+
 def _fix_cases_row_separator(html_str):
     """Reinsert a \\ row separator lost between two cases rows."""
 
@@ -1220,6 +1254,7 @@ def _convert_dollar_to_mathjax(html_str):
     converted_html = _fix_shuffled_text_labels(converted_html)
     converted_html = _fix_split_matrix_env(converted_html)
     converted_html = _fix_cases_row_separator(converted_html)
+    converted_html = _fix_half_bracketed_interval(converted_html)
     converted_html = _fix_shuffled_arrow_operands(converted_html)
     converted_html = _unwrap_mathjax_from_pre(converted_html)
     return _inject_macro_defs(converted_html)
