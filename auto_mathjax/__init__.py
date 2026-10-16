@@ -54,6 +54,7 @@ BARE_LATEX_COMMAND_RE = re.compile(
     r'oiiint|oiint|oint|'
     r'leq?|geq?|neq|approx|equiv|propto|mid|parallel|infty|log|ln|exp|sin|cos|tan|sinh|cosh|tanh|coth|sech|csch|lim|min|max|inf|sup|argmin|argmax|'
     r'partial|nabla|to|rightarrow|Rightarrow|left|right|over|hat|bar|vec|'
+    r'dim|vert|langle|rangle|subset(?:eq)?|supset(?:eq)?|in|ni|notin|'
     r'mathbb|mathrm|mathbf|mathit|mathcal|operatorname|'
     r'alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|vartheta|iota|kappa|'
     r'lambdabar|lambda|Lambda|mu|nu|xi|Xi|pi|Pi|varpi|rho|varrho|sigma|Sigma|varsigma|tau|upsilon|Upsilon|'
@@ -181,7 +182,8 @@ DEF_TERM_RE = re.compile(
 
 # Characters/operators indicating mathematical structure in an embedded run
 HAS_STRUCTURE_RE = re.compile(
-    r'[{0-9_^()]|\\(?:to|rightarrow|Rightarrow|ge|geq|le|leq|mid|parallel|frac|dfrac|sqrt|sum|prod|cdot|times)'
+    r'[{0-9_^()]|\\(?:to|rightarrow|Rightarrow|ge|geq|le|leq|mid|parallel|frac|dfrac|sqrt|sum|prod|cdot|times|'
+    r'subset(?:eq)?|supset(?:eq)?|in|ni|notin)'
 )
 
 # Integral commands that only have sub/superscript bounds or operands and lack
@@ -461,7 +463,38 @@ def _wrap_cjk_prose_math(segment):
         hyphen_m = HYPHENATED_SYMBOL_RE.match(core)
         if hyphen_m:
             return lead + r'\(' + hyphen_m.group(1) + r'\)-' + hyphen_m.group(2) + trail
-        return raw
+        # Fallback: the run mixes math with a prose label (e.g. an English
+        # gloss like "（\mathbb{Z}_2 Non-trivial）" — "trivial" fails the
+        # short-word guard above). Wrap only the embedded math tokens,
+        # leaving the label as prose; existing \(...\) blocks from a prior
+        # pass are left untouched so re-runs stay idempotent.
+        if re.search(r'[<>&;]', core):
+            return raw
+
+        def sub(m):
+            run = m.group(0)
+            if not BARE_LATEX_COMMAND_RE.search(run):
+                return run
+            c = run.strip(_RUN_TRIM_CHARS)
+            if not c:
+                return run
+            # Operand-taking integrals (\oint_C) stay bare by design, and
+            # structure-less standalone symbols (\oint) are wrapped by the
+            # STANDALONE_SYMBOL_RE pass below — wrapping them here would
+            # double-wrap.
+            if INCOMPLETE_INTEGRAL_RE.fullmatch(c) or not re.search(r'[{0-9_^]', c):
+                return run
+            start = run.find(c)
+            return run[:start] + '\\(' + c + '\\)' + run[start + len(c) :]
+
+        pieces = EXISTING_MATHJAX_BLOCK_RE.split(core)
+        wrapped = ''.join(
+            p if not p or EXISTING_MATHJAX_BLOCK_RE.fullmatch(p) else EMBEDDED_RUN_RE.sub(sub, p)
+            for p in pieces
+        )
+        if wrapped == core:
+            return raw
+        return lead + wrapped + trail
 
     res = CJK_RUN_SPLIT_RE.sub(repl, segment)
     return STANDALONE_SYMBOL_RE.sub(r'\\(\g<0>\\)', res)

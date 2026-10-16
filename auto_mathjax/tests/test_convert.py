@@ -901,6 +901,58 @@ def test_cjk_prose_arrows_and_relations_wrapped():
     )
 
 
+def test_cjk_prose_dim_operands_wrapped():
+    r"""Note 1792117129099: \dim(G) - \dim(H) in CJK prose wraps as math."""
+    html = '<div>必然涌现出 \\dim(G) - \\dim(H) 个无质量标量激发。</div>'
+    result = _convert_dollar_to_mathjax(html)
+    assert '必然涌现出 \\(\\dim(G) - \\dim(H)\\) 个无质量标量激发。' in result
+
+
+def test_cjk_prose_vert_rangle_ket_wrapped():
+    r"""Note 1792117129099: \vert{}0\rangle (vacuum ket) in CJK prose wraps as math."""
+    html = '<div>系统的最低能量基态（真空态 \\vert{}0\\rangle）不具备该对称性。</div>'
+    result = _convert_dollar_to_mathjax(html)
+    assert '基态（真空态 \\(\\vert{}0\\rangle\\)）不具备' in result
+
+
+def test_cjk_prose_subset_relation_wrapped():
+    r"""Note 1792117129099: H \subset G subgroup relation in CJK prose wraps as math."""
+    html = '<div>而是退化为子群 H \\subset G 的不变态。</div>'
+    result = _convert_dollar_to_mathjax(html)
+    assert '退化为子群 \\(H \\subset G\\) 的不变态。' in result
+
+
+def test_cjk_prose_dim_vert_subset_idempotent():
+    r"""The dim/ket/subset wraps must not double-wrap on a second pass."""
+    html = (
+        '<div>基态（真空态 \\vert{}0\\rangle）退化为子群 H \\subset G，'
+        '涌现出 \\dim(G) - \\dim(H) 个激发。</div>'
+    )
+    once = _convert_dollar_to_mathjax(html)
+    assert _convert_dollar_to_mathjax(once) == once
+
+
+def test_cjk_prose_math_token_before_english_label_wrapped():
+    r"""Note 1792117316515: \mathbb{Z}_2 followed by an English label (Non-trivial) — only the math token wraps."""
+    html = '<div>\\(\\mathbb{Z}_2\\) 非平凡（\\mathbb{Z}_2 Non-trivial）</div>'
+    result = _convert_dollar_to_mathjax(html)
+    assert result == '<div>\\(\\mathbb{Z}_2\\) 非平凡（\\(\\mathbb{Z}_2\\) Non-trivial）</div>'
+
+
+def test_cjk_prose_math_token_after_english_label_wrapped():
+    r"""An English label followed by a math token (Trivial \\mathbb{Z}_2) — only the math token wraps."""
+    html = '<div>结果分为（Trivial \\mathbb{Z}_2）两类。</div>'
+    result = _convert_dollar_to_mathjax(html)
+    assert result == '<div>结果分为（Trivial \\(\\mathbb{Z}_2\\)）两类。</div>'
+
+
+def test_cjk_prose_math_token_with_label_idempotent():
+    r"""The math-token-before-label wrap must not double-wrap on a second pass."""
+    html = '<div>\\(\\mathbb{Z}_2\\) 非平凡（\\mathbb{Z}_2 Non-trivial）</div>'
+    once = _convert_dollar_to_mathjax(html)
+    assert _convert_dollar_to_mathjax(once) == once
+
+
 def test_cjk_prose_standalone_greek_symbols_wrapped():
     r"""Standalone Greek letters and symbols in CJK prose (\vartheta, \mu, \theta, \Pi) are wrapped."""
     html = '<div>在假定外部状态为 \\vartheta 的条件下。如果 \\mu 代表放电，突触权重 \\theta 和精度 \\Pi 执行梯度下降。</div>'
