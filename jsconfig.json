@@ -31,7 +31,8 @@
     "js/loader/cdnFallback.js",
     "js/utils/timeRange.js",
     "js/ui/magnetic_nav.js",
-    "js/commands/zoom.js"
+    "js/commands/zoom.js",
+    "js/utils/trie.js"
   ],
   "exclude": ["node_modules", "js/vendor"]
 }
