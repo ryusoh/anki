@@ -978,6 +978,27 @@ def test_cjk_prose_standalone_relations_idempotent():
     assert _convert_dollar_to_mathjax(once) == once
 
 
+def test_cjk_prose_equation_shaped_greek_formula_wrapped():
+    r"""Note 1792117972870: \theta = \pi in CJK prose (而在正后方 \theta = \pi 处) wraps as math."""
+    html = '<div>在正前方 \\(\\theta = 0\\) 处 K(0) = 1，而在正后方 \\theta = \\pi 处。</div>'
+    result = _convert_dollar_to_mathjax(html)
+    assert '而在正后方 \\(\\theta = \\pi\\) 处' in result
+
+
+def test_cjk_prose_function_of_greek_wrapped():
+    r"""A function command applied directly to a Greek letter (K = \cos\theta) is structured math."""
+    html = '<div>倾斜因子写为 K = \\cos\\theta 时成立。</div>'
+    result = _convert_dollar_to_mathjax(html)
+    assert '倾斜因子写为 \\(K = \\cos\\theta\\) 时成立' in result
+
+
+def test_cjk_prose_equation_shaped_idempotent():
+    r"""The equation-shaped wraps must not double-wrap on a second pass."""
+    html = '<div>在正后方 \\theta = \\pi 处，因子 K = \\cos\\theta 成立。</div>'
+    once = _convert_dollar_to_mathjax(html)
+    assert _convert_dollar_to_mathjax(once) == once
+
+
 def test_cjk_prose_standalone_greek_symbols_wrapped():
     r"""Standalone Greek letters and symbols in CJK prose (\vartheta, \mu, \theta, \Pi) are wrapped."""
     html = '<div>在假定外部状态为 \\vartheta 的条件下。如果 \\mu 代表放电，突触权重 \\theta 和精度 \\Pi 执行梯度下降。</div>'

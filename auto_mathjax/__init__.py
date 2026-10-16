@@ -183,10 +183,13 @@ DEF_TERM_RE = re.compile(
     re.DOTALL,
 )
 
-# Characters/operators indicating mathematical structure in an embedded run
+# Characters/operators indicating mathematical structure in an embedded run.
+# "=" covers equation-shaped formulas of bare commands (\theta = \pi); the
+# function commands take operands directly (\cos\theta) with no braces.
 HAS_STRUCTURE_RE = re.compile(
-    r'[{0-9_^()]|\\(?:to|rightarrow|Rightarrow|ge|geq|le|leq|mid|parallel|frac|dfrac|sqrt|sum|prod|cdot|times|'
-    r'subset(?:eq)?|supset(?:eq)?|in|ni|notin)'
+    r'[{0-9_^(=]|\\(?:to|rightarrow|Rightarrow|ge|geq|le|leq|mid|parallel|frac|dfrac|sqrt|sum|prod|cdot|times|'
+    r'subset(?:eq)?|supset(?:eq)?|in|ni|notin|'
+    r'sin|cos|tan|sinh|cosh|tanh|coth|sech|csch|log|ln|exp|lim)'
 )
 
 # Integral commands that only have sub/superscript bounds or operands and lack
@@ -485,7 +488,7 @@ def _wrap_cjk_prose_math(segment):
             # structure-less standalone symbols (\oint) are wrapped by the
             # STANDALONE_SYMBOL_RE pass below — wrapping them here would
             # double-wrap.
-            if INCOMPLETE_INTEGRAL_RE.fullmatch(c) or not re.search(r'[{0-9_^]', c):
+            if INCOMPLETE_INTEGRAL_RE.fullmatch(c) or not re.search(r'[{0-9_^=]', c):
                 return run
             start = run.find(c)
             return run[:start] + '\\(' + c + '\\)' + run[start + len(c) :]
@@ -528,10 +531,11 @@ def _wrap_embedded_latex_core(segment):
         core = run.strip(_RUN_TRIM_CHARS)
         if not core:
             return run
-        # A bare \command with no braced, subscript/superscript, or numeric operand
-        # (Wikipedia's {\displaystyle O(\log N)} pastes) is not a self-contained
-        # formula — unless it is a standalone integral symbol (\oint & friends).
-        if not re.search(r'[{0-9_^]', core) and not STANDALONE_SYMBOL_RE.fullmatch(core):
+        # A bare \command with no braced, subscript/superscript, numeric, or
+        # equation operand (Wikipedia's {\displaystyle O(\log N)} pastes) is
+        # not a self-contained formula — unless it is a standalone integral
+        # symbol (\oint & friends).
+        if not re.search(r'[{0-9_^=]', core) and not STANDALONE_SYMBOL_RE.fullmatch(core):
             return run
         start = run.find(core)
         return run[:start] + '\\(' + core + '\\)' + run[start + len(core) :]
