@@ -789,25 +789,36 @@ def _fix_split_matrix_env(html_str):
 
 
 # Arrow operands shuffled out of two inline blocks (note 1792128952512): an
-# editing accident around a MathJax placeholder left A\(\toA 或 B\)\to\)B —
-# the two blocks A\(\to\)A and B\(\to\)B collapsed so both right operands
-# ended up outside, with the second arrow and a stray closer orphaned between
-# them. The middle must contain CJK so the repair stays clear of legitimate
-# prose; the tail operand is left outside, exactly as intended.
+# editing accident around a MathJax placeholder left A\(\toA 或 B\)\to\)B (or
+# the same with the first closer missing: A\(\toA 或 B\to\)B — the current
+# stored bytes after a manual edit) — the two blocks A\(\to\)A and B\(\to\)B
+# collapsed so both right operands ended up outside, with the second arrow and
+# a closer orphaned between them. The middle must be backslash-free prose with
+# CJK (no LaTeX commands) so the repair stays clear of legitimate single-block
+# arrow chains like \(\text{甲} \to \text{乙} \to \text{丙}\).
+_ARROW_OPS = r'(?:to|rightarrow|leftarrow|mapsto|Rightarrow|Leftarrow|leftrightarrow)'
 SHUFFLED_ARROW_OPERAND_RE = re.compile(
-    r'\\\((?P<op>\\(?:to|rightarrow|leftarrow|mapsto|Rightarrow|Leftarrow|leftrightarrow))\s*'
+    r'\\\((?P<op>\\' + _ARROW_OPS + r')\s*'
     r'(?P<middle>(?:(?!\\\(|\\\)).)*?[\u4e00-\u9fff](?:(?!\\\(|\\\)).)*?)'
     r'\\\)\s*(?P=op)\s*\\\)'
+)
+SHUFFLED_ARROW_OPERAND_NOCLOSE_RE = re.compile(
+    r'\\\((?P<op>\\' + _ARROW_OPS + r')\s*'
+    r'(?P<middle>(?:(?!\\\(|\\\)|\\)[\s\S])*?[\u4e00-\u9fff]'
+    r'(?:(?!\\\(|\\\)|\\)[\s\S])*?)'
+    r'\s*(?P=op)\s*\\\)'
 )
 
 
 def _fix_shuffled_arrow_operands(html_str):
-    """Reassemble A\(\toX 或 Y\)\to\)Z into A\(\to\)X 或 Y\(\to\)Z."""
+    """Reassemble A\(\toX 或 Y\)\to\)Z / A\(\toX 或 Y\to\)Z into
+    A\(\to\)X 或 Y\(\to\)Z."""
 
     def _fix(m):
         return '\\(%s\\)%s\\(%s\\)' % (m.group('op'), m.group('middle'), m.group('op'))
 
-    return SHUFFLED_ARROW_OPERAND_RE.sub(_fix, html_str)
+    html_str = SHUFFLED_ARROW_OPERAND_RE.sub(_fix, html_str)
+    return SHUFFLED_ARROW_OPERAND_NOCLOSE_RE.sub(_fix, html_str)
 
 
 def _fix_mangled_mathjax(html_str):

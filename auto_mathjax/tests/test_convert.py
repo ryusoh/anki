@@ -1734,6 +1734,30 @@ def test_shuffled_arrow_operand_idempotent():
     assert _convert_dollar_to_mathjax(once) == once
 
 
+def test_shuffled_arrow_operand_no_closer_repair():
+    r"""Variant without the first closer: A\(\toA 或 B\to\)B (current stored
+    bytes of note 1792128952512) reassembles to A\(\to\)A 或 B\(\to\)B."""
+    html = '<div>电子沿同种子晶格（A\\(\\toA 或 B\\to\\)B）次近邻跃迁</div>'
+    result = _convert_dollar_to_mathjax(html)
+    assert '\\(\\to\\)A 或 B\\(\\to\\)B' in result
+
+
+def test_shuffled_arrow_operand_no_closer_idempotent():
+    r"""The no-closer variant must also be stable on a second pass."""
+    html = '<div>电子沿同种子晶格（A\\(\\toA 或 B\\to\\)B）次近邻跃迁</div>'
+    once = _convert_dollar_to_mathjax(html)
+    assert _convert_dollar_to_mathjax(once) == once
+
+
+def test_arrow_chain_with_commands_not_split():
+    r"""A legitimate single-block arrow chain with CJK \text labels must not
+    be split by the no-closer variant of the repair."""
+    html = '<div>映射 \\(\\text{甲} \\to \\text{乙} \\to \\text{丙}\\) 成立</div>'
+    once = _convert_dollar_to_mathjax(html)
+    assert '\\(\\text{甲} \\to \\text{乙} \\to \\text{丙}\\)' in once
+    assert _convert_dollar_to_mathjax(once) == once
+
+
 # --- Italicized stars inside an unconverted $...$ / $$...$$ pair ---
 # The rich-text editor turns a '*' after ^ or _ into <i>...</i> markup
 # (c_1^*, c_2^* → c_1^<i>, c_2^</i>), and the resulting tags trip the
