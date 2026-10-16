@@ -220,6 +220,8 @@ output.txt
 *_output.txt
 *_out.json
 *_output.json
+*_errors.txt
+*_warnings.txt
 patch.diff
 diff.patch
 *.orig

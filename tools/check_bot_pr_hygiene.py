@@ -73,6 +73,10 @@ def _is_stray_artifact(path: str) -> bool:
         return True
     if name.endswith(('_out.json', '_output.json')):
         return True
+    # Type-check/lint diagnostic dumps (PR #545 shipped a 647-line
+    # all_errors.txt from a tsc strict-mode pass).
+    if name.endswith(('_errors.txt', '_warnings.txt')):
+        return True
     if name.startswith(('temp_', 'dummy_')):
         return True
     # Stray patch/diff files (e.g. net-tools PR #212 shipped a 158-line patch.diff)
