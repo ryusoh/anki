@@ -1747,6 +1747,45 @@ def test_span_placeholder_space_flanked_kept():
     assert '[span_3](start_span)= \\sum' in _convert_dollar_to_mathjax(html)
 
 
+def test_bare_matrix_env_in_cjk_prose_wrapped():
+    r"""Note 1792129714645: a bare \begin{pmatrix}…\end{pmatrix} block embedded
+    in CJK prose (with &amp; entities) wraps wholesale in \(…\)."""
+    html = (
+        '<div>矩阵退化为若尔当块 \\begin{pmatrix} E_{\\text{EP}} &amp; 1 \\\\ '
+        '0 &amp; E_{\\text{EP}} \\end{pmatrix}，本征向量系</div>'
+    )
+    result = _convert_dollar_to_mathjax(html)
+    assert (
+        '\\(\\begin{pmatrix} E_{\\text{EP}} &amp; 1 \\\\ '
+        '0 &amp; E_{\\text{EP}} \\end{pmatrix}\\)' in result
+    )
+
+
+def test_bare_matrix_env_idempotent():
+    r"""The wrapped environment must not be double-wrapped on a second pass."""
+    html = (
+        '<div>矩阵退化为若尔当块 \\begin{pmatrix} E_{\\text{EP}} &amp; 1 \\\\ '
+        '0 &amp; E_{\\text{EP}} \\end{pmatrix}，本征向量系</div>'
+    )
+    once = _convert_dollar_to_mathjax(html)
+    assert _convert_dollar_to_mathjax(once) == once
+
+
+def test_env_inside_existing_display_not_rewrapped():
+    r"""A pmatrix already inside \[…\] is legitimate — it must stay untouched."""
+    html = '<div>\\[\\begin{pmatrix} a &amp; b \\\\ c &amp; d \\end{pmatrix}\\]</div>'
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_env_with_cjk_body_not_wrapped():
+    r"""A whitelisted environment whose body contains raw CJK is not math —
+    hands off."""
+    html = '<div>说明 \\begin{cases} 中文内容 \\end{cases} 见上</div>'
+    once = _convert_dollar_to_mathjax(html)
+    assert '\\begin{cases} 中文内容 \\end{cases}' in once
+    assert _convert_dollar_to_mathjax(once) == once
+
+
 def test_shuffled_arrow_operand_repair():
     r"""Note 1792128952512: A\(\toA 或 B\)\to\)B — arrow operands shuffled out
     of two inline blocks reassemble to A\(\to\)A 或 B\(\to\)B."""

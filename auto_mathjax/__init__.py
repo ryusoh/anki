@@ -460,6 +460,37 @@ def _followed_by_ascii_letter(m, core):
     return bool(tail) and tail[0].isascii() and tail[0].isalpha()
 
 
+# Bare matrix/cases environments pasted into prose with no \(…\) / \[…\]
+# wrapper (note 1792129714645): the embedded-run tokenizer excludes <>& so it
+# can never see a body with &amp; column separators, and the environment name
+# is too long for the short-word guard. A complete \begin{env}…\end{env} span
+# outside existing math blocks, with no raw CJK and no HTML tags in its body,
+# is wrapped wholesale in \(…\).
+BARE_ENV_WRAP_RE = re.compile(
+    r'\\begin\{(?P<env>pmatrix|bmatrix|Bmatrix|vmatrix|Vmatrix|smallmatrix|matrix|cases)\}'
+    r'(?P<body>(?:(?!\\end\{(?P=env)\}|<|>)[\s\S])*?)'
+    r'\\end\{(?P=env)\}'
+)
+
+
+def _wrap_bare_environments(segment):
+    """Wrap a complete bare \begin{env}…\end{env} span (outside existing
+    math blocks) in \(...\)."""
+
+    def repl(m):
+        if CJK_RE.search(m.group('body')):
+            return m.group(0)
+        return '\\(' + m.group(0) + '\\)'
+
+    parts = []
+    for piece in EXISTING_MATHJAX_BLOCK_RE.split(segment):
+        if piece and not EXISTING_MATHJAX_BLOCK_RE.fullmatch(piece):
+            parts.append(BARE_ENV_WRAP_RE.sub(repl, piece))
+        else:
+            parts.append(piece)
+    return ''.join(parts)
+
+
 def _wrap_cjk_prose_math(segment):
     """Wrap self-contained bare LaTeX formulas embedded in CJK prose."""
 
@@ -527,6 +558,7 @@ def _wrap_cjk_prose_math(segment):
 
 
 def _wrap_embedded_latex_core(segment):
+    segment = _wrap_bare_environments(segment)
     def_res = _convert_def_term(segment)
     if def_res is not None:
         prefix, rest = def_res
