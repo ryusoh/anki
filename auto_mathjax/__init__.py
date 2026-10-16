@@ -709,6 +709,35 @@ DELIM_MATH_BLOCK_RE = re.compile(
     re.DOTALL,
 )
 
+# Delimiter-shuffled \text{CJK} labels (note 1792128113147): an editing
+# accident around a MathJax placeholder split \(2\text{横} + 1\text{纵}\)
+# into \(2\text\){横\(+ 1\text{}\)纵}. Block 1 ends with an argument-less
+# \text (always a MathJax error), block 2 holds an empty \text{}, and the
+# two label texts carry the orphaned braces. Labels must contain CJK so the
+# repair stays clear of legitimate prose braces.
+SHUFFLED_TEXT_LABEL_RE = re.compile(
+    r'\\\(([^()]*)\\text\s*\\\)'  # block 1 content ends with argument-less \text
+    r'\s*\{([^{}]*[\u4e00-\u9fff][^{}]*?)'  # orphaned '{' + label 1
+    r'\\\(([^()]*)\\text\s*\{\}\s*\\\)'  # block 2 with empty \text{}
+    r'\s*([^{}]*[\u4e00-\u9fff][^{}]*?)\}'  # label 2 + orphaned '}'
+)
+
+
+def _fix_shuffled_text_labels(html_str):
+    """Reassemble \text{CJK} labels whose braces/delimiters were shuffled
+    out of a math block by an editing accident around a MathJax placeholder."""
+
+    def _fix(m):
+        head, label1, middle, label2 = m.groups()
+        content = head.rstrip() + '\\text{%s}' % label1.strip()
+        middle = middle.strip()
+        if middle:
+            content += ' ' + middle
+        content += '\\text{%s}' % label2.strip()
+        return '\\(' + content + '\\)'
+
+    return SHUFFLED_TEXT_LABEL_RE.sub(_fix, html_str)
+
 
 def _fix_mangled_mathjax(html_str):
     """Repair mangled HTML tags inside/around MathJax blocks.
@@ -949,6 +978,7 @@ def _convert_dollar_to_mathjax(html_str):
     converted_html = _clean_mathjax_nbsp(converted_html)
     converted_html = _fix_mathjax_braces(converted_html)
     converted_html = _fix_mangled_mathjax(converted_html)
+    converted_html = _fix_shuffled_text_labels(converted_html)
     converted_html = _unwrap_mathjax_from_pre(converted_html)
     return _inject_macro_defs(converted_html)
 

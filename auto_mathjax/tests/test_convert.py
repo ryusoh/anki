@@ -1627,6 +1627,21 @@ def test_mangled_mathjax_delim_repair():
     assert _convert_dollar_to_mathjax(html) == expected
 
 
+def test_shuffled_text_label_repair():
+    r"""Note 1792128113147: delimiters shuffled around \text{CJK} labels —
+    \(2\text\){横\(+ 1\text{}\)纵} reassembles to \(2\text{横} + 1\text{纵}\)."""
+    html = '<div>拥有 \\(2\\text\\){横\\(+ 1\\text{}\\)纵} = \\(\\mathbf{3}\\) 个。</div>'
+    result = _convert_dollar_to_mathjax(html)
+    assert '\\(2\\text{横} + 1\\text{纵}\\)' in result
+
+
+def test_shuffled_text_label_idempotent():
+    r"""The reassembled block must not be re-mangled on a second pass."""
+    html = '<div>拥有 \\(2\\text\\){横\\(+ 1\\text{}\\)纵} = \\(\\mathbf{3}\\) 个。</div>'
+    once = _convert_dollar_to_mathjax(html)
+    assert _convert_dollar_to_mathjax(once) == once
+
+
 # --- Italicized stars inside an unconverted $...$ / $$...$$ pair ---
 # The rich-text editor turns a '*' after ^ or _ into <i>...</i> markup
 # (c_1^*, c_2^* → c_1^<i>, c_2^</i>), and the resulting tags trip the
