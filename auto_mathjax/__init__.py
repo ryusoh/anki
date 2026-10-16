@@ -132,7 +132,10 @@ STANDALONE_MATH_SYMBOL_RE = re.compile(
     r'alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|vartheta|iota|kappa|'
     r'lambdabar|lambda|Lambda|mu|nu|xi|Xi|pi|Pi|varpi|rho|varrho|sigma|Sigma|varsigma|tau|upsilon|Upsilon|'
     r'phi|Phi|varphi|chi|psi|Psi|omega|Omega|'
-    r'infty|nabla|partial'
+    r'infty|nabla|partial|'
+    r'lt|gt|le|ge|leq|geq|neq|approx|equiv|propto|sim|cong|simeq|ll|gg|'
+    r'subset(?:eq)?|supset(?:eq)?|in|ni|notin|mid|parallel|perp|'
+    r'to|rightarrow|Rightarrow|pm|mp|cdot|times|div|circ|angle'
     r')\b'
 )
 
@@ -848,6 +851,7 @@ def _convert_dollar_to_mathjax(html_str):
                     bool(BARE_LATEX_COMMAND_RE.search(outside))
                     or bool(SUB_SUPER_GROUP_RE.search(outside))
                     or bool(MATH_VAR_SUB_SUPER_RE.search(outside))
+                    or bool(STANDALONE_MATH_SYMBOL_RE.search(outside))
                 )
             )
             if not can_process:

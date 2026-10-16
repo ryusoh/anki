@@ -953,6 +953,31 @@ def test_cjk_prose_math_token_with_label_idempotent():
     assert _convert_dollar_to_mathjax(once) == once
 
 
+def test_cjk_prose_standalone_lt_relation_wrapped():
+    r"""Note 1792117470122: A standalone \lt next to existing \(...\) math (（分布峰值） \lt 平均速率) wraps."""
+    html = '<div>最概然速率 \\(v_p = \\sqrt{2k_B T/m}\\)（分布峰值） \\lt 平均速率。</div>'
+    result = _convert_dollar_to_mathjax(html)
+    assert '（分布峰值） \\(\\lt\\) 平均速率。' in result
+
+
+def test_cjk_prose_standalone_relations_family_wrapped():
+    r"""Standalone comparison/relation symbols (\leq, \geq, \neq, \to, \subset) wrap like standalone Greek."""
+    html = '<div>条件 \\leq 边界，结果 \\geq 实测，取值 \\neq 预期，演化 \\to 终点，子群 \\subset 群。</div>'
+    result = _convert_dollar_to_mathjax(html)
+    assert '条件 \\(\\leq\\) 边界' in result
+    assert '结果 \\(\\geq\\) 实测' in result
+    assert '取值 \\(\\neq\\) 预期' in result
+    assert '演化 \\(\\to\\) 终点' in result
+    assert '子群 \\(\\subset\\) 群' in result
+
+
+def test_cjk_prose_standalone_relations_idempotent():
+    r"""The standalone relation wraps must not double-wrap on a second pass."""
+    html = '<div>最概然速率（分布峰值） \\lt 平均速率，取值 \\neq 0。</div>'
+    once = _convert_dollar_to_mathjax(html)
+    assert _convert_dollar_to_mathjax(once) == once
+
+
 def test_cjk_prose_standalone_greek_symbols_wrapped():
     r"""Standalone Greek letters and symbols in CJK prose (\vartheta, \mu, \theta, \Pi) are wrapped."""
     html = '<div>在假定外部状态为 \\vartheta 的条件下。如果 \\mu 代表放电，突触权重 \\theta 和精度 \\Pi 执行梯度下降。</div>'
