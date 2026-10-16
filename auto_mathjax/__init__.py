@@ -826,7 +826,7 @@ def _strip_inline_span_placeholders(html_str):
 
 
 def _fix_shuffled_arrow_operands(html_str):
-    """Reassemble A\(\toX 或 Y\)\to\)Z / A\(\toX 或 Y\to\)Z into
+    r"""Reassemble A\(\toX 或 Y\)\to\)Z / A\(\toX 或 Y\to\)Z into
     A\(\to\)X 或 Y\(\to\)Z."""
 
     def _fix(m):

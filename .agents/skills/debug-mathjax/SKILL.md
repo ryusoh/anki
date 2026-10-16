@@ -70,9 +70,32 @@ bytes and classify before touching code.
    make typecheck-addon ADDON=auto_mathjax
    ```
 
-6. **Report with the rendering caveats.** Mocked tests cannot see the
+6. **Apply the fix to the affected card(s) — don't make the user click the
+   button.** Repairs and conversions only run at conversion time, so stored
+   corruption stays broken until a pass rewrites the field. Use the bundled
+   AnkiConnect script (requires Anki running with AnkiConnect on
+   `localhost:8765`) — always `--dry-run` first and eyeball the diffs, then
+   apply, then re-run without `--dry-run` to confirm every note reports
+   "unchanged" (in-vivo idempotency check):
+
+   ```sh
+   python3 .agents/skills/debug-mathjax/scripts/repair_notes.py --dry-run <note-id> [...]
+   python3 .agents/skills/debug-mathjax/scripts/repair_notes.py <note-id> [...]
+   ```
+
+   Note IDs come from the step-1 dump header (`=== note <id>: N fields ===`).
+   The script writes back only fields whose content actually changes. Pass
+   every note diagnosed in the session, not just the latest. Hands-off
+   corruption classes (whitespace-flanked span-placeholder segments, one-off
+   reconstructions) convert to themselves — the script reports them as
+   "unchanged"; those cards still need the manual byte-level repair with the
+   exact intended bytes stated in the report.
+
+7. **Report with the rendering caveats.** Mocked tests cannot see the
    rendered page — never claim a glyph "looks right". For emulated glyphs
    (overlay macros like `\mkern-14mu`), state the tuning knob and ask the
-   user to eyeball it. Remind the user: reload the add-on, then re-click
-   the autoMathJax button on the affected field — macro preambles are only
-   injected at conversion time, so existing cards need one button pass.
+   user to eyeball it. State which notes the repair script updated and which
+   still need a manual pass. Remind the user to reload the add-on; for any
+   card not covered by the AnkiConnect repair, re-click the autoMathJax
+   button on the affected field — macro preambles are only injected at
+   conversion time, so existing cards need one button pass.
