@@ -810,6 +810,21 @@ SHUFFLED_ARROW_OPERAND_NOCLOSE_RE = re.compile(
 )
 
 
+# Span junk spliced INSIDE a command or word (note 1792129049988):
+# \tex[span_5](start_span)t{th} — the placeholder token sits between two
+# letters, so deleting it rejoins the split token (\text{th}). Junk flanked
+# by whitespace, delimiters, or brackets is different: it separates real
+# formula pieces (note 1792128902298) and must stay hands-off.
+SPAN_PLACEHOLDER_INLINE_RE = re.compile(
+    r'(?<=[A-Za-z\u4e00-\u9fff])\[span_\d+\]\((?:start|end)_span\)(?=[A-Za-z\u4e00-\u9fff])'
+)
+
+
+def _strip_inline_span_placeholders(html_str):
+    """Remove span-placeholder tokens spliced inside a command or word."""
+    return SPAN_PLACEHOLDER_INLINE_RE.sub('', html_str)
+
+
 def _fix_shuffled_arrow_operands(html_str):
     """Reassemble A\(\toX 或 Y\)\to\)Z / A\(\toX 或 Y\to\)Z into
     A\(\to\)X 或 Y\(\to\)Z."""
@@ -1071,6 +1086,7 @@ def _convert_dollar_to_mathjax(html_str):
 
     converted_html = ''.join(result_parts)
     converted_html = _clean_mathjax_nbsp(converted_html)
+    converted_html = _strip_inline_span_placeholders(converted_html)
     converted_html = _fix_mathjax_braces(converted_html)
     converted_html = _fix_mangled_mathjax(converted_html)
     converted_html = _fix_shuffled_text_labels(converted_html)

@@ -1719,6 +1719,34 @@ def test_span_placeholder_passthrough_idempotent():
     assert _convert_dollar_to_mathjax(once) == once
 
 
+def test_span_placeholder_in_command_stripped():
+    r"""Note 1792129049988: junk spliced INSIDE a command name —
+    \tex[span_5](start_span)t{th} — is dejunked to \text{th}; the surrounding
+    \(…\) block is otherwise intact."""
+    html = '<div>即使在高温稀薄极限（\\(n\\lambda_{\\tex[span_5](start_span)t{th}}^3 \\ll 1\\)）下</div>'
+    result = _convert_dollar_to_mathjax(html)
+    assert '\\lambda_{\\text{th}}^3 \\ll 1' in result
+    assert '[span_5]' not in result
+
+
+def test_span_placeholder_in_command_idempotent():
+    r"""The dejunked command must be stable on a second pass."""
+    html = '<div>即使在高温稀薄极限（\\(n\\lambda_{\\tex[span_5](start_span)t{th}}^3 \\ll 1\\)）下</div>'
+    once = _convert_dollar_to_mathjax(html)
+    assert _convert_dollar_to_mathjax(once) == once
+
+
+def test_span_placeholder_space_flanked_kept():
+    r"""Junk flanked by whitespace (note 1792128902298's shape) separates real
+    formula pieces — it must NOT be stripped."""
+    html = (
+        '<div>量子化整数 \\nu 实际上就是能带的第一陈数之和：'
+        '\\nu [span_3](start_span)= \\sum_{n \\in \\[span_3](end_span)'
+        'text{occ} C_n。IQHE 中朗道能级。\\]</div>'
+    )
+    assert '[span_3](start_span)= \\sum' in _convert_dollar_to_mathjax(html)
+
+
 def test_shuffled_arrow_operand_repair():
     r"""Note 1792128952512: A\(\toA 或 B\)\to\)B — arrow operands shuffled out
     of two inline blocks reassemble to A\(\to\)A 或 B\(\to\)B."""
