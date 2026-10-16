@@ -449,6 +449,17 @@ def _is_self_contained_math(core):
     return True
 
 
+def _followed_by_ascii_letter(m, core):
+    """True if the first non-space character after core is an ASCII letter —
+    the symbol is the first factor of a product (\rho g), not a standalone
+    mention, and must not be wrapped alone. Looks past the regex match too:
+    the run match stops at letters, so a product's second factor sits right
+    after the match in the segment."""
+    run = m.group(0)
+    tail = (run[run.find(core) + len(core) :] + m.string[m.end() :]).lstrip()
+    return bool(tail) and tail[0].isascii() and tail[0].isalpha()
+
+
 def _wrap_cjk_prose_math(segment):
     """Wrap self-contained bare LaTeX formulas embedded in CJK prose."""
 
@@ -488,10 +499,16 @@ def _wrap_cjk_prose_math(segment):
             if not c:
                 return run
             # Operand-taking integrals (\oint_C) stay bare by design, and
-            # structure-less standalone symbols (\oint) are wrapped by the
-            # STANDALONE_SYMBOL_RE pass below — wrapping them here would
-            # double-wrap.
-            if INCOMPLETE_INTEGRAL_RE.fullmatch(c) or not re.search(r'[{0-9_^=]', c):
+            # structure-less standalone integral symbols (\oint) are wrapped
+            # by the STANDALONE_SYMBOL_RE pass below — wrapping them here
+            # would double-wrap. Structure-less standalone math symbols
+            # (\nu, \pi) wrap here unless followed by a letter, where they
+            # are the first factor of a product (\rho g) — pinned raw.
+            if INCOMPLETE_INTEGRAL_RE.fullmatch(c):
+                return run
+            if not re.search(r'[{0-9_^=]', c) and (
+                not STANDALONE_MATH_SYMBOL_RE.fullmatch(c) or _followed_by_ascii_letter(m, c)
+            ):
                 return run
             start = run.find(c)
             return run[:start] + '\\(' + c + '\\)' + run[start + len(c) :]
@@ -537,8 +554,16 @@ def _wrap_embedded_latex_core(segment):
         # A bare \command with no braced, subscript/superscript, numeric, or
         # equation operand (Wikipedia's {\displaystyle O(\log N)} pastes) is
         # not a self-contained formula — unless it is a standalone integral
-        # symbol (\oint & friends).
-        if not re.search(r'[{0-9_^=]', core) and not STANDALONE_SYMBOL_RE.fullmatch(core):
+        # symbol (\oint & friends) or a standalone math symbol (\nu, \pi).
+        # The latter still stays raw when followed by a letter: there it is
+        # the first factor of a product (\rho g), pinned raw.
+        if (
+            not re.search(r'[{0-9_^=]', core)
+            and not STANDALONE_SYMBOL_RE.fullmatch(core)
+            and (
+                not STANDALONE_MATH_SYMBOL_RE.fullmatch(core) or _followed_by_ascii_letter(m, core)
+            )
+        ):
             return run
         start = run.find(core)
         return run[:start] + '\\(' + core + '\\)' + run[start + len(core) :]

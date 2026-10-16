@@ -1037,6 +1037,20 @@ def test_cjk_prose_relation_operands_idempotent():
     assert _convert_dollar_to_mathjax(once) == once
 
 
+def test_cjk_prose_greek_symbol_after_english_phrase_wrapped():
+    r"""Note 1792128839733: \nu after an English phrase in CJK prose (Kane-Mele Invariant, \nu) wraps."""
+    html = '<div>Kane-Mele 不变量（Kane-Mele Invariant, \\nu）</div>'
+    result = _convert_dollar_to_mathjax(html)
+    assert 'Kane-Mele Invariant, \\(\\nu\\)' in result
+
+
+def test_cjk_prose_greek_after_english_idempotent():
+    r"""The trailing-greek wrap must not double-wrap on a second pass."""
+    html = '<div>Kane-Mele 不变量（Kane-Mele Invariant, \\nu）</div>'
+    once = _convert_dollar_to_mathjax(html)
+    assert _convert_dollar_to_mathjax(once) == once
+
+
 def test_cjk_prose_escaped_percent_wrapped():
     r"""Note 1792119439969: 1\% in CJK prose (内部提取 1\% 光信号) wraps as math."""
     html = '<div>EDFA 内部提取 1\\% 光信号做自动功率控制。</div>'
