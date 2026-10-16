@@ -867,6 +867,13 @@ def _unwrap_mathjax_from_pre(html_str):
     return str(soup)
 
 
+# Foreign annotation tools splice placeholder tokens like "[span_3](start_span)"
+# into a formula, stranding its delimiters. Conversion cannot reconstruct the
+# intended math around them and would only mangle the shards further — any
+# segment containing them passes through untouched.
+SPAN_PLACEHOLDER_RE = re.compile(r"\[span_\d+\]\((?:start|end)_span\)")
+
+
 def _convert_dollar_to_mathjax(html_str):
     """Convert $...$ patterns to \\(...\\) MathJax inline notation.
 
@@ -899,6 +906,12 @@ def _convert_dollar_to_mathjax(html_str):
                 closer = '\\)' if open_delim == '(' else '\\]'
                 result_parts.append(closer)
                 open_delim = None
+            result_parts.append(segment)
+            continue
+
+        # Segments annotated by an external tool (span placeholders) are
+        # beyond what conversion may touch — hands off, byte-identical.
+        if SPAN_PLACEHOLDER_RE.search(segment):
             result_parts.append(segment)
             continue
 

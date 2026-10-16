@@ -1690,6 +1690,35 @@ def test_split_matrix_env_idempotent():
     assert _convert_dollar_to_mathjax(once) == once
 
 
+# --- Foreign span-placeholder junk (e.g. "[span_3](start_span)") ---
+# An external annotation tool splices placeholder tokens into a formula and
+# leaves the delimiters stranded. Conversion cannot safely reconstruct the
+# intended math around them, and would otherwise mangle the shards further —
+# such segments pass through untouched and need a manual card repair.
+
+
+def test_span_placeholder_segment_passthrough():
+    r"""Note 1792128902298: [span_3](start_span)/[span_3](end_span) junk strands
+    the \[\] delimiters — the segment must pass through byte-identical."""
+    html = (
+        '<div>量子化整数 \\nu 实际上就是能带的第一陈数之和：'
+        '\\nu [span_3](start_span)= \\sum_{n \\in \\[span_3](end_span)'
+        'text{occ} C_n。IQHE 中朗道能级。\\]</div>'
+    )
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_span_placeholder_passthrough_idempotent():
+    r"""A second pass over the untouched segment must be a no-op."""
+    html = (
+        '<div>量子化整数 \\nu 实际上就是能带的第一陈数之和：'
+        '\\nu [span_3](start_span)= \\sum_{n \\in \\[span_3](end_span)'
+        'text{occ} C_n。IQHE 中朗道能级。\\]</div>'
+    )
+    once = _convert_dollar_to_mathjax(html)
+    assert _convert_dollar_to_mathjax(once) == once
+
+
 # --- Italicized stars inside an unconverted $...$ / $$...$$ pair ---
 # The rich-text editor turns a '*' after ^ or _ into <i>...</i> markup
 # (c_1^*, c_2^* → c_1^<i>, c_2^</i>), and the resulting tags trip the
