@@ -1857,6 +1857,34 @@ def test_env_with_cjk_body_not_wrapped():
     assert _convert_dollar_to_mathjax(once) == once
 
 
+def test_cases_missing_row_separator_repaired():
+    r"""Note 1780026523619: the \\ row separator between the two cases rows was
+    lost — 1 & i = j 0 & i \neq j reassembles to 1 & i = j \\ 0 & i \neq j."""
+    html = '<div>\\[\\delta_{ij} = \\begin{cases} 1 &amp; i = j 0 &amp; i \\neq j \\end{cases}\\]</div>'
+    result = _convert_dollar_to_mathjax(html)
+    assert '1 &amp; i = j \\\\ 0 &amp; i \\neq j' in result
+
+
+def test_cases_missing_row_separator_idempotent():
+    r"""The reassembled cases must not be re-split on a second pass."""
+    html = '<div>\\[\\delta_{ij} = \\begin{cases} 1 &amp; i = j 0 &amp; i \\neq j \\end{cases}\\]</div>'
+    once = _convert_dollar_to_mathjax(html)
+    assert _convert_dollar_to_mathjax(once) == once
+
+
+def test_cases_intact_not_modified():
+    r"""A cases with its \\ separator intact is legitimate — untouched."""
+    html = '<div>\\[\\delta_{ij} = \\begin{cases} 1 &amp; i = j \\\\ 0 &amp; i \\neq j \\end{cases}\\]</div>'
+    assert _convert_dollar_to_mathjax(html) == html
+
+
+def test_cases_three_cells_nonnumeric_tail_kept():
+    r"""Three cells whose middle does NOT end in a bare number are not the
+    missing-separator shape — hands off."""
+    html = '<div>\\[f(x) = \\begin{cases} a &amp; x \\in A \\text{ or } x \\in B &amp; c \\end{cases}\\]</div>'
+    assert _convert_dollar_to_mathjax(html) == html
+
+
 def test_shuffled_arrow_operand_repair():
     r"""Note 1792128952512: A\(\toA 或 B\)\to\)B — arrow operands shuffled out
     of two inline blocks reassemble to A\(\to\)A 或 B\(\to\)B."""

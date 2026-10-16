@@ -474,7 +474,7 @@ BARE_ENV_WRAP_RE = re.compile(
 
 
 def _wrap_bare_environments(segment):
-    """Wrap a complete bare \begin{env}…\end{env} span (outside existing
+    r"""Wrap a complete bare \begin{env}…\end{env} span (outside existing
     math blocks) in \(...\)."""
 
     def repl(m):
@@ -913,6 +913,37 @@ def _strip_span_placeholders_in_blocks(html_str):
     return ''.join(parts)
 
 
+# cases row separator lost in editing (note 1780026523619): a single cases
+# row with exactly three cells, where the middle cell ends in a bare number,
+# is two rows whose \\ vanished — 1 & i = j 0 & i \neq j reassembles to
+# 1 & i = j \\ 0 & i \neq j. An intact \\ or a non-numeric join is a
+# different shape and stays hands-off.
+CASES_ENV_RE = re.compile(r'\\begin\{cases\}(?P<body>(?:(?!\\end\{cases\})[\s\S])*?)\\end\{cases\}')
+
+
+def _fix_cases_row_separator(html_str):
+    """Reinsert a \\ row separator lost between two cases rows."""
+
+    def repl(m):
+        body = m.group('body')
+        if '\\\\' in body:
+            return m.group(0)
+        seps = list(re.finditer(r'&amp;|&', body))
+        if len(seps) != 2:
+            return m.group(0)
+        middle = body[seps[0].end() : seps[1].start()]
+        stripped = middle.rstrip()
+        num_m = re.search(r'(\d+)$', stripped)
+        if not num_m:
+            return m.group(0)
+        cut = stripped[: len(stripped) - len(num_m.group(1))].rstrip()
+        fixed_middle = cut + ' \\\\ ' + num_m.group(1) + middle[len(stripped) :]
+        new_body = body[: seps[0].end()] + fixed_middle + body[seps[1].start() :]
+        return '\\begin{cases}' + new_body + '\\end{cases}'
+
+    return CASES_ENV_RE.sub(repl, html_str)
+
+
 def _fix_shuffled_arrow_operands(html_str):
     r"""Reassemble A\(\toX 或 Y\)\to\)Z / A\(\toX 或 Y\to\)Z into
     A\(\to\)X 或 Y\(\to\)Z."""
@@ -1180,6 +1211,7 @@ def _convert_dollar_to_mathjax(html_str):
     converted_html = _fix_mangled_mathjax(converted_html)
     converted_html = _fix_shuffled_text_labels(converted_html)
     converted_html = _fix_split_matrix_env(converted_html)
+    converted_html = _fix_cases_row_separator(converted_html)
     converted_html = _fix_shuffled_arrow_operands(converted_html)
     converted_html = _unwrap_mathjax_from_pre(converted_html)
     return _inject_macro_defs(converted_html)
