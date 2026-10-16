@@ -53,7 +53,7 @@ BARE_LATEX_COMMAND_RE = re.compile(
     r'frac|dfrac|tfrac|text|times|sqrt|sum|prod|int|cdot|circ|pm|mp|div(?:isionsymbol)?|'
     r'oiiint|oiint|oint|'
     r'leq?|geq?|neq|approx|equiv|propto|mid|parallel|infty|log|ln|exp|sin|cos|tan|sinh|cosh|tanh|coth|sech|csch|lim|min|max|inf|sup|argmin|argmax|'
-    r'partial|nabla|to|rightarrow|Rightarrow|left|right|over|hat|bar|vec|'
+    r'partial|nabla|to|rightarrow|Rightarrow|leftarrow|leftrightarrow|Leftrightarrow|mapsto|left|right|over|hat|bar|vec|'
     r'dim|vert|langle|rangle|subset(?:eq)?|supset(?:eq)?|in|ni|notin|ll|gg|'
     r'lt|gt|sim|cong|simeq|perp|angle|'
     r'mathbb|mathrm|mathbf|mathit|mathcal|operatorname|'
@@ -137,7 +137,7 @@ STANDALONE_MATH_SYMBOL_RE = re.compile(
     r'infty|nabla|partial|'
     r'lt|gt|le|ge|leq|geq|neq|approx|equiv|propto|sim|cong|simeq|ll|gg|'
     r'subset(?:eq)?|supset(?:eq)?|in|ni|notin|mid|parallel|perp|'
-    r'to|rightarrow|Rightarrow|pm|mp|cdot|times|div|circ|angle'
+    r'to|rightarrow|Rightarrow|leftarrow|leftrightarrow|Leftrightarrow|mapsto|pm|mp|cdot|times|div|circ|angle'
     r')\b'
 )
 
@@ -882,6 +882,37 @@ def _strip_inline_span_placeholders(html_str):
     return SPAN_PLACEHOLDER_INLINE_RE.sub('', html_str)
 
 
+# Junk spliced INSIDE a coherent \(…\) / \[…\] block (note 1792128077289):
+# \frac{1}{T -[span_1](end_span) T_C}. Unlike the scattered TKNN shape, the
+# block's delimiters are balanced — the pieces around the token are a complete
+# formula, so deleting the token is a pure dejunk.
+SPAN_PLACEHOLDER_ANY_RE = re.compile(r'\[span_\d+\]\((?:start|end)_span\)')
+
+
+def _strip_span_placeholders_in_blocks(html_str):
+    """Remove span-placeholder tokens inside existing math blocks only.
+
+    A block whose opening delimiter is immediately followed by a span token,
+    or whose closer is immediately preceded by one, has its delimiters
+    stranded (the scattered TKNN shape) — hands off, same as outside blocks.
+    """
+
+    def clean(piece):
+        if re.match(r'^\\[\(\[]\[?span_', piece) or re.search(
+            r'\[span_\d+\]\((?:start|end)_span\)(?=\\\)|\\\])', piece
+        ):
+            return piece
+        return SPAN_PLACEHOLDER_ANY_RE.sub('', piece)
+
+    parts = []
+    for piece in EXISTING_MATHJAX_BLOCK_RE.split(html_str):
+        if piece and EXISTING_MATHJAX_BLOCK_RE.fullmatch(piece):
+            parts.append(clean(piece))
+        else:
+            parts.append(piece)
+    return ''.join(parts)
+
+
 def _fix_shuffled_arrow_operands(html_str):
     r"""Reassemble A\(\toX 或 Y\)\to\)Z / A\(\toX 或 Y\to\)Z into
     A\(\to\)X 或 Y\(\to\)Z."""
@@ -1144,6 +1175,7 @@ def _convert_dollar_to_mathjax(html_str):
     converted_html = ''.join(result_parts)
     converted_html = _clean_mathjax_nbsp(converted_html)
     converted_html = _strip_inline_span_placeholders(converted_html)
+    converted_html = _strip_span_placeholders_in_blocks(converted_html)
     converted_html = _fix_mathjax_braces(converted_html)
     converted_html = _fix_mangled_mathjax(converted_html)
     converted_html = _fix_shuffled_text_labels(converted_html)

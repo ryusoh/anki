@@ -834,6 +834,43 @@ def test_cjk_prose_greek_product_word_tail_kept():
     assert _convert_dollar_to_mathjax(html) == html
 
 
+def test_cjk_prose_leftrightarrow_wrapped():
+    r"""Note 1792128077289: \leftrightarrow stands alone between CJK words
+    (铁磁相 \leftrightarrow 顺磁相) — the missing whitelist entry left it raw."""
+    html = '<div>铁磁体发生二级连续相变（铁磁相 \\leftrightarrow 顺磁相）、宏观</div>'
+    result = _convert_dollar_to_mathjax(html)
+    assert '铁磁相 \\(\\leftrightarrow\\) 顺磁相' in result
+
+
+def test_cjk_prose_leftrightarrow_idempotent():
+    r"""The wrapped arrow must not be re-wrapped on a second pass."""
+    html = '<div>铁磁体发生二级连续相变（铁磁相 \\leftrightarrow 顺磁相）、宏观</div>'
+    once = _convert_dollar_to_mathjax(html)
+    assert _convert_dollar_to_mathjax(once) == once
+
+
+def test_span_placeholder_inside_intact_block_stripped():
+    r"""Note 1792128077289: junk spliced INSIDE a coherent \(…\) block —
+    \frac{1}{T -[span_1](end_span) T_C} — dejunked to \frac{1}{T - T_C}. The
+    block's delimiters are balanced, so the pieces around the token are a
+    complete formula, unlike the scattered TKNN shape."""
+    html = (
+        '<div>磁化率服从 \\(\\chi \\propto \\frac{1}{T -[span_1](end_span) T_C}\\) 的顺磁态</div>'
+    )
+    result = _convert_dollar_to_mathjax(html)
+    assert '\\frac{1}{T - T_C}' in result
+    assert '[span_1]' not in result
+
+
+def test_span_placeholder_inside_block_idempotent():
+    r"""The dejunked block must be stable on a second pass."""
+    html = (
+        '<div>磁化率服从 \\(\\chi \\propto \\frac{1}{T -[span_1](end_span) T_C}\\) 的顺磁态</div>'
+    )
+    once = _convert_dollar_to_mathjax(html)
+    assert _convert_dollar_to_mathjax(once) == once
+
+
 def test_cjk_prose_rho_g_product_wrapped():
     r"""Successor of the pinned-raw test: \rho g now wraps whole too — the
     old no-op expectation was a compromise that left literal \rho g text
