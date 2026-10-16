@@ -50,7 +50,7 @@ ALREADY_MATHJAX_RE = re.compile(r'\\[(\(|\[]|<anki-mathjax', re.IGNORECASE)
 # \[a-zA-Z]+ would false-positive on Windows paths like C:\Users\name.
 BARE_LATEX_COMMAND_RE = re.compile(
     r'\\(?:'
-    r'frac|dfrac|tfrac|text|times|sqrt|sum|prod|int|cdot|circ|pm|mp|div(?:isionsymbol)?|'
+    r'frac|dfrac|tfrac|text|times|sqrt|sum|prod|int|cdot|circ|odot|otimes|oplus|ominus|oslash|circledast|pm|mp|div(?:isionsymbol)?|'
     r'oiiint|oiint|oint|'
     r'leq?|geq?|neq|approx|equiv|propto|mid|parallel|infty|log|ln|exp|sin|cos|tan|sinh|cosh|tanh|coth|sech|csch|lim|min|max|inf|sup|argmin|argmax|'
     r'partial|nabla|to|rightarrow|Rightarrow|leftarrow|leftrightarrow|Leftrightarrow|mapsto|left|right|over|hat|bar|vec|'
@@ -137,7 +137,7 @@ STANDALONE_MATH_SYMBOL_RE = re.compile(
     r'infty|nabla|partial|'
     r'lt|gt|le|ge|leq|geq|neq|approx|equiv|propto|sim|cong|simeq|ll|gg|'
     r'subset(?:eq)?|supset(?:eq)?|in|ni|notin|mid|parallel|perp|'
-    r'to|rightarrow|Rightarrow|leftarrow|leftrightarrow|Leftrightarrow|mapsto|pm|mp|cdot|times|div|circ|angle'
+    r'to|rightarrow|Rightarrow|leftarrow|leftrightarrow|Leftrightarrow|mapsto|pm|mp|cdot|times|div|circ|odot|otimes|oplus|ominus|oslash|circledast|angle'
     r')\b'
 )
 
@@ -148,7 +148,7 @@ HYPHENATED_SYMBOL_RE = re.compile(
 
 
 def _is_standalone_math_symbol(token):
-    """STANDALONE_MATH_SYMBOL_RE.fullmatch, tolerating one leading +/- sign —
+    r"""STANDALONE_MATH_SYMBOL_RE.fullmatch, tolerating one leading +/- sign —
     -\pi / +\pi are still standalone symbols (note 1792128580851)."""
     return bool(STANDALONE_MATH_SYMBOL_RE.fullmatch(token.lstrip('+-')))
 
@@ -941,7 +941,7 @@ _INTERVAL_INNER_RE = re.compile(r'[\s0-9a-zA-Z\\{},+\-*/()\[\]]*')
 
 
 def _fix_half_bracketed_interval(html_str):
-    """Merge bare "commands [" + \(interval\) into a single inline block.
+    r"""Merge bare "commands [" + \(interval\) into a single inline block.
 
     The shape straddles an existing block, so whole-string matching with a
     position guard: a match starting inside an existing block is a legit

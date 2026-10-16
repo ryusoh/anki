@@ -1933,6 +1933,22 @@ def test_half_bracketed_interval_cjk_block_kept():
     assert _convert_dollar_to_mathjax(once) == once
 
 
+def test_cjk_prose_odot_wrapped():
+    r"""Note 1792130239291: \odot (and the o-operator family \otimes, \oplus,
+    \ominus, \oslash, \circledast) stands alone in CJK prose — whitelisted
+    like \cdot."""
+    html = '<div>其中 \\odot 表示逐元素哈达玛积。</div>'
+    result = _convert_dollar_to_mathjax(html)
+    assert '\\(\\odot\\) 表示逐元素' in result
+
+
+def test_cjk_prose_odot_idempotent():
+    r"""The wrapped operator must not be re-wrapped on a second pass."""
+    html = '<div>其中 \\odot 表示逐元素哈达玛积。</div>'
+    once = _convert_dollar_to_mathjax(html)
+    assert _convert_dollar_to_mathjax(once) == once
+
+
 def test_shuffled_arrow_operand_repair():
     r"""Note 1792128952512: A\(\toA 或 B\)\to\)B — arrow operands shuffled out
     of two inline blocks reassemble to A\(\to\)A 或 B\(\to\)B."""
