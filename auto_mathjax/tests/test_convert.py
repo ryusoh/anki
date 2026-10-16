@@ -1719,6 +1719,21 @@ def test_span_placeholder_passthrough_idempotent():
     assert _convert_dollar_to_mathjax(once) == once
 
 
+def test_shuffled_arrow_operand_repair():
+    r"""Note 1792128952512: A\(\toA 或 B\)\to\)B — arrow operands shuffled out
+    of two inline blocks reassemble to A\(\to\)A 或 B\(\to\)B."""
+    html = '<div>电子沿同种子晶格（A\\(\\toA 或 B\\)\\to\\)B）次近邻跃迁</div>'
+    result = _convert_dollar_to_mathjax(html)
+    assert '\\(\\to\\)A 或 B\\(\\to\\)B' in result
+
+
+def test_shuffled_arrow_operand_idempotent():
+    r"""The reassembled arrow pair must not be re-shuffled on a second pass."""
+    html = '<div>电子沿同种子晶格（A\\(\\toA 或 B\\)\\to\\)B）次近邻跃迁</div>'
+    once = _convert_dollar_to_mathjax(html)
+    assert _convert_dollar_to_mathjax(once) == once
+
+
 # --- Italicized stars inside an unconverted $...$ / $$...$$ pair ---
 # The rich-text editor turns a '*' after ^ or _ into <i>...</i> markup
 # (c_1^*, c_2^* → c_1^<i>, c_2^</i>), and the resulting tags trip the

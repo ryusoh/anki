@@ -788,6 +788,28 @@ def _fix_split_matrix_env(html_str):
     return SPLIT_MATRIX_ENV_RE.sub(_fix, html_str)
 
 
+# Arrow operands shuffled out of two inline blocks (note 1792128952512): an
+# editing accident around a MathJax placeholder left A\(\toA 或 B\)\to\)B —
+# the two blocks A\(\to\)A and B\(\to\)B collapsed so both right operands
+# ended up outside, with the second arrow and a stray closer orphaned between
+# them. The middle must contain CJK so the repair stays clear of legitimate
+# prose; the tail operand is left outside, exactly as intended.
+SHUFFLED_ARROW_OPERAND_RE = re.compile(
+    r'\\\((?P<op>\\(?:to|rightarrow|leftarrow|mapsto|Rightarrow|Leftarrow|leftrightarrow))\s*'
+    r'(?P<middle>(?:(?!\\\(|\\\)).)*?[\u4e00-\u9fff](?:(?!\\\(|\\\)).)*?)'
+    r'\\\)\s*(?P=op)\s*\\\)'
+)
+
+
+def _fix_shuffled_arrow_operands(html_str):
+    """Reassemble A\(\toX 或 Y\)\to\)Z into A\(\to\)X 或 Y\(\to\)Z."""
+
+    def _fix(m):
+        return '\\(%s\\)%s\\(%s\\)' % (m.group('op'), m.group('middle'), m.group('op'))
+
+    return SHUFFLED_ARROW_OPERAND_RE.sub(_fix, html_str)
+
+
 def _fix_mangled_mathjax(html_str):
     """Repair mangled HTML tags inside/around MathJax blocks.
 
@@ -1042,6 +1064,7 @@ def _convert_dollar_to_mathjax(html_str):
     converted_html = _fix_mangled_mathjax(converted_html)
     converted_html = _fix_shuffled_text_labels(converted_html)
     converted_html = _fix_split_matrix_env(converted_html)
+    converted_html = _fix_shuffled_arrow_operands(converted_html)
     converted_html = _unwrap_mathjax_from_pre(converted_html)
     return _inject_macro_defs(converted_html)
 
