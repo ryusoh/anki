@@ -1885,6 +1885,30 @@ def test_cases_three_cells_nonnumeric_tail_kept():
     assert _convert_dollar_to_mathjax(html) == html
 
 
+def test_signed_standalone_greek_wrapped():
+    r"""Note 1792128580851: a signed standalone Greek (-\pi, +\pi) is still a
+    standalone symbol — the leading sign broke the fullmatch guard."""
+    html = '<div>当 k 从 -\\pi 走到 +\\pi（绕圆周 \\(S^1\\) 一圈）</div>'
+    result = _convert_dollar_to_mathjax(html)
+    assert '\\(-\\pi\\)' in result
+    assert '\\(+\\pi\\)' in result
+
+
+def test_signed_standalone_greek_english_line():
+    r"""The same sign guard applies on non-CJK prose lines."""
+    html = '<div>ranges from -\\pi to +\\pi around the circle</div>'
+    result = _convert_dollar_to_mathjax(html)
+    assert '\\(-\\pi\\)' in result
+    assert '\\(+\\pi\\)' in result
+
+
+def test_signed_standalone_greek_idempotent():
+    r"""The wrapped signed symbols must be stable on a second pass."""
+    html = '<div>当 k 从 -\\pi 走到 +\\pi（绕圆周 \\(S^1\\) 一圈）</div>'
+    once = _convert_dollar_to_mathjax(html)
+    assert _convert_dollar_to_mathjax(once) == once
+
+
 def test_shuffled_arrow_operand_repair():
     r"""Note 1792128952512: A\(\toA 或 B\)\to\)B — arrow operands shuffled out
     of two inline blocks reassemble to A\(\to\)A 或 B\(\to\)B."""

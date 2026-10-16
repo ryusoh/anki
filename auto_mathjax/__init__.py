@@ -146,6 +146,13 @@ HYPHENATED_SYMBOL_RE = re.compile(
     r'^(' + STANDALONE_MATH_SYMBOL_RE.pattern + r')-([a-zA-Z][a-zA-Z0-9_-]*)$'
 )
 
+
+def _is_standalone_math_symbol(token):
+    """STANDALONE_MATH_SYMBOL_RE.fullmatch, tolerating one leading +/- sign —
+    -\pi / +\pi are still standalone symbols (note 1792128580851)."""
+    return bool(STANDALONE_MATH_SYMBOL_RE.fullmatch(token.lstrip('+-')))
+
+
 # Core pattern and regex for a math variable with sub/superscripts (e.g. r_t, s_t, x_i, c_1, x^2, \mu_i, W_{ij}, G^{(i+1)T}).
 MATH_VAR_SUB_SUPER_CORE = (
     r'(?:' + STANDALONE_MATH_SYMBOL_RE.pattern.removesuffix(r'\b') + r'|[a-zA-Z]'
@@ -557,12 +564,13 @@ def _wrap_cjk_prose_math(segment):
             # structure-less standalone integral symbols (\oint) are wrapped
             # by the STANDALONE_SYMBOL_RE pass below — wrapping them here
             # would double-wrap. Structure-less standalone math symbols
-            # (\nu, \pi) wrap here unless followed by a letter, where they
-            # are the first factor of a product (\rho g) — pinned raw.
+            # (\nu, \pi, signed -\pi / +\pi) wrap here unless followed by a
+            # letter, where they are the first factor of a product (\rho g).
             if INCOMPLETE_INTEGRAL_RE.fullmatch(c):
                 return run
             if not re.search(r'[{0-9_^=]', c) and (
-                not STANDALONE_MATH_SYMBOL_RE.fullmatch(c) or _followed_by_ascii_letter(m, c)
+                not _is_standalone_math_symbol(c)
+                or (c == c.lstrip('+-') and _followed_by_ascii_letter(m, c))
             ):
                 return run
             start = run.find(c)
@@ -611,14 +619,14 @@ def _wrap_embedded_latex_core(segment):
         # A bare \command with no braced, subscript/superscript, numeric, or
         # equation operand (Wikipedia's {\displaystyle O(\log N)} pastes) is
         # not a self-contained formula — unless it is a standalone integral
-        # symbol (\oint & friends) or a standalone math symbol (\nu, \pi).
-        # The latter still stays raw when followed by a letter: there it is
-        # the first factor of a product (\rho g), pinned raw.
+        # symbol (\oint & friends) or a standalone math symbol (\nu, \pi,
+        # including a signed -\pi / +\pi).
         if (
             not re.search(r'[{0-9_^=]', core)
             and not STANDALONE_SYMBOL_RE.fullmatch(core)
             and (
-                not STANDALONE_MATH_SYMBOL_RE.fullmatch(core) or _followed_by_ascii_letter(m, core)
+                not _is_standalone_math_symbol(core)
+                or (core == core.lstrip('+-') and _followed_by_ascii_letter(m, core))
             )
         ):
             return run
