@@ -880,4 +880,25 @@ describe("LiquidGlassRefraction lifecycle", () => {
     assert(effect._lastGeometry.includes("sannulus"));
     effect.dispose();
   });
+
+  test("style parsing failures are logged via console.warn", () => {
+    let warnCalls = 0;
+    const origWarn = globalThis.window.console.warn;
+    globalThis.window.console.warn = (...args) => {
+      if (args[0].includes("LiquidGlassRefraction style parsing failed:")) {
+        warnCalls += 1;
+      } else {
+        origWarn(...args);
+      }
+    };
+
+    dom.window.getComputedStyle = () => {
+      throw new Error("mocked style parsing failure");
+    };
+    const effect = new LiquidGlassRefraction(element, { force: true });
+
+    assert(warnCalls >= 2, "Expected style parsing exceptions to be logged");
+    globalThis.window.console.warn = origWarn;
+    effect.dispose();
+  });
 });
