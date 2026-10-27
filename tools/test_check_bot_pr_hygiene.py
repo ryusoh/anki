@@ -309,3 +309,41 @@ def test_all_stray_artifact_patterns_are_gitignored() -> None:
         assert _is_stray_artifact(path), f'{path} should be detected as stray'
         res = subprocess.run(['git', 'check-ignore', '-q', path], cwd=repo_root)
         assert res.returncode == 0, f'{path} is a stray artifact but not covered by .gitignore'
+
+
+def test_bot_inline_complexity_disable_flagged(repo: Path) -> None:
+    _write_and_commit(
+        repo,
+        'js/foo.js',
+        'function f() {\n  return 1;\n}\n',
+        'feat(js): add foo',
+    )
+    _write_and_commit(
+        repo,
+        'js/foo.js',
+        '// eslint-disable-next-line complexity\nfunction f() {\n  return 1;\n}\n',
+        'fix(js): silence complexity',
+    )
+    violations = find_violations(repo, 'main')
+    assert any('inline suppression' in v for v in violations)
+
+
+def test_bot_other_inline_disable_allowed(repo: Path) -> None:
+    _write_and_commit(
+        repo,
+        'js/foo.js',
+        '// eslint-disable-next-line no-undef\nfunction f() {\n  return 1;\n}\n',
+        'fix(js): silence no-undef',
+    )
+    assert find_violations(repo, 'main') == []
+
+
+def test_human_inline_complexity_disable_ignored(repo: Path) -> None:
+    _write_and_commit(
+        repo,
+        'js/foo.js',
+        '// eslint-disable-next-line complexity\nfunction f() {\n  return 1;\n}\n',
+        'fix(js): silence complexity',
+        bot=False,
+    )
+    assert find_violations(repo, 'main') == []

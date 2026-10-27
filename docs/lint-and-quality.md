@@ -106,8 +106,11 @@ that change no files, touch files with zero content lines (the
 `dummy_file.txt` placeholder pattern), delete lines from test files — bot
 lanes are append-only in `tests/` (Testpilot owns tests; no other bot lane may
 touch them), commit stray bot artifacts (e.g. `pr_body.txt`, scratch/temp files),
-or touch `eslint-suppressions.json` from a non-refactor lane or increase
-suppressions (complexity ratchet violation). Human-authored commits are
+touch `eslint-suppressions.json` from a non-refactor lane or increase
+suppressions (complexity ratchet violation), or add an inline `eslint-disable`
+complexity comment — an inline disable bypasses the ratchet without touching
+the baselined suppressions file, so bot lanes must reduce complexity instead
+(e.g. extract a helper). Human-authored commits are
 skipped: interactive agents may legitimately rewrite tests on request. CI
 runs the same check on every PR (`ci.yml` checks out with `fetch-depth: 0`
 so the branch commits are visible behind the merge commit).

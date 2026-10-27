@@ -17,7 +17,11 @@ review questions. This check fails the gate on any bot-authored commit in
    suppressions (complexity ratchet violation),
 6. deletes ``package-lock.json`` — PR #544's bot run wiped the 8 681-line
    lockfile, which broke ``npm ci`` and the security-audit workflow; no bot
-   lane may delete it (dependabot is a different author and unaffected).
+   lane may delete it (dependabot is a different author and unaffected),
+7. adds an inline ``eslint-disable`` complexity comment — this bypasses the
+   complexity ratchet silently (PR #554's bot commit pushed ``update()`` to
+   complexity 23 and hid it with ``eslint-disable-next-line`` instead of
+   extracting a helper); bot lanes must reduce complexity, not suppress it.
 
 Human-authored commits are out of scope and skipped: interactive agents may
 legitimately delete or rewrite tests when the user asks.
@@ -191,6 +195,19 @@ def find_violations(repo: Path, base: str, head: str = 'HEAD') -> list[str]:
                 err = _suppressions_violation(repo, sha, path)
                 if err:
                     violations.append(f'{sha[:8]} complexity ratchet violation: {path} {err}')
+        diff = _git(repo, 'show', '--format=', '--unified=0', sha)
+        for line in diff.splitlines():
+            if (
+                line.startswith('+')
+                and not line.startswith('+++')
+                and 'eslint-disable' in line
+                and 'complexity' in line
+            ):
+                violations.append(
+                    f'{sha[:8]} inline suppression: added an eslint-disable complexity comment'
+                    ' — reduce complexity instead of bypassing the ratchet'
+                )
+                break
     return violations
 
 
