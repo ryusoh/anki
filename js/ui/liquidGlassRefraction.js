@@ -281,6 +281,12 @@ function nowMs() {
     : Date.now();
 }
 
+function warnStyleParsingFailure(error) {
+  if (typeof window !== "undefined" && window.console && window.console.warn) {
+    window.console.warn("LiquidGlassRefraction style parsing failed:", error);
+  }
+}
+
 const CHANNEL_MATRICES = {
   r: "1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0",
   g: "0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0",
@@ -370,7 +376,8 @@ export class LiquidGlassRefraction {
       if (computed && computed !== "none") {
         this._inheritedFrost = computed;
       }
-    } catch {
+    } catch (error) {
+      warnStyleParsingFailure(error);
       this._inheritedFrost = "";
     }
 
@@ -608,7 +615,8 @@ export class LiquidGlassRefraction {
             ? (value / 100) * Math.min(width, height)
             : value;
         }
-      } catch {
+      } catch (error) {
+        warnStyleParsingFailure(error);
         radius = 0;
       }
     }
