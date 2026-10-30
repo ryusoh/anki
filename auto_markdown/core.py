@@ -158,7 +158,7 @@ def _convert_line(line: str) -> tuple[str, str]:
         return (f"<h{level}>{content}</h{level}>", "heading")
 
     # Unordered list item.
-    m = _UL_RE.match(stripped)
+    m = _UL_RE.match(_LEADING_WS_NBSP_RE.sub("", line).strip())
     if m:
         content = _convert_inline(m.group(1))
         return (f"<li>{content}</li>", "ul")

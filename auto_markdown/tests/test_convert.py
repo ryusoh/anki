@@ -82,8 +82,8 @@ def test_italic_cjk_content():
 
 
 def test_italic_cjk_without_surrounding_spaces():
-    html = '&nbsp; * <b>复杂模型</b>：它对*特定某一种*数据形态的预测概率很低。'
-    expected = '&nbsp; * <b>复杂模型</b>：它对<i>特定某一种</i>数据形态的预测概率很低。'
+    html = '它对*特定某一种*数据形态的预测概率很低。'
+    expected = '它对<i>特定某一种</i>数据形态的预测概率很低。'
     assert convert_markdown_field(html) == expected
 
 
@@ -118,7 +118,8 @@ def test_italic_never_spans_tags():
     """Real card (note 1788318106323): stars separated by HTML markup are
     literal, even with several on one line."""
     html = '&nbsp;&nbsp;&nbsp; *&nbsp;&nbsp; <b>优势</b>：说明<h3>标题</h3>*&nbsp;&nbsp; 后续'
-    assert convert_markdown_field(html) == html
+    expected = '<ul><li><b>优势</b>：说明<h3>标题</h3>*&nbsp;&nbsp; 后续</li></ul>'
+    assert convert_markdown_field(html) == expected
 
 
 def test_bold_inner_star_not_italic():
@@ -205,6 +206,23 @@ def test_unordered_list_asterisk_nbsp_indent():
     html = '*&nbsp;&nbsp; **概念**：代数'
     expected = '<ul><li><b>概念</b>：代数</li></ul>'
     assert convert_markdown_field(html) == expected
+
+
+def test_unordered_list_nbsp_before_marker():
+    html = (
+        '&nbsp; * <b>复杂模型</b>：它对*特定某一种*数据形态。 <br>'
+        '&nbsp; * <b>简单模型</b>：参数少。'
+    )
+    expected = (
+        '<ul><li><b>复杂模型</b>：它对<i>特定某一种</i>数据形态。</li>'
+        '<li><b>简单模型</b>：参数少。</li></ul>'
+    )
+    assert convert_markdown_field(html) == expected
+
+
+def test_nbsp_indentation_does_not_create_other_blocks():
+    html = '&nbsp;&nbsp; # if there are no elements<br>&nbsp;&nbsp; ---------------'
+    assert convert_markdown_field(html) == html
 
 
 def test_unordered_list_plus_bullets():
