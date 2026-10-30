@@ -92,10 +92,21 @@ failure category before touching code.
    make precommit SKIP=1
    ```
 
-9. **Report plainly**: root cause (one line), the fix, pasted verification
-   output, and remind the user to reload the add-on in Anki. If the bug
-   already mangled a stored field, offer to repair it directly — convert the
-   dumped pristine source with the fixed code and write it back via
-   AnkiConnect `updateNoteFields` (see "Repairing a mangled field" in
-   `docs/creating-an-addon.md`); do NOT tell the user to just re-trigger the
-   old code on the mangled field, that compounds the damage.
+9. **Repair the tested stored field after the safe dry run.** Once the sweep
+   and gates are green, do not leave the user to manually clean up the card
+   that demonstrated the bug:
+   - Convert the dumped pristine source with the fixed code and review the
+     exact old/new HTML diff. Keep the dumped original for rollback.
+   - Write only the dumped note ID and field index through AnkiConnect
+     `updateNoteFields`, then verify the stored value with `notesInfo` and a
+     fresh dump (see "Repairing a mangled field" in
+     `docs/creating-an-addon.md`). Anki must be running.
+   - This applies to fields that were mangled **or merely left unconverted**.
+     Never re-trigger the old code on a broken intermediate, and never repair
+     other changed fields in bulk unless the user explicitly asks.
+   - If AnkiConnect is unavailable or the write cannot be verified, report
+     plainly that the stored card was not repaired.
+
+10. **Report plainly**: root cause (one line), the fix, pasted verification
+    output, whether the tested card was repaired, and remind the user to
+    reload the add-on in Anki.
