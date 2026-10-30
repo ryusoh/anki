@@ -47,8 +47,9 @@ _BOLD_RE = re.compile(r"\*\*(.+?)\*\*")
 # math notation literal: the opener can't follow an ASCII letter or digit
 # (C*-代数, a*b), the content can't end in whitespace (记为 *) and can't
 # contain an HTML tag (furigana <rt>*</rt> placeholders, *...<h3>...*),
-# and the closer can't be followed by a word character (C*恒).
-_ITALIC_RE = re.compile(r"(?<![A-Za-z0-9*])\*([^\s*<](?:[^*<]*?[^\s*<])?)\*(?![\w*])")
+# and the closer can't be followed by an ASCII word character. CJK prose
+# does not require spaces around emphasis.
+_ITALIC_RE = re.compile(r"(?<![A-Za-z0-9*])\*([^\s*<](?:[^*<]*?[^\s*<])?)\*(?![A-Za-z0-9_*])")
 # Inline code `...` (backtick pairs, not inside <code> already).
 _CODE_RE = re.compile(r"`([^`]+?)`")
 

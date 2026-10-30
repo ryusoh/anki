@@ -81,6 +81,12 @@ def test_italic_cjk_content():
     assert convert_markdown_field(html) == expected
 
 
+def test_italic_cjk_without_surrounding_spaces():
+    html = '&nbsp; * <b>复杂模型</b>：它对*特定某一种*数据形态的预测概率很低。'
+    expected = '&nbsp; * <b>复杂模型</b>：它对<i>特定某一种</i>数据形态的预测概率很低。'
+    assert convert_markdown_field(html) == expected
+
+
 def test_identifier_star_not_italic():
     """Real pattern: C*-代数 — a star attached to an identifier is the
     adjoint/star operator, not an emphasis delimiter."""
