@@ -18,6 +18,7 @@
 
 """Configuration dialog"""
 
+import html
 import os
 import os.path
 import pprint
@@ -865,12 +866,15 @@ class Configurator(Dialog):
         data = self._addon.languagetools.account_info()
         lines = []
         for key, value in data.items():
-            html = f'<b>{key}</b>: {value}'
+            escaped_key = html.escape(str(key), quote=True)
+            escaped_value_attr = html.escape(str(value), quote=True)
+            escaped_value_text = html.escape(str(value), quote=False)
+            html_str = f'<b>{escaped_key}</b>: {escaped_value_text}'
             if key == 'update_url':
-                html = f"""<br/><a href='{value}'>Upgrade / Downgrade / Payment Info</a>"""
+                html_str = f"""<br/><a href='{escaped_value_attr}'>Upgrade / Downgrade / Payment Info</a>"""
             if key == 'cancel_url':
-                html = f"""<br/><a href='{value}'>Cancel Plan</a>"""
-            lines.append(html)
+                html_str = f"""<br/><a href='{escaped_value_attr}'>Cancel Plan</a>"""
+            lines.append(html_str)
         account_info_str = '<br/>'.join(lines)
         aqt.utils.showInfo(
             account_info_str,
