@@ -709,7 +709,12 @@ window.addEventListener("keyup", (e) => (keyState[e.key] = false));
 
 function animate() {
   requestAnimationFrame(animate);
-  const time = Date.now() * 0.001;
+  // Bolt: Replace Date.now() with performance.now() in high-frequency animation loop to eliminate OS clock lookup overhead and improve precision.
+  const now =
+    typeof window !== "undefined" && window.performance
+      ? window.performance.now()
+      : Date.now();
+  const time = now * 0.001;
   hiMat.uniforms.uTime.value = time;
   ambientMist.material.uniforms.uTime.value = time;
   ambientMist.rotation.y += 0.01;
