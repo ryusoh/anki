@@ -493,6 +493,15 @@ def test_pure_cjk_label_not_math():
     assert _convert_dollar_to_mathjax(html) == html
 
 
+def test_cjk_numeric_units_convert():
+    r"""Numbers with CJK units are quantities, not prose or currency."""
+    html = '用 $10牛$ 的力拉了 $1厘米$，重物上升了 $0.5厘米$，重 $20牛$。'
+    expected = r'用 \(10牛\) 的力拉了 \(1厘米\)，重物上升了 \(0.5厘米\)，重 \(20牛\)。'
+    result = _convert_dollar_to_mathjax(html)
+    assert result == expected
+    assert _convert_dollar_to_mathjax(result) == result
+
+
 # --- Prose protection (shapes found by tools/sweep_transform.py) ---
 # Cashtags, money slang, and finance commentary regex-match as $ pairs but
 # must never convert. Each test pins the shape of a real mangled note.

@@ -284,6 +284,10 @@ def _looks_like_cjk_math_formula(text):
     core = text.strip()
     if not core or core[0] in '=+*/^_:,;' or core[-1] in '=+*/^_:,;':
         return False
+    if re.fullmatch(
+        r'[+-]?(?:\d+(?:\.\d+)?|\.\d+)\s*[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]+', core
+    ):
+        return True
     # Outside \text{} groups or LaTeX commands, words should not be English prose
     if any(len(word) > 2 for word in re.findall(r'[a-zA-Z]+', text)):
         return False
