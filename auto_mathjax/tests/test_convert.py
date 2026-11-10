@@ -1370,6 +1370,20 @@ def test_no_closed_integral_no_preamble():
     assert r'\def\oiiint{' not in result
 
 
+def test_oiint_macro_centers_circle_over_integral():
+    r"""Bare and subscripted \oiint overlay a centered circle without shifting \iint."""
+    html = r'\(\oiint\) and \(\oiint_S\)'
+    result = _convert_dollar_to_mathjax(html)
+    assert r'\def\oiint{\mathop{\iint\mathrlap{\mkern-25mu\bigcirc}}}' in result
+
+
+def test_oiiint_macro_centers_circle_over_integral():
+    r"""\oiiint centers its circle over the wider \iiint glyph."""
+    html = r'\(\oiiint\)'
+    result = _convert_dollar_to_mathjax(html)
+    assert r'\def\oiiint{\mathop{\iiint\mathrlap{\mkern-30mu\bigcirc}}}' in result
+
+
 # --- Standalone integral symbols (\oint / \oiint / \oiiint) in prose ---
 # Chinese physics notes mention the symbols inline ("你问的 \oint 是…"),
 # not as formulas. These self-contained glyphs take no operand, so they are

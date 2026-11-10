@@ -224,11 +224,11 @@ CUSTOM_MACROS = {
     'lambdabar': r'\unicode{x019B}',
     # esint closed integrals — Anki's bundled MathJax has no esint
     # extension, so \oiint / \oiiint render as red "undefined control
-    # sequence" errors. Emulate the glyphs: a circle overlaid on
-    # \iint / \iiint (negative \mkern pulls the integrals back over
-    # the \bigcirc; tune the mu value if the overlay looks off-center).
-    'oiint': r'\mathop{\bigcirc\mkern-14mu\iint}',
-    'oiiint': r'\mathop{\bigcirc\mkern-14mu\iiint}',
+    # sequence" errors. Emulate the glyphs by drawing the integral first and
+    # overlaying a centered circle with \mathrlap. The kerns differ because
+    # \iint and \iiint have different widths.
+    'oiint': r'\mathop{\iint\mathrlap{\mkern-25mu\bigcirc}}',
+    'oiiint': r'\mathop{\iiint\mathrlap{\mkern-30mu\bigcirc}}',
 }
 
 # Matches <anki-mathjax ...>content</anki-mathjax> blocks (inline and display)
