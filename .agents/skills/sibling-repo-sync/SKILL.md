@@ -11,7 +11,8 @@ This repo: monorepo of Anki add-ons (Python) + a JS/graph data pipeline; CI gate
 sync-check thinking-check bot-pr-check); **no** `.pre-commit-config.yaml`; run everything from the repo root
 with `python3` (root `conftest.py` mocks `aqt`/`anki`); run `make fmt` after
 hand-authoring Markdown — Prettier owns MD table/list formatting and `fmt-check`
-fails otherwise.
+fails otherwise. (Note: Jules routines and the Refactoring persona note are now
+obsolete — `.jules/` personas were retired in November 2026).
 
 The siblings:
 
@@ -156,18 +157,18 @@ Delegate one subagent per repo, in parallel. Brief each with:
    into the repo root (add to .gitignore or delete).
 9. **Finish per repo:** run prettier/fmt over new config files, run the repo's
    own full CI-parity gate green, update its AGENTS.md (command table + short
-   note), update the `.jules/` persona whose lane owns the new metric (if
-   any). **Never commit** — leave changes uncommitted and report: violation
-   counts, resolution proof, files changed, probe exit codes, gate result,
-   skip decisions with evidence.
+   note), update the relevant agent guidance or docs (if any; `.jules/` personas
+   are retired). **Never commit** — leave changes uncommitted and report:
+   violation counts, resolution proof, files changed, probe exit codes, gate
+   result, skip decisions with evidence.
 
 **Verification budget.** Scoped checks while iterating (the touched test
 file, prettier, sync-check); run the full CI-parity gate exactly once, at the
 end — it is the wall-clock pole, and a containerized one (networking's
 `precommit-docker`) doubly so. Start Docker early so it warms while you work;
-for docs/persona-only changes, decide whether the container run is warranted
-before queueing it. (2026-09 sync: the networking agent's gate run dwarfed
-the rest of its work.)
+for docs-only changes, decide whether the container run is warranted before
+queueing it. (2026-09 sync: the networking agent's gate run dwarfed the rest of
+its work.)
 
 ## After the sync
 

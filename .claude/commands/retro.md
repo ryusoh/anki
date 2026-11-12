@@ -29,16 +29,14 @@ Work through these steps:
      pin redirect corner cases);
    - a `Makefile` target (verification, data pipeline, lint/format);
    - a lint/CI gate under `.github/workflows/`;
-   - behavioral guidance in a `.jules/*.md` persona, if it's about _how an agent
-     should work_ rather than repo facts;
    - the `AGENTS.md` at the repo root — **only** if the rule is broadly useful
      and stable. Extend it sparingly, since it is auto-loaded
      context for every future session and every edit busts the prompt cache.
 
 3. **Check what already exists first.** Before adding anything, read the relevant
-   `Makefile` targets, `conftest.py`, `docs/`, `.jules/*.md`, `.github/workflows/`,
-   and the addon's own `tests/`. Patch real gaps instead of duplicating. Don't put
-   repo knowledge in chat or memory if it belongs in a version-controlled file.
+   `Makefile` targets, `conftest.py`, `docs/`, `.github/workflows/`, and the
+   addon's own `tests/`. Patch real gaps instead of duplicating. Don't put repo
+   knowledge in chat or memory if it belongs in a version-controlled file.
 
    Repo facts worth respecting (and worth documenting if you re-learned them):
    - **Run checks and tests from the repo root.** The root `conftest.py` mocks
@@ -52,7 +50,7 @@ Work through these steps:
    that pin a corner case, scoped `Makefile` targets, deduplication, and lint/CI
    gates are usually safe to just do. Promote standards up the ratchet:
    prose in `docs/` → a test → a lint/type rule → a CI-blocking check. Keep any
-   `AGENTS.md`/`.jules/*.md` edits small and stable (every edit busts the prompt
+   `AGENTS.md` edits small and stable (every edit busts the prompt
    cache for future sessions).
 
 5. **Ask before anything heavy or hard to reverse** — new dependencies, browser or

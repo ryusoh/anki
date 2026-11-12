@@ -8,6 +8,48 @@ we modify here. The only code kept out of the gates is **genuinely vendored**:
 and minified bundles (`**/*.min.{js,css}`). Those exclusions live in the tool
 configs, not in the `Makefile` scope.
 
+## Jules retirement note
+
+- **Cutoff:** Jules sessions could finish through 2026-11-11; the product is
+  read-only until it winds down on 2026-12-31.
+- **Final Jules-era revision:** `92d72b8c` — the last commit whose tree still
+  contains `.jules/` and the persona-conformance checks. Recover any of them
+  with `git show 92d72b8c:<path>`.
+- **Replacement workflow:** interactive agents (Antigravity, Claude Code, Kimi)
+  per `AGENTS.md` and the shared skills in `.agents/skills/`.
+- **Drain state at cleanup:** no open pull requests (`gh pr list --state open`
+  returned none on 2026-11-12).
+- **Knowledge migrated:**
+  - `refactoring`: complexity ratchets, `eslint-suppressions.json` workflow
+    (`npx eslint --prune-suppressions`), Radon (`radon cc`) and Xenon thresholds,
+    stage-by-name (`git add <file>`, never `git add -A`), single-commit
+    branches, and commit title limits (≤ 72 chars, shorten verb phrase) →
+    `AGENTS.md`, `docs/gotchas.md`, and this document.
+  - `bolt`: avoiding inlining `.forEach` into monolithic functions (preserves
+    per-function complexity scopes), performance profiling via `WeakMap` /
+    `requestAnimationFrame` → this document and `docs/gotchas.md`.
+  - `janitor`: dead-code reference searches (`git grep -n <target>` across all
+    tracked files), Anki hook/entry-point hazards (`gui_hooks`, `addHook`),
+    and dependency removal traps (`requirements.txt` vs runtime vs `.venv`
+    ghosting) → `docs/gotchas.md`.
+  - `sentinel`: attack surfaces (untrusted deck names/tags, WebView DOM XSS,
+    `html.escape`, SQLite identifier quoting, explicit network timeouts, no
+    bare `except`/`catch`) → `docs/security-protocol.md` and
+    `docs/gotchas.md`.
+  - `palette`: accessible terminal/log output (`role="log"`,
+    `aria-live="polite"`), custom interactive elements, focus visibility →
+    `AGENTS.md` and `docs/gotchas.md`.
+  - `testpilot`: incremental coverage targets via `make coverage-rank`, testing
+    `__main__` via `runpy` without swallowing exceptions, and flat `tools/`
+    test imports → this document and `docs/gotchas.md`.
+  - `typist`: strict JS typing via JSDoc and `jsconfig.json` whitelist
+    expansion without `@types/node` → `docs/js-typing-strategy.md`.
+- **Retained tooling:** `tools/check_bot_pr_hygiene.py` (bot-commit gate in
+  `make bot-pr-check`/CI), `tools/prior_prs.py`, `tools/gate_guard.py`,
+  `tools/check_thinking_comments.py`, and the `bot-pr-rescue` skill. Reassess
+  `bot-pr-rescue` and the hygiene gate's Jules author marker separately once no
+  Jules branch can still reach the repo.
+
 ## Toolchain
 
 | Layer                        | Tool                  | Config                                  | Scope                                                         |
@@ -53,7 +95,7 @@ the whole repo before you find out.
 ## Complexity ratchet
 
 Both languages freeze their current cyclomatic-complexity state and fail on any
-regression (the Refactoring lane works the backlog down):
+regression (complexity-reduction refactors work the backlog down):
 
 - **JS:** `eslint.config.cjs` sets `complexity: ['error', { max: 20 }]` and
   `eslint-suppressions.json` baselines the legacy violations (file → rule →
@@ -61,6 +103,14 @@ regression (the Refactoring lane works the backlog down):
   or worsened** violation fails `lint-js`. The suppressions file is the backlog:
   after fixing one, run `npx eslint --prune-suppressions` to shrink it — the
   baseline only ratchets down. Never hand-edit it.
+  > [!TIP]
+  > In JavaScript, arrow functions passed to `.forEach(...)` have their own
+  > cyclomatic complexity scope. Inlining them into indexed `for` loops within
+  > a parent function aggregates all loop and branch conditions into that
+  > single function, frequently blowing past the complexity ratchet threshold
+  > (> 20). If replacing `.forEach`, either decompose the function into clean,
+  > single-purpose helpers or preserve the separate function scope. Never
+  > touch or add to `eslint-suppressions.json`.
 - **Python:** `make complexity-py` (part of `quality-py`, so part of the CI
   gate) runs xenon over `PY_ALL` with ceilings freezing the measured state:
   `--max-average A --max-modules F --max-absolute F` (average A / 3.29, worst
@@ -104,13 +154,12 @@ PR #494 (existing tests deleted in a coverage PR, then five empty churn
 commits), so `tools/check_bot_pr_hygiene.py` fails the gate on bot commits
 that change no files, touch files with zero content lines (the
 `dummy_file.txt` placeholder pattern), delete lines from test files — bot
-lanes are append-only in `tests/` (Testpilot owns tests; no other bot lane may
-touch them), commit stray bot artifacts (e.g. `pr_body.txt`, scratch/temp files),
-touch `eslint-suppressions.json` from a non-refactor lane or increase
-suppressions (complexity ratchet violation), or add an inline `eslint-disable`
-complexity comment — an inline disable bypasses the ratchet without touching
-the baselined suppressions file, so bot lanes must reduce complexity instead
-(e.g. extract a helper). Human-authored commits are
+commits are append-only in `tests/`, commit stray bot artifacts (e.g. `pr_body.txt`,
+scratch/temp files), touch `eslint-suppressions.json` without a refactor commit
+subject or increase suppressions (complexity ratchet violation), or add an
+inline `eslint-disable` complexity comment — an inline disable bypasses the
+ratchet without touching the baselined suppressions file, so bot commits must
+reduce complexity instead (e.g. extract a helper). Human-authored commits are
 skipped: interactive agents may legitimately rewrite tests on request. CI
 runs the same check on every PR (`ci.yml` checks out with `fetch-depth: 0`
 so the branch commits are visible behind the merge commit).
@@ -123,13 +172,13 @@ small real addon (`strip_html_tags`, via `pyproject.toml [tool.mutmut]`) and
 prints the kill report; the weekly `.github/workflows/mutation-testing.yml`
 (Mondays 02:00 UTC, `continue-on-error`) runs it in CI, restores the
 `.mutmut-cache` incrementally, and uploads the report as an artifact.
-Surviving mutants are information for Testpilot, not a failure.
+Surviving mutants are information for test authoring, not a failure.
 
 - Smoke run (2026-07-26): **849 mutants, 553 killed, 267 survived, 17
   no-cover, 12 timeouts — 65% kill ratio** in ~52s (16.45 mutations/s).
   Survivors cluster in the GUI-hook wiring (`on_editor_did_init_buttons`,
   `on_js_message` return-shape details) — expected: those paths are only
-  smoke-tested, and killing them is Testpilot backlog, not scaffold work.
+  smoke-tested, and killing them is test-coverage backlog, not scaffold work.
 - Config gotcha: mutmut sandboxes into `mutants/` and copies only
   `also_copy` paths — the addon's own `tests/` dir and the root `conftest.py`
   must be listed there or pytest collects nothing (exit 4). `debug = true` is

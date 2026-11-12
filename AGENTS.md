@@ -7,24 +7,16 @@ open Agent Skills format; `.claude/commands/` is generated from it by
 `tools/sync_commands.py`, `.claude/skills` is symlinked to `.agents/skills`,
 and the gate drift-checks it via `make sync-check`).
 
-## Two audiences (do not mix these up)
+## Audience
 
-- **Unattended Jules routines** (`.jules/` personas): these bots run without a
-  human in the loop and open PRs. A human only does a binary approve/close on the
-  result — they will **not** leave review comments or iterate with you. So every
-  PR must be self-evidently correct and approvable at a glance. Optimize for
-  **approve rate**, not for volume. The sections from "Non-negotiables" through
-  "Lanes" are binding on Jules routines.
-- **Interactive coding agents** (Claude Code, Kimi, Antigravity, etc.): you work
-  directly with the user in a chat session. The project conventions below still
-  apply, but the Jules-only **PR/branch/lane restrictions do not**. You may edit
-  build files, Makefiles, configs, dependencies, and even `.jules/` persona files
-  (no explicit permission needed — the user reviews the result; see the editing
-  rules below). You may commit to `main` or open PRs as directed
-  by the user. Do not invent Jules-style lane boundaries for normal interactive
-  work — if the user asks you to change something, change it.
-  When options are close, pick the best one and proceed — the human wants a
-  recommendation, not a menu of questions.
+Guidance here is for **interactive coding agents** (Claude Code, Kimi,
+Antigravity, etc.) working directly with the user in a chat session. The Jules
+routines (`.jules/` personas) were retired in November 2026 — see the retirement
+note in `docs/lint-and-quality.md`. Unattended automation is now limited to
+GitHub Actions workflows. You may edit build files, Makefiles, configs, and
+dependencies, and commit to `main` or open PRs as directed by the user. If the
+user asks you to change something, change it. When options are close, pick the
+best one and proceed — the human wants a recommendation, not a menu of questions.
 
 This repo is a **monorepo of Anki add-ons (Python)** plus a JS/graph data pipeline.
 Each top-level directory (`auto_wiktionary/`, `awesome_tts/`, `graph/`, `js/`,
@@ -37,7 +29,7 @@ patterns). Debugging a field-transform add-on against a real card? Same doc's
 Writing a design spec for another agent to implement? See
 `docs/delegation-specs.md` first (parity sign-off, anchor citations, doc gotchas).
 
-## Non-negotiables (a PR that violates any of these will be closed)
+## Non-negotiables (apply to every change and PR)
 
 1. **Open a PR only if `make precommit SKIP=1` is green.** It is the CI gate
    (`fmt-check` + `lint` + `typecheck-js` + `quality-py` + `check` +
@@ -50,18 +42,19 @@ Writing a design spec for another agent to implement? See
    unchanged).
 2. **One concern, smallest possible diff.** No drive-by edits, no scope creep.
    Diff size is inversely proportional to approval — keep it tiny.
-3. **Stay in your lane** (see "Lanes" below). If two routines touch the same files,
-   one PR gets closed. Don't fix something another lane owns.
+3. **Keep file sets disjoint.** If concurrent agents or workflows touch the same
+   files, one change gets clobbered or conflicts. Don't fix things outside your
+   task scope.
 4. **Never hand-edit generated `data/`** — it is produced by the pipeline.
 5. **Never touch vendored code** — `review_heatmap/libaddon/`, any `_vendor/` tree,
    and minified bundles are third-party. Their TODOs and defects are not ours.
-6. **Don't commit to `main`.** Branch off `main`, open a PR. (Note: This applies to unattended Jules agents; interactive agents such as Claude Code and Antigravity may commit directly to `main` when explicitly instructed by the user).
+6. **Branch off `main` for PRs.** Don't push to `main` unless the user directs it.
 7. **Don't leave scratch files in the tree** — no `fix_*.cjs`, scratchpads, or
    debug scripts. The diff contains only the change and its tests.
 8. **Don't write a command/example you haven't actually run this session.** Verify
    behaviour; don't infer it from a name or a `case` label.
 9. **Check open and recently-closed PRs before you start, and don't repeat them**
-   (`python3 tools/prior_prs.py`; `--stats` prints per-lane accept rates). A
+   (`python3 tools/prior_prs.py`; `--stats` prints bot-PR outcome stats). A
    closed PR was closed for a reason; an open one already claims that work.
    Pick something new.
 10. **No stream-of-consciousness in the diff.** Your reasoning stays out of
@@ -85,10 +78,10 @@ Writing a design spec for another agent to implement? See
     unmerged.) Machine-enforced for bot-authored commits by
     `tools/check_bot_pr_hygiene.py` (`make bot-pr-check`, part of the
     precommit gate and PR CI): the gate fails on bot commits that are empty,
-    add zero-content files, delete lines from test files (bot lanes are
+    add zero-content files, delete lines from test files (bot commits are
     append-only in tests), commit stray bot artifacts (`pr_body.txt`, scratch
     files), or violate the complexity ratchet (no added suppressions in
-    `eslint-suppressions.json`; only Refactoring may touch it to prune).
+    `eslint-suppressions.json`; only a complexity-reduction change may prune it).
     **Publish as a single commit by default.** The gate is per-commit, not
     net-diff: every intermediate mistake on a multi-commit branch stays in
     history and keeps CI red even after a later commit reverts it. Commit the
@@ -125,9 +118,8 @@ transparent edge, a glass refraction, spacing, or layout. Therefore:
 Make the approve decision take ten seconds. Every PR description must include:
 
 - **What & why** — one or two sentences.
-- **Lane** — which routine/lane this is.
 - **Verification** — the exact command(s) you ran and their result, pasted:
-  `make precommit SKIP=1` → green, or the scoped proof for your lane (e.g. coverage
+  `make precommit SKIP=1` → green, or the scoped proof for your change (e.g. coverage
   on file X went 82% → 100%; `radon cc` on function Y went C → A).
 - **Visual?** — "no visual surface" or "visual — human review required (draft)."
 
@@ -156,8 +148,7 @@ a valid Conventional Commit subject**.
     `awesome_tts`, `review_heatmap`, `graph`, `a11y`, `security`, `deps`, …).
   - **summary** — imperative mood, lower-case, no trailing period, ≤ 72 chars.
 - **No emoji, and no routine-name prefix in the subject** (no `Sentinel:`,
-  `Bolt:`, no `🛡️`). Attribution rides on the
-  `Co-authored-by: google-labs-jules[bot]` trailer — keep the subject clean.
+  `Bolt:`, no `🛡️`) — keep the subject clean. Count characters carefully (≤ 72 chars); if a scope or function name is long, shorten the verb phrase rather than exceeding the limit.
 - **Body** (when the change isn't self-evident): wrap ~72 cols, explain _what and
   why_, not how. Severity, metrics, and measurements live here, not in the subject.
 
@@ -344,43 +335,3 @@ and verification commands.
 - **Git hooks:** all repos use pre-commit hooks (e.g., `prettier`). If a push
   fails, run the repo's fix command (e.g., `make fmt-py`, `make fmt`, or
   `make precommit-fix`) before retrying.
-
-## Lanes (keep PRs disjoint to avoid collisions)
-
-| Routine     | Owns                                                                                                    | Must NOT touch                                                                                                                        |
-| ----------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Testpilot   | test-only additions/coverage, append-only (never delete or rewrite existing tests), no prod-code change | any production file                                                                                                                   |
-| Refactoring | cyclomatic-complexity refactors (behaviour-preserving)                                                  | error-handling/security, tests, features                                                                                              |
-| Sentinel    | security + error-handling (XSS, injection, silent catches)                                              | complexity refactors, features                                                                                                        |
-| Palette     | accessibility (ARIA, keyboard, focus) in `js/` + CSS                                                    | security, perf, complexity                                                                                                            |
-| Janitor     | dead code, stale deps, real TODOs only                                                                  | complexity, error-handling, tests, infrastructure/tools (`tools/`, `scripts/`, `bin/`, `.agents/`, `.jules/`, `.github/`, `Makefile`) |
-| Bolt        | measurable performance/efficiency on a real hot path                                                    | anything another lane owns in the same PR                                                                                             |
-| Typist      | JS strict-type annotations (JSDoc) + whitelist expansion                                                | runtime behaviour                                                                                                                     |
-
-If your finding belongs to another lane, **skip it** — that lane will get it. If a
-scan finds nothing actionable in your lane, **open no PR**; an empty pass is a
-success, not a reason to invent work or reach into another lane.
-
-## `.jules/` personas — editing rules
-
-The files in `.jules/<name>.md` are **persona definitions** for the unattended
-Jules routines: they encode identity, lane, and constraints, read at the start of
-an unattended run. They are **not logs**.
-
-- **Unattended Jules routines** must treat `.jules/` as read-only. They may **not**
-  append to, modify, or create files under `.jules/`. A PR from a Jules routine
-  that changes a `.jules/` file is out of scope and will be closed.
-- **Interactive coding agents** (Claude Code, Kimi, Antigravity, etc.) **may**
-  edit `.jules/` persona files whenever they spot a harness bug or unclear
-  guidance — no explicit user direction needed; the user reviews the result.
-  The change must still be a single-concern PR or direct commit with a green
-  `make precommit SKIP=1`, and the agent must note in the commit/PR body that
-  the edit is to a persona file.
-- **Keep the Jules scheduled-task prompt generic** ("read `AGENTS.md` and your
-  persona, work your lane"). A stale task-specific prompt is worse than the
-  generic one: the routine satisfies the goal vacuously and still publishes the
-  empty PR (non-negotiable #11). If a lane is finished, pause its schedule —
-  don't leave a satisfied goal running.
-
-Capture durable learnings in this file or `docs/` instead of leaving the persona
-files as the only source of truth.

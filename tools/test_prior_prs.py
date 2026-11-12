@@ -10,7 +10,6 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from prior_prs import (  # noqa: E402
-    KNOWN_LANES,
     attribute_lane,
     compute_stats,
     format_prs,
@@ -61,11 +60,6 @@ def test_attribute_lane_from_branch_name() -> None:
         attribute_lane(_jules_pr(3, 'OPEN', 'testpilot/graph-export-coverage-123')) == 'testpilot'
     )
     assert attribute_lane(_jules_pr(4, 'OPEN', 'fix/ispeech-net-reset-todo-123')) == 'unattributed'
-
-
-def test_known_lanes_match_jules_persona_files() -> None:
-    personas = {p.stem for p in (Path(__file__).resolve().parent.parent / '.jules').glob('*.md')}
-    assert set(KNOWN_LANES) == personas
 
 
 def test_compute_stats_groups_jules_prs_and_close_reasons() -> None:

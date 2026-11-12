@@ -27,7 +27,7 @@ from typing import Any
 FIELDS = 'number,title,state,labels,headRefName,author'
 
 JULES_AUTHOR = 'google-labs-jules'
-# Keep in sync with the persona set in .jules/ (pinned by tools/test_prior_prs.py).
+# Known historical Jules lanes for PR attribution and outcome stats.
 KNOWN_LANES = ('bolt', 'janitor', 'palette', 'refactoring', 'sentinel', 'testpilot', 'typist')
 
 

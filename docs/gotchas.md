@@ -92,3 +92,66 @@ Diagnose with `node -p process.execPath` — if it is not a real node binary,
 re-run with one, e.g.
 `PATH="/opt/homebrew/bin:$PATH" make check-node`. Do not report this as a
 code failure, and do not "fix" repo files for it.
+
+## Dead code, hook callbacks, and dependency traps
+
+- **Mandatory reference search:** Search with `git grep -n <target>` across
+  **all** tracked files before deleting (including `.md`, `.sh`, `.yml`,
+  `Makefile`, `.agents/`, `js/`, `docs/`, and add-on Python source). Never use
+  `rg <target>` without explicit paths (`.`): in non-interactive agent
+  execution where `stdin` is a pipe, `rg` searches empty `stdin` and silently
+  returns zero matches.
+- **Anki hook / entry-point hazards:** A function is not dead code just because
+  nothing calls it by name in-repo. Hook callbacks registered via
+  `gui_hooks.<event>.append(fn)` (or `addHook`/`wrap`), add-on `__init__`
+  entry points, CLI `main()` / `argparse` functions, and re-exported public API
+  are invoked by Anki, users, or importers at runtime.
+- **Import mapping trap:** PyPI distribution names frequently differ from
+  top-level module names (e.g. `beautifulsoup4` provides `bs4`, `PyYAML`
+  provides `yaml`). Search for both the distribution name and all top-level
+  module names before pruning dependencies.
+- **Standalone pytest / Anki runtime trap:** Packages bundled by Anki at desktop
+  runtime (e.g. `beautifulsoup4`) must remain declared in `requirements.txt` so
+  that standalone pytest suites and CI test runners can run outside Anki.
+- **Virtualenv ghost-green trap:** Removing a line from `requirements.txt` does
+  not uninstall the package from your local `.venv`. A local `make precommit`
+  will pass because the package is still present in `site-packages`, but clean CI
+  runner builds will fail.
+- **Foreign package managers:** Never run `pnpm`, `yarn`, or `bun` — dependency
+  work here is strictly `npm` + `package-lock.json`.
+
+## Testing tools/ imports and script entry points
+
+- **Flat tools imports:** Tests for `tools/<tool>.py` must import the module
+  flat — `from prior_prs import ...` after `sys.path.insert(0, ...)` at the top
+  of the test file — never `from tools.prior_prs import ...`. The package-path
+  form makes mypy see the file under two module names (`Source file found twice
+under different module names`) and fails `make typecheck`.
+- **Testing script `__main__` entry points:** Prefer calling functions
+  directly. When testing `__main__` via
+  `runpy.run_module(..., run_name="__main__")` with `patch("sys.exit")`, never
+  wrap `runpy` in blanket `try: ... except Exception: pass` — exceptions in
+  `main()` must fail the test, not be swallowed for coverage theater.
+
+## Security, error-handling, and DOM sinks
+
+- **DOM XSS in `js/`:** Never assign dynamic strings to `innerHTML`,
+  `insertAdjacentHTML`, or D3 `.html()`. Build elements with
+  `document.createElement`, `textContent`, and `replaceChildren`; clear
+  containers with `textContent = ""`.
+- **Python → WebView HTML escaping:** When a Python add-on constructs HTML for
+  the WebView (`awesome_tts`, `review_heatmap`), escape every interpolated
+  variable with `html.escape(value, quote=True)`.
+- **SQLite parameterization:** Parameterize SQL values with `?`. Quote table and
+  column identifiers with `"` and escape internal quotes (`.replace('"', '""')`).
+  Never `%s`-interpolate identifiers.
+- **Silent error swallowing:** Never write bare `except:` or empty `catch {}`
+  blocks. Bind the exception and log it (`print(..., file=sys.stderr)` or
+  `console.warn`), or add an explicit comment explaining why it is safe to
+  ignore.
+- **Accessible terminal / live output:** Containers receiving appended output
+  lines need `role="log"`, `aria-live="polite"`, `aria-atomic="false"`. Custom
+  interactive elements (`div`/`span` buttons) must have `role="button"`,
+  `tabindex="0"`, `aria-pressed` (if toggling), and Enter/Space `keydown`
+  listeners mirroring the `click` logic. Never remove `outline: none` without a
+  `:focus-visible` replacement.

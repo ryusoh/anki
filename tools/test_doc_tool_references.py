@@ -17,12 +17,8 @@ SCRIPT_REF_PATTERN = re.compile(
 
 
 def _collect_markdown_files() -> list[Path]:
-    """Collect AGENTS.md, .jules persona docs, and agent skill definitions."""
+    """Collect AGENTS.md and agent skill definitions."""
     md_files = [REPO_ROOT / "AGENTS.md"]
-
-    jules_dir = REPO_ROOT / ".jules"
-    if jules_dir.is_dir():
-        md_files.extend(jules_dir.glob("*.md"))
 
     skills_dir = REPO_ROOT / ".agents" / "skills"
     if skills_dir.is_dir():
