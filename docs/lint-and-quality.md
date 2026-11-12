@@ -110,7 +110,8 @@ regression (complexity-reduction refactors work the backlog down):
   > single function, frequently blowing past the complexity ratchet threshold
   > (> 20). If replacing `.forEach`, either decompose the function into clean,
   > single-purpose helpers or preserve the separate function scope. Never
-  > touch or add to `eslint-suppressions.json`.
+  > hand-edit `eslint-suppressions.json` or add suppressions; shrink it only
+  > with the pruning command above.
 - **Python:** `make complexity-py` (part of `quality-py`, so part of the CI
   gate) runs xenon over `PY_ALL` with ceilings freezing the measured state:
   `--max-average A --max-modules F --max-absolute F` (average A / 3.29, worst

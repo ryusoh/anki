@@ -53,10 +53,7 @@ The siblings:
   but `tools` is already in it — `tools/__tests__/` runs with no Makefile edit
   (checked 2026-08); a genuinely NEW top-level test dir still needs adding;
   its `ci.yml` has a "Reject empty pull request" step that
-  hard-fails empty PRs; its AGENTS.md Lanes table lists Sentinel but `.jules/`
-  has no sentinel persona (stale, like the subproject names — AGENTS.md says
-  `clean_adblock/`/`tianditu_bypass` but the real dirs are
-  `adblock/`/`gov_bypass`, checked 2026-08); its ci.yml checkout already has
+  hard-fails empty PRs; its ci.yml checkout already has
   `fetch-depth: 0`; after a `precommit-docker` run, a local `make precommit`
   can fail with `Exec format error` in nas_tools (Linux-ELF binaries left
   behind, gitignored) — fix: `make -C nas_tools clean && make -C nas_proxy clean`;
@@ -64,11 +61,8 @@ The siblings:
   image build + full in-container suites, 10+ min — start Docker first, run it
   once at the end);
   gate docs live in AGENTS.md's "Repo conventions" section (no
-  docs/lint-and-quality.md equivalent); its AGENTS.md non-negotiable #6 forbids
-  JULES ROUTINES from touching build/lint config — interactive agents acting on
-  explicit user direction are exempt, note it in the PR body; `.jules/` is in
-  its `.prettierignore`, so persona-file edits are never gate-checked there
-  (verify them with `prettier --check --ignore-path /dev/null` instead).
+  docs/lint-and-quality.md equivalent); its AGENTS.md non-negotiable #6
+  requires an explicit task need for build/lint config changes.
   AGENTS.md itself is NOT prettierignored; there is no markdownlint —
   `prettier --check` is the entire markdown gate. Its
   `tools/sync_commands.py` runs prettier over the generated commands itself
