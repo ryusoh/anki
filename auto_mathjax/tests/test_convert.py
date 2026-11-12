@@ -1335,6 +1335,16 @@ def test_lambdabar_def_not_duplicated_on_rerun():
     assert second.count(r'\def\lambdabar') == 1
 
 
+def test_grassmannian_gets_operatorname_macro():
+    r"""Grassmannian \Gr gets one operatorname definition and stays idempotent."""
+    html = r'记 \(\Gr(p, D)\)，且 \(\dim \Gr(p,D) = p(D-p)\)。'
+    result = _convert_dollar_to_mathjax(html)
+    assert result.startswith(r'\(\def\Gr{\operatorname{Gr}}\)')
+    assert result.count(r'\def\Gr{') == 1
+    assert r'\(\Gr(p, D)\)' in result
+    assert _convert_dollar_to_mathjax(result) == result
+
+
 # --- Macro injection: \oiint / \oiiint (esint closed integrals) ---
 # Anki's bundled MathJax has no esint extension, so \oiint / \oiiint render
 # as red "undefined control sequence" errors. They get \def preambles that

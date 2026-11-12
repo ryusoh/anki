@@ -222,6 +222,7 @@ CJK_RUN_SPLIT_RE = re.compile(
 # it before encountering the usage.
 CUSTOM_MACROS = {
     'lambdabar': r'\unicode{x019B}',
+    'Gr': r'\operatorname{Gr}',
     # esint closed integrals — Anki's bundled MathJax has no esint
     # extension, so \oiint / \oiiint render as red "undefined control
     # sequence" errors. Emulate the glyphs by drawing the integral first and
