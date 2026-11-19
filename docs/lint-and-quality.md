@@ -45,10 +45,12 @@ configs, not in the `Makefile` scope.
   - `typist`: strict JS typing via JSDoc and `jsconfig.json` whitelist
     expansion without `@types/node` → `docs/js-typing-strategy.md`.
 - **Retained tooling:** `tools/check_bot_pr_hygiene.py` (bot-commit gate in
-  `make bot-pr-check`/CI), `tools/prior_prs.py`, `tools/gate_guard.py`,
-  `tools/check_thinking_comments.py`, and the `bot-pr-rescue` skill. Reassess
-  `bot-pr-rescue` and the hygiene gate's Jules author marker separately once no
-  Jules branch can still reach the repo.
+  `make bot-pr-check`/CI), `tools/prior_prs.py`, `tools/gate_guard.py`, and
+  `tools/check_thinking_comments.py`. The `bot-pr-rescue` skill was retired on
+  2026-11-19 (no open Jules PRs); its event-payload rerun, `gh pr edit`
+  fallback, and Dependabot tips moved to `gh-action-rescue`. The hygiene gate
+  keys on `google-labs-jules[bot]` and skips every other commit, so it is now
+  inert — reassess it separately.
 
 ## Toolchain
 

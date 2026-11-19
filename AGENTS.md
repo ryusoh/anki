@@ -1,158 +1,113 @@
 # AGENTS.md
 
-Single source of truth for agent guidance on this repo — **edit this file, not
-`CLAUDE.md`** (that is a stub that imports this one). Deeper how-tos live in
-`docs/`; slash-command workflows live in `.agents/skills/` (canonical — the
-open Agent Skills format; `.claude/commands/` is generated from it by
-`tools/sync_commands.py`, `.claude/skills` is symlinked to `.agents/skills`,
-and the gate drift-checks it via `make sync-check`).
+Canonical agent guidance for this repo — edit this file; `CLAUDE.md` only
+imports it. Deeper how-tos live in `docs/`. Skills live in `.agents/skills/`
+(canonical; `.claude/skills` symlinks to it, `.claude/commands/` is generated
+by `tools/sync_commands.py`, and `make sync-check` catches drift).
 
-## Audience
+## Context
 
-Guidance here is for **interactive coding agents** (Claude Code, Kimi,
-Antigravity, etc.) working directly with the user in a chat session. The Jules
-routines (`.jules/` personas) were retired in November 2026 — see the retirement
-note in `docs/lint-and-quality.md`. Unattended automation is now limited to
-GitHub Actions workflows. You may edit build files, Makefiles, configs, and
-dependencies, and commit to `main` or open PRs as directed by the user. If the
-user asks you to change something, change it. When options are close, pick the
-best one and proceed — the human wants a recommendation, not a menu of questions.
+A monorepo of Anki add-ons (Python) plus a JS/graph data pipeline. Each
+top-level directory (`auto_wiktionary/`, `awesome_tts/`, `graph/`, `js/`,
+`data/anki/`, …) is a self-contained add-on or tool with its own `tests/`.
+Add-ons render into Anki's Qt WebView; there is no frontend build step (ES
+modules via import map).
 
-This repo is a **monorepo of Anki add-ons (Python)** plus a JS/graph data pipeline.
-Each top-level directory (`auto_wiktionary/`, `awesome_tts/`, `graph/`, `js/`,
-`data/anki/`, …) is a self-contained add-on or tool with its own `tests/`. Add-ons
-render into Anki's Qt **WebView**; there is no frontend build step (ES modules via
-import map). New add-on? See `docs/creating-an-addon.md` (layout, hook/test
-patterns). Debugging a field-transform add-on against a real card? Same doc's
-"Field HTML reality" section — start with
-`python3 tools/dump_field.py --contains '<text>'`, don't hand-roll sqlite3.
-Writing a design spec for another agent to implement? See
-`docs/delegation-specs.md` first (parity sign-off, anchor citations, doc gotchas).
+You are an interactive agent working with the user in chat; unattended
+automation is limited to GitHub Actions workflows (the Jules routines were
+retired in November 2026 — see `docs/lint-and-quality.md`). Edit build files,
+Makefiles, configs, and dependencies whenever the task calls for it. When
+options are close, pick the best one and proceed.
 
-## Non-negotiables (apply to every change and PR)
+- New add-on → `docs/creating-an-addon.md` (layout, hooks, tests, Python 3.9
+  floor).
+- Debugging a field-transform add-on against a real card → "Field HTML reality"
+  in `docs/creating-an-addon.md`, starting with
+  `python3 tools/dump_field.py --contains '<text>'`.
+- Writing a design spec for delegation → `docs/delegation-specs.md`.
 
-1. **Open a PR only if `make precommit SKIP=1` is green.** It is the CI gate
-   (`fmt-check` + `lint` + `typecheck-js` + `quality-py` + `check` +
-   `sync-check` + `thinking-check` + `bot-pr-check`). Red = don't open it. A failure "in a file
-   you didn't touch" or a "pre-existing environment issue" is still red — not an
-   exemption; report it and open no PR. And don't rerun a red
-   gate on an unchanged tree — a failed gate over an untouched worktree cannot
-   go green, so edit something first. `python3 tools/gate_guard.py` enforces
-   this: `snapshot` before the run, `check <hash>` before a retry (exit 1 =
-   unchanged).
-2. **One concern, smallest possible diff.** No drive-by edits, no scope creep.
-   Diff size is inversely proportional to approval — keep it tiny.
-3. **Keep file sets disjoint.** If concurrent agents or workflows touch the same
-   files, one change gets clobbered or conflicts. Don't fix things outside your
-   task scope.
-4. **Never hand-edit generated `data/`** — it is produced by the pipeline.
-5. **Never touch vendored code** — `review_heatmap/libaddon/`, any `_vendor/` tree,
-   and minified bundles are third-party. Their TODOs and defects are not ours.
-6. **Branch off `main` for PRs.** Don't push to `main` unless the user directs it.
-7. **Don't leave scratch files in the tree** — no `fix_*.cjs`, scratchpads, or
-   debug scripts. The diff contains only the change and its tests.
-8. **Don't write a command/example you haven't actually run this session.** Verify
-   behaviour; don't infer it from a name or a `case` label.
-9. **Check open and recently-closed PRs before you start, and don't repeat them**
-   (`python3 tools/prior_prs.py`; `--stats` prints bot-PR outcome stats). A
-   closed PR was closed for a reason; an open one already claims that work.
-   Pick something new.
-10. **No stream-of-consciousness in the diff.** Your reasoning stays out of
-    committed code: no thinking-out-loud comments ("Wait, ...", "Ah, ..."), no
-    abandoned `pass`-only tests. If an approach fails mid-write, delete the
-    attempt — don't commit the trail. Code comments state facts about behaviour.
-    Enforced deterministically by `make thinking-check`
-    (`tools/check_thinking_comments.py`) over all tracked py/js/css sources.
-11. **Never open an empty PR.** If the run produces no diff (zero changed
-    files), end the run with no PR — an empty PR can't be merged and costs the
-    reviewer a manual close. This includes when your task's goal turns out to
-    be already satisfied by the current repo state (e.g. a stale scheduled-task
-    prompt): a satisfied goal is a no-op, not a PR. (The fund sibling repo
-    hand-closed six zero-file Typist PRs from exactly this, 2026-08.)
-    **The same holds mid-PR: never push an empty or no-op commit** — including
-    add-then-remove placeholder files (`dummy_file.txt`). Before every push,
-    `git show --stat HEAD` must show a real diff that matches the commit
-    message and, when responding to review feedback, actually addresses it.
-    If you have nothing real to push, push nothing. (PR #494: five churn/empty
-    commits pushed after review questions, none answering them — closed
-    unmerged.) Machine-enforced for bot-authored commits by
-    `tools/check_bot_pr_hygiene.py` (`make bot-pr-check`, part of the
-    precommit gate and PR CI): the gate fails on bot commits that are empty,
-    add zero-content files, delete lines from test files (bot commits are
-    append-only in tests), commit stray bot artifacts (`pr_body.txt`, scratch
-    files), or violate the complexity ratchet (no added suppressions in
-    `eslint-suppressions.json`; only a complexity-reduction change may prune it).
-    **Publish as a single commit by default.** The gate is per-commit, not
-    net-diff: every intermediate mistake on a multi-commit branch stays in
-    history and keeps CI red even after a later commit reverts it. Commit the
-    finished change once, run the verification gate on that exact tree, then
-    push; on any revision, amend or squash and force-push
-    (`git reset --soft $(git merge-base origin/main HEAD) && git commit &&
-git push --force-with-lease`) so the branch stays one commit. And stage by
-    name (`git add <file>`, never `git add -A`) — verification-run scratch
-    (`*_output.txt`, `*_out.json`, `*.log`, coverage dumps) must never reach a commit.
-12. **Absolute ban on destructive git commands.** Never run `git checkout -- <file>`,
-    `git restore <file>`, `git reset --hard`, or `git clean` without explicit user
-    confirmation. Multiple agents, background routines, and the human share this
-    repository concurrently. Uncommitted modifications in the working tree or index
-    often belong to a concurrent agent or user session in another window. Discarding
-    changes or assuming diffs outside your immediate task scope are "stray debris"
-    destroys active work. Stage only files you own (`git add <file>`), never revert
-    foreign files, and never assume exclusive ownership of the working tree.
+## How the user works
 
-## You cannot see the rendered page
+- The user reviews diffs in VSCode and commits accepted work themselves. If
+  your edits vanish from `git status` between turns, run
+  `git log --oneline -3` once — a fresh user commit means the work was
+  accepted; continue from HEAD.
+- Commit or push only when asked (or when invoking a skill that commits as part
+  of its workflow: `/ship`, `/implement-action-items`, `/gh-action-rescue`).
+  Branch off `main` for PRs.
+- On multi-step workflows (action-item sweeps, TDD loops, diagnosis), the
+  progress ledger is `git status`, `git log`, and `.agents/state/` (via
+  `tools/task_harness.py`) or the governing findings doc. Re-anchor from them
+  at each commit boundary and after compaction via the skill's
+  `## Resume protocol`.
 
-Add-ons render into Anki's WebView; unit tests **cannot** observe a color, a
-transparent edge, a glass refraction, spacing, or layout. Therefore:
+## Shared checkout
 
-- **Never claim visual parity, "matches/exceeds," or that something "looks good."**
-  You have no eyes. Aesthetic quality is the human's call, not yours.
-- For any change whose payoff is visual (glass effects, CSS injected into a stats
-  or congrats page, chart styling), either (a) restrict yourself to **objectively
-  verifiable** facts (an `aria-label` is present, a DOM attribute, a passing test),
-  or (b) open the PR as **draft** and state plainly "visual review required by a
-  human."
+The user, other agents, and background sessions edit this tree concurrently.
 
-## The PR body must carry its own proof
+- Stage the files you changed by name (`git add <file>`). Uncommitted changes
+  elsewhere belong to someone else — leave them in place.
+- Keep `make precommit-fix` with `YOLO=1` or `MSG=` out of a shared checkout:
+  its commit step runs `git add -A` and sweeps in unrelated edits.
+- Discard only your own edits after `git diff <file>` confirms every hunk is
+  yours. Wider resets (`git checkout -- <file>`, `git restore <file>`,
+  `git reset --hard`, `git clean`, `git stash`) and `--no-verify` require
+  explicit user confirmation.
+- Keep concurrent agents on disjoint file sets; in a conflict, resolve only
+  your own files.
 
-Make the approve decision take ten seconds. Every PR description must include:
+## Quality bar for every change
 
-- **What & why** — one or two sentences.
-- **Verification** — the exact command(s) you ran and their result, pasted:
-  `make precommit SKIP=1` → green, or the scoped proof for your change (e.g. coverage
-  on file X went 82% → 100%; `radon cc` on function Y went C → A).
-- **Visual?** — "no visual surface" or "visual — human review required (draft)."
+1. **The CI gate is `make precommit SKIP=1`** (`fmt-check` + `lint` +
+   `typecheck-js` + `quality-py` + `check` + `sync-check` + `thinking-check` +
+   `bot-pr-check`). Open a PR only on a green gate. A red gate on an unchanged
+   tree stays red — change something before rerunning
+   (`python3 tools/gate_guard.py snapshot`, then `check <hash>`).
+2. **One concern, smallest diff,** inside the task's files. For self-chosen
+   work, run `python3 tools/prior_prs.py` (`--stats` for bot-PR outcomes) first
+   so you pick something no open or closed PR already covers.
+3. **`data/` is pipeline output** — regenerate it via `make fetch`. Leave
+   vendored trees (`review_heatmap/libaddon/`, `_vendor/`, minified bundles)
+   untouched.
+4. **Write down only what you ran.** Commands and examples in docs or code must
+   have been executed this session; verify behaviour rather than inferring it.
+5. **Code comments state facts about behaviour** — keep thinking-out-loud notes
+   and abandoned `pass`-only tests out of diffs (`make thinking-check` /
+   `tools/check_thinking_comments.py` enforces this over py/js/css).
+6. **Publish a PR as one commit with a real diff** and no scratch files. Commit
+   once, gate that exact tree, push; on revision, amend or squash and
+   `git push --force-with-lease`. A goal the repo already satisfies is a no-op,
+   not a PR (`make bot-pr-check` / `tools/check_bot_pr_hygiene.py` enforces
+   commit hygiene and the `eslint-suppressions.json` complexity ratchet, which
+   only shrinks via `npx eslint --prune-suppressions`).
+7. **Behaviour changes ship a test** that fails before and passes after,
+   covering the changed lines. Behaviour-preserving refactors and dead-code
+   removal keep the existing suite green. Earn coverage with real tests rather
+   than suppression comments (`/* c8 ignore */`, `# pragma: no cover`).
 
-A PR with no pasted verification output reads as unverified and will be closed.
+## Visual changes
 
-## Changed behaviour must be covered by a test
+Add-ons render into Anki's Qt WebView; unit tests cannot observe colour, glass
+refraction, spacing, or layout. Report objectively verifiable facts (DOM
+attribute, `aria-label`, passing test) and leave aesthetic judgment to the
+user. A PR whose payoff is visual is a draft marked "visual review required by
+a human."
 
-If your change adds or alters runtime behaviour (a bug fix, a security fix, a
-behavioural change), **ship a test that fails before your change and passes after**,
-covering the changed lines. Behaviour-preserving changes (complexity refactors,
-dead-code removal) need no new test — keep the existing suite green. **Never reach a
-coverage number by suppressing it** (`/* c8 ignore */`, `# pragma: no cover`, or
-deleting assertions); earn it with a real test or leave the line uncovered and say
-why.
+## Commits and PRs
 
-## Commit and PR-title conventions
+- **Conventional Commits** (squash-merge uses the PR title as the commit
+  subject, so both commits and PR titles follow it): `type(scope): summary`
+  with `type` ∈ `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `chore`,
+  `build`, `ci`, `style`; optional lower-case scope (`auto_wiktionary`,
+  `awesome_tts`, `review_heatmap`, `graph`, `a11y`, `security`, `deps`, …);
+  imperative lower-case summary ≤ 72 chars, no trailing period, no emoji or
+  routine-name prefix. Wrap the body at ~72 cols explaining what and why
+  (metrics and severity belong in the body).
+- **PR body:** **What & why** (1–2 sentences); **Verification** (exact commands
+  and pasted results, e.g. `make precommit SKIP=1` → green); **Visual?** ("no
+  visual surface" or "visual — human review required (draft)").
 
-Commits follow **Conventional Commits**, matching this repo's history. The
-squash-merge uses the PR title as the commit subject, so the **PR title must also be
-a valid Conventional Commit subject**.
-
-- Format: `type(scope): summary`
-  - **type** ∈ `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `chore`,
-    `build`, `ci`, `style`.
-  - **scope** — optional, lower-case, the affected add-on/area (`auto_wiktionary`,
-    `awesome_tts`, `review_heatmap`, `graph`, `a11y`, `security`, `deps`, …).
-  - **summary** — imperative mood, lower-case, no trailing period, ≤ 72 chars.
-- **No emoji, and no routine-name prefix in the subject** (no `Sentinel:`,
-  `Bolt:`, no `🛡️`) — keep the subject clean. Count characters carefully (≤ 72 chars); if a scope or function name is long, shorten the verb phrase rather than exceeding the limit.
-- **Body** (when the change isn't self-evident): wrap ~72 cols, explain _what and
-  why_, not how. Severity, metrics, and measurements live here, not in the subject.
-
-## Command interface — prefer `make` (matches CI)
+## Commands — prefer `make` (matches CI)
 
 | Need                                                                     | Command                                |
 | ------------------------------------------------------------------------ | -------------------------------------- |
@@ -160,166 +115,84 @@ a valid Conventional Commit subject**.
 | All tests (JS c8 + per-addon pytest, coverage)                           | `make check`                           |
 | Python lint/format/type/security (ruff/black/mypy/bandit)                | `make quality-py`                      |
 | Auto-fix Python format                                                   | `make fmt-py`                          |
-| Lint (JS + CSS + Markdown)                                               | `make lint`                            |
+| Lint (JS + CSS + Markdown + depcheck)                                    | `make lint`                            |
 | JS dependency-structure gate (dependency-cruiser)                        | `make depcheck`                        |
 | Auto-fix lint findings                                                   | `make lint-fix`                        |
 | Format JS/CSS/**MD**/JSON/HTML (Prettier)                                | `make fmt`                             |
 | Scoped, fast Python test (tight loop, no coverage)                       | `make test-py SUITE=<addon>/tests`     |
-| Worktree snapshot guard (don't rerun a red gate unchanged)               | `python3 tools/gate_guard.py snapshot` |
+| Worktree snapshot guard                                                  | `python3 tools/gate_guard.py snapshot` |
 | Scoped test for one add-on (`test-py SUITE=<dir>/tests`)                 | `make test-addon ADDON=<dir>`          |
 | Scoped mypy for one add-on                                               | `make typecheck-addon ADDON=<dir>`     |
 | JS test suite (c8 coverage)                                              | `make check-node`                      |
-| Mutation smoke run (mutmut, NOT part of any gate)                        | `make mutate-py`                       |
+| Mutation smoke run (mutmut, manual only)                                 | `make mutate-py`                       |
 | JS strict type check (whitelist)                                         | `make typecheck-js`                    |
 | Stream-of-consciousness scan (comments, abandoned tests)                 | `make thinking-check`                  |
 | Bot commit hygiene (empty commits, test deletions, stray files, ratchet) | `make bot-pr-check`                    |
 | Build AVIF/WebP tiers for site CSS backgrounds                           | `make images`                          |
 
-Gate internals, complexity ratchet, dependency-structure rules, coverage
-floors, and tool-config conventions live in `docs/lint-and-quality.md`. The
-measured `precommit` baseline and parallelization notes live in
-`docs/precommit-speed.md`. JS test discovery rules live in `docs/js-testing.md`.
-Add-on coding standards (imports, config pattern, Python version/dependency
-rules, Unicode hygiene) live in `docs/creating-an-addon.md`.
-
-- **Run everything from the repo ROOT.** The root `conftest.py` mocks `aqt`/`anki`;
-  running `pytest` inside an add-on subdir fails to import them. Use **`python3`**,
-  never `python` (not on PATH).
-- **Verify with the same python `make` uses.** `make` runs the repo-local
-  `.venv/bin/python3`; a test green under a bare `python3 -m pytest` can be red
-  under `make check`. A "verified" claim only counts if `make precommit SKIP=1`
-  passed.
-- **Run `make fmt` after hand-authoring any `docs/*.md`** — Prettier owns Markdown
-  table/list formatting and `fmt-check` fails otherwise.
-- **Run `make fmt-py` after hand-editing Python** — black owns formatting; scoped
-  test runs don't catch a format miss, `fmt-py-check` does.
-
-### Workflow maintenance
-
-When bumping action versions in `.github/workflows/*.yml`, verify the tag exists
-first (`gh api repos/<owner>/<repo>/git/refs/tags/v<N>`). A non-existent major
-version such as `actions/cache@v7` fails the runner before the job starts.
-
-## Environment setup (run once in the VM before working)
-
-```sh
-make install        # runtime + pytest-cov + node deps
-make install-dev    # pinned ruff/black/mypy/bandit into a venv (PEP-668 system py3)
-```
-
-If dev tools aren't installed, `make quality-py` can't run and your "verified" claim
-is false. Confirm both pytest **and** the JS runner execute.
+- **Run everything from the repo root.** The root `conftest.py` mocks
+  `aqt`/`anki`; running `pytest` inside an add-on subdir fails to import them.
+  Use `python3` (`python` is absent from PATH).
+- **Verify with the same python `make` uses (`.venv/bin/python3`).** System
+  Homebrew `python3` is PEP 668 externally-managed and has different packages.
+  Set up once with `make install` (runtime + `pytest-cov` + `npm ci` syncing
+  `node_modules` to `package-lock.json`) and `make install-dev` (pinned
+  ruff/black/mypy/bandit into `.venv`; `quality-py` fails fast on pin drift).
+  Confirm both pytest and the JS runner execute.
+- **Format after hand-editing:** `make fmt` for Markdown (Prettier owns
+  tables/lists) and `make fmt-py` for Python (black owns formatting).
+- **Workflow maintenance:** when bumping action versions in
+  `.github/workflows/*.yml`, verify the tag exists first
+  (`gh api repos/<owner>/<repo>/git/refs/tags/v<N>`).
+- Deeper references: `docs/lint-and-quality.md` (gate internals, complexity
+  ratchet, dependency rules, coverage floors), `docs/precommit-speed.md`,
+  `docs/js-testing.md`, `docs/creating-an-addon.md`, `docs/gotchas.md`.
 
 ## Layout
 
-- `js/` — frontend ES modules: `js/commands/` (terminal commands), `js/graph/`,
-  `js/ui/`, `js/utils/`, `js/config.js`. No build step.
-  `js/types/*.d.ts` — type-only ambient declarations for `tsc --checkJs`
-  (never shipped).
-- `sw.js` — root service worker. It precaches the core shell for `/`, `/terminal/`,
-  and `/graph/` and serves live data (`/data/anki/`, `/graph/*.json`) network-first.
-  The Pages workflow (`.github/workflows/pages.yml`) stamps `CACHE_NAME` with the
-  deploy SHA on every deploy — don't hand-bump it. The register
-  script (`js/ui/service_worker_register.js`) unregisters any existing SW on
-  localhost to keep dev caches from shadowing local changes.
-- `jsconfig.json` — the `tsc --checkJs` strict-mode whitelist; see
-  `docs/js-typing-strategy.md` before touching it.
-- `<addon>/` — each Anki add-on (Python) with its own `__init__.py`, hooks, and
-  `tests/`. New add-on? See `docs/creating-an-addon.md`.
-- `graph/` — Python graph pipeline (networkx). `data/anki/` — stats generators.
-- `tests/` — root-level node tests (`*.test.cjs` / `*.test.mjs`).
-- `tools/` — shared repository tooling (`gate_guard.py`, `check_thinking_comments.py`,
-  `sync_commands.py`, `coverage_rank.py`, `dump_field.py`, etc.). Scripts referenced across
-  agent docs and skills are verified by `tools/test_doc_tool_references.py`.
-- `docs/` — cross-cutting how-tos and gotchas. **Read the relevant doc before deep
-  work**: `docs/creating-an-addon.md`, `docs/lint-and-quality.md`,
-  `docs/js-typing-strategy.md`, `docs/gotchas.md`.
+- `js/` — frontend ES modules (`js/commands/`, `js/graph/`, `js/ui/`,
+  `js/utils/`, `js/config.js`; no build step) and `js/types/*.d.ts` ambient
+  declarations for `tsc --checkJs`.
+- `sw.js` — root service worker precaching `/`, `/terminal/`, `/graph/` and
+  serving `/data/anki/` and `/graph/*.json` network-first.
+  `.github/workflows/pages.yml` stamps `CACHE_NAME` with the deploy SHA
+  automatically; `js/ui/service_worker_register.js` unregisters it on
+  localhost.
+- `jsconfig.json` — `tsc --checkJs` strict-mode whitelist
+  (`docs/js-typing-strategy.md`).
+- `<addon>/` — self-contained Python add-on with `__init__.py`, hooks, and
+  `tests/`.
+- `graph/` — Python graph pipeline (`networkx`). `data/anki/` — stats
+  generators. `tests/` — root-level node tests (`*.test.cjs` / `*.test.mjs`).
+- `tools/` — repository tooling (`gate_guard.py`, `check_thinking_comments.py`,
+  `sync_commands.py`, `coverage_rank.py`, `dump_field.py`, `task_harness.py`,
+  etc.); script references in agent docs and skills are checked by
+  `tools/test_doc_tool_references.py`.
+- `docs/` — subsystem how-tos and gotchas (every doc is linked from
+  `docs/README.md`).
 
-## Gotchas
+## Gotchas & skills
 
-- `check-py` needs `pytest-cov` (in `requirements.txt`; `make install` first) and,
-  for `graph/tests`, `networkx`.
-- **`make install` also runs `npm ci`**, syncing `node_modules` exactly to
-  `package-lock.json`. `make check-node`/`precommit` never install JS deps
-  themselves — a stale `node_modules` can silently drift from a changed
-  `package.json` and nothing in the gate will catch it except re-running the
-  affected suite. See `docs/js-testing.md`'s jsdom pin note for a case where
-  this bit us.
-- **Python dev/lint tools need a venv.** System `python3` is Homebrew and
-  externally-managed (PEP 668), so a bare `pip3 install` of ruff/black/mypy/bandit
-  is blocked. Install the pinned tools into a venv: `make install-dev` (or
-  `pip install -r requirements-dev.txt`). CI installs them fresh, so no venv there.
-  Nothing auto-syncs this venv, but `quality-py`'s targets fail loudly on a version
-  mismatch against the `requirements-dev.txt` pin (formerly a stale local tool
-  silently passed and only broke in CI); the fix is always `make install-dev`.
-- TDD-style corner-case tests live next to each add-on (e.g.
-  `auto_wiktionary/tests/` pins Wiktionary redirect cases). Add a failing test
-  there first, then fix.
-- **Workspace layout.** The repo lives at `~/dev/anki` and is symlinked back into
-  Anki's add-on folder at `~/Library/Application Support/Anki2/addons21`. Edit
-  files in `~/dev/anki`; Anki follows the symlink to see the same content. If you
-  ever move the working tree back under a path that contains a space (such as the
-  original `Application Support/Anki2/addons21` path), Makefile recipes that build
-  `VAR=$(CURDIR)/...` as an env-var prefix MUST quote it (`VAR="$(CURDIR)/..."`)
-  — unquoted, `/bin/sh` word-splits at the space and tries to _execute_ the tail
-  of the path instead of setting the var. Pinned by
-  `tests/test_makefile_curdir_quoting.py`.
-- **Cross-cutting operational gotchas** (`precommit-fix` `YOLO=1` `git add -A`,
-  concurrent agents sharing one worktree, limited network retry, `make -n`
-  guard, skill regeneration, standalone graph scripts) live in
-  `docs/gotchas.md`.
-
-## Skills and slash commands
-
-- **`.agents/skills/<name>/SKILL.md` is canonical** — the open Agent Skills
-  format: YAML frontmatter declaring `name` and `description` (used for
-  triggering), instructions in the markdown body. Edit skills there.
-- **Self-contained skill bundles:** Each skill is a directory containing its
-  `SKILL.md`, plus any skill-scoped helper scripts (`scripts/`) or prompt/data
-  references (`references/`). Keep skill-specific logic bundled within its skill
-  directory rather than placing one-off scripts in global `tools/` or `bin/`.
-- **Progressive disclosure:** only the frontmatter `name` + `description` enter
-  an agent's system prompt; the body is read on demand once the skill triggers.
-  So the `description` is the only always-loaded surface — write it as a
-  discriminative trigger ("Use when ..."), and don't contort the body to save
-  prompt space; length there is free until the skill fires.
-- **Never put a `---` horizontal rule in a skill body** — the generator's
-  frontmatter parser is a naive `content.split("---", 2)`, so a `---` line in
-  the body mangles the generated command.
-- **`.claude/skills` is symlinked to `../.agents/skills`** for autonomous agent
-  discovery across tools (Claude Code, DeepSeek Harness, etc.).
-- **`.claude/commands/<name>.md` is generated** from the skills by
-  `tools/sync_commands.py` for Claude Code interactive slash commands. Never edit
-  the generated files by hand — run `python3 tools/sync_commands.py` after editing
-  a skill, and note that `make sync-check` (wired into `make precommit`) fails if
-  regeneration is not a no-op.
-- **Skill schema validation:** `tools/test_skills.py` (run by `make check`)
-  enforces schema validity, non-empty descriptions, directory-name matching, and
-  symlink resolution across all skills.
-- **Externalized state & transaction boundaries (State-Oriented Architecture & SDN Control Plane):**
-  On multi-step workflows (action-item sweeps, TDD loops, bug diagnosis), never rely on
-  conversation memory as an execution ledger ($P = p^N$ failure). Follow Arista EOS's
-  SysDB design and Google Orion's SDN control plane: the disk-backed state ledger
-  (`.agents/state/` via `tools/task_harness.py` or governing findings doc) is the single
-  source of truth; worker agents are ephemeral, stateless transforms ($O(1)$ context)
-  reading only their active gate slice with dynamically routed toolsets (Jupiter OCS model).
-  At each transaction boundary (after commits or gate checks) and on session resumption,
-  follow the skill's `## Resume protocol`: re-anchor working memory directly from
-  authoritative ground truth (`git status`, `git log`, state file) before dispatching tools.
-- **Concurrent agents sharing one worktree.** When you run parallel subagents
-  (swarms, background agents) in this checkout: stage only files you changed
-  (`git add <specific-files>`, never `git add -A`), never `git stash`,
-  `git reset --hard`, `git checkout -- <file>`, `git restore <file>`, or
-  `git commit --no-verify` — a sibling agent's work may be sitting in the same
-  tree. Never discard changes on files outside your assigned task scope;
-  uncommitted edits in other directories belong to concurrent work streams or
-  the user in another window. Keep concurrent agents on disjoint file sets; if a
-  rebase/conflict lands mid-run, resolve only files your task owns.
+- **Workspace symlink & spaces:** The repo lives at `~/dev/anki` and symlinks
+  into `~/Library/Application Support/Anki2/addons21`. Quote `$(CURDIR)` in
+  Makefile env-var prefixes (`VAR="$(CURDIR)/..."`, pinned by
+  `tests/test_makefile_curdir_quoting.py`) in case the tree lives under a
+  space-containing path.
+- **TDD corner-case tests** live next to each add-on (`<addon>/tests/`);
+  `check-py` requires `pytest-cov` and `networkx` (`graph/tests`).
+- **Operational & security traps** (`precommit-fix` `YOLO=1`/`MSG=`, `make -n`
+  guard, shim `node`, dead-code/hook traps, flat `tools/` imports, DOM XSS,
+  HTML escaping, SQLite parameterization, a11y) → `docs/gotchas.md`.
+- **Skills (`.agents/skills/<name>/SKILL.md`):** Keep skill-specific helpers
+  in `<skill>/scripts/` or `<skill>/references/`. Only `name` and `description`
+  enter the always-loaded prompt, so write `description` as a single-line
+  discriminative trigger ("Use when ..."). Omit `---` horizontal rules from
+  skill bodies (`tools/sync_commands.py` splits frontmatter on
+  `content.split("---", 2)`). Regenerate `.claude/commands/` with
+  `python3 tools/sync_commands.py`; `make sync-check` and `tools/test_skills.py`
+  validate every skill.
 
 ## Sibling repositories
-
-This project is part of a cluster of repositories. Note the primary branch names
-and verification commands.
 
 | Repository        | Path                     | Primary Branch | Verification     |
 | ----------------- | ------------------------ | -------------- | ---------------- |
@@ -328,10 +201,5 @@ and verification commands.
 | **Networking**    | `~/dev/networking`       | `main`         | `make precommit` |
 | **Personal Site** | `~/dev/ryusoh.github.io` | **`master`**   | `make check`     |
 
-### Multi-repo workflow
-
-- **Automation:** use the `/ship <branch>` command in any repo to fix quality
-  failures, merge to the primary branch, and clean up.
-- **Git hooks:** all repos use pre-commit hooks (e.g., `prettier`). If a push
-  fails, run the repo's fix command (e.g., `make fmt-py`, `make fmt`, or
-  `make precommit-fix`) before retrying.
+Use `/ship <branch>` in any repo to verify, merge to the primary branch, and
+clean up.

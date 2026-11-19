@@ -5,135 +5,85 @@ description: Diagnosis loop for hard bugs and performance regressions. Use when 
 
 # Diagnosing Bugs
 
-A discipline for hard bugs. Skip phases only when explicitly justified.
+The goal is a confirmed root cause with a regression test, reached through a
+feedback loop rather than code-staring. Start by reading the governing doc for
+the area: `docs/creating-an-addon.md`, `docs/js-testing.md`,
+`docs/anki-knowledge-graph-architecture.md`, `docs/graph-analysis-guide.md`,
+`docs/anki-data-fetch.md`, or `docs/r2-sync-guide.md`. Many of this repo's
+worst bugs are silent wrong output, not errors.
 
-Before exploring, read the governing doc so you have a mental model before
-touching code: `docs/creating-an-addon.md` (addon layout, hooks, test patterns),
-`docs/js-testing.md` (which JS tests actually run), the graph docs
-(`docs/anki-knowledge-graph-architecture.md`, `docs/graph-analysis-guide.md`),
-or the data-pipeline docs (`docs/anki-data-fetch.md`, `docs/r2-sync-guide.md`).
-Several of this repo's worst bugs are **silent wrong output, not an error**.
+## Suspect the silent-failure classes first
 
-## This repo's silent-failure trap classes — suspect these first
+- **A test that silently skips.** Only root `tests/` (node runner) and
+  `review_heatmap/tests/` (jest) execute JS tests; a `*.test.js` elsewhere
+  passes without running. `pytest` collects per-addon suites only from the repo
+  root.
+- **Interpreter mismatch.** `make` runs `.venv/bin/python3`; your shell runs
+  Homebrew `python3` with different packages (e.g. `fa2_modified`). Re-run with
+  `.venv/bin/python3` first.
+- **The mock diverges from Anki.** Root `conftest.py` mocks `aqt`/`anki`, so
+  hook signatures, Qt behavior, and WebView quirks can fail only in real Anki.
+- **`ProcessPoolExecutor` in tests.** Spawned children re-import modules and
+  drop mocks; patch it to `ThreadPoolExecutor`.
+- **Bare `coverage`** resolves to the repo-root `coverage/` directory — invoke
+  `python3 -m coverage`.
 
-These stay green or render wrong values with **no error**, so a naive loop
-passes while the bug is live:
+## Phase 1 — Build a red-capable loop (most of the effort goes here)
 
-- **A test that never runs.** Only root `tests/` (node runner) and
-  `review_heatmap/tests/` (jest) execute JS tests — a `*.test.js` anywhere else
-  is dead weight that "passes" forever. Likewise `pytest` collects per-addon
-  suites only from the repo root.
-- **Green under one interpreter, red under the other.** `make` runs
-  `.venv/bin/python3`; your shell runs Homebrew `python3` — different packages
-  (e.g. `fa2_modified`). Re-run with `.venv/bin/python3` before debugging a
-  "flaky" failure.
-- **The mock isn't Anki.** Root `conftest.py` mocks `aqt`/`anki`, so hook
-  signatures, Qt behavior, and webview quirks diverge silently — the suite
-  cannot see a bug that only manifests in real Anki.
-- **`ProcessPoolExecutor` in tests** — spawn children re-import modules and
-  drop your mocks, so patched behavior silently reverts in the child. Patch it
-  to `ThreadPoolExecutor`.
-- **Bare `coverage`** resolves to the repo-root `coverage/` directory, not the
-  tool — invoke `python3 -m coverage`.
+Done when you have run one command that drives the real bug path, asserts the
+user's exact symptom, and is deterministic and fast. Candidates, roughly in
+order:
 
-## Phase 1 — Build a feedback loop
-
-**This is the skill.** Everything else is mechanical. If you have a **tight**
-pass/fail signal that goes red on _this_ bug, you will find the cause. If you
-don't, no amount of staring at code will save you. Spend disproportionate effort
-here. **Be aggressive. Be creative. Refuse to give up.**
-
-### Ways to construct one — roughly in this order
-
-1. **Scoped failing test** at the seam that reaches the bug — from the repo
-   root: `python3 -m pytest <addon>/tests/ -q` for Python; for JS, one file via
-   `node --experimental-vm-modules --no-warnings tests/<file>.test.mjs` or
+1. Scoped failing test from repo root — `python3 -m pytest <addon>/tests/ -q`,
+   `node --experimental-vm-modules --no-warnings tests/<file>.test.mjs`, or
    `npx jest review_heatmap/tests/<file>`.
-2. **CLI / pipeline invocation** with a fixture input, diffing output against a
-   known-good snapshot — the graph pipeline (`graph/export_data.py`,
-   `graph/incremental_export.py`) against captured JSON.
-3. **Real Anki launch** with the addon installed — the loop for hook, Qt UI,
-   and webview bugs the mocked suite can't see.
-4. **Replay a captured artifact** — save a real payload (a Wiktionary response,
-   an exported graph JSON) to disk and replay it through the code path in
-   isolation.
-5. **Throwaway harness** — minimal subset that exercises the bug path in one call.
-6. **Property / fuzz loop** — for "sometimes wrong output", run many random inputs.
-7. **Differential loop** — same input through old vs new (or two configs), diff.
+2. CLI/pipeline invocation on a fixture diffed against a known-good snapshot
+   (`graph/export_data.py`, `graph/incremental_export.py`).
+3. Real Anki launch with the addon installed (for hook, Qt UI, and WebView
+   bugs the mock hides).
+4. Replay of a captured artifact (Wiktionary response, exported graph JSON).
+5. Throwaway harness, property/fuzz loop, or old-vs-new differential run.
 
-Build the right feedback loop, and the bug is 90% fixed.
+Pin time, seed RNG, isolate the filesystem, and run under `.venv/bin/python3`.
+If no local loop is possible (common for real-Anki rendering or Qt bugs), say
+so, list what you tried, and ask the user to inspect it in Anki.
 
-### Tighten the loop
+## Phase 2 — Reproduce and minimise
 
-- **Faster** — scope the test to one file; skip unrelated init.
-- **Sharper** — assert the specific symptom, not "didn't crash".
-- **Deterministic** — pin time, seed RNG, isolate the filesystem, and run under
-  the same interpreter `make` uses (`.venv/bin/python3`).
-
-### When you genuinely cannot build a loop
-
-Stop and say so. List what you tried. For bugs in real-Anki rendering or Qt
-behavior the honest loop is often "the user looks at Anki" — ask them to look
-rather than claiming a fix from a green mocked test. Do **not** proceed to
-hypothesise without a loop.
-
-### Completion criterion — a tight loop that goes red
-
-Phase 1 is done when you can name **one command** you have **already run once**
-(paste the invocation and output) that is: **red-capable** (drives the real bug
-path, asserts the user's exact symptom), **deterministic**, **fast**, and
-**agent-runnable**. If you catch yourself building a theory before this command
-exists, **stop** — jumping to a hypothesis is the exact failure this prevents.
-
-## Phase 2 — Reproduce + minimise
-
-Run the loop, watch it go red. Confirm it's the **user's** symptom, not a nearby
-one. Then shrink to the **smallest scenario that still goes red** — cut inputs,
-callers, config, data one at a time, re-running after each cut. Done when every
-remaining element is load-bearing. The minimal repro becomes the Phase 5 test.
+Confirm the loop shows the user's symptom, then cut inputs, callers, config,
+and data until every remaining element is load-bearing. The minimal repro
+becomes the regression test.
 
 ## Phase 3 — Hypothesise
 
-Generate **3–5 ranked, falsifiable hypotheses** before testing any. Each states a
-prediction: "If X is the cause, changing Y makes the bug disappear." Show the list
-to the user before testing — they often re-rank instantly. Don't block if AFK.
+Write 3–5 ranked, falsifiable hypotheses ("if X, changing Y removes the bug")
+and show them to the user before probing — they often re-rank instantly.
+Continue without waiting if they're away.
 
 ## Phase 4 — Instrument
 
-Each probe maps to one Phase-3 prediction. **Change one variable at a time.**
-Prefer a debugger/REPL over logs. **Tag every debug log** with a unique prefix
-(`[DEBUG-a4f2]`) so cleanup is one grep. For perf regressions, **measure first**
-(profiler, `time.perf_counter()`) — logs are usually the wrong tool.
+One probe per prediction, one variable at a time. Prefer a debugger/REPL over
+logs; tag debug logs with a unique prefix (`[DEBUG-a4f2]`) so cleanup is one
+grep. For perf, measure first (`time.perf_counter()`, profiler).
 
-## Phase 5 — Fix + regression test
+## Phase 5 — Fix with a regression test
 
-Write the regression test **before the fix**, but only if a **correct seam**
-exists — one that exercises the real bug pattern at the call site. If the only
-seam is too shallow (or the bug lives behind the `aqt` mock and is untestable,
-per the trap above), **that itself is the finding** — note it. Otherwise:
-failing test → watch fail → fix → watch pass → re-run the Phase-1 loop on the
-original scenario. For real-Anki behavior, have the user verify in Anki — a
-green mocked test proves the logic, not the integration.
+At a seam that exercises the real bug pattern: failing test → fix → passing
+test → re-run the Phase 1 loop. If the only seam is too shallow or lives behind
+the `aqt` mock, record that as a finding and ask the user to verify in real
+Anki.
 
-## Phase 6 — Cleanup + post-mortem
+## Phase 6 — Clean up and close
 
-- [ ] Original repro no longer reproduces
-- [ ] Regression test passes (or absence of seam documented)
-- [ ] All `[DEBUG-...]` instrumentation removed (`grep` the prefix)
-- [ ] Throwaway harnesses deleted
-- [ ] The correct hypothesis stated in the commit / PR message
-- [ ] `make precommit SKIP=1` (or a scoped `make test-py SUITE=...` + lint) is green
-
-**Then ask: what would have prevented this bug?** If the answer is a durable repo
-improvement — a knowledge doc, a `Makefile` target, a lint/CI gate, an AGENTS.md
-line — hand off to `/retro` with the specifics, **after** the fix is in.
+Original repro gone; regression test green (or missing seam documented);
+`[DEBUG-` prefix grep empty; throwaway harnesses deleted; confirmed hypothesis
+in the commit/PR message; `make precommit SKIP=1` (or scoped
+`make test-py SUITE=...` + lint) green. If a durable repo change (doc, Makefile
+target, gate) would have prevented the bug, hand it to `/retro` after the fix
+lands.
 
 ## Resume protocol
 
-When resuming an interrupted bug investigation or recovering from context compaction:
-
-1. **Never trust conversation memory** for diagnosis progress.
-2. **Inspect authoritative ground truth**:
-   - Run `git status --short` and `git diff` to locate active probes/instrumentation.
-   - Run the Phase 1 reproduction command to directly observe whether the symptom is currently red or green.
-3. **Re-anchor the investigation**: Explicitly state the active phase (1 through 6), current hypothesis under test, and next falsifiable check before modifying files.
+After an interruption or compaction: `git status --short` and `git diff` to
+find live probes, re-run the Phase 1 command to see current red/green, then
+state the active phase, hypothesis under test, and next check before editing.

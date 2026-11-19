@@ -18,20 +18,21 @@ git status --short
 
 - **Branch-name argument** → Mode B for that branch. If the argument is empty
   or clearly not a branch name (e.g. injected `<system-reminder>` text or a
-  sentence), treat it as no argument — never `git checkout` a garbage string.
+  sentence), treat it as no argument.
 - **No argument, on `main` in the primary checkout** → Mode A: ship the
   working tree as-is.
-- **No argument, on a non-main branch or inside a linked worktree** (common
-  for spawned background-task sessions) → Mode B for the current branch,
-  plus worktree cleanup.
+- **No argument, on a non-main branch or inside a linked worktree** (common for
+  spawned background-task sessions) → Mode B for the current branch, plus
+  worktree cleanup.
 
 ## Mode A — ship the working tree on main
 
 1. **Verify:** `make precommit SKIP=1`. If it fails only on formatting/lint,
    run `make fmt && make fmt-py && make lint-fix` and re-verify.
-2. **Commit:** stage and commit all pending work with a real
-   conventional-commit message describing the change (never "WIP" or
-   "fix quality gate"). Include fix-up changes from step 1 in the same commit.
+2. **Commit:** stage the files that make up this change by name (including
+   fix-up changes from step 1) and commit with a real conventional-commit
+   message describing the change. If `git status` shows dirty files you cannot
+   attribute to this work, ask before including them (the checkout is shared).
 3. **Push:** `git pull --rebase origin main && git push origin main`.
 
 ## Mode B — ship a branch (and its worktree, if any)
@@ -39,17 +40,16 @@ git status --short
 1. **Sync:** `git fetch origin`. Work in the branch's own worktree if it has
    one (see `git worktree list`); otherwise `git checkout <branch>`. If the
    branch has an upstream, `git pull origin <branch>`.
-2. **Commit pending work on the branch:** uncommitted changes in a worktree
-   are part of the deliverable — commit them with a descriptive message
-   before merging.
+2. **Commit pending work on the branch:** uncommitted changes in a worktree are
+   part of the deliverable — commit them with a descriptive message before
+   merging.
 3. **Fix quality and CI failures on the branch:**
    - `make quality-py`; if it fails on formatting, `make fmt-py`.
    - `make check` for tests, then `make precommit SKIP=1` until clean.
    - Commit any fixes.
-4. **Merge into main from the primary checkout** (the first path in
-   `git worktree list` — you cannot check out `main` inside a linked
-   worktree). **Prefer a squash merge** — one clean commit on main, no matter
-   how messy the branch history is:
+4. **Merge into main from the primary checkout** (first path in
+   `git worktree list`, since `main` stays outside linked worktrees). **Prefer
+   a squash merge** — one clean commit on `main`:
    - `git checkout main && git pull origin main`
    - `git merge --squash <branch>`
    - `git commit` with a single conventional-commit message describing the
@@ -58,16 +58,16 @@ git status --short
 5. **Final verification on merged main:** `make precommit SKIP=1`.
 6. **Push:** `git push origin main`.
 7. **Cleanup:**
-   - Remove the worktree if the branch lived in one (run from the primary
-     checkout): `git worktree remove <path>` (`--force` only if you are sure
-     nothing unshipped remains).
-   - `git branch -d <branch>` — after a squash merge Git does not consider
-     the branch merged, so `-d` refuses; use `git branch -D <branch>` once
-     the squash commit is pushed and you are sure nothing unshipped remains.
+   - Remove the worktree if the branch lived in one (from the primary
+     checkout): `git worktree remove <path>` (`--force` only once nothing
+     unshipped remains).
+   - `git branch -d <branch>` — after a squash merge Git sees no ancestry, so
+     use `git branch -D <branch>` once the squash commit is pushed and nothing
+     unshipped remains.
    - Delete the remote branch only if it exists:
      `git ls-remote --exit-code origin <branch> && git push origin --delete <branch>`.
-     If a pre-push hook mistakes the delete for history rewriting, retry the
-     delete alone with `git push --no-verify origin --delete <branch>`.
+     If a pre-push hook flags the delete as history rewriting, retry it alone
+     with `git push --no-verify origin --delete <branch>`.
 
 ## Report
 

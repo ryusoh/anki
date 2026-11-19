@@ -10,22 +10,22 @@ re-checkable instead of living only in chat.
 
 ## Run it in the background
 
-Delegate the investigation to a background agent (Agent tool, `run_in_background:
-true`) so you can keep working while it runs. Give the agent the question, the
-primary sources to prefer, and the output location decided below.
+Delegate the investigation to a background subagent so you can keep working
+while it runs. Give it the question, the primary sources to prefer, and the
+output location decided below.
 
 ## Investigate
 
 - Consult **official documentation, source code, specifications, and first-party
-  APIs** — not secondary interpretations, blog posts, or Q&A sites. Trace every
-  claim to its authoritative origin.
-- For questions about this repo's own subsystems, the primary source is the
-  addon source itself plus the governing doc under `docs/` (see AGENTS.md).
-- For Anki behavior (hooks, collection schema, webviews), the primary sources
+  APIs**, tracing every claim to its authoritative origin rather than to
+  secondary write-ups.
+- For this repo's own subsystems, the primary source is the addon source itself
+  plus the governing doc under `docs/` (AGENTS.md maps them).
+- For Anki behavior (hooks, collection schema, WebViews), the primary sources
   are the Anki source (`anki`/`aqt`) and the official addon docs at
-  <https://addon-docs.ankiweb.net> — not forum posts.
-- For anything about Claude / the Anthropic API, the `claude-api` skill is the
-  primary source — use it rather than answering from memory.
+  <https://addon-docs.ankiweb.net>.
+- For Claude / Anthropic API questions, use the `claude-api` skill as the
+  primary source.
 
 ## Document
 
@@ -37,17 +37,17 @@ what I couldn't verify" section.
 ## Store
 
 Save following this repo's convention: durable subsystem knowledge lives under
-`docs/` (the same place the read-before-touching docs live). If the finding maps
-to an existing doc (e.g. `docs/js-testing.md`, `docs/graph-analysis-guide.md`),
-extend it rather than creating a duplicate; if it's a genuinely new area, add a
-new `docs/<topic>.md` and note the location in your reply. For throwaway
-investigation that doesn't belong in version control, use the session
-scratchpad instead.
+`docs/`. Extend an existing doc when the finding fits there (e.g.
+`docs/js-testing.md`, `docs/graph-analysis-guide.md`); for a genuinely new
+area, add `docs/<topic>.md`, link it from `docs/README.md` (enforced by
+`tests/test_docs_index.py`), and format with `make fmt`. For throwaway
+investigation, use the session scratchpad instead.
 
 ## Output constraints
 
 - Quote verbatim source language sparingly — **max ~125 characters** per quote,
   in quotation marks; paraphrase otherwise.
-- Respect open-source licenses; don't reproduce whole files or long passages.
-- Report what you found and what you couldn't verify — no legal interpretation,
-  no filling gaps with plausible-sounding guesses.
+- Respect open-source licenses and omit reproducing whole files or long
+  passages.
+- Report what you found and what you couldn't verify, leaving gaps explicit
+  rather than guessing.

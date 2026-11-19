@@ -2,20 +2,18 @@
 description: Regenerate .claude/commands (Claude Code) from the canonical .agents/skills sources
 ---
 
-`.agents/skills/` is canonical — edit skills there, never `.claude/commands/`.
+`.agents/skills/` is canonical — edit skills there, keeping `.claude/commands/`
+generated.
 
-Progressive disclosure: only the frontmatter `name` + `description` enter an
-agent's system prompt; the body is read on demand once the skill triggers. So
-the `description` is the only always-loaded surface — write it as a
-discriminative trigger ("Use when ..."), and don't contort the body to save
-prompt space; length there is free until the skill fires. (Keep `description`
-single-line — the generator's frontmatter parser is naive.)
+Only frontmatter `name` + `description` enter the always-loaded prompt; the
+body loads on demand. Write `description` as a single-line discriminative
+trigger ("Use when ...") and omit `---` horizontal rules from skill bodies
+(`tools/sync_commands.py` parses frontmatter via `content.split("---", 2)`).
 
 After creating or editing a skill:
 
-1. **Format it** — skill files are Markdown and Prettier owns them; CI's
-   `fmt-check` fails otherwise: `make fmt` (or
+1. **Format it** — Prettier owns Markdown here (`make fmt`, or
    `npx prettier --write .agents/skills/<name>/SKILL.md`).
 2. **Sync** — `python3 tools/sync_commands.py` (after formatting, so the
-   generated copy matches the formatted source).
-3. **Verify** — `make sync-check` and `make fmt-check` must both pass.
+   generated copy matches).
+3. **Verify** — `make sync-check` and `make fmt-check` both pass.

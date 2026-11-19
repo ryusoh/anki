@@ -12,21 +12,19 @@ background: `docs/limited-network.md`, failure mode 4.
 
 Work environment-first: prove the network healthy before touching code.
 
-**R2-upload symptoms take a different path.** If the failure is an upload
-log instead of an add-on tooltip — boto3 `Failed to connect to proxy URL`,
-urllib `Tunnel connection failed: 503`, or `Broken pipe` from
-`precommit-fix` / `graph-push` / `upload-to-r2` — the buggy code is
-`data/anki/upload-to-r2`'s own `enable_proxy_fallback()` / `_probe_proxy()`
-(reached via `graph/upload_public.py` → SourceFileLoader), NOT
-`shared/proxy_fallback.py`. The add-on repro recipe below doesn't apply;
-tests live in `data/anki/tests/test_proxy_fallback.py`. Also note the probe
-semantics differ on purpose: `upload-to-r2`'s `_probe_proxy` requires a 200
-CONNECT (a half-dead proxy that accepts TCP but 503s the tunnel must be
-judged dead), while the shared module's `_detect_local_proxy` treats any
-listening candidate port as worth trying. See `docs/limited-network.md`,
-failure mode 4.
+**R2-upload symptoms take a different path.** If the failure is an upload log
+instead of an add-on tooltip — boto3 `Failed to connect to proxy URL`, urllib
+`Tunnel connection failed: 503`, or `Broken pipe` from `precommit-fix` /
+`graph-push` / `upload-to-r2` — the code lives in `data/anki/upload-to-r2`'s
+own `enable_proxy_fallback()` / `_probe_proxy()` (reached via
+`graph/upload_public.py` → SourceFileLoader), with tests in
+`data/anki/tests/test_proxy_fallback.py`. Probe semantics differ by design:
+`upload-to-r2`'s `_probe_proxy` requires a 200 CONNECT (a half-dead proxy that
+accepts TCP but 503s the tunnel counts as dead), while `shared/proxy_fallback.py`'s
+`_detect_local_proxy` treats any listening candidate port as worth trying. See
+`docs/limited-network.md`, failure mode 4.
 
-1. **Rule the environment in or out.** Check the live proxy state and direct
+1. **Rule the environment in or out.** Check live proxy state and direct
    reachability:
 
    ```sh
@@ -35,8 +33,7 @@ failure mode 4.
    for p in 19750 7897 7890 1087 8118 3213; do nc -z -w 1 127.0.0.1 $p 2>&1 | sed "s/^/port $p: /"; done
    ```
 
-   Then verify DNS, TCP, and HTTPS separately — a staged check localizes the
-   failure instead of guessing:
+   Verify DNS, TCP, and HTTPS separately to localize the failure:
 
    ```sh
    .venv/bin/python3 - <<'EOF'
@@ -57,16 +54,14 @@ failure mode 4.
 2. **Understand the process-state failure mode.** `urllib.request.urlopen`'s
    global opener snapshots the system proxy **at first use**. If a proxy app
    (Clash on 7890, Astrill OpenWeb on 3213) was on when Anki made its first
-   request and is later switched off, every urlopen dials the dead proxy →
+   request and is later switched off, every `urlopen` dials the dead proxy →
    errno 61 — while Chrome, which re-reads proxy settings live, works fine.
-   `urlopen_with_proxy_fallback` (in `shared/proxy_fallback.py`) exists to
-   heal this: dead cached proxy → direct → proxy-free opener → probe local
-   ports.
+   `urlopen_with_proxy_fallback` (`shared/proxy_fallback.py`) heals this: dead
+   cached proxy → direct → proxy-free opener → probe local ports.
 
 3. **Reproduce Anki's process state live.** Poison the global opener with a
-   dead proxy, then call the add-on's real fetch. `import conftest` FIRST —
-   the root `conftest.py` stubs `aqt`/`anki`, and forgetting it dies with
-   `ModuleNotFoundError: No module named 'aqt'`:
+   dead proxy, then call the add-on's real fetch (`import conftest` first to
+   stub `aqt`/`anki`):
 
    ```sh
    .venv/bin/python3 - <<'EOF'
@@ -80,31 +75,26 @@ failure mode 4.
    EOF
    ```
 
-   If the fallback is working this prints `False` and a large byte count. If
-   it prints the errno-61 error, the healing chain itself is broken — trace
-   which retry stage fails by calling them individually
+   A healthy fallback prints `False` and a large byte count. An errno-61 error
+   means the healing chain is broken — call each stage individually
    (`urllib.request.urlopen`, `proxy_fallback._build_direct_opener().open(...)`,
-   `proxy_fallback._detect_local_proxy()`).
+   `proxy_fallback._detect_local_proxy()`) to pinpoint which stage fails.
 
-4. **The gotcha that bit us (2026-08-07): ProxyHandler mutates the Request
-   in place.** A failed proxied attempt rewrites `req.host` to the dead
-   proxy host (`req._tunnel_host` keeps the real one), so **every retry with
-   the same Request object keeps dialing the dead proxy** — the healing
-   fallback could never heal. Verify mutation suspicion with:
-   `print(req.host, getattr(req, '_tunnel_host', None))` before/after the
-   first attempt. Retries must use a pristine clone (`_fresh_request`;
-   `req.full_url` survives the mutation). Pinned by
+4. **Known trap: `ProxyHandler` mutates `Request` in place.** A failed proxied
+   attempt rewrites `req.host` to the dead proxy host (`req._tunnel_host` keeps
+   the real one), so retrying with the same `Request` object keeps dialing the
+   dead proxy. Check `print(req.host, getattr(req, '_tunnel_host', None))`
+   before/after the first attempt; retries must use a pristine clone
+   (`_fresh_request`; `req.full_url` survives the mutation). Pinned by
    `auto_wiktionary/tests/test_proxy_fallback.py::test_retry_uses_pristine_request_after_proxy_mutation`.
 
 5. **Fix test-first, in the canonical file only.**
-   - Add the failing test to `<addon>/tests/test_proxy_fallback.py` and
-     confirm it is **red** first. Keep tests hermetic: patch ALL network
-     paths (`urllib.request.urlopen`, `_build_direct_opener`,
-     `_detect_local_proxy`, plus `build_opener` when asserting the proxy
-     opener) — patching only urlopen silently hits the real network through
-     the other two.
-   - Fix in `shared/proxy_fallback.py` (the CANONICAL source), then re-vendor
-     byte-identical copies:
+   - Add the failing test to `<addon>/tests/test_proxy_fallback.py` and confirm
+     it is red first. Keep tests hermetic by patching all network paths
+     (`urllib.request.urlopen`, `_build_direct_opener`, `_detect_local_proxy`,
+     plus `build_opener` when asserting the proxy opener).
+   - Edit `shared/proxy_fallback.py` (canonical), then re-vendor byte-identical
+     copies:
 
      ```sh
      for d in auto_wiktionary auto_image auto_itaigi awesome_tts; do cp shared/proxy_fallback.py "$d/proxy_fallback.py"; done
@@ -121,8 +111,8 @@ failure mode 4.
    make precommit SKIP=1
    ```
 
-   Re-run the step-3 live repro — it must now heal.
+   Re-run the step-3 live repro to confirm it heals.
 
-7. **Report plainly** and remind the user to **restart Anki**: the running
-   process has the old module cached, so it keeps erroring until reloaded.
-   Mocked tests can't prove real-Anki behaviour.
+7. **Report plainly** and remind the user to **restart Anki** (the running
+   process caches the old module until reloaded, and mocked tests cannot prove
+   real-Anki behaviour).

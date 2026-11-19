@@ -5,95 +5,67 @@ description: Test-driven development. Use when the user wants to build features 
 
 # Test-Driven Development
 
-TDD is the red → green loop. This skill is the reference that makes that loop
-produce tests worth keeping: what a good test is, where tests go, the
-anti-patterns, and the rules of the loop. Consult it before and during the loop.
+Goal: a red → green loop that leaves behind tests worth keeping — tests that
+read like a specification and survive refactors. Read
+`docs/creating-an-addon.md` (and `docs/js-testing.md` for JS work) first so
+test names and interfaces match this repo's conventions.
 
-Before exploring, read `docs/creating-an-addon.md` (layout, hook/test patterns)
-and, for JS work, `docs/js-testing.md`, so test names and interface vocabulary
-match this repo's conventions.
+## Where TDD pays off here
 
-## Where this fits in this repo — and where it does NOT
+Strongest on pure-Python addon logic — parsers, text transforms
+(`auto_wiktionary/`, `strip_html_tags/`), and the graph pipeline (`graph/`) —
+deterministic input → output with clean seams. Corner-case tests live next to
+each addon in `<addon>/tests/` (e.g. `auto_wiktionary/tests/` pins Wiktionary
+redirect cases).
 
-TDD earns its keep on **pure-Python addon logic** — parsers and text transforms
-(`auto_wiktionary/`, `strip_html_tags/`), the graph data pipeline (`graph/`) —
-deterministic input→output code with clean seams. The house pattern: corner-case
-tests live next to each addon in `<addon>/tests/` (e.g. `auto_wiktionary/tests/`
-pins Wiktionary redirect cases) — add a failing test there first, then fix.
-
-It is **weak where the code meets real Anki.** The root `conftest.py` mocks
-`aqt`/`anki`, so a green test proves your logic against the mock, not against
-Anki itself — hook wiring, Qt UI, and webview injection need a launch of real
-Anki to verify. Likewise, browser-side scripts are pinned with source-level
-regression tests (`docs/js-testing.md`): those prove the source text, not
-runtime behavior. A passing test is necessary, not sufficient, there.
+Where the code meets real Anki (hook wiring, Qt UI, WebView injection), root
+`conftest.py` mocks `aqt`/`anki`, and browser scripts use source-level
+regression tests (`docs/js-testing.md`) — a green test proves the logic against
+the mock, and real-Anki behavior still needs an Anki launch to verify.
 
 ## Test runners
 
-- **Always run from the repo ROOT** — `pytest` inside an addon subdir fails
-  with `ModuleNotFoundError` (the root `conftest.py` provides the mocks).
-- Scoped Python, tight loop: `python3 -m pytest <addon>/tests/ -q` (or
-  `make test-py SUITE=<addon>/tests`).
-- Scoped JS: only root `tests/` (node runner) and `review_heatmap/tests/`
-  (jest) are executed — a `*.test.js` anywhere else silently never runs. One
-  file: `node --experimental-vm-modules --no-warnings tests/<file>.test.mjs`.
-- Full suite before declaring done: `make check`; `make precommit SKIP=1`
-  matches CI. `make` runs `.venv/bin/python3`, not your shell's `python3` —
-  re-verify with `.venv/bin/python3` before trusting green.
-- Never spawn a real `ProcessPoolExecutor` in a test — spawn children re-import
-  the module and drop your mocks; patch it to `ThreadPoolExecutor`.
+- Run from the repo root (root `conftest.py` provides the `aqt`/`anki` mocks).
+- Scoped Python loop: `make test-py SUITE=<addon>/tests` (or
+  `python3 -m pytest <addon>/tests/ -q`).
+- Scoped JS loop: only root `tests/` (node runner) and `review_heatmap/tests/`
+  (jest) execute — run one file via
+  `node --experimental-vm-modules --no-warnings tests/<file>.test.mjs`.
+- Full verification: `make check`, and `make precommit SKIP=1` for CI parity.
+  Re-verify under `.venv/bin/python3` (what `make` uses).
+- Patch `ProcessPoolExecutor` to `ThreadPoolExecutor` in tests (spawned
+  children re-import modules and drop mocks).
 
-## What a good test is
+## Good tests
 
-Tests verify behavior through public interfaces, not implementation details. Code
-can change entirely; tests shouldn't. A good test reads like a specification —
-"redirect page resolves to its target entry" — and survives refactors. In
-practice here:
+- Assert observable output through public interfaces — the transformed note
+  text, exported graph JSON shape, or parsed field.
+- Take expected values from an independent source of truth (a worked example,
+  known-good literal, or captured real payload) so the test can disagree with
+  the code.
+- Mock at the system boundary (root `conftest.py` already mocks `aqt`/`anki`);
+  prefer real fixtures (captured Wiktionary response, sample export) for
+  collaborators the repo owns.
 
-- **Assert on observable output**, not internal structure: the transformed note
-  text, the exported graph JSON shape, the parsed field — not a private helper.
-- **Expected values come from an independent source of truth** — a worked
-  example, a known-good literal, a captured real payload — never recomputed the
-  way the code computes them.
-- **Mock at the boundary, not the internals.** Prefer real fixtures (a captured
-  Wiktionary response, a small sample export) over mocking a collaborator you
-  own. The `aqt`/`anki` mock is the one boundary already mocked for you.
+## Seams
 
-## Seams — where tests go
+A seam is the public boundary you test at. Before writing tests, propose the
+seams under test and agree them with the user ("What's the public interface,
+and which seams matter?") so effort lands on critical paths.
 
-A **seam** is the public boundary you test at: where you observe behavior without
-reaching inside. **Test only at pre-agreed seams.** Before writing any test, write
-down the seams under test and confirm them with the user — you can't test
-everything, and agreeing seams up front is how effort lands on critical paths and
-complex logic. Ask: "What's the public interface, and which seams should we test?"
+## The loop
 
-## Anti-patterns
+Work in vertical slices: one seam → one failing test → the minimal code that
+passes it → repeat. Each slice is a tracer bullet; writing all tests up front
+verifies imagined behavior. Refactoring happens in review after the loop.
 
-- **Implementation-coupled** — mocks internal collaborators, tests private methods,
-  or verifies through a side channel. Tell: breaks on refactor though behavior is
-  unchanged.
-- **Tautological** — the assertion recomputes the expected value the way the code
-  does (`expect(add(a,b)).toBe(a+b)`), so it can never disagree with the code.
-  This repo once carried a whole file of these (`graph/tests/test_glass_radius`,
-  deleted): it asserted on its own inline constants and imported no source at all.
-- **Horizontal slicing** — all tests first, then all implementation. Bulk tests
-  verify _imagined_ behavior and go insensitive to real changes. Work in **vertical
-  slices**: one test → one implementation → repeat, each a tracer bullet.
-
-## Rules of the loop
-
-- **Red before green.** Failing test first, then only enough code to pass it. No
-  speculative features.
-- **One slice at a time.** One seam, one test, one minimal implementation per cycle.
-- **Refactoring is not part of the loop.** It belongs to review — run `/code-review`
-  after the red → green cycle, not during it.
+Smells to correct: tests that break on a refactor with unchanged behavior
+(coupled to internals), and assertions that recompute the expected value the
+way the code does (tautological).
 
 ## Resume protocol
 
-When resuming an in-progress TDD loop or recovering from context compaction:
-
-1. **Never trust conversation memory** for slice progress.
-2. **Inspect authoritative state**:
-   - Run `git status --short` and `git log -n 3 --oneline`.
-   - Run the scoped test suite to observe red/green status directly.
-3. **Re-anchor the loop**: State the current slice, active failing test assertion, and minimal implementation target before editing code.
+After an interruption or compaction: `git status --short`,
+`git log -n 3 --oneline`, and the scoped test run show the real state. State
+the current slice, its failing assertion, and the minimal implementation target
+before editing.

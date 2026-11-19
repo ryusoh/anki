@@ -8,10 +8,10 @@ argument-hint: "<card snippet, raw HTML, or symptom>"
 
 The problem to debug is `{{args}}`.
 
-Do not guess the field format — pull the real field HTML and classify the
-failure category before touching code.
+Pull the real stored field HTML and classify the failure category before
+touching code.
 
-1. **Get the real stored field HTML.** Never debug against an imagined format:
+1. **Get the real stored field HTML:**
 
    ```sh
    python3 tools/dump_field.py --contains '<some text from the card>'
@@ -22,18 +22,18 @@ failure category before touching code.
 2. **Classify the failure category in `auto_markdown/core.py`:**
    - **Code Block & Tag Wrapping** — code fence lines or inner lines wrapped in
      HTML tags (`<code>`, `<span>`, `<div>`), nested `<code>` tags inside
-     `<pre>`, glued fences (`</ul>```assembly`, ` ```<ol>…`, or separated by
-     `&nbsp;` entities instead of whitespace), or missing language
+     `<pre>`, glued fences (`</ul>```assembly`, ` ```<ol>… `, or
+     separated by `&nbsp;` entities instead of whitespace), or missing language
      identifiers (`_parse_code_blocks`, `_split_glued_code_fences`,
      `_CODE_FENCE_RE`, `_STRIP_CODE_TAGS_RE`).
    - **Leaf `<div>` Line Normalization** — multi-line fields stored as
      `<div>line</div>` runs instead of `<br>` separators where block markers
-     were not recognized (`_normalize_top_level_leaf_div_runs`,
+     were unrecognized (`_normalize_top_level_leaf_div_runs`,
      `_has_block_markdown`).
    - **Inline Formatting & MathJax Passthrough** — backticks, bold `**`,
-     italic `*`, or MathJax expressions (`\(...\)`, `\[...\]`, `<anki-mathjax>`)
-     mangled or double-wrapped (`_convert_inline`, `_MATHJAX_BLOCKS_RE`,
-     `_CODE_RE`).
+     italic `*`, or MathJax expressions (`\(...\)`, `\[...\]`,
+     `<anki-mathjax>`) mangled or double-wrapped (`_convert_inline`,
+     `_MATHJAX_BLOCKS_RE`, `_CODE_RE`).
    - **List / Table / Blockquote Grouping & Spacing** — `<ul>`/`<ol>` line
      assembly, table cell alignment parsing (`_parse_tables`), blockquote
      styling (`_assemble`), or redundant `<br>` spacing (`_clean_spacings`).
@@ -41,8 +41,8 @@ failure category before touching code.
      `<blockquote>` elements failing to upgrade, or double conversion altering
      rendered HTML (`_upgrade_existing_*`).
 
-3. **Reproduce in Python** against the dumped HTML. Import `conftest` first to
-   stub `aqt`/`anki` so the package imports outside pytest:
+3. **Reproduce in Python** against the dumped HTML (import `conftest` first to
+   stub `aqt`/`anki`):
 
    ```sh
    .venv/bin/python3 -c "
@@ -53,61 +53,48 @@ failure category before touching code.
    "
    ```
 
-4. **Fix test-first leveraging the `tdd` skill (repo hard rule).** Add tests to
+4. **Fix test-first (`/tdd`).** Add tests to
    `auto_markdown/tests/test_convert.py` in the matching category section with
-   a realistic HTML fixture. Confirm the test fails (**red**) before editing
-   `auto_markdown/core.py`. If the bug already reached a stored field, add a
+   a realistic HTML fixture and confirm they fail before editing
+   `auto_markdown/core.py`. When the bug already reached a stored field, add a
    second test converting the **broken intermediate the buggy code wrote** —
-   users re-trigger conversion on exactly that state, so it is a real input
-   shape (a loosened check must not misread a previous partial pass's HTML).
+   users re-trigger conversion on that exact state, so a loosened check must
+   handle a prior partial pass cleanly.
 
-5. **Minimal fix in `auto_markdown/core.py`.** Extend the pipeline helpers, and
-   ensure all tests pass (**green**).
+5. **Minimal fix in `auto_markdown/core.py`.** Extend the pipeline helpers and
+   confirm all tests go green.
 
-6. **Harden against the whole collection** — the reported card is never the
-   only shape in the deck. Sweep the fixed transform over every field and
-   review the output before shipping:
+6. **Harden against the whole collection** — sweep the fixed transform over
+   every field and review the diffs before shipping:
 
    ```sh
    python3 tools/sweep_transform.py auto_markdown.core:convert_markdown_field --limit 20
    ```
 
-   Any `!! NOT IDEMPOTENT` or `!! transform raised` line is a must-fix
-   regression — TDD it (step 4) before shipping. Spot-review the printed
-   diffs too: every changed field should be a change you intended. When in
-   doubt, run the same sweep on the pre-change code and compare summaries.
+   Fix every `!! NOT IDEMPOTENT` or `!! transform raised` line via step 4, and
+   spot-review printed diffs so only intended changes appear (compare against a
+   pre-change sweep when unsure).
 
-7. **Verify with the repo gate from repo root:**
+7. **Verify from the repo root:**
 
    ```sh
    make test-addon ADDON=auto_markdown
    make typecheck-addon ADDON=auto_markdown
-   ```
-
-8. **Sync commands and verify workflow files:**
-
-   ```sh
-   make fmt
-   python3 tools/sync_commands.py
-   make sync-check
    make precommit SKIP=1
    ```
 
-9. **Repair the tested stored field after the safe dry run.** Once the sweep
-   and gates are green, do not leave the user to manually clean up the card
-   that demonstrated the bug:
-   - Convert the dumped pristine source with the fixed code and review the
-     exact old/new HTML diff. Keep the dumped original for rollback.
+8. **Repair the tested stored field after the safe dry run.** Once the sweep
+   and gates are green, repair the card that demonstrated the bug (whether
+   mangled or left unconverted):
+   - Convert the dumped pristine source with the fixed code, review the exact
+     old/new HTML diff, and keep the dumped original for rollback.
    - Write only the dumped note ID and field index through AnkiConnect
-     `updateNoteFields`, then verify the stored value with `notesInfo` and a
-     fresh dump (see "Repairing a mangled field" in
-     `docs/creating-an-addon.md`). Anki must be running.
-   - This applies to fields that were mangled **or merely left unconverted**.
-     Never re-trigger the old code on a broken intermediate, and never repair
-     other changed fields in bulk unless the user explicitly asks.
+     `updateNoteFields` (leave other fields untouched unless asked), then
+     verify with `notesInfo` and a fresh dump (see "Repairing a mangled field"
+     in `docs/creating-an-addon.md`; Anki must be running).
    - If AnkiConnect is unavailable or the write cannot be verified, report
-     plainly that the stored card was not repaired.
+     plainly that the stored card was left unrepaired.
 
-10. **Report plainly**: root cause (one line), the fix, pasted verification
-    output, whether the tested card was repaired, and remind the user to
-    reload the add-on in Anki.
+9. **Report plainly:** one-line root cause, the fix, pasted verification
+   output, whether the tested card was repaired, and a reminder to reload the
+   add-on in Anki.
