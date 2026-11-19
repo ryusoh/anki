@@ -42,6 +42,7 @@
     return {
       saveData: Boolean(navConnection && navConnection.saveData),
       slow: effectiveType === "slow-2g" || effectiveType === "2g",
+      fast: effectiveType === "4g",
     };
   }
 
@@ -280,7 +281,7 @@
     }
 
     const connection = getConnectionProfile();
-    if (connection.saveData) {
+    if (connection.saveData || !connection.fast) {
       return;
     }
 

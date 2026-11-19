@@ -11,7 +11,9 @@ describe("nav_prefetch.js", () => {
 
   beforeEach(() => {
     // Set URL path to /terminal/ so prefetching processes the 'home' route assets
-    dom = new JSDOM("<!DOCTYPE html><html><body></body></html>", { url: "http://localhost/terminal/" });
+    dom = new JSDOM("<!DOCTYPE html><html><body></body></html>", {
+      url: "http://localhost/terminal/",
+    });
     globalThis.window = dom.window;
     globalThis.document = dom.window.document;
     originalConnection = globalThis.navigator.connection;
@@ -26,7 +28,8 @@ describe("nav_prefetch.js", () => {
       if (url && url.endsWith && url.endsWith(".css")) {
         return Promise.resolve({
           ok: true,
-          text: () => Promise.resolve(`
+          text: () =>
+            Promise.resolve(`
             background: url('bg1.png');
             background-image: url("bg2.jpg");
             background: url(bg3.webp);
@@ -37,12 +40,13 @@ describe("nav_prefetch.js", () => {
       return Promise.resolve({
         ok: true,
         text: () => Promise.resolve(""),
-        json: () => Promise.resolve({
-          assets: [
-            { url: "https://external.com/asset.js" },
-            { url: "http://invalid url" },
-          ],
-        }),
+        json: () =>
+          Promise.resolve({
+            assets: [
+              { url: "https://external.com/asset.js" },
+              { url: "http://invalid url" },
+            ],
+          }),
       });
     };
     dom.window.fetch = globalThis.fetch;
@@ -70,7 +74,8 @@ describe("nav_prefetch.js", () => {
       configurable: true,
     });
 
-    document.body.innerHTML = '<link rel="manifest" href="/assets/manifest.webmanifest" />';
+    document.body.innerHTML =
+      '<link rel="manifest" href="/assets/manifest.webmanifest" />';
   });
 
   afterEach(() => {
@@ -111,7 +116,9 @@ describe("nav_prefetch.js", () => {
     await new Promise((resolve) => setTimeout(resolve, 150));
 
     // Check if external asset was queried
-    const crossOriginCall = fetchCalls.find((c) => c.url === "https://external.com/asset.js");
+    const crossOriginCall = fetchCalls.find(
+      (c) => c.url === "https://external.com/asset.js",
+    );
     if (crossOriginCall) {
       assert.strictEqual(crossOriginCall.opts.mode, "no-cors");
       assert.strictEqual(crossOriginCall.opts.credentials, "omit");
@@ -124,10 +131,19 @@ describe("nav_prefetch.js", () => {
     await new Promise((resolve) => setTimeout(resolve, 150));
 
     const urls = fetchCalls.map((c) => c.url);
-    assert.ok(urls.some((url) => url && url.endsWith && url.endsWith("bg1.png")));
-    assert.ok(urls.some((url) => url && url.endsWith && url.endsWith("bg2.jpg")));
-    assert.ok(urls.some((url) => url && url.endsWith && url.endsWith("bg3.webp")));
-    assert.strictEqual(urls.some((url) => url && url.startsWith && url.startsWith("data:")), false);
+    assert.ok(
+      urls.some((url) => url && url.endsWith && url.endsWith("bg1.png")),
+    );
+    assert.ok(
+      urls.some((url) => url && url.endsWith && url.endsWith("bg2.jpg")),
+    );
+    assert.ok(
+      urls.some((url) => url && url.endsWith && url.endsWith("bg3.webp")),
+    );
+    assert.strictEqual(
+      urls.some((url) => url && url.startsWith && url.startsWith("data:")),
+      false,
+    );
   });
 
   test("should handle missing manifest link gracefully and fall back to app base", async () => {
@@ -161,7 +177,12 @@ describe("nav_prefetch.js", () => {
     await new Promise((resolve) => setTimeout(resolve, 150));
 
     const urls = fetchCalls.map((c) => c.url);
-    assert.strictEqual(urls.some((url) => url && url.includes && url.includes("other-domain.com")), false);
+    assert.strictEqual(
+      urls.some(
+        (url) => url && url.includes && url.includes("other-domain.com"),
+      ),
+      false,
+    );
   });
 
   test("should fallback to setTimeout if requestIdleCallback missing", async () => {
@@ -200,10 +221,11 @@ describe("nav_prefetch.js", () => {
     dom.window.URL = OriginalURL;
   });
 
-  test("should handle missing navigator.connection", async () => {
+  test("should skip prefetch if connection profile is missing", async () => {
     delete globalThis.navigator.connection;
     await loadScript();
     await new Promise((resolve) => setTimeout(resolve, 150));
+    assert.strictEqual(fetchCalls.length, 0);
   });
 
   test("should handle fetch rejection gracefully", async () => {
@@ -245,7 +267,10 @@ describe("nav_prefetch.js", () => {
     await new Promise((resolve) => setTimeout(resolve, 150));
 
     const urls = fetchCalls.map((c) => c.url);
-    assert.strictEqual(urls.some((url) => url && url.endsWith && url.endsWith("mobile_bg.mp4")), false);
+    assert.strictEqual(
+      urls.some((url) => url && url.endsWith && url.endsWith("mobile_bg.mp4")),
+      false,
+    );
   });
 
   test("should handle broken URL inside css extract correctly", async () => {
@@ -271,7 +296,10 @@ describe("nav_prefetch.js", () => {
       if (url && url.endsWith(".css")) {
         return Promise.resolve({
           ok: true,
-          text: () => Promise.resolve("background: url(data:image/png;base64,123); background: url(); background:;"),
+          text: () =>
+            Promise.resolve(
+              "background: url(data:image/png;base64,123); background: url(); background:;",
+            ),
         });
       }
       return Promise.resolve({ ok: true });
@@ -315,6 +343,9 @@ describe("nav_prefetch.js", () => {
     await new Promise((resolve) => setTimeout(resolve, 150));
 
     const urls = fetchCalls.map((c) => c.url);
-    assert.strictEqual(urls.some((url) => url && url.endsWith && url.endsWith("mobile_bg.mp4")), false);
+    assert.strictEqual(
+      urls.some((url) => url && url.endsWith && url.endsWith("mobile_bg.mp4")),
+      false,
+    );
   });
 });
