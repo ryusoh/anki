@@ -17,7 +17,10 @@ def load_addon():
 
         aqt = types.ModuleType("aqt")
         aqt.mw = mw
-        aqt.gui_hooks = SimpleNamespace(add_cards_did_change_deck=[])
+        aqt.gui_hooks = SimpleNamespace(
+            add_cards_did_init=[],
+            add_cards_did_change_deck=[],
+        )
         operations = types.ModuleType("aqt.operations")
         deck_operations = types.ModuleType("aqt.operations.deck")
         deck_operations.set_current_deck = MagicMock()
@@ -54,7 +57,20 @@ def load_addon():
 
 def test_hook_registered(load_addon):
     env = load_addon(MagicMock())
+    assert env.mod.on_add_cards_did_init in env.aqt.gui_hooks.add_cards_did_init
     assert env.mod.on_add_cards_did_change_deck in env.aqt.gui_hooks.add_cards_did_change_deck
+
+
+def test_initial_deck_becomes_current_deck(load_addon):
+    mw = MagicMock()
+    mw.col = MagicMock()
+    env = load_addon(mw)
+    addcards = SimpleNamespace(deck_chooser=SimpleNamespace(selected_deck_id=7))
+
+    env.mod.on_add_cards_did_init(addcards)
+
+    env.set_current_deck.assert_called_once_with(parent=mw, deck_id=7)
+    env.set_current_deck.return_value.run_in_background.assert_called_once_with()
 
 
 def test_selected_deck_becomes_current_deck(load_addon):
