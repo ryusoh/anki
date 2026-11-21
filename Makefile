@@ -47,7 +47,7 @@ PY_SRC := auto_image auto_mathjax auto_wiktionary data/anki graph \
 	animated_glass_background mac_transparent_titlebar hide_window_title \
 	hide_deck_collapse toggle_bottom_pane anki_connect \
 	auto_itaigi auto_markdown no_leech_suspend reflow_paragraphs \
-	deck_scoped_dupes
+	deck_scoped_dupes add_cards_deck_sync
 
 
 PY_ALL := $(PY_SRC) tests conftest.py
