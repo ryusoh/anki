@@ -1535,7 +1535,7 @@ def test_real_kirchhoff_field_cleaned():
     assert result.startswith('&nbsp;')
 
 
-# --- MathJax inside <pre> tags (reviewer skips them; editor does not) ---
+# --- MathJax inside <pre>/<code> tags (reviewer skips them; editor does not) ---
 
 
 def test_mathjax_inside_pre_is_unwrapped():
@@ -1553,6 +1553,21 @@ def test_inline_mathjax_inside_pre_is_unwrapped():
     r"""\\(...\\) inside <pre> is unwrapped too."""
     html = '<p><pre>\\(x^2\\)</pre></p>'
     assert _convert_dollar_to_mathjax(html) == '<p>\\(x^2\\)</p>'
+
+
+def test_inline_mathjax_inside_code_is_unwrapped():
+    r"""MathJax inside <code> is unwrapped; ordinary code stays untouched."""
+    html = (
+        '<ul><li><b>q/k/v 投影</b>：KDA 中 <code>\\(q = W_q · x\\)</code>、'
+        '<code>\\(k = W_k · x\\)</code>、<code>\\(v = W_v · x\\)</code>；'
+        '代码 <code>f_a_proj</code> 保持不变。</li></ul>'
+    )
+    expected = (
+        '<ul><li><b>q/k/v 投影</b>：KDA 中 \\(q = W_q · x\\)、'
+        '\\(k = W_k · x\\)、\\(v = W_v · x\\)；'
+        '代码 <code>f_a_proj</code> 保持不变。</li></ul>'
+    )
+    assert _convert_dollar_to_mathjax(html) == expected
 
 
 def test_real_card_mathjax_unwrapped_from_nested_pre():

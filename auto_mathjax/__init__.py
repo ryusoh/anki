@@ -1048,17 +1048,18 @@ def _fix_mangled_mathjax(html_str):
     return html_str
 
 
-def _unwrap_mathjax_from_pre(html_str):
-    """Unwrap MathJax blocks that are trapped inside ``<pre>`` tags.
+def _unwrap_mathjax_from_ignored_containers(html_str):
+    """Unwrap MathJax blocks trapped inside ``<pre>`` or ``<code>`` tags.
 
     Anki's editor renders ``\\(...\\)`` / ``\\[...\\]`` by converting them to
-    ``<anki-mathjax>`` itself, so it does not care about ``<pre>`` wrappers.
+    ``<anki-mathjax>`` itself, so it does not care about either wrapper.
     The reviewer's MathJax tex2jax preprocessor, however, skips ``<pre>``
-    (and ``<code>``) by default, so the same field shows raw code during
-    review. Remove ``<pre>`` wrappers whose only real content is a MathJax
-    block, and drop any ``<pre>`` tags left empty by the unwrap.
+    and ``<code>`` by default, so the same field shows raw code during
+    review. Remove wrappers whose only real content is a MathJax block,
+    and drop any ``<pre>`` tags left empty by the unwrap. Ordinary code
+    and empty ``<code>`` elements are preserved.
     """
-    if '<pre' not in html_str.lower():
+    if not re.search(r'<(?:pre|code)\b', html_str, re.IGNORECASE):
         return html_str
 
     soup = BeautifulSoup(html_str, 'html.parser')
@@ -1067,10 +1068,10 @@ def _unwrap_mathjax_from_pre(html_str):
     changed = True
     while changed:
         changed = False
-        for pre in soup.find_all('pre'):
-            text = pre.get_text(strip=True)
+        for container in soup.find_all(['pre', 'code']):
+            text = container.get_text(strip=True)
             if re.fullmatch(math_block_re, text):
-                pre.unwrap()
+                container.unwrap()
                 changed = True
                 break
 
@@ -1261,7 +1262,7 @@ def _convert_dollar_to_mathjax(html_str):
     converted_html = _fix_cases_row_separator(converted_html)
     converted_html = _fix_half_bracketed_interval(converted_html)
     converted_html = _fix_shuffled_arrow_operands(converted_html)
-    converted_html = _unwrap_mathjax_from_pre(converted_html)
+    converted_html = _unwrap_mathjax_from_ignored_containers(converted_html)
     return _inject_macro_defs(converted_html)
 
 

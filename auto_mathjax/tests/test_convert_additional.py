@@ -9,7 +9,7 @@ from auto_mathjax import (
     _looks_like_bare_latex,
     _looks_like_math_content,
     _track_math_state,
-    _unwrap_mathjax_from_pre,
+    _unwrap_mathjax_from_ignored_containers,
     _wrap_embedded_latex,
 )
 
@@ -43,13 +43,16 @@ def test_inject_macro_defs(monkeypatch):
     assert _inject_macro_defs("some html \\def\\cmd") == "some html \\def\\cmd"
 
 
-def test_unwrap_math_pre_blocks():
+def test_unwrap_math_ignored_containers():
     html = "<pre></pre><pre> </pre>"
-    assert _unwrap_mathjax_from_pre(html) == ""
+    assert _unwrap_mathjax_from_ignored_containers(html) == ""
     html2 = "<pre>\\( math \\)</pre><pre> </pre>"
-    assert _unwrap_mathjax_from_pre(html2) == "\\( math \\)"
+    assert _unwrap_mathjax_from_ignored_containers(html2) == "\\( math \\)"
     html3 = "<pre>text</pre><pre></pre>"
-    assert _unwrap_mathjax_from_pre(html3) == "<pre>text</pre>"
+    assert _unwrap_mathjax_from_ignored_containers(html3) == "<pre>text</pre>"
+    html4 = "<code>\\(x^2\\)</code><code>f_a_proj</code><code></code>"
+    expected = "\\(x^2\\)<code>f_a_proj</code><code></code>"
+    assert _unwrap_mathjax_from_ignored_containers(html4) == expected
 
 
 def test_wrap_embedded_latex_empty_core(monkeypatch):
