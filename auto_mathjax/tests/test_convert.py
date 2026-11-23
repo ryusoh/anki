@@ -473,6 +473,51 @@ def test_command_operand_superscript_in_cjk_prose_converts():
     assert _convert_dollar_to_mathjax(html) == '满足 \\(A = A^\\dagger\\) 的方阵'
 
 
+def test_command_base_subscript_and_superscript_convert():
+    r"""Note 1795395743643: $\aleph_0$ — a \command acting as the base of _/^
+    must not leave an orphaned leading _/^ when command names are stripped."""
+    assert _convert_dollar_to_mathjax(r'$\aleph_0$') == r'\(\aleph_0\)'
+    assert _convert_dollar_to_mathjax(r'$\gimel_0$') == r'\(\gimel_0\)'
+    assert _convert_dollar_to_mathjax(r'$\hbar^2$') == r'\(\hbar^2\)'
+    assert _convert_dollar_to_mathjax(r'$\aleph_\beta$') == r'\(\aleph_\beta\)'
+    assert _convert_dollar_to_mathjax(r'$\textbf{x}_0$') == r'\(\textbf{x}_0\)'
+    assert _convert_dollar_to_mathjax(r'$\gimel^$') == r'$\gimel^$'
+    assert (
+        _convert_dollar_to_mathjax(r'基数都是 \aleph_0（阿列夫零）')
+        == r'基数都是 \(\aleph_0\)（阿列夫零）'
+    )
+    assert (
+        _convert_dollar_to_mathjax(r'基数都是 \aleph（阿列夫）') == r'基数都是 \(\aleph\)（阿列夫）'
+    )
+
+
+def test_cardinal_number_note_aleph_zero_converts():
+    r"""Regression for note 1795395743643: $\aleph_0$ inline alongside existing
+    \( ... \) blocks in CJK prose must convert to \(\aleph_0\)."""
+    html = (
+        '<ul><li><b>无穷的大小分级</b>：康托尔发现无穷也有大小之分。'
+        '自然数 \\(\\mathbb{N}\\)、整数 \\(\\mathbb{Z}\\)、有理数 \\(\\mathbb{Q}\\) '
+        '都能一一对应，基数都是最小的可数无穷 $\\aleph_0$（阿列夫零）；'
+        '而实数集 \\(\\mathbb{R}\\) 比它们更“大”，基数为连续统基数 '
+        '\\(\\mathfrak{c} = 2^{\\aleph_0}\\)。</li>'
+        '<li><b>与序数的对比</b>：序数看“排法”，基数看“多少”。'
+        '\\(\\omega\\) 和 \\(\\omega+1\\) 是不同的序数（队形不同，后者有最后一个元素），'
+        '但它们元素一样多，基数都是 $\\aleph_0$。</li></ul>'
+    )
+    expected = (
+        '<ul><li><b>无穷的大小分级</b>：康托尔发现无穷也有大小之分。'
+        '自然数 \\(\\mathbb{N}\\)、整数 \\(\\mathbb{Z}\\)、有理数 \\(\\mathbb{Q}\\) '
+        '都能一一对应，基数都是最小的可数无穷 \\(\\aleph_0\\)（阿列夫零）；'
+        '而实数集 \\(\\mathbb{R}\\) 比它们更“大”，基数为连续统基数 '
+        '\\(\\mathfrak{c} = 2^{\\aleph_0}\\)。</li>'
+        '<li><b>与序数的对比</b>：序数看“排法”，基数看“多少”。'
+        '\\(\\omega\\) 和 \\(\\omega+1\\) 是不同的序数（队形不同，后者有最后一个元素），'
+        '但它们元素一样多，基数都是 \\(\\aleph_0\\)。</li></ul>'
+    )
+    assert _convert_dollar_to_mathjax(html) == expected
+    assert _convert_dollar_to_mathjax(expected) == expected
+
+
 def test_cjk_subscript_label_converts():
     r"""S参数 note 1791856470298: $S_{输出, 输入}$ — a subscript with an
     operand is math notation even without a relation or arithmetic

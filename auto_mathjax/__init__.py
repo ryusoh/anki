@@ -59,7 +59,7 @@ BARE_LATEX_COMMAND_RE = re.compile(
     r'mathbb|mathrm|mathbf|mathit|mathcal|operatorname|'
     r'alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|vartheta|iota|kappa|'
     r'lambdabar|lambda|Lambda|mu|nu|xi|Xi|pi|Pi|varpi|rho|varrho|sigma|Sigma|varsigma|tau|upsilon|Upsilon|'
-    r'phi|Phi|varphi|chi|psi|Psi|omega|Omega|'
+    r'phi|Phi|varphi|chi|psi|Psi|omega|Omega|aleph|'
     r'%'
     r')(?![a-zA-Z])'
 )
@@ -80,12 +80,8 @@ ENV_GROUP_RE = re.compile(r'\\(?:begin|end)\s*\{[^{}]*\}')
 # short-word variable check.
 SUB_SUPER_GROUP_RE = re.compile(r'[_^]\s*\{(?:[^{}]|\{[^{}]*\})*\}')
 
-# A ^/_ whose operand is a \command (A^\dagger, v_k^\top). Stripped before
-# ANY_LATEX_COMMAND_RE removes the command so the operator is not orphaned
-# and misread as a dangling ^/_.
-SUB_SUPER_COMMAND_RE = re.compile(r'[_^]\s*\\[a-zA-Z]+')
-
-# Any \command token (for stripping when measuring leftover prose)
+# Any \command token (for replacing with a single-letter placeholder when
+# measuring leftover prose without orphaning adjacent ^/_ operators)
 ANY_LATEX_COMMAND_RE = re.compile(r'\\[a-zA-Z]+')
 
 # CJK ideographs, kana, and fullwidth punctuation. Natural-language text in
@@ -133,7 +129,7 @@ STANDALONE_MATH_SYMBOL_RE = re.compile(
     r'\\(?:'
     r'alpha|beta|gamma|Gamma|delta|Delta|epsilon|varepsilon|zeta|eta|theta|Theta|vartheta|iota|kappa|'
     r'lambdabar|lambda|Lambda|mu|nu|xi|Xi|pi|Pi|varpi|rho|varrho|sigma|Sigma|varsigma|tau|upsilon|Upsilon|'
-    r'phi|Phi|varphi|chi|psi|Psi|omega|Omega|'
+    r'phi|Phi|varphi|chi|psi|Psi|omega|Omega|aleph|'
     r'infty|nabla|partial|'
     r'lt|gt|le|ge|leq|geq|neq|approx|equiv|propto|sim|cong|simeq|ll|gg|'
     r'subset(?:eq)?|supset(?:eq)?|in|ni|notin|mid|parallel|perp|'
@@ -323,9 +319,8 @@ def _looks_like_math_content(inner):
     text = _decode_entities(inner)
     if BARE_LATEX_COMMAND_RE.search(text) or ENV_GROUP_RE.search(text):
         return True
-    stripped = TEXT_GROUP_RE.sub(' ', text)
-    stripped = SUB_SUPER_COMMAND_RE.sub(' ', stripped)
-    stripped = ANY_LATEX_COMMAND_RE.sub(' ', stripped)
+    stripped = TEXT_GROUP_RE.sub(' x ', text)
+    stripped = ANY_LATEX_COMMAND_RE.sub(' x ', stripped)
     if CJK_RE.search(stripped):
         if _looks_like_cjk_math_formula(stripped):
             return True
