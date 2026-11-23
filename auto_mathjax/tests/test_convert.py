@@ -518,6 +518,26 @@ def test_cardinal_number_note_aleph_zero_converts():
     assert _convert_dollar_to_mathjax(expected) == expected
 
 
+def test_three_letter_product_equation_converts():
+    r"""Note 1795395517880: $PV = nRT$ — juxtaposed 3-letter variable products
+    (nRT, mgh, NkT, etc.) in an expression with a math operator/relation must
+    convert, while operator-less 3-letter cashtag/prose spans stay untouched."""
+    html = (
+        '<ul><li><b>定义</b>：出现在理想气体状态方程 $PV = nRT$ 中的比例常数，'
+        '数值约为 \\(8.314\\ \\text{J/(mol}\\cdot\\text{K)}\\)。</li></ul>'
+    )
+    expected = (
+        '<ul><li><b>定义</b>：出现在理想气体状态方程 \\(PV = nRT\\) 中的比例常数，'
+        '数值约为 \\(8.314\\ \\text{J/(mol}\\cdot\\text{K)}\\)。</li></ul>'
+    )
+    assert _convert_dollar_to_mathjax(html) == expected
+    assert _convert_dollar_to_mathjax(expected) == expected
+    assert _convert_dollar_to_mathjax('$PE = mgh$') == '\\(PE = mgh\\)'
+    assert _convert_dollar_to_mathjax('$nRT^{2}$') == '\\(nRT^{2}\\)'
+    assert _convert_dollar_to_mathjax('$two-way$') == '$two-way$'
+    assert _convert_dollar_to_mathjax('$and/or$') == '$and/or$'
+
+
 def test_cjk_subscript_label_converts():
     r"""S参数 note 1791856470298: $S_{输出, 输入}$ — a subscript with an
     operand is math notation even without a relation or arithmetic

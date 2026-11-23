@@ -330,10 +330,12 @@ def _looks_like_math_content(inner):
     core = stripped.strip()
     if core and (core[0] in '^_' or core[-1] in '^_'):
         return False
+    has_math_op = bool(re.search(r'[=+*^_<>]', stripped))
     stripped = SUB_SUPER_GROUP_RE.sub(' ', stripped)
     if re.fullmatch(r'[a-zA-Z]+', text):
         return True
-    return all(len(word) <= 2 for word in re.findall(r'[a-zA-Z]+', stripped))
+    max_len = 3 if has_math_op else 2
+    return all(len(word) <= max_len for word in re.findall(r'[a-zA-Z]+', stripped))
 
 
 def _track_math_state(open_delim, segment):
