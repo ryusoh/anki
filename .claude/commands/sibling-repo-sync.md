@@ -41,7 +41,9 @@ lint typecheck-js quality-py check sync-check thinking-check bot-pr-check`);
   tooling lives in `scripts/agents/` (`gate_guard.py`, `prior_prs.py`,
   `check_commit_message.py`), while skill sync is `scripts/sync_commands.py` at
   top level; Python tests live in `tests/python/`. `ci.yml` checks out with
-  `fetch-depth: 0`.
+  `fetch-depth: 0`. Shares the home repo's `.github/workflows/pages.yml`
+  shape (GitHub Pages deploy + service-worker cache stamping + 3-attempt
+  deploy retry with backoff, synced Nov 2026).
 - **`~/dev/networking`** — multi-language net-tools monorepo (JS Chrome
   extension, Python, C, eBPF); no `.pre-commit-config.yaml`. Default branch:
   `main`. CI gate: `make precommit` (on macOS: `make precommit-docker`, because
@@ -58,7 +60,8 @@ make -C nas_proxy clean`) if host `make precommit` hits `Exec format error`.
   markdownlint (`prettier --check` covers CSS and Markdown). `ci.yml` rejects
   empty PRs and uses `fetch-depth: 0`. `ship` uses "Branch mode" and asks
   before push. Generated outputs: `coverage/`, `adblock/dist/`,
-  `nas_proxy/out/`, `.claude/commands/`, command logs.
+  `nas_proxy/out/`, `.claude/commands/`, command logs. No Pages deploy
+  workflow — deploy-retry syncs do not apply.
 - **`~/dev/ryusoh.github.io`** — JS-only static site (plain `<script>`, no ES
   modules, no Python data pipeline). Default branch: **`master`**. CI runs
   `pre-commit run --all-files` plus direct `npx` steps (not `make`), so a
@@ -72,7 +75,10 @@ make -C nas_proxy clean`) if host `make precommit` hits `Exec format error`.
   via `/Users/lz/dev/.venv`, wired into a pre-push hook
   `pytest -q || [ $? -eq 5 ]`, unwired in Makefile). `ci.yml` uses
   `fetch-depth: 0` and Python 3.12. `ship` is a single linear `master` flow
-  (`make check` + `make test`, asks before push).
+  (`make check` + `make test`, asks before push). Shares the home repo's
+  `.github/workflows/pages.yml` shape (GitHub Pages deploy + service-worker
+  cache stamping + 3-attempt deploy retry with backoff, synced Nov 2026;
+  branch `master`, cache prefix `ryusoh-cache-`).
 
 ## Process
 
