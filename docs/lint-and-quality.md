@@ -54,20 +54,21 @@ configs, not in the `Makefile` scope.
 
 ## Toolchain
 
-| Layer                        | Tool                  | Config                                  | Scope                                                         |
-| ---------------------------- | --------------------- | --------------------------------------- | ------------------------------------------------------------- |
-| JS lint                      | ESLint (flat)         | `eslint.config.cjs`                     | addon `*.js` (vendored excluded)                              |
-| CSS lint                     | Stylelint             | `.stylelintrc.cjs` + `.stylelintignore` | addon `*.css` (vendored excluded)                             |
-| Markdown lint                | markdownlint-cli      | `.markdownlint.json`                    | tracked `*.md`                                                |
-| Format (JS/CSS/MD/JSON/HTML) | Prettier              | _defaults_ (no `.prettierrc`)           | `make fmt` glob                                               |
-| JS types                     | tsc `--checkJs`       | `jsconfig.json`                         | strict-mode whitelist only (see `docs/js-typing-strategy.md`) |
-| Python lint                  | Ruff                  | `[tool.ruff]` in `pyproject.toml`       | `PY_ALL`                                                      |
-| Python format                | Black                 | `[tool.black]` in `pyproject.toml`      | `PY_ALL`                                                      |
-| Python types                 | mypy                  | `mypy.ini`                              | `PY_SRC`                                                      |
-| Python security              | Bandit                | `.bandit` (INI, via `--ini`)            | `PY_SRC`                                                      |
-| Python complexity            | xenon (radon)         | `Makefile` `complexity-py`              | `PY_ALL` (vendored excluded via `-e`)                         |
-| JS dependency structure      | dependency-cruiser    | `.dependency-cruiser.cjs`               | `js/` (`js/vendor` excluded)                                  |
-| Python dependency structure  | import-linter (grimp) | `pyproject.toml` `[tool.importlinter]`  | addon packages (`data/anki` excluded)                         |
+| Layer                        | Tool                      | Config                                  | Scope                                                           |
+| ---------------------------- | ------------------------- | --------------------------------------- | --------------------------------------------------------------- |
+| JS lint                      | ESLint (flat)             | `eslint.config.cjs`                     | addon `*.js` (vendored excluded)                                |
+| CSS lint                     | Stylelint                 | `.stylelintrc.cjs` + `.stylelintignore` | addon `*.css` (vendored excluded)                               |
+| Markdown lint                | markdownlint-cli          | `.markdownlint.json`                    | tracked `*.md`                                                  |
+| Markdown box alignment       | `tools/check_md_boxes.py` | —                                       | fenced Unicode boxes in `*.md` (`make lint-md` / `lint-md-fix`) |
+| Format (JS/CSS/MD/JSON/HTML) | Prettier                  | _defaults_ (no `.prettierrc`)           | `make fmt` glob (includes pipe-table alignment)                 |
+| JS types                     | tsc `--checkJs`           | `jsconfig.json`                         | strict-mode whitelist only (see `docs/js-typing-strategy.md`)   |
+| Python lint                  | Ruff                      | `[tool.ruff]` in `pyproject.toml`       | `PY_ALL`                                                        |
+| Python format                | Black                     | `[tool.black]` in `pyproject.toml`      | `PY_ALL`                                                        |
+| Python types                 | mypy                      | `mypy.ini`                              | `PY_SRC`                                                        |
+| Python security              | Bandit                    | `.bandit` (INI, via `--ini`)            | `PY_SRC`                                                        |
+| Python complexity            | xenon (radon)             | `Makefile` `complexity-py`              | `PY_ALL` (vendored excluded via `-e`)                           |
+| JS dependency structure      | dependency-cruiser        | `.dependency-cruiser.cjs`               | `js/` (`js/vendor` excluded)                                    |
+| Python dependency structure  | import-linter (grimp)     | `pyproject.toml` `[tool.importlinter]`  | addon packages (`data/anki` excluded)                           |
 
 `PY_SRC` / `PY_ALL` are defined in the `Makefile`: the addon source we maintain
 (broader than `PY_TEST_SUITES`), with vendored code excluded via the tool configs.

@@ -165,9 +165,9 @@ a human."
 - `graph/` — Python graph pipeline (`networkx`). `data/anki/` — stats
   generators. `tests/` — root-level node tests (`*.test.cjs` / `*.test.mjs`).
 - `tools/` — repository tooling (`gate_guard.py`, `check_thinking_comments.py`,
-  `sync_commands.py`, `coverage_rank.py`, `dump_field.py`, `task_harness.py`,
-  etc.); script references in agent docs and skills are checked by
-  `tools/test_doc_tool_references.py`.
+  `check_md_boxes.py`, `sync_commands.py`, `coverage_rank.py`, `dump_field.py`,
+  `task_harness.py`, etc.); script references in agent docs and skills are
+  checked by `tools/test_doc_tool_references.py`.
 - `docs/` — subsystem how-tos and gotchas (every doc is linked from
   `docs/README.md`).
 
