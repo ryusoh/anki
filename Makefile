@@ -848,9 +848,11 @@ lint-md:
 		echo "No markdownlint or no MD files to lint"; \
 	fi
 	@$(PYTHON) tools/check_md_boxes.py
+	@$(PYTHON) tools/check_md_latex.py
 
 lint-md-fix:
 	@$(PYTHON) tools/check_md_boxes.py --fix
+	@$(PYTHON) tools/check_md_latex.py --fix
 	@if command -v npx >/dev/null 2>&1 && [ -n "$(strip $(MD_FILES))" ]; then \
 		echo "Fixing Markdown issues..."; \
 		npx markdownlint-cli --fix $(MD_FILES) || echo "Markdownlint could not fix all issues"; \
