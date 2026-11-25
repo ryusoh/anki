@@ -239,6 +239,36 @@ def test_unordered_list_dash_nbsp_indent():
     assert convert_markdown_field(html) == expected
 
 
+def test_unordered_list_glued_between_ol_and_ul_with_nbsp():
+    """Re-conversion of a partially converted field: &nbsp;-indented bullets
+    glued between </ol> and <ul>/</li> with no <br>."""
+    html = (
+        '<ol><li><b>Clear Semantics (语义无歧义)</b></li></ol>'
+        '&nbsp;&nbsp; * XLS 的 DSLX 是一种无副作用的函数式语言。一段代码输入什么、输出什么，行为是 100% 确定的。'
+        '<ul><li><b>对 AI 的意义</b>：确定输出。'
+        '<ol><li><b>Robust Verification (形式化等价可判)</b></li></ol>'
+        '&nbsp;&nbsp; * XLS 内置了形式化验证。'
+        '</li><li><b>对 AI 的意义</b>：自动阅卷。</li></ul>'
+    )
+    out = convert_markdown_field(html)
+    assert (
+        '<ul><li>XLS 的 DSLX 是一种无副作用的函数式语言。一段代码输入什么、输出什么，行为是 100% 确定的。</li></ul>'
+        in out
+    )
+    assert '<ul><li>XLS 内置了形式化验证。</li></ul>' in out
+    assert '* XLS' not in out
+    assert convert_markdown_field(out) == out
+
+
+def test_unordered_list_glued_after_closing_list_followed_by_br_items():
+    """Glued first bullet after </ul> merges with subsequent <br>-separated bullets."""
+    html = '<ul><li>Intro</li></ul>&nbsp; - First<br>&nbsp; - Second'
+    expected = '<ul><li>Intro</li></ul><ul><li>First</li><li>Second</li></ul>'
+    out = convert_markdown_field(html)
+    assert out == expected
+    assert convert_markdown_field(out) == out
+
+
 # ---------------------------------------------------------------------------
 # Ordered lists
 # ---------------------------------------------------------------------------

@@ -586,6 +586,65 @@ def _split_leading_block_boundary_row(parts: list[tuple[str, str]]) -> list[tupl
     return result
 
 
+# Unordered list item glued onto a closing block tag with no <br> before it
+# (typically because `_clean_spacings` stripped `<br>` around a converted list
+# or heading while leaving an `&nbsp;`-indented bullet unconverted).
+_GLUED_LIST_SPLIT_RE = re.compile(
+    r"(</(?:div|ul|ol|p|blockquote|h[1-6])\s*>)"
+    r"((?:\s|&nbsp;)*[-*+](?:\s|&nbsp;)+)",
+    re.IGNORECASE,
+)
+_BLOCK_TAG_BOUNDARY_RE = re.compile(
+    r"</?(?:div|ul|ol|li|p|blockquote|h[1-6]|pre|table|hr)\b[^>]*>",
+    re.IGNORECASE,
+)
+
+
+def _inside_list_item(prefix: str) -> bool:
+    """True when `prefix` leaves an unclosed <li> or is an unconverted list line."""
+    low = prefix.lower()
+    if low.rfind("<li") > low.rfind("</li"):
+        return True
+    cleaned = _LEADING_WS_NBSP_RE.sub("", prefix).strip()
+    return bool(_UL_RE.match(cleaned) or _OL_RE.match(cleaned))
+
+
+def _split_glued_list_items(parts: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """Split unordered list items glued onto adjacent block HTML with no <br>."""
+    result: list[tuple[str, str]] = []
+    for content, kind in parts:
+        if kind != "text":
+            result.append((content, kind))
+            continue
+
+        remaining = content
+        search_from = 0
+        while remaining:
+            m = _GLUED_LIST_SPLIT_RE.search(remaining, search_from)
+            if not m:
+                result.append((remaining, "text"))
+                break
+            prefix = remaining[: m.start(2)]
+            closing_tag = m.group(1).lower()
+            # A non-list closing tag (e.g. </h3>) inside an open list item is
+            # inline markup of that item, not a sibling block boundary.
+            if closing_tag not in ("</ol>", "</ul>") and _inside_list_item(prefix):
+                search_from = m.end()
+                continue
+            next_block = _BLOCK_TAG_BOUNDARY_RE.search(remaining, m.end())
+            item_end = next_block.start() if next_block else len(remaining)
+            item_body = remaining[m.end() : item_end]
+            if not item_body.replace("&nbsp;", "").strip():
+                search_from = m.end()
+                continue
+            if prefix:
+                result.append((prefix, "text"))
+            result.append((remaining[m.start(2) : item_end], "text"))
+            remaining = remaining[item_end:]
+            search_from = 0
+    return result
+
+
 def _parse_alignment(cell: str) -> str:
     cell = cell.strip()
     if cell.startswith(":") and cell.endswith(":"):
@@ -892,6 +951,9 @@ def convert_markdown_field(html: str) -> str:
 
     # Parse tables
     parts = _parse_tables(parts)
+
+    # Split off list items glued onto adjacent block HTML with no <br>.
+    parts = _split_glued_list_items(parts)
 
     # Parse individual lines
     converted_parts: list[tuple[str, str]] = []
