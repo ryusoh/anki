@@ -62,6 +62,7 @@ def _run_upload_only(staging, monkeypatch, upload):
     monkeypatch.setattr(r2, 'get_staging_dir', lambda: staging)
     monkeypatch.setattr(r2, 'load_credentials', lambda: dict(CREDS))
     monkeypatch.setattr(r2, 'upload_to_r2', upload)
+    monkeypatch.setattr(r2, '_delete_old_reviews_monolith', lambda creds: None)
     monkeypatch.setattr(sys, 'argv', ['upload-to-r2', '--upload-only'])
     r2.main()
 
