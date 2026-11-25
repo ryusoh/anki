@@ -269,6 +269,16 @@ def test_unordered_list_glued_after_closing_list_followed_by_br_items():
     assert convert_markdown_field(out) == out
 
 
+def test_glued_list_split_skips_dialogue_inside_open_dd():
+    """Wiktionary <dd> dialogue quotes ending at </dd></dl></li>\\n stay idempotent."""
+    html = (
+        '<dl><dd>- Map?<br>- But you kept the map?<br>'
+        '- Oh, sure. Why not?</dd></dl></li>\n<li>Next</li>'
+    )
+    out = convert_markdown_field(html)
+    assert convert_markdown_field(out) == out
+
+
 # ---------------------------------------------------------------------------
 # Ordered lists
 # ---------------------------------------------------------------------------

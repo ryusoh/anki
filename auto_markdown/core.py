@@ -590,19 +590,23 @@ def _split_leading_block_boundary_row(parts: list[tuple[str, str]]) -> list[tupl
 # (typically because `_clean_spacings` stripped `<br>` around a converted list
 # or heading while leaving an `&nbsp;`-indented bullet unconverted).
 _GLUED_LIST_SPLIT_RE = re.compile(
-    r"(</(?:div|ul|ol|p|blockquote|h[1-6])\s*>)"
-    r"((?:\s|&nbsp;)*[-*+](?:\s|&nbsp;)+)",
+    r"(</(?:div|ul|ol|p|blockquote|h[1-6])\s*>)" r"((?:\s|&nbsp;)*[-*+](?:\s|&nbsp;)+)",
     re.IGNORECASE,
 )
 _BLOCK_TAG_BOUNDARY_RE = re.compile(
-    r"</?(?:div|ul|ol|li|p|blockquote|h[1-6]|pre|table|hr)\b[^>]*>",
+    r"</?(?:div|ul|ol|li|p|blockquote|h[1-6]|pre|table|hr|dl|dt|dd)\b[^>]*>",
     re.IGNORECASE,
 )
 
 
-def _inside_list_item(prefix: str) -> bool:
-    """True when `prefix` leaves an unclosed <li> or is an unconverted list line."""
+def _inside_open_item_or_dd(prefix: str, closing_tag: str) -> bool:
+    """True when `prefix` leaves an open <dd>/<dt>, or an open <li> / list line
+    around a non-list closing tag (so inline markup isn't split)."""
     low = prefix.lower()
+    if low.rfind("<dd") > low.rfind("</dd") or low.rfind("<dt") > low.rfind("</dt"):
+        return True
+    if closing_tag.startswith(("</ol", "</ul")):
+        return False
     if low.rfind("<li") > low.rfind("</li"):
         return True
     cleaned = _LEADING_WS_NBSP_RE.sub("", prefix).strip()
@@ -626,9 +630,7 @@ def _split_glued_list_items(parts: list[tuple[str, str]]) -> list[tuple[str, str
                 break
             prefix = remaining[: m.start(2)]
             closing_tag = m.group(1).lower()
-            # A non-list closing tag (e.g. </h3>) inside an open list item is
-            # inline markup of that item, not a sibling block boundary.
-            if closing_tag not in ("</ol>", "</ul>") and _inside_list_item(prefix):
+            if _inside_open_item_or_dd(prefix, closing_tag):
                 search_from = m.end()
                 continue
             next_block = _BLOCK_TAG_BOUNDARY_RE.search(remaining, m.end())
