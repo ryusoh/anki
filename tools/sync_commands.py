@@ -111,9 +111,15 @@ def format_generated_commands(target_dir: str) -> None:
     ]
     if not files:
         return
+    local_prettier = os.path.join(WORKSPACE_ROOT, "node_modules", ".bin", "prettier")
+    cmd = (
+        [local_prettier, "--write", *files]
+        if os.path.isfile(local_prettier)
+        else ["npx", "prettier", "--write", *files]
+    )
     try:
         subprocess.run(
-            ["npx", "prettier", "--write", *files],
+            cmd,
             cwd=WORKSPACE_ROOT,
             check=True,
             capture_output=True,

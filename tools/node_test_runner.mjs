@@ -187,6 +187,18 @@ async function generateCoverageReport() {
   }
 }
 
+function buildRunOrder(testFiles) {
+  return testFiles
+    .map((_, i) => i)
+    .sort((a, b) => Number(testFiles[b].endsWith('.mjs')) - Number(testFiles[a].endsWith('.mjs')) || a - b);
+}
+
+function getConcurrency() {
+  const envVal = Number.parseInt(process.env.NODE_TEST_CONCURRENCY || '', 10);
+  if (Number.isFinite(envVal) && envVal > 0) return envVal;
+  return Math.max(1, Math.min(os.cpus()?.length || 4, 8));
+}
+
 async function runAllTests() {
   console.log('\n\x1b[1m🚀 Running Node.js Test Suite...\x1b[0m\n');
 
@@ -198,15 +210,16 @@ async function runAllTests() {
   }
 
   const results = new Array(testFiles.length);
+  const runOrder = buildRunOrder(testFiles);
   let currentIndex = 0;
   let passed = 0;
   let failed = 0;
 
-  const concurrency = Math.max(1, Math.min(os.cpus()?.length || 4, 8));
+  const concurrency = getConcurrency();
 
   async function worker() {
-    while (currentIndex < testFiles.length) {
-      const idx = currentIndex++;
+    while (currentIndex < runOrder.length) {
+      const idx = runOrder[currentIndex++];
       const file = testFiles[idx];
       const result = await runTest(file);
       results[idx] = result;

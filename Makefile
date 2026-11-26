@@ -11,6 +11,9 @@ export NPM_CONFIG_LOGLEVEL ?= error
 # Core count for the parallel verify gate (see `verify` target below). sysctl
 # is macOS; nproc covers Linux CI runners; 4 is a safe last-resort default.
 JOBS ?= $(shell sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)
+PY_JOBS ?= $(JOBS)
+HALF_JOBS := $(shell expr \( $(JOBS) + 1 \) / 2)
+NODE_BIN = $(if $(wildcard node_modules/.bin/$(1)),"./node_modules/.bin/$(1)",npx $(1))
 
 # Fail loudly if an installed dev tool has drifted from its requirements-dev.txt
 # pin, instead of silently formatting/linting with the wrong version — a stale
@@ -26,13 +29,14 @@ if [ -n "$$pinned" ] && [ "$$pinned" != "$$installed" ]; then \
 fi
 endef
 
-# File patterns for formatters/linters (exclude vendor, data, and node_modules directories)
-JS_FILES := $(shell git ls-files --cached --others --exclude-standard '*.js' 2>/dev/null | grep -v '^js/vendor/' | grep -v '^assets/vendor/' | grep -v '^data/' | grep -v '^coverage/' | grep -v 'node_modules' | grep -v '\.min\.js$$' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
-CSS_FILES := $(shell git ls-files --cached --others --exclude-standard '*.css' 2>/dev/null | grep -v '^assets/vendor/' | grep -v '^coverage/' | grep -v '\.min\.css$$' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
-MD_FILES := $(shell git ls-files --cached --others --exclude-standard '*.md' 2>/dev/null | grep -v '^coverage/' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
-HTML_FILES := $(shell git ls-files --cached --others --exclude-standard '*.html' 2>/dev/null | grep -v '^coverage/' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
-JSON_FILES := $(shell git ls-files --cached --others --exclude-standard '*.json' 2>/dev/null | grep -v '^data/' | grep -v '^graph/' | grep -v '^coverage/' | grep -v 'package-lock.json' | grep -v 'custom_stats_data.json' | grep -v 'review_stats_data.json' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
-PRETTIER_FILES := $(JS_FILES) $(CSS_FILES) $(MD_FILES) $(HTML_FILES) $(JSON_FILES)
+# File patterns for formatters/linters (exclude vendor, data, and node_modules directories).
+# Lazy (=) so recursive $(MAKE) sub-invocations that do not format/lint skip 5 git ls-files passes.
+JS_FILES = $(shell git ls-files --cached --others --exclude-standard '*.js' 2>/dev/null | grep -v '^js/vendor/' | grep -v '^assets/vendor/' | grep -v '^data/' | grep -v '^coverage/' | grep -v 'node_modules' | grep -v '\.min\.js$$' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
+CSS_FILES = $(shell git ls-files --cached --others --exclude-standard '*.css' 2>/dev/null | grep -v '^assets/vendor/' | grep -v '^coverage/' | grep -v '\.min\.css$$' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
+MD_FILES = $(shell git ls-files --cached --others --exclude-standard '*.md' 2>/dev/null | grep -v '^coverage/' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
+HTML_FILES = $(shell git ls-files --cached --others --exclude-standard '*.html' 2>/dev/null | grep -v '^coverage/' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
+JSON_FILES = $(shell git ls-files --cached --others --exclude-standard '*.json' 2>/dev/null | grep -v '^data/' | grep -v '^graph/' | grep -v '^coverage/' | grep -v 'package-lock.json' | grep -v 'custom_stats_data.json' | grep -v 'review_stats_data.json' | while read f; do [ -f "$$f" ] && echo "$$f"; done)
+PRETTIER_FILES = $(JS_FILES) $(CSS_FILES) $(MD_FILES) $(HTML_FILES) $(JSON_FILES)
 
 # Python we own and maintain — now spans the addons that were originally
 # installed from AnkiWeb but which we modify in this repo. The only Python kept
@@ -274,7 +278,7 @@ check-node:
 	STATUS=$$?; \
 	rm -rf "$$COVDIR"; \
 	if [ $$STATUS -eq 0 ]; then \
-		NODE_OPTIONS="--experimental-vm-modules --no-warnings" npx jest --ci --colors review_heatmap/tests/; \
+		NODE_OPTIONS="--experimental-vm-modules --no-warnings" $(call NODE_BIN,jest) --ci --colors $(if $(NODE_TEST_CONCURRENCY),--maxWorkers=$(NODE_TEST_CONCURRENCY),) review_heatmap/tests/; \
 		STATUS=$$?; \
 	fi; \
 	exit $$STATUS
@@ -320,7 +324,11 @@ check-handler-validation:
 # are committed — no manual registration to forget. To intentionally opt a
 # directory out, append it to PY_TEST_EXCLUDE with a reason.
 PY_TEST_EXCLUDE :=
-PY_TEST_SUITES := $(filter-out $(PY_TEST_EXCLUDE),$(shell git ls-files --cached --others --exclude-standard '*/test_*.py' 2>/dev/null | sed -E 's|/[^/]+$$||' | sort -u))
+# Schedule longest-running suites first so `make -j` never strands a slow suite
+# at the alphabetical tail after sub-second addon suites have finished.
+PY_HEAVY_SUITES := tools tests data/anki/tests graph/tests auto_itaigi/tests auto_wiktionary/tests awesome_tts/tests
+PY_DISCOVERED_SUITES := $(filter-out $(PY_TEST_EXCLUDE),$(shell git ls-files --cached --others --exclude-standard '*/test_*.py' 2>/dev/null | sed -E 's|/[^/]+$$||' | sort -u))
+PY_TEST_SUITES := $(filter $(PY_DISCOVERED_SUITES),$(PY_HEAVY_SUITES)) $(filter-out $(PY_HEAVY_SUITES),$(PY_DISCOVERED_SUITES))
 
 # Suites run as parallel sub-make jobs (one phony target per suite) instead of
 # a serial loop: each gets its own COVERAGE_FILE (no shared state to race on)
@@ -352,9 +360,11 @@ $(PY_SUITE_BUF_TARGETS): pysuite-buf/%:
 
 check-py:
 	@echo "🐍 Running Python Test Suite (with coverage, parallel)..."
-	@COVDIR=$$(mktemp -d .coverage-tmp.XXXXXX); \
-	$(MAKE) -j$(JOBS) -k $(PY_SUITE_BUF_TARGETS) PY_COV_DIR="$$COVDIR" 2>/dev/null; \
-	$(PYTHON) tools/format_pytest_output.py "$$COVDIR" "$(PY_TEST_SUITES)"; \
+	@mkdir -p .make; \
+	COVDIR=$$(mktemp -d .make/pycov.XXXXXX); \
+	trap 'rm -rf "$$COVDIR"' EXIT INT TERM; \
+	$(MAKE) -j$(PY_JOBS) -k $(PY_SUITE_BUF_TARGETS) PY_COV_DIR="$$COVDIR" 2>/dev/null; \
+	$(PYTHON) tools/format_pytest_output.py "$$COVDIR" "$(PY_DISCOVERED_SUITES)"; \
 	FAIL=$$?; \
 	echo ""; \
 	echo "📊 Combined Python coverage:"; \
@@ -493,7 +503,7 @@ mutate-js:
 # BOTH `precommit` (verify-only, what CI runs) and `precommit-fix` (fix-then-verify)
 # reference this, so they can never silently diverge. Add a gate here once and it
 # applies everywhere; CI runs `make precommit SKIP=1`.
-VERIFY_GATE := fmt-check lint typecheck-js quality-py check sync-check thinking-check bot-pr-check
+VERIFY_GATE := check-py check-node quality-py lint fmt-check typecheck-js sync-check thinking-check bot-pr-check
 
 # Output buffering for the parallel verify gate: macOS ships GNU Make 3.81 which
 # lacks --output-sync, so each gate member's output is captured in a log file
@@ -510,7 +520,7 @@ VERIFY_GATE_BUFFERED := $(addprefix vgate/,$(VERIFY_GATE))
 $(VERIFY_GATE_BUFFERED): vgate/%:
 	@mkdir -p $(VERIFY_LOG_DIR)
 	@printf '  \033[2m⏳ %s ...\033[0m\n' "$*"
-	@MAKEFLAGS= FORCE_COLOR=1 $(MAKE) $* > "$(VERIFY_LOG_DIR)/$*.log" 2>&1; \
+	@MAKEFLAGS= FORCE_COLOR=1 PY_JOBS=$(HALF_JOBS) NODE_TEST_CONCURRENCY=$(HALF_JOBS) $(MAKE) $* > "$(VERIFY_LOG_DIR)/$*.log" 2>&1; \
 	RC=$$?; echo "$$RC" > "$(VERIFY_LOG_DIR)/$*.rc"; \
 	if [ "$$RC" = "0" ]; then \
 		printf '  \033[32m✅ %s\033[0m\n' "$*"; \
@@ -746,17 +756,19 @@ images:
 # -----------------------------------------------------------------------------
 
 fmt:
-	@if command -v npx >/dev/null 2>&1 && [ -n "$(strip $(PRETTIER_FILES))" ]; then \
+	@files="$(strip $(PRETTIER_FILES))"; \
+	if command -v npx >/dev/null 2>&1 && [ -n "$$files" ]; then \
 		echo "Formatting files with Prettier..."; \
-		NODE_OPTIONS="--max-old-space-size=4096" npx prettier --write --cache --log-level warn --ignore-path .gitignore $(PRETTIER_FILES); \
+		NODE_OPTIONS="--max-old-space-size=4096" $(call NODE_BIN,prettier) --write --cache --log-level warn --ignore-path .gitignore $$files; \
 	else \
 		echo "No Prettier or no files to format"; \
 	fi
 
 fmt-check:
-	@if command -v npx >/dev/null 2>&1 && [ -n "$(strip $(PRETTIER_FILES))" ]; then \
+	@files="$(strip $(PRETTIER_FILES))"; \
+	if command -v npx >/dev/null 2>&1 && [ -n "$$files" ]; then \
 		echo "Checking formatting..."; \
-		NODE_OPTIONS="--max-old-space-size=4096" npx prettier --check --cache --log-level warn --ignore-path .gitignore $(PRETTIER_FILES); \
+		NODE_OPTIONS="--max-old-space-size=4096" $(call NODE_BIN,prettier) --check --cache --log-level warn --ignore-path .gitignore $$files; \
 	else \
 		echo "No Prettier or no files to check"; \
 	fi
@@ -785,7 +797,7 @@ lint: lint-js lint-css lint-md depcheck
 depcheck:
 	@if command -v npx >/dev/null 2>&1; then \
 		echo "Checking JS dependency structure (dependency-cruiser)..."; \
-		npx dependency-cruiser js sw.js --config .dependency-cruiser.cjs; \
+		$(call NODE_BIN,dependency-cruiser) js sw.js --config .dependency-cruiser.cjs; \
 	else \
 		echo "⊘ npx not found — skipping dependency-structure check"; \
 	fi
@@ -798,7 +810,7 @@ typecheck-js:
 	@if command -v npx >/dev/null 2>&1; then \
 		if [ -f jsconfig.json ]; then \
 			echo "JS type check (tsc --checkJs on whitelist)..."; \
-			npx tsc -p jsconfig.json; \
+			$(call NODE_BIN,tsc) -p jsconfig.json; \
 		else \
 			echo "⊘ No jsconfig.json found — skipping JS type check"; \
 		fi; \
@@ -809,7 +821,7 @@ lint-js:
 	@if command -v npx >/dev/null 2>&1; then \
 		if ls eslint.config.* .eslintrc* 2>/dev/null | grep -q .; then \
 			echo "Linting JavaScript (ESLint, first-party only)..."; \
-			npx eslint --cache --cache-location .make/eslintcache .; \
+			$(call NODE_BIN,eslint) --cache --cache-location .make/eslintcache .; \
 		else \
 			echo "⊘ No ESLint config found — skipping JS lint"; \
 		fi; \
@@ -820,7 +832,7 @@ lint-css:
 	@if command -v npx >/dev/null 2>&1; then \
 		if ls .stylelintrc* stylelint.config.* 2>/dev/null | grep -q .; then \
 			echo "Linting CSS (Stylelint, first-party only)..."; \
-			npx stylelint --cache --cache-location .make/stylelintcache "**/*.css"; \
+			$(call NODE_BIN,stylelint) --cache --cache-location .make/stylelintcache "**/*.css"; \
 		else \
 			echo "⊘ No Stylelint config found — skipping CSS lint"; \
 		fi; \
@@ -831,19 +843,20 @@ lint-fix:
 	@if command -v npx >/dev/null 2>&1; then \
 		if ls eslint.config.* .eslintrc* 2>/dev/null | grep -q .; then \
 			echo "Fixing JS lint issues (ESLint)..."; \
-			npx eslint --cache --cache-location .make/eslintcache . --fix || true; \
+			$(call NODE_BIN,eslint) --cache --cache-location .make/eslintcache . --fix || true; \
 		fi; \
 		if ls .stylelintrc* stylelint.config.* 2>/dev/null | grep -q .; then \
 			echo "Fixing CSS lint issues (Stylelint)..."; \
-			npx stylelint --cache --cache-location .make/stylelintcache "**/*.css" --fix || true; \
+			$(call NODE_BIN,stylelint) --cache --cache-location .make/stylelintcache "**/*.css" --fix || true; \
 		fi; \
 	fi
 	@$(MAKE) lint-md-fix
 
 lint-md:
-	@if command -v npx >/dev/null 2>&1 && [ -n "$(strip $(MD_FILES))" ]; then \
+	@files="$(strip $(MD_FILES))"; \
+	if command -v npx >/dev/null 2>&1 && [ -n "$$files" ]; then \
 		echo "Linting Markdown files..."; \
-		npx markdownlint-cli $(MD_FILES); \
+		$(call NODE_BIN,markdownlint-cli) $$files; \
 	else \
 		echo "No markdownlint or no MD files to lint"; \
 	fi
@@ -853,9 +866,10 @@ lint-md:
 lint-md-fix:
 	@$(PYTHON) tools/check_md_boxes.py --fix
 	@$(PYTHON) tools/check_md_latex.py --fix
-	@if command -v npx >/dev/null 2>&1 && [ -n "$(strip $(MD_FILES))" ]; then \
+	@files="$(strip $(MD_FILES))"; \
+	if command -v npx >/dev/null 2>&1 && [ -n "$$files" ]; then \
 		echo "Fixing Markdown issues..."; \
-		npx markdownlint-cli --fix $(MD_FILES) || echo "Markdownlint could not fix all issues"; \
+		$(call NODE_BIN,markdownlint-cli) --fix $$files || echo "Markdownlint could not fix all issues"; \
 	else \
 		echo "No markdownlint or no MD files to fix"; \
 	fi

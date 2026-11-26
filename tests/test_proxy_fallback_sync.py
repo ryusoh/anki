@@ -12,7 +12,9 @@ upload-to-r2. See docs/limited-network.md, failure mode 3.
 """
 
 import ast
+import os
 import re
+import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -20,12 +22,19 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 SKIP_DIRS = {
     '.git',
     '.venv',
+    'venv',
     'node_modules',
     '__pycache__',
     '.mypy_cache',
     '.pytest_cache',
     '.ruff_cache',
     '.claude',  # agent worktrees are separate checkouts, not this tree
+    '.make',
+    '.mutmut-cache',
+    'coverage',
+    'graph_output',
+    'cloudflare',  # gitignored R2 staging tree (166k+ .json.gz files)
+    'pagerank',
 }
 
 PORTS_RE = re.compile(r'^_?LOCAL_PROXY_PORTS\s*=\s*(\([^)]*\))', re.MULTILINE)
@@ -48,14 +57,15 @@ PORT_LIST_FILES = VENDORED_COPIES | {
 
 
 def _iter_source_files():
-    for path in sorted(REPO_ROOT.rglob('*')):
-        if not path.is_file():
-            continue
-        rel = path.relative_to(REPO_ROOT)
-        if set(rel.parts) & SKIP_DIRS:
-            continue
-        if path.suffix == '.py' or rel.as_posix() in PORT_LIST_FILES:
-            yield rel
+    for root, dirs, files in os.walk(REPO_ROOT):
+        dirs[:] = sorted(
+            d for d in dirs if d not in SKIP_DIRS and not d.startswith('.coverage-tmp')
+        )
+        rel_root = Path(root).relative_to(REPO_ROOT)
+        for name in sorted(files):
+            rel = rel_root / name if rel_root.parts else Path(name)
+            if name.endswith('.py') or rel.as_posix() in PORT_LIST_FILES:
+                yield rel
 
 
 def _find_port_lists():
@@ -84,3 +94,26 @@ def test_proxy_port_lists_are_in_sync():
     )
     distinct = {ports for ports in found.values()}
     assert len(distinct) == 1, f'proxy port lists out of sync: {found}'
+
+
+def test_iter_source_files_prunes_skip_dirs(monkeypatch, tmp_path):
+    (tmp_path / 'addon').mkdir()
+    (tmp_path / 'addon' / 'mod.py').write_text('x = 1\n', encoding='utf-8')
+    for skipped in ('cloudflare', 'node_modules', '.venv', '.claude', '.coverage-tmp.abc'):
+        sub = tmp_path / skipped / 'nested'
+        sub.mkdir(parents=True)
+        (sub / 'ignored.py').write_text('y = 2\n', encoding='utf-8')
+
+    visited_dirs = []
+    real_walk = os.walk
+
+    def tracking_walk(top, *args, **kwargs):
+        for root, dirs, files in real_walk(top, *args, **kwargs):
+            visited_dirs.append(Path(root).relative_to(top).as_posix())
+            yield root, dirs, files
+
+    monkeypatch.setattr(os, 'walk', tracking_walk)
+    monkeypatch.setattr(sys.modules[__name__], 'REPO_ROOT', tmp_path)
+    found = [p.as_posix() for p in _iter_source_files()]
+    assert found == ['addon/mod.py']
+    assert set(visited_dirs) == {'.', 'addon'}

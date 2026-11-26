@@ -356,7 +356,7 @@ def test_integration_auto_rebase_when_remote_moves(tmp_path, monkeypatch):
 
     monkeypatch.chdir(clone1)
     assert len(git_push_retry.unpushed_commits()) == 1
-    code = git_push_retry.main(['--auto-rebase'])
+    code = git_push_retry.main(['--auto-rebase', '--base-delay', '0'])
     assert code == 0
     assert git_push_retry.unpushed_commits() == []
 
@@ -420,7 +420,7 @@ def test_integration_auto_rebase_preserves_committer_identity(tmp_path, monkeypa
     )
 
     monkeypatch.chdir(clone1)
-    code = git_push_retry.main(['--auto-rebase'])
+    code = git_push_retry.main(['--auto-rebase', '--base-delay', '0'])
     assert code == 0
 
     committer = subprocess.run(

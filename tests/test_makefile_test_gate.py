@@ -19,8 +19,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def _make_py_test_suites():
-    """Expand $(PY_TEST_SUITES) via make, so we test what the gate really runs."""
+def _make_py_test_suites_ordered():
+    """Expand $(PY_TEST_SUITES) via make in execution order."""
     # Strip MAKEFLAGS so the child make doesn't try to use inherited jobserver
     # FDs that Python's close_fds=True (default) has already closed — otherwise
     # this test fails with "Bad file descriptor" when run at sufficient nesting
@@ -35,7 +35,12 @@ def _make_py_test_suites():
         env=env,
     )
     assert result.returncode == 0, f"make failed to expand PY_TEST_SUITES: {result.stderr!r}"
-    return set(result.stdout.split())
+    return result.stdout.split()
+
+
+def _make_py_test_suites():
+    """Expand $(PY_TEST_SUITES) via make, so we test what the gate really runs."""
+    return set(_make_py_test_suites_ordered())
 
 
 def _discovered_test_dirs():
@@ -59,3 +64,12 @@ def test_py_test_suites_covers_every_addon_test_dir():
     """Every dir with a test_*.py must be gated, so new addons can't drift ungated."""
     missing = _discovered_test_dirs() - _make_py_test_suites()
     assert not missing, f"test directories not gated by PY_TEST_SUITES: {sorted(missing)}"
+
+
+def test_heavy_suites_scheduled_first():
+    """Heavy root suites (tools, tests) start in wave 1 rather than straggling last."""
+    ordered = _make_py_test_suites_ordered()
+    assert ordered[:2] == [
+        "tools",
+        "tests",
+    ], f"Expected tools and tests at front of PY_TEST_SUITES, got {ordered[:5]!r}"
