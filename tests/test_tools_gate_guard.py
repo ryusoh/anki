@@ -94,7 +94,10 @@ def test_main_execution_runpy(tmp_path):
     init_git(tmp_path)
     import runpy
 
+    from tools import gate_guard
+
+    assert gate_guard.__file__ is not None
     with patch("sys.argv", ["gate_guard", "snapshot", "--repo", str(tmp_path)]):
         with patch("sys.stdout"):
             with pytest.raises(SystemExit):
-                runpy.run_module("tools.gate_guard", run_name="__main__")
+                runpy.run_path(gate_guard.__file__, run_name="__main__")

@@ -27,13 +27,16 @@ def test_quick_3d_runpy():
     import runpy
     from unittest.mock import MagicMock
 
+    from graph import quick_3d
+
+    assert quick_3d.__file__ is not None
     with (
         patch('builtins.open', mock_open()),
         patch('gzip.open', mock_open(read_data='[{"guid":"1","flds":"a","tags":""}]')),
         patch('graph.quick_3d.print'),
         patch('sys.exit', MagicMock()),
     ):
-        runpy.run_module('graph.quick_3d', run_name='__main__')
+        runpy.run_path(quick_3d.__file__, run_name='__main__')
 
 
 def test_scale_node_size():

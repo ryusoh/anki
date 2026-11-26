@@ -85,10 +85,8 @@ def test_run_as_main():
     import runpy
     import sys
 
+    assert run_with_deadline.__file__ is not None
     with patch.object(sys, 'argv', ['run_with_deadline.py', '--seconds', '0.1', '--', 'true']):
-        # If we use run_module, it executes the __main__ block
-        import pytest
-
         with pytest.raises(SystemExit) as excinfo:
-            runpy.run_module('tools.run_with_deadline', run_name='__main__')
+            runpy.run_path(run_with_deadline.__file__, run_name='__main__')
         assert excinfo.value.code == 0

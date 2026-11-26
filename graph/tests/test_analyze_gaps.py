@@ -316,15 +316,15 @@ def test_analyze_export_all():
 
 def test_main_execution():
     """Test if __name__ == '__main__' block logic is executed"""
-    from graph.analyze import main
+    import runpy
 
+    from graph import analyze
+
+    assert analyze.__file__ is not None
     with patch('graph.analyze.main'):
         with patch('sys.argv', ['analyze.py']):
-            # Need to re-import or use runpy to hit the name == main block
-            import runpy
-
             try:
-                runpy.run_module('graph.analyze', run_name='__main__')
+                runpy.run_path(analyze.__file__, run_name='__main__')
             except SystemExit:
                 pass
 

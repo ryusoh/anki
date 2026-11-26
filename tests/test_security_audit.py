@@ -51,9 +51,10 @@ def test_check_json_file_for_private_data():
 
 
 def test_main_execution():
+    assert security_audit.__file__ is not None
     with patch("sys.exit") as mock_exit:
         with patch("sys.argv", ["security_audit.py", "--help"]):
-            runpy.run_module("tools.security_audit", run_name="__main__")
+            runpy.run_path(security_audit.__file__, run_name="__main__")
         mock_exit.assert_called()
 
 
