@@ -196,7 +196,7 @@ function buildRunOrder(testFiles) {
 function getConcurrency() {
   const envVal = Number.parseInt(process.env.NODE_TEST_CONCURRENCY || '', 10);
   if (Number.isFinite(envVal) && envVal > 0) return envVal;
-  return Math.max(1, Math.min(os.cpus()?.length || 4, 8));
+  return Math.max(1, Math.min(os.cpus()?.length || 4, 6));
 }
 
 async function runAllTests() {

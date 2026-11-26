@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -37,15 +38,25 @@ def _write_and_commit(repo: Path, path: str, content: str, message: str, bot: bo
     _commit(repo, message, bot=bot)
 
 
+@pytest.fixture(scope='module')
+def _template_repo(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """Build the base git repo once per module instead of 4x git spawns per test."""
+    base = tmp_path_factory.mktemp('hygiene_template') / 'repo'
+    base.mkdir()
+    _git(base, 'init', '-b', 'main')
+    (base / 'README.md').write_text('x\n')
+    _git(base, 'add', 'README.md')
+    _commit(base, 'init', bot=False)
+    _git(base, 'checkout', '-b', 'bot-branch')
+    return base
+
+
 @pytest.fixture()
-def repo(tmp_path: Path) -> Path:
+def repo(_template_repo: Path, tmp_path: Path) -> Path:
     """A git repo with one human commit on main and a bot branch checked out."""
-    _git(tmp_path, 'init', '-b', 'main')
-    (tmp_path / 'README.md').write_text('x\n')
-    _git(tmp_path, 'add', 'README.md')
-    _commit(tmp_path, 'init', bot=False)
-    _git(tmp_path, 'checkout', '-b', 'bot-branch')
-    return tmp_path
+    dest = tmp_path / 'repo'
+    shutil.copytree(_template_repo, dest)
+    return dest
 
 
 def test_clean_bot_test_addition_passes(repo: Path) -> None:
@@ -307,8 +318,15 @@ def test_all_stray_artifact_patterns_are_gitignored() -> None:
     ]
     for path in sample_artifacts:
         assert _is_stray_artifact(path), f'{path} should be detected as stray'
-        res = subprocess.run(['git', 'check-ignore', '-q', path], cwd=repo_root)
-        assert res.returncode == 0, f'{path} is a stray artifact but not covered by .gitignore'
+    res = subprocess.run(
+        ['git', 'check-ignore', *sample_artifacts],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+    )
+    ignored = set(res.stdout.splitlines())
+    missing = [p for p in sample_artifacts if p not in ignored]
+    assert not missing, f'{missing} are stray artifacts but not covered by .gitignore'
 
 
 def test_bot_inline_complexity_disable_flagged(repo: Path) -> None:

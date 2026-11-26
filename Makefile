@@ -12,7 +12,6 @@ export NPM_CONFIG_LOGLEVEL ?= error
 # is macOS; nproc covers Linux CI runners; 4 is a safe last-resort default.
 JOBS ?= $(shell sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)
 PY_JOBS ?= $(JOBS)
-HALF_JOBS := $(shell expr \( $(JOBS) + 1 \) / 2)
 NODE_BIN = $(if $(wildcard node_modules/.bin/$(1)),"./node_modules/.bin/$(1)",npx $(1))
 
 # Fail loudly if an installed dev tool has drifted from its requirements-dev.txt
@@ -353,6 +352,7 @@ PY_SUITE_BUF_TARGETS := $(addprefix pysuite-buf/,$(PY_TEST_SUITES))
 $(PY_SUITE_BUF_TARGETS): pysuite-buf/%:
 	@mkdir -p "$(CURDIR)/$(PY_COV_DIR)"
 	@{ echo "  → $*"; \
+	   OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 \
 	   COVERAGE_FILE="$(CURDIR)/$(PY_COV_DIR)/.coverage.$(subst /,_,$*)" \
 	     $(PYTHON) -m pytest -q -p no:cacheprovider --color=yes --cov --cov-report= "$*"; \
 	} > "$(CURDIR)/$(PY_COV_DIR)/log.$(subst /,_,$*)" 2>&1; \
@@ -503,7 +503,7 @@ mutate-js:
 # BOTH `precommit` (verify-only, what CI runs) and `precommit-fix` (fix-then-verify)
 # reference this, so they can never silently diverge. Add a gate here once and it
 # applies everywhere; CI runs `make precommit SKIP=1`.
-VERIFY_GATE := check-py check-node quality-py lint fmt-check typecheck-js sync-check thinking-check bot-pr-check
+VERIFY_GATE := fmt-check lint typecheck-js quality-py check sync-check thinking-check bot-pr-check
 
 # Output buffering for the parallel verify gate: macOS ships GNU Make 3.81 which
 # lacks --output-sync, so each gate member's output is captured in a log file
@@ -520,7 +520,7 @@ VERIFY_GATE_BUFFERED := $(addprefix vgate/,$(VERIFY_GATE))
 $(VERIFY_GATE_BUFFERED): vgate/%:
 	@mkdir -p $(VERIFY_LOG_DIR)
 	@printf '  \033[2m⏳ %s ...\033[0m\n' "$*"
-	@MAKEFLAGS= FORCE_COLOR=1 PY_JOBS=$(HALF_JOBS) NODE_TEST_CONCURRENCY=$(HALF_JOBS) $(MAKE) $* > "$(VERIFY_LOG_DIR)/$*.log" 2>&1; \
+	@MAKEFLAGS= FORCE_COLOR=1 $(MAKE) $* > "$(VERIFY_LOG_DIR)/$*.log" 2>&1; \
 	RC=$$?; echo "$$RC" > "$(VERIFY_LOG_DIR)/$*.rc"; \
 	if [ "$$RC" = "0" ]; then \
 		printf '  \033[32m✅ %s\033[0m\n' "$*"; \
