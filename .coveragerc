@@ -10,6 +10,14 @@ omit =
     tools/test_*.py
     conftest.py
     */__pycache__/*
+    # Ephemeral test fixtures written to pytest tmp_path / OS temp dirs
+    # (e.g. tools/test_sweep_transform.py's dummy_transform.py); parallel
+    # `make check-py` rotates pytest's 3-dir tmp_path window before
+    # `coverage report` runs, which otherwise triggers NoSource errors.
+    */pytest-of-*/*
+    /tmp/*
+    /var/*
+    /private/var/*
     # awesome_tts legacy (vendored upstream) files — Testpilot work queue.
     # These files predate the repo's test culture and are omitted so the
     # combined floor stays green. The list is explicit on purpose: each entry

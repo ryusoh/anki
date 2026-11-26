@@ -14,7 +14,10 @@ and `git` are needed.
 
 import os
 import subprocess
+import sys
 from pathlib import Path
+
+import coverage
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -73,3 +76,33 @@ def test_heavy_suites_scheduled_first():
         "tools",
         "tests",
     ], f"Expected tools and tests at front of PY_TEST_SUITES, got {ordered[:5]!r}"
+
+
+def test_coveragerc_omits_ephemeral_tmp_modules(tmp_path):
+    """Temporary modules under pytest tmp_path/OS temp dirs must not enter .coverage.
+
+    In parallel `make check-py`, `tools` runs early while 20+ later suites
+    rotate pytest's `tmp_path` retention window (last 3 `pytest-N` dirs). Any
+    fixture module recorded under `pytest-of-*` is deleted before
+    `coverage report` runs, causing `NoSource` on the combined report.
+    """
+    mod_dir = tmp_path / "pytest-of-runner" / "pytest-0" / "test_main_as_script2"
+    mod_dir.mkdir(parents=True)
+    mod_file = mod_dir / "dummy_transform.py"
+    mod_file.write_text("x = 1\n", encoding="utf-8")
+
+    cov_file = tmp_path / ".coverage"
+    env = {**os.environ, "COVERAGE_FILE": str(cov_file)}
+    result = subprocess.run(
+        [sys.executable, "-m", "coverage", "run", str(mod_file)],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+
+    data = coverage.CoverageData(basename=str(cov_file))
+    data.read()
+    measured = {Path(p).resolve() for p in data.measured_files()}
+    assert mod_file.resolve() not in measured
