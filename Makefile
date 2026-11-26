@@ -8,9 +8,11 @@ NPM := npm
 # Suppress noisy `npm notice run <cmd>` logs introduced in npm 10.9+/12+
 export NPM_CONFIG_LOGLEVEL ?= error
 
-# Core count for the parallel verify gate (see `verify` target below). sysctl
-# is macOS; nproc covers Linux CI runners; 4 is a safe last-resort default.
-JOBS ?= $(shell sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)
+# Core count for the parallel verify gate (see `verify` target below). Prefer
+# Apple Silicon performance-core count (`hw.perflevel0.logicalcpu`, 4 on 4P+4E
+# chips) before total logical cores (`hw.ncpu` / `nproc`) so parallel V8 and
+# pytest-cov pools do not spill onto E-cores and thrash under desktop load.
+JOBS ?= $(shell sysctl -n hw.perflevel0.logicalcpu 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)
 PY_JOBS ?= $(JOBS)
 NODE_BIN = $(if $(wildcard node_modules/.bin/$(1)),"./node_modules/.bin/$(1)",npx $(1))
 
@@ -273,11 +275,11 @@ check: check-node check-py
 check-node:
 	@node tools/check_jsdom_pin.mjs
 	@COVDIR=$$(mktemp -d 2>/dev/null || mktemp -d -t c8cov); \
-	NODE_V8_COVERAGE="$$COVDIR" node tools/node_test_runner.mjs; \
+	NODE_TEST_CONCURRENCY="$${NODE_TEST_CONCURRENCY:-$(JOBS)}" NODE_V8_COVERAGE="$$COVDIR" node tools/node_test_runner.mjs; \
 	STATUS=$$?; \
 	rm -rf "$$COVDIR"; \
 	if [ $$STATUS -eq 0 ]; then \
-		NODE_OPTIONS="--experimental-vm-modules --no-warnings" $(call NODE_BIN,jest) --ci --colors $(if $(NODE_TEST_CONCURRENCY),--maxWorkers=$(NODE_TEST_CONCURRENCY),) review_heatmap/tests/; \
+		NODE_OPTIONS="--experimental-vm-modules --no-warnings" $(call NODE_BIN,jest) --ci --colors --maxWorkers="$${NODE_TEST_CONCURRENCY:-$(JOBS)}" review_heatmap/tests/; \
 		STATUS=$$?; \
 	fi; \
 	exit $$STATUS
