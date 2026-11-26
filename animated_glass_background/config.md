@@ -9,5 +9,7 @@
 - **reflectionIntensity**: (0.0 - 1.0) Brightness of the reflection.
 - **reflectionWidth**: (number) Width of the reflection line.
 - **reflectionColor**: (CSS Color) Color of the reflection line.
+- **maxDpr**: (number) Maximum backing canvas pixel ratio (default `0.5`; lower values cut software rasterization pixels for gradients).
+- **maxFps**: (number) Frame-rate cap when animations are enabled (default `20`).
 
 Changing these settings requires a restart of Anki.

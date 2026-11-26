@@ -7,5 +7,7 @@
   "reflectionSpeed": 0.03,
   "reflectionIntensity": 0.2,
   "reflectionWidth": 0.3,
-  "reflectionColor": "rgba(255, 255, 255, 0.4)"
+  "reflectionColor": "rgba(255, 255, 255, 0.4)",
+  "maxDpr": 0.5,
+  "maxFps": 20
 }

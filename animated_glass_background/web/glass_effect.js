@@ -8,8 +8,19 @@
       // Use injected config or defaults
       const config = window.glassEffectConfig || {};
 
+      const maxDpr =
+        typeof config.maxDpr === "number" && config.maxDpr > 0
+          ? config.maxDpr
+          : 0.5;
+      const maxFps =
+        typeof config.maxFps === "number" && config.maxFps > 0
+          ? config.maxFps
+          : 20;
+
       this.options = {
         enabled: config.enabled !== undefined ? config.enabled : true,
+        maxDpr,
+        maxFps,
         excludeHeader: false,
         rowHoverEffect: { enabled: false },
         threeD: {
@@ -56,6 +67,10 @@
       this.canvas = document.createElement("canvas");
       this.ctx = this.canvas.getContext("2d");
       this.animationFrame = null;
+      this._paused = false;
+      this._hasDrawn = false;
+      this._lastFrameTime = 0;
+      this._lifecycleBound = false;
       this.state = {
         phase: 0,
         continuousPhase: 0,
@@ -323,17 +338,27 @@
       // Use MutationObserver instead of setInterval for better performance
       const observer = new MutationObserver((mutations) => {
         let shouldUpdate = false;
+        let classChanged = false;
         for (const mutation of mutations) {
-          if (
-            mutation.type === "childList" ||
-            (mutation.type === "attributes" &&
-              mutation.attributeName === "style")
+          if (mutation.type === "childList") {
+            shouldUpdate = true;
+          } else if (
+            mutation.type === "attributes" &&
+            mutation.attributeName === "style"
           ) {
             shouldUpdate = true;
-            break;
+          } else if (
+            mutation.type === "attributes" &&
+            mutation.attributeName === "class"
+          ) {
+            classChanged = true;
           }
         }
         if (shouldUpdate) appendCanvasAndStyle();
+        if (classChanged && !this.isAnimated()) {
+          this.invalidateCaches();
+          this.draw();
+        }
       });
       observer.observe(document.body, {
         childList: true,
@@ -341,6 +366,7 @@
         subtree: false,
       });
 
+      this.bindLifecycleListeners();
       window.addEventListener("resize", () => this.resize());
       this.resize();
 
@@ -350,16 +376,88 @@
       this.startLoop();
     }
 
+    isAnimated() {
+      return Boolean(
+        this.options.threeD.ambientGlow.pulse ||
+        this.options.threeD.reflection.enabled,
+      );
+    }
+
+    isPaused() {
+      const govPaused =
+        document.documentElement &&
+        document.documentElement.dataset &&
+        document.documentElement.dataset.cpuGovernorPaused === "1";
+      return Boolean(this._paused || document.hidden || govPaused);
+    }
+
+    invalidateCaches() {
+      this.cachedLayout = null;
+      this._ambientGradientCache = null;
+      this._reflectionGradientCache = null;
+    }
+
+    stopLoop() {
+      if (this.animationFrame !== null) {
+        cancelAnimationFrame(this.animationFrame);
+        this.animationFrame = null;
+      }
+    }
+
+    pause() {
+      this._paused = true;
+      this.stopLoop();
+    }
+
+    resume() {
+      this._paused = false;
+      if (this.isAnimated() && !this.isPaused()) {
+        this.startLoop();
+      }
+    }
+
+    handleStorageChange(event) {
+      if (!event || !event.key || event.key.startsWith("anki_glass_")) {
+        this.invalidateCaches();
+        if (!this.isAnimated()) {
+          this.draw();
+        }
+      }
+    }
+
+    bindLifecycleListeners() {
+      if (this._lifecycleBound) return;
+      this._lifecycleBound = true;
+      window.addEventListener("storage", (e) => this.handleStorageChange(e));
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          this.stopLoop();
+        } else if (!this.isPaused() && this.isAnimated()) {
+          this.startLoop();
+        }
+      });
+      window.addEventListener("blur", () => this.pause());
+      window.addEventListener("focus", () => this.resume());
+      window.addEventListener("anki-cpu-governor-change", (e) => {
+        if (e && e.detail && e.detail.paused) {
+          this.stopLoop();
+        } else if (!this.isPaused() && this.isAnimated()) {
+          this.startLoop();
+        }
+      });
+    }
+
     resize() {
       this.width = window.innerWidth;
       this.height = window.innerHeight;
-      const dpr = window.devicePixelRatio || 1;
-      this.canvas.width = this.width * dpr;
-      this.canvas.height = this.height * dpr;
-      this.ctx.scale(dpr, dpr);
-      this.cachedLayout = null; // Reset cache on resize
-      this._ambientGradientCache = null;
-      this._reflectionGradientCache = null;
+      const rawDpr = window.devicePixelRatio || 1;
+      const dpr = Math.min(rawDpr, this.options.maxDpr);
+      this.canvas.width = Math.max(0, Math.round(this.width * dpr));
+      this.canvas.height = Math.max(0, Math.round(this.height * dpr));
+      if (this.canvas.width > 0 && this.canvas.height > 0 && dpr > 0) {
+        this.ctx.scale(dpr, dpr);
+      }
+      this.invalidateCaches();
 
       const isBottom =
         window.location.href.includes("bottom") ||
@@ -370,6 +468,10 @@
         window.location.href.includes("editable") ||
         document.getElementById("fields") !== null ||
         document.querySelector(".editor-field, anki-editable") !== null;
+
+      if (!this.isAnimated() && this.width > 0 && this.height > 0) {
+        this.draw();
+      }
 
       // Editor windows are standalone; keep them out of the main-window shared layout.
       if (isEditor) return;
@@ -452,9 +554,27 @@
     }
 
     startLoop() {
-      const loop = (time) => {
-        this.update(time);
+      this.stopLoop();
+      if (!this.isAnimated()) {
         this.draw();
+        return;
+      }
+      if (this.isPaused()) {
+        if (!this._hasDrawn) {
+          this.draw();
+        }
+        return;
+      }
+      const minInterval = 1000 / this.options.maxFps;
+      const loop = (time) => {
+        this.animationFrame = null;
+        if (this.isPaused()) return;
+        const now = typeof time === "number" ? time : Date.now();
+        if (!this._hasDrawn || now - this._lastFrameTime >= minInterval) {
+          this._lastFrameTime = now;
+          this.update(now);
+          this.draw();
+        }
         this.animationFrame = requestAnimationFrame(loop);
       };
       this.animationFrame = requestAnimationFrame(loop);
@@ -483,6 +603,8 @@
     }
 
     draw() {
+      if (this.width <= 0 || this.height <= 0) return;
+      this._hasDrawn = true;
       this.ctx.clearRect(0, 0, this.width, this.height);
       const radius = 0;
       const layout = this.getSyncedLayout();

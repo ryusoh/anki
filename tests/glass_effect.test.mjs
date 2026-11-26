@@ -236,4 +236,115 @@ describe("GlassEffectBackground", () => {
     assert.strictEqual(layout.totalWidth, 640);
     assert.strictEqual(layout.offsetY, 40);
   });
+
+  test("static mode draws on init and resize with zero requestAnimationFrame calls", () => {
+    let rafCount = 0;
+    const rafStub = () => {
+      rafCount += 1;
+      return rafCount;
+    };
+    dom.window.requestAnimationFrame = rafStub;
+    globalThis.requestAnimationFrame = rafStub;
+    dom.window.devicePixelRatio = 2;
+    dom.window.innerWidth = 1000;
+    dom.window.innerHeight = 600;
+
+    const GlassClass = loadGlassScript({
+      ambientGlowPulse: false,
+      reflectionEnabled: false,
+    });
+    const instance = new GlassClass();
+
+    assert.strictEqual(rafCount, 0);
+    assert.strictEqual(instance.animationFrame, null);
+    // Default maxDpr (0.5) caps Retina backing canvas dimensions by 16x pixels vs dpr=2.
+    assert.strictEqual(instance.canvas.width, 500);
+    assert.strictEqual(instance.canvas.height, 300);
+
+    let drawCalls = 0;
+    const origDraw = instance.draw.bind(instance);
+    instance.draw = () => {
+      drawCalls += 1;
+      origDraw();
+    };
+    dom.window.innerWidth = 800;
+    dom.window.dispatchEvent(new dom.window.Event("resize"));
+    assert.strictEqual(drawCalls, 1);
+    assert.strictEqual(rafCount, 0);
+
+    instance.handleStorageChange({ key: "anki_glass_h_top" });
+    assert.strictEqual(drawCalls, 2);
+    assert.strictEqual(rafCount, 0);
+  });
+
+  test("animated mode caps fps and pauses/resumes on focus and governor events", () => {
+    const callbacks = [];
+    const cancelled = [];
+    Object.defineProperty(dom.window.document, "hidden", {
+      configurable: true,
+      get: () => false,
+    });
+    const rafStub = (cb) => {
+      callbacks.push(cb);
+      return callbacks.length;
+    };
+    const cancelStub = (id) => {
+      cancelled.push(id);
+    };
+    dom.window.requestAnimationFrame = rafStub;
+    globalThis.requestAnimationFrame = rafStub;
+    dom.window.cancelAnimationFrame = cancelStub;
+    globalThis.cancelAnimationFrame = cancelStub;
+
+    dom.window.devicePixelRatio = 2;
+    const GlassClass = loadGlassScript({
+      reflectionEnabled: true,
+      ambientGlowPulse: false,
+      maxFps: 10,
+      maxDpr: 0.25,
+    });
+    const instance = new GlassClass();
+    assert.strictEqual(callbacks.length, 1);
+    assert.strictEqual(
+      instance.canvas.width,
+      Math.round(dom.window.innerWidth * 0.25),
+    );
+
+    let draws = 0;
+    const origDraw = instance.draw.bind(instance);
+    instance.draw = () => {
+      draws += 1;
+      origDraw();
+    };
+
+    // Frame 1 at t=1000 draws; frame 2 at t=1020 (< 100ms for 10fps) skips draw; frame 3 at t=1150 draws.
+    callbacks.shift()(1000);
+    callbacks.shift()(1020);
+    callbacks.shift()(1150);
+    assert.strictEqual(draws, 2);
+
+    dom.window.dispatchEvent(new dom.window.Event("blur"));
+    assert.strictEqual(instance.isPaused(), true);
+    assert.ok(cancelled.length >= 1);
+
+    dom.window.dispatchEvent(new dom.window.Event("focus"));
+    assert.strictEqual(instance.isPaused(), false);
+    assert.ok(callbacks.length >= 1);
+
+    dom.window.document.documentElement.dataset.cpuGovernorPaused = "1";
+    dom.window.dispatchEvent(
+      new dom.window.CustomEvent("anki-cpu-governor-change", {
+        detail: { paused: true },
+      }),
+    );
+    assert.strictEqual(instance.animationFrame, null);
+
+    delete dom.window.document.documentElement.dataset.cpuGovernorPaused;
+    dom.window.dispatchEvent(
+      new dom.window.CustomEvent("anki-cpu-governor-change", {
+        detail: { paused: false },
+      }),
+    );
+    assert.ok(instance.animationFrame !== null);
+  });
 });
