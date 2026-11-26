@@ -1,0 +1,6 @@
+{
+  "package": "background_cpu_governor",
+  "name": "Background CPU Governor",
+  "anki_version": "2.1.0",
+  "version": "1.0.0"
+}

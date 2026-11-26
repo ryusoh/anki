@@ -47,7 +47,7 @@ PY_SRC := auto_image auto_mathjax auto_wiktionary data/anki graph \
 	rewrite_text_of_study_cards stats_page_customizer strip_html_tags \
 	unify_review_count_colors tabbed_stats tools \
 	awesome_tts review_heatmap enhance_main_window custom_background \
-	animated_glass_background mac_transparent_titlebar hide_window_title \
+	animated_glass_background background_cpu_governor mac_transparent_titlebar hide_window_title \
 	hide_deck_collapse toggle_bottom_pane anki_connect \
 	auto_itaigi auto_markdown no_leech_suspend reflow_paragraphs \
 	deck_scoped_dupes add_cards_deck_sync

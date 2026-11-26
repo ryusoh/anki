@@ -157,6 +157,7 @@ async function generateCoverageReport() {
       src: [
         path.join(rootDir, 'js'),
         path.join(rootDir, 'animated_glass_background', 'web'),
+        path.join(rootDir, 'background_cpu_governor', 'web'),
         path.join(rootDir, 'enhance_main_window'),
       ],
       all: true,

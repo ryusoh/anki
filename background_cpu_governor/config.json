@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "pause_on_app_deactivate": true,
+  "pause_css_animations": true,
+  "pause_raf": true,
+  "warn_software_driver": true
+}
