@@ -116,10 +116,19 @@ def test_ruby_annotation_stars_not_italic():
 
 def test_italic_never_spans_tags():
     """Real card (note 1788318106323): stars separated by HTML markup are
-    literal, even with several on one line."""
+    literal, even with several on one line, and glued headings split cleanly."""
     html = '&nbsp;&nbsp;&nbsp; *&nbsp;&nbsp; <b>优势</b>：说明<h3>标题</h3>*&nbsp;&nbsp; 后续'
-    expected = '<ul><li><b>优势</b>：说明<h3>标题</h3>*&nbsp;&nbsp; 后续</li></ul>'
-    assert convert_markdown_field(html) == expected
+    expected = '<ul><li><b>优势</b>：说明</li></ul><h3>标题</h3><ul><li>后续</li></ul>'
+    out = convert_markdown_field(html)
+    assert out == expected
+    assert '<i>' not in out
+    assert convert_markdown_field(out) == out
+
+
+def test_italic_never_spans_inline_tags():
+    """Single stars separated by an inline HTML tag stay literal."""
+    html = '说明 *前段<span>标签</span>后段* 结束'
+    assert convert_markdown_field(html) == html
 
 
 def test_bold_inner_star_not_italic():
@@ -276,6 +285,98 @@ def test_glued_list_split_skips_dialogue_inside_open_dd():
         '- Oh, sure. Why not?</dd></dl></li>\n<li>Next</li>'
     )
     out = convert_markdown_field(html)
+    assert convert_markdown_field(out) == out
+
+
+def test_unordered_list_after_heading_inside_open_li_real_card():
+    """Real card (note 1790473702100): heading + '*&nbsp;&nbsp;' trapped inside open <li>.
+
+    Prior conversion/paste left `<h4>4. 胶微子 (Gluino)</h4>*&nbsp;&nbsp; <b>它的原型</b>...</li>`
+    inside an open `<ul><li>...`. The open list must close before `<h4>4.` and
+    resume as a clean `<ul>` starting with `<li><b>它的原型</b>...</li>`.
+    """
+    html = (
+        '<h4>3. 光微子 (Photino)</h4>'
+        '<ul>'
+        '<li><b>它的原型</b>：光子（Photon）。</li>'
+        '<li><b>奇特属性</b>：像一个极度内向的幽灵。'
+        '<h4>4. 胶微子 (Gluino)</h4>'
+        '*&nbsp;&nbsp; <b>它的原型</b>：胶子（Gluon）。它像超级胶水一样把夸克死死粘在一起，形成质子和中子。</li>'
+        '<li><b>它的变身</b>：变成了<b>“胶微子（Gluino）”</b>。</li>'
+        '<li><b>奇特属性</b>：至今依然没抓到它的影子。</li>'
+        '</ul>'
+    )
+    expected = (
+        '<h4>3. 光微子 (Photino)</h4>'
+        '<ul>'
+        '<li><b>它的原型</b>：光子（Photon）。</li>'
+        '<li><b>奇特属性</b>：像一个极度内向的幽灵。</li>'
+        '</ul>'
+        '<h4>4. 胶微子 (Gluino)</h4>'
+        '<ul>'
+        '<li><b>它的原型</b>：胶子（Gluon）。它像超级胶水一样把夸克死死粘在一起，形成质子和中子。</li>'
+        '<li><b>它的变身</b>：变成了<b>“胶微子（Gluino）”</b>。</li>'
+        '<li><b>奇特属性</b>：至今依然没抓到它的影子。</li>'
+        '</ul>'
+    )
+    out = convert_markdown_field(html)
+    assert out == expected
+    assert convert_markdown_field(out) == out
+
+
+def test_unordered_list_multiple_headings_inside_open_li():
+    """Multiple headings + '*&nbsp;&nbsp;' trapped in one <ul> unwrap sequentially."""
+    html = (
+        '<ul>'
+        '<li><b>项A</b>：说明A。<h4>4. 节二</h4>*&nbsp;&nbsp; <b>配方</b>：内容2。</li>'
+        '<li><b>关系</b>：说明2。<h4>5. 节三</h4>*&nbsp;&nbsp; <b>配方</b>：内容3。</li>'
+        '<li><b>意义</b>：说明3。</li>'
+        '</ul>'
+    )
+    expected = (
+        '<ul><li><b>项A</b>：说明A。</li></ul>'
+        '<h4>4. 节二</h4>'
+        '<ul><li><b>配方</b>：内容2。</li><li><b>关系</b>：说明2。</li></ul>'
+        '<h4>5. 节三</h4>'
+        '<ul><li><b>配方</b>：内容3。</li><li><b>意义</b>：说明3。</li></ul>'
+    )
+    out = convert_markdown_field(html)
+    assert out == expected
+    assert convert_markdown_field(out) == out
+
+
+def test_unordered_list_last_item_after_heading_inside_open_li():
+    """Heading + '*&nbsp;&nbsp;' in the final <li> before </ul> closes cleanly."""
+    html = (
+        '<ul><li><b>前项</b>：说明。'
+        '<h3>2. 例子</h3>* <b>股票投资</b>：</li></ul>'
+        '&nbsp; 后续段落。'
+    )
+    expected = (
+        '<ul><li><b>前项</b>：说明。</li></ul>'
+        '<h3>2. 例子</h3>'
+        '<ul><li><b>股票投资</b>：</li></ul>'
+        '&nbsp; 后续段落。'
+    )
+    out = convert_markdown_field(html)
+    assert out == expected
+    assert convert_markdown_field(out) == out
+
+
+def test_unordered_list_unconverted_glued_to_heading_and_bullet_idempotent():
+    """Unconverted list item glued to <hN>...</hN> + next bullet converts in one pass."""
+    html = (
+        '*&nbsp;&nbsp; <b>缺失</b>：说明。'
+        '<h3>2. 优缺点</h3>*&nbsp;&nbsp; <b>优点</b>：<br>'
+        '&nbsp;&nbsp;&nbsp; *&nbsp;&nbsp; <b>极速</b>：很快。'
+    )
+    expected = (
+        '<ul><li><b>缺失</b>：说明。</li></ul>'
+        '<h3>2. 优缺点</h3>'
+        '<ul><li><b>优点</b>：</li><li><b>极速</b>：很快。</li></ul>'
+    )
+    out = convert_markdown_field(html)
+    assert out == expected
     assert convert_markdown_field(out) == out
 
 

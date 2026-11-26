@@ -675,6 +675,96 @@ def _split_glued_markers(
     return result
 
 
+_HEADING_BEFORE_UL_RE = re.compile(
+    r"(<h([1-6])\b[^>]*>(?:(?!</?h[1-6]\b).)*?</h\2\s*>)(?=(?:\s|&nbsp;)*[-*+](?:\s|&nbsp;)+)",
+    re.IGNORECASE | re.DOTALL,
+)
+_LI_CLOSE_RE = re.compile(r"</li>", re.IGNORECASE)
+_UNSAFE_ITEM_INNER_TAG_RE = re.compile(
+    r"</?(?:li|ul|ol|div|p|h[1-6]|pre|table|blockquote)\b",
+    re.IGNORECASE,
+)
+
+
+def _open_enclosing_list_tag(prefix: str) -> str | None:
+    """Return 'ul' or 'ol' if `prefix` leaves an open <li> inside an open list."""
+    low = prefix.lower()
+    ul_open, ul_close = low.rfind("<ul"), low.rfind("</ul")
+    ol_open, ol_close = low.rfind("<ol"), low.rfind("</ol")
+    list_tag: str | None = None
+    list_pos = -1
+    if ul_open > ul_close:
+        list_tag, list_pos = "ul", ul_open
+    if ol_open > ol_close and ol_open > list_pos:
+        list_tag, list_pos = "ol", ol_open
+    if list_tag is None or low.rfind("<li") <= max(low.rfind("</li"), list_pos):
+        return None
+    if (
+        low.rfind("<dd") > max(low.rfind("</dd"), list_pos)
+        or low.rfind("<dt") > max(low.rfind("</dt"), list_pos)
+        or low.rfind("<pre") > max(low.rfind("</pre"), list_pos)
+        or low.rfind("<blockquote") > max(low.rfind("</blockquote"), list_pos)
+    ):
+        return None
+    return list_tag
+
+
+def _unwrap_heading_list_in_li(parts: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """Unwrap <hN>...</hN> + glued bullet trapped inside an open <li> or list line."""
+    result: list[tuple[str, str]] = []
+    for content, kind in parts:
+        if kind != "text":
+            result.append((content, kind))
+            continue
+        remaining = content
+        search_from = 0
+        while remaining:
+            m = _HEADING_BEFORE_UL_RE.search(remaining, search_from)
+            if not m:
+                result.append((remaining, "text"))
+                break
+            prefix = remaining[: m.start(1)]
+            list_tag = _open_enclosing_list_tag(prefix)
+            after = remaining[m.end(1) :]
+            if list_tag is None:
+                cleaned = _LEADING_WS_NBSP_RE.sub("", prefix).strip()
+                if _UL_RE.match(cleaned) or _OL_RE.match(cleaned):
+                    result.append((prefix, "text"))
+                    result.append((m.group(1), "text"))
+                    remaining = after
+                    search_from = 0
+                    continue
+                search_from = m.end(1)
+                continue
+            close_li = _LI_CLOSE_RE.search(after)
+            if close_li is None:
+                search_from = m.end(1)
+                continue
+            bullet_text = after[: close_li.start()]
+            if _UNSAFE_ITEM_INNER_TAG_RE.search(bullet_text):
+                search_from = m.end(1)
+                continue
+            m_ul = _UL_RE.match(_LEADING_WS_NBSP_RE.sub("", bullet_text).strip())
+            if not m_ul:
+                search_from = m.end(1)
+                continue
+            result.append((f"{prefix}</li></{list_tag}>", "text"))
+            result.append((m.group(1), "text"))
+            rest = after[close_li.end() :]
+            rest_lstrip = rest.lstrip()
+            close_list_prefix = f"</{list_tag}>"
+            if rest_lstrip.lower().startswith(close_list_prefix):
+                result.append((bullet_text, "text"))
+                remaining = rest_lstrip[len(close_list_prefix) :]
+            elif rest_lstrip.lower().startswith("<li"):
+                remaining = f"<{list_tag}><li>{m_ul.group(1)}</li>{rest_lstrip}"
+            else:
+                result.append((bullet_text, "text"))
+                remaining = f"<{list_tag}>{rest}"
+            search_from = 0
+    return result
+
+
 def _split_glued_list_items(parts: list[tuple[str, str]]) -> list[tuple[str, str]]:
     """Split unordered list items glued onto adjacent block HTML with no <br>."""
     return _split_glued_markers(parts, _GLUED_LIST_SPLIT_RE)
@@ -992,7 +1082,9 @@ def convert_markdown_field(html: str) -> str:
     # Parse tables
     parts = _parse_tables(parts)
 
-    # Split off blockquotes and list items glued onto adjacent block HTML with no <br>.
+    # Unwrap headings + glued bullets trapped inside an open <li>, then split
+    # blockquotes and list items glued onto adjacent block HTML with no <br>.
+    parts = _unwrap_heading_list_in_li(parts)
     parts = _split_glued_blockquotes(parts)
     parts = _split_glued_list_items(parts)
 
