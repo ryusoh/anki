@@ -1,6 +1,16 @@
 (function () {
-  if (window.statsCustomizerInterval)
+  if (window.statsCustomizerInterval) {
     clearInterval(window.statsCustomizerInterval);
+    window.statsCustomizerInterval = null;
+  }
+  if (window.statsCustomizerObserver) {
+    window.statsCustomizerObserver.disconnect();
+    window.statsCustomizerObserver = null;
+  }
+  if (window.__scObserverTimer) {
+    clearTimeout(window.__scObserverTimer);
+    window.__scObserverTimer = null;
+  }
   document.documentElement.dataset.statsCustomizer = "active";
 
   window.__scSixMonthMode = window.__scSixMonthMode || false;
@@ -598,6 +608,30 @@
     }
   }
 
-  applyChanges();
-  window.statsCustomizerInterval = setInterval(applyChanges, 200);
+  let isApplyingChanges = false;
+  function runApplyChanges() {
+    if (isApplyingChanges) return;
+    isApplyingChanges = true;
+    try {
+      applyChanges();
+    } finally {
+      isApplyingChanges = false;
+    }
+  }
+
+  function scheduleApplyChanges() {
+    if (window.__scObserverTimer) return;
+    window.__scObserverTimer = setTimeout(function () {
+      window.__scObserverTimer = null;
+      runApplyChanges();
+    }, 30);
+  }
+
+  runApplyChanges();
+  window.statsCustomizerInterval = null;
+  if (typeof MutationObserver !== "undefined" && document.body) {
+    const observer = new MutationObserver(scheduleApplyChanges);
+    observer.observe(document.body, { childList: true, subtree: true });
+    window.statsCustomizerObserver = observer;
+  }
 })();
