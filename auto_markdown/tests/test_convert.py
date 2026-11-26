@@ -328,6 +328,80 @@ def test_blockquote_multiple_br():
     assert convert_markdown_field(html) == expected
 
 
+def test_blockquote_nbsp_before_marker():
+    """Real pattern: Anki stores indented '> ' as leading &nbsp; entities."""
+    html = '&nbsp;&nbsp;&nbsp; &gt; Indented quote'
+    expected = '<blockquote style="border-left: 4px solid #ccc; padding: 6px 12px; margin: 10px 0; background-color: rgba(150, 150, 150, 0.08);">Indented quote</blockquote>'
+    assert convert_markdown_field(html) == expected
+
+
+def test_blockquote_nbsp_after_marker():
+    """&nbsp; after '>' / '&gt;' is treated as the separator space."""
+    html = '&nbsp;&nbsp;&nbsp; &gt;&nbsp;Indented quote'
+    expected = '<blockquote style="border-left: 4px solid #ccc; padding: 6px 12px; margin: 10px 0; background-color: rgba(150, 150, 150, 0.08);">Indented quote</blockquote>'
+    assert convert_markdown_field(html) == expected
+
+
+def test_blockquote_glued_to_following_ul_real_card():
+    """Real card (note 1795654604895): &nbsp;-indented '&gt;' glued to <ul>.
+
+    A prior pass converted the surrounding lists and stripped <br> next to
+    <ul>, leaving `&nbsp;&nbsp;&nbsp; &gt; <b>...</b>` glued directly onto
+    `<ul><li>...</li></ul>` with no <br> separator.
+    """
+    html = (
+        '<ul><li><b>具体问什么？</b></li></ul>'
+        '&nbsp;&nbsp;&nbsp; 对于一般形式的线性规划问题（\\(n\\) 个变量）：<br>'
+        '&nbsp;&nbsp;&nbsp; &gt; <b>是否存在一个强多项式时间算法，使得求解所需的算术运算和比较步数仅是维度 \\(m\\) 和 \\(n\\) 的多项式？</b>'
+        '<ul><li><b>为什么这个问题难倒了数学界几十年？</b></li></ul>'
+    )
+    out = convert_markdown_field(html)
+    bq = (
+        '<blockquote style="border-left: 4px solid #ccc; padding: 6px 12px; margin: 10px 0; '
+        'background-color: rgba(150, 150, 150, 0.08);">'
+        '<b>是否存在一个强多项式时间算法，使得求解所需的算术运算和比较步数仅是维度 \\(m\\) 和 \\(n\\) 的多项式？</b>'
+        '</blockquote>'
+    )
+    assert bq in out
+    assert '<ul><li><b>为什么这个问题难倒了数学界几十年？</b></li></ul>' in out
+    assert out.index(bq) < out.index('<ul><li><b>为什么')
+    assert '&gt;' not in out
+    assert convert_markdown_field(out) == out
+
+
+def test_blockquote_glued_after_closing_list_and_before_ul():
+    """&nbsp;-indented blockquote glued between </ul> and <ul> converts cleanly."""
+    html = '<ul><li>Intro</li></ul>&nbsp;&nbsp;&nbsp; &gt; Quote text<ul><li>Next</li></ul>'
+    expected = (
+        '<ul><li>Intro</li></ul>'
+        '<blockquote style="border-left: 4px solid #ccc; padding: 6px 12px; margin: 10px 0; '
+        'background-color: rgba(150, 150, 150, 0.08);">Quote text</blockquote>'
+        '<ul><li>Next</li></ul>'
+    )
+    out = convert_markdown_field(html)
+    assert out == expected
+    assert convert_markdown_field(out) == out
+
+
+def test_blockquote_in_leaf_div_with_nbsp():
+    """Leaf <div> run containing an &nbsp;-indented blockquote line unwraps and converts."""
+    html = '<div>Intro</div><div>&nbsp;&nbsp;&nbsp; &gt; Indented quote</div>'
+    expected = (
+        'Intro'
+        '<blockquote style="border-left: 4px solid #ccc; padding: 6px 12px; margin: 10px 0; '
+        'background-color: rgba(150, 150, 150, 0.08);">Indented quote</blockquote>'
+    )
+    out = convert_markdown_field(html)
+    assert out == expected
+    assert convert_markdown_field(out) == out
+
+
+def test_gt_comparison_not_blockquote():
+    """Comparison expressions like '&gt;50%' must not become blockquotes."""
+    html = '&nbsp;&nbsp;&nbsp; &gt;50% of cases<br>&gt;100'
+    assert convert_markdown_field(html) == html
+
+
 # ---------------------------------------------------------------------------
 # Mixed content
 # ---------------------------------------------------------------------------

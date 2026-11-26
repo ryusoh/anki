@@ -37,8 +37,8 @@ _OL_RE = re.compile(r"^\d+\.\s+(.+)$")
 # Horizontal rule: exactly '---', '***', or '___' (with optional trailing space).
 _HR_RE = re.compile(r"^(-{3,}|\*{3,}|_{3,})\s*$")
 
-# Blockquote: line starts with '> ' or '&gt; '.
-_BQ_RE = re.compile(r"^(?:>|&gt;)\s?(.*)")
+# Blockquote: line starts with '>' or '&gt;' followed by whitespace/&nbsp; or EOL.
+_BQ_RE = re.compile(r"^(?:>|&gt;)(?:(?:\s|&nbsp;)+(.*)|$)")
 
 # Inline patterns — applied within a line.
 # Bold **...**  (non-greedy, no newlines).
@@ -157,8 +157,10 @@ def _convert_line(line: str) -> tuple[str, str]:
         content = _convert_inline(m.group(2))
         return (f"<h{level}>{content}</h{level}>", "heading")
 
+    nbsp_stripped = _LEADING_WS_NBSP_RE.sub("", line).strip()
+
     # Unordered list item.
-    m = _UL_RE.match(_LEADING_WS_NBSP_RE.sub("", line).strip())
+    m = _UL_RE.match(nbsp_stripped)
     if m:
         content = _convert_inline(m.group(1))
         return (f"<li>{content}</li>", "ul")
@@ -170,9 +172,9 @@ def _convert_line(line: str) -> tuple[str, str]:
         return (f"<li>{content}</li>", "ol")
 
     # Blockquote.
-    m = _BQ_RE.match(stripped)
+    m = _BQ_RE.match(nbsp_stripped)
     if m:
-        content = _convert_inline(m.group(1))
+        content = _convert_inline(m.group(1) or "")
         return (content, "bq")
 
     # Normal line — just apply inline conversion.
@@ -402,12 +404,13 @@ def _strip_trailing_br(content: str) -> str:
 def _has_block_markdown(content: str) -> bool:
     """Return True if a leaf <div>'s content starts with a block markdown marker."""
     stripped = _STRIP_CODE_TAGS_RE.sub("", content).strip()
+    nbsp_stripped = _LEADING_WS_NBSP_RE.sub("", stripped).strip()
     return (
         stripped.startswith("```")
         or _HEADING_RE.match(stripped) is not None
-        or _UL_RE.match(stripped) is not None
+        or _UL_RE.match(nbsp_stripped) is not None
         or _OL_RE.match(stripped) is not None
-        or _BQ_RE.match(stripped) is not None
+        or _BQ_RE.match(nbsp_stripped) is not None
         or _HR_RE.match(stripped) is not None
         or _is_table_row(stripped)
     )
@@ -586,11 +589,16 @@ def _split_leading_block_boundary_row(parts: list[tuple[str, str]]) -> list[tupl
     return result
 
 
-# Unordered list item glued onto a closing block tag with no <br> before it
-# (typically because `_clean_spacings` stripped `<br>` around a converted list
-# or heading while leaving an `&nbsp;`-indented bullet unconverted).
+# Unordered list item or blockquote glued onto a closing block tag with no <br>
+# before it (typically because `_clean_spacings` stripped `<br>` around a
+# converted block while leaving an `&nbsp;`-indented marker unconverted).
 _GLUED_LIST_SPLIT_RE = re.compile(
     r"(</(?:div|ul|ol|p|blockquote|h[1-6])\s*>)" r"((?:\s|&nbsp;)*[-*+](?:\s|&nbsp;)+)",
+    re.IGNORECASE,
+)
+_GLUED_BQ_PREFIX_RE = re.compile(r"^((?:\s|&nbsp;)*(?:>|&gt;)(?:\s|&nbsp;)+)")
+_GLUED_BQ_SPLIT_RE = re.compile(
+    r"(</(?:div|ul|ol|p|blockquote|h[1-6])\s*>)" r"((?:\s|&nbsp;)*(?:>|&gt;)(?:\s|&nbsp;)+)",
     re.IGNORECASE,
 )
 _BLOCK_TAG_BOUNDARY_RE = re.compile(
@@ -600,10 +608,15 @@ _BLOCK_TAG_BOUNDARY_RE = re.compile(
 
 
 def _inside_open_item_or_dd(prefix: str, closing_tag: str) -> bool:
-    """True when `prefix` leaves an open <dd>/<dt>, or an open <li> / list line
-    around a non-list closing tag (so inline markup isn't split)."""
+    """True when `prefix` leaves an open <dd>/<dt>/<pre>/<blockquote>, or an
+    open <li> / list line around a non-list closing tag (so inline markup isn't split)."""
     low = prefix.lower()
-    if low.rfind("<dd") > low.rfind("</dd") or low.rfind("<dt") > low.rfind("</dt"):
+    if (
+        low.rfind("<dd") > low.rfind("</dd")
+        or low.rfind("<dt") > low.rfind("</dt")
+        or low.rfind("<pre") > low.rfind("</pre")
+        or low.rfind("<blockquote") > low.rfind("</blockquote")
+    ):
         return True
     if closing_tag.startswith(("</ol", "</ul")):
         return False
@@ -613,8 +626,12 @@ def _inside_open_item_or_dd(prefix: str, closing_tag: str) -> bool:
     return bool(_UL_RE.match(cleaned) or _OL_RE.match(cleaned))
 
 
-def _split_glued_list_items(parts: list[tuple[str, str]]) -> list[tuple[str, str]]:
-    """Split unordered list items glued onto adjacent block HTML with no <br>."""
+def _split_glued_markers(
+    parts: list[tuple[str, str]],
+    split_re: re.Pattern[str],
+    leading_re: re.Pattern[str] | None = None,
+) -> list[tuple[str, str]]:
+    """Split markdown block lines glued onto adjacent block HTML with no <br>."""
     result: list[tuple[str, str]] = []
     for content, kind in parts:
         if kind != "text":
@@ -624,7 +641,18 @@ def _split_glued_list_items(parts: list[tuple[str, str]]) -> list[tuple[str, str
         remaining = content
         search_from = 0
         while remaining:
-            m = _GLUED_LIST_SPLIT_RE.search(remaining, search_from)
+            if leading_re is not None and search_from == 0:
+                lead = leading_re.match(remaining)
+                if lead:
+                    next_block = _BLOCK_TAG_BOUNDARY_RE.search(remaining, lead.end())
+                    if (
+                        next_block
+                        and remaining[lead.end() : next_block.start()].replace("&nbsp;", "").strip()
+                    ):
+                        result.append((remaining[: next_block.start()], "text"))
+                        remaining = remaining[next_block.start() :]
+                        continue
+            m = split_re.search(remaining, search_from)
             if not m:
                 result.append((remaining, "text"))
                 break
@@ -645,6 +673,16 @@ def _split_glued_list_items(parts: list[tuple[str, str]]) -> list[tuple[str, str
             remaining = remaining[item_end:]
             search_from = 0
     return result
+
+
+def _split_glued_list_items(parts: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """Split unordered list items glued onto adjacent block HTML with no <br>."""
+    return _split_glued_markers(parts, _GLUED_LIST_SPLIT_RE)
+
+
+def _split_glued_blockquotes(parts: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """Split blockquote lines glued onto adjacent block HTML with no <br>."""
+    return _split_glued_markers(parts, _GLUED_BQ_SPLIT_RE, leading_re=_GLUED_BQ_PREFIX_RE)
 
 
 def _parse_alignment(cell: str) -> str:
@@ -954,7 +992,8 @@ def convert_markdown_field(html: str) -> str:
     # Parse tables
     parts = _parse_tables(parts)
 
-    # Split off list items glued onto adjacent block HTML with no <br>.
+    # Split off blockquotes and list items glued onto adjacent block HTML with no <br>.
+    parts = _split_glued_blockquotes(parts)
     parts = _split_glued_list_items(parts)
 
     # Parse individual lines
