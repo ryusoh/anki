@@ -62,7 +62,11 @@ The user, other agents, and background sessions edit this tree concurrently.
    `typecheck-js` + `quality-py` + `check` + `sync-check` + `thinking-check` +
    `bot-pr-check`). Open a PR only on a green gate. A red gate on an unchanged
    tree stays red — change something before rerunning
-   (`python3 tools/gate_guard.py snapshot`, then `check <hash>`).
+   (`python3 tools/gate_guard.py snapshot`, then `check <hash>`). Run full
+   verification gates solo — never batch them in the same turn with heavy
+   collection scans or concurrent sibling-repo gates on this host. Never close
+   or quit the Anki app or its windows (only the user closes Anki; it may be in
+   active use while agents run in the background).
 2. **One concern, smallest diff,** inside the task's files. For self-chosen
    work, run `python3 tools/prior_prs.py` (`--stats` for bot-PR outcomes) first
    so you pick something no open or closed PR already covers.
