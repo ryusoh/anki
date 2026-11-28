@@ -46,12 +46,21 @@ _BOLD_RE = re.compile(r"\*\*(.+?)\*\*")
 # Italic *...* (single asterisk, after bold handled). Flanking rules keep
 # math notation literal: the opener can't follow an ASCII letter or digit
 # (C*-代数, a*b), the content can't end in whitespace (记为 *) and can't
-# contain an HTML tag (furigana <rt>*</rt> placeholders, *...<h3>...*),
-# and the closer can't be followed by an ASCII word character. CJK prose
+# span arbitrary HTML tags (furigana <rt>*</rt> placeholders, *...<h3>...*,
+# *...<span>...*), though balanced inline <b>...</b> spans (already
+# converted or produced by _BOLD_RE) are allowed inside italic text.
+# The closer can't be followed by an ASCII word character; CJK prose
 # does not require spaces around emphasis.
-_ITALIC_RE = re.compile(r"(?<![A-Za-z0-9*])\*([^\s*<](?:[^*<]*?[^\s*<])?)\*(?![A-Za-z0-9_*])")
-# Inline code `...` (backtick pairs, not inside <code> already).
+_BOLD_SPAN_RE = r"<b\b[^>]*>[^*<]*</b>"
+_ITALIC_EDGE = rf"(?:[^\s*<]|{_BOLD_SPAN_RE})"
+_ITALIC_INNER = rf"(?:[^*<]|{_BOLD_SPAN_RE})"
+_ITALIC_RE = re.compile(
+    rf"(?<![A-Za-z0-9*])\*({_ITALIC_EDGE}(?:{_ITALIC_INNER}*?{_ITALIC_EDGE})?)\*(?![A-Za-z0-9_*])",
+    re.IGNORECASE,
+)
+# Inline code `...` (backtick pairs, not inside <code> already) and existing <code>...</code> spans.
 _CODE_RE = re.compile(r"`([^`]+?)`")
+_EXISTING_CODE_RE = re.compile(r"<code\b[^>]*>.*?</code>", re.IGNORECASE | re.DOTALL)
 
 # Already-converted patterns — skip to guarantee idempotency.
 _ALREADY_HEADING_RE = re.compile(r"^\s*<h[1-6][^>]*>", re.IGNORECASE)
@@ -108,9 +117,24 @@ def _convert_inline(text: str) -> str:
 
     protected_text = _MATHJAX_BLOCKS_RE.sub(protect_mathjax, text)
 
-    # Inline code first — protect code content from bold/italic conversion.
+    # Inline code first — protect code content (both existing <code>...</code>
+    # and newly converted `...`) from bold/italic conversion while letting outer
+    # *...* or **...** wrap code spans cleanly.
+    code_blocks: list[str] = []
+
+    def shield_code(block: str) -> str:
+        placeholder = f"__CODE_PLACEHOLDER_{len(code_blocks)}__"
+        code_blocks.append(block)
+        return placeholder
+
+    if "<code" in protected_text.lower():
+        protected_text = _EXISTING_CODE_RE.sub(lambda m: shield_code(m.group(0)), protected_text)
+
     if "`" in protected_text:
-        protected_text = _CODE_RE.sub(r"<code>\1</code>", protected_text)
+        protected_text = _CODE_RE.sub(
+            lambda m: shield_code(f"<code>{m.group(1)}</code>"),
+            protected_text,
+        )
 
     # Bold **...** → <b>...</b>
     if "**" in protected_text:
@@ -119,6 +143,11 @@ def _convert_inline(text: str) -> str:
     # Italic *...* → <i>...</i>  (only after bold is handled)
     if "*" in protected_text and "<i>" not in protected_text.lower():
         protected_text = _ITALIC_RE.sub(r"<i>\1</i>", protected_text)
+
+    # Restore <code>...</code> blocks before MathJax blocks.
+    for idx, block in enumerate(code_blocks):
+        placeholder = f"__CODE_PLACEHOLDER_{idx}__"
+        protected_text = protected_text.replace(placeholder, block)
 
     # Restore MathJax blocks.
     for idx, block in enumerate(mathjax_blocks):

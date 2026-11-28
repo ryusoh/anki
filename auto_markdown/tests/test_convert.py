@@ -131,6 +131,78 @@ def test_italic_never_spans_inline_tags():
     assert convert_markdown_field(html) == html
 
 
+def test_italic_wrapping_bold_and_inline_code_raw():
+    """Italic span containing **bold** and `code` converts outer *...* too."""
+    html = (
+        '&nbsp;&nbsp; *(在 Hive 中通常细分为：普通 **UDF** [一行进一行出]、'
+        '**UDAF** [UD Aggregate F 多行聚合为一行，类似 `SUM`]、'
+        '**UDTF** [UD Table F 一行拆分为多行])*。'
+    )
+    expected = (
+        '&nbsp;&nbsp; <i>(在 Hive 中通常细分为：普通 <b>UDF</b> [一行进一行出]、'
+        '<b>UDAF</b> [UD Aggregate F 多行聚合为一行，类似 <code>SUM</code>]、'
+        '<b>UDTF</b> [UD Table F 一行拆分为多行])</i>。'
+    )
+    out = convert_markdown_field(html)
+    assert out == expected
+    assert convert_markdown_field(out) == out
+
+
+def test_italic_wrapping_bold_and_inline_code_intermediate_real_card():
+    """Real card (note 1740715855938): prior pass converted <b> and <code>
+    inside *...* and left the outer *...* unconverted; re-running repairs it."""
+    html = (
+        '&nbsp; &nbsp;在 Hive、Pig 或 Spark 等数据框架中，当内置函数无法满足特定业务需求'
+        '（如解析自定义格式日志、脱敏加密、调用特定数学/NLP 算法）时，允许开发者用 Java、Python '
+        '等语言自己编写逻辑函数，并将其“嵌入”到 HiveQL 或 Pig 脚本中像原生函数一样调用。<br>'
+        '&nbsp;&nbsp; *(在 Hive 中通常细分为：普通 <b>UDF</b> [一行进一行出]、'
+        '<b>UDAF</b> [UD Aggregate F 多行聚合为一行，类似 <code>SUM</code>]、'
+        '<b>UDTF</b> [UD Table F 一行拆分为多行])*。'
+    )
+    expected = (
+        '&nbsp; &nbsp;在 Hive、Pig 或 Spark 等数据框架中，当内置函数无法满足特定业务需求'
+        '（如解析自定义格式日志、脱敏加密、调用特定数学/NLP 算法）时，允许开发者用 Java、Python '
+        '等语言自己编写逻辑函数，并将其“嵌入”到 HiveQL 或 Pig 脚本中像原生函数一样调用。<br>'
+        '&nbsp;&nbsp; <i>(在 Hive 中通常细分为：普通 <b>UDF</b> [一行进一行出]、'
+        '<b>UDAF</b> [UD Aggregate F 多行聚合为一行，类似 <code>SUM</code>]、'
+        '<b>UDTF</b> [UD Table F 一行拆分为多行])</i>。'
+    )
+    out = convert_markdown_field(html)
+    assert out == expected
+    assert convert_markdown_field(out) == out
+
+
+def test_italic_wrapping_only_bold():
+    """Real pattern (note 1612595437437): *<b>...</b>* converts to <i><b>...</b></i>."""
+    html = '*<b>fap fap fap</b>*'
+    expected = '<i><b>fap fap fap</b></i>'
+    out = convert_markdown_field(html)
+    assert out == expected
+    assert convert_markdown_field(out) == out
+
+
+def test_italic_with_star_inside_inline_code():
+    """Stars inside `code` or <code>...</code> do not close or pair with outer *...*."""
+    assert convert_markdown_field('*use `a*b` here*') == '<i>use <code>a*b</code> here</i>'
+    code_stars = '<code>*anyopaque</code> 对应 C 的 <code>void*</code>'
+    assert convert_markdown_field(code_stars) == code_stars
+
+
+def test_italic_inside_bold_preserved():
+    """**bold *italic* bold** still converts the inner italic span."""
+    assert convert_markdown_field('**bold *italic* bold**') == '<b>bold <i>italic</i> bold</b>'
+
+
+def test_italic_never_crosses_unbalanced_bold_tags():
+    """Stars inside or crossing unbalanced <b> tags stay literal."""
+    unbalanced = '<b>*foo</b> and <b>bar*</b>'
+    assert convert_markdown_field(unbalanced) == unbalanced
+    trailing_stars = '<b>A*</b> and <b>B*</b>'
+    assert convert_markdown_field(trailing_stars) == trailing_stars
+    mangled_bold_italic = '<b>*First</b>*: prose between <b>*Second</b>* items'
+    assert convert_markdown_field(mangled_bold_italic) == mangled_bold_italic
+
+
 def test_bold_inner_star_not_italic():
     """Real pattern: **核心法则（C*恒等式）** — the inner star survives bold."""
     html = '**核心法则（C*恒等式）**：对于任何元素'
